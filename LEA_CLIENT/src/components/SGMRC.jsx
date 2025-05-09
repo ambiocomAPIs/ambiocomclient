@@ -118,7 +118,7 @@ const SGMRC = React.memo(() => {
 
   useEffect(() => {
     // Realizar la solicitud GET a la API
-    axios.get('https://ambiocomserver.onrender.com/api/table/data')
+    axios.get('http://localhost:4041/api/table/data')
       .then(response => {
         setData(response.data);
         setLoading(false);
@@ -141,7 +141,7 @@ const SGMRC = React.memo(() => {
 
     const fetchPdf = async (rowId) => {
       try {
-          const response = await axios.get(`https://ambiocomserver.onrender.com/api/pdfs/${rowId}`, {
+          const response = await axios.get(`http://localhost:4041/api/pdfs/${rowId}`, {
               responseType: 'blob',  // Especifica que esperas un blob (archivo binario)
           });
   
@@ -161,15 +161,13 @@ const SGMRC = React.memo(() => {
   const DownloadPdf = async (rowId) => {
     try {
         // Realiza la solicitud para obtener el archivo PDF
-        const response = await axios.get(`https://ambiocomserver.onrender.com/api/pdfs/download/${rowId}`);
-
+        const response = await axios.get(`http://localhost:4041/api/pdfs/download/${rowId}`);
         // Extraer el nombre del archivo desde los datos JSON
         const { filename, data } = response.data;
 
         if (!filename || !data) {
             throw new Error("Nombre del archivo o datos no disponibles.");
         }
-
         // Convertir los datos base64 a un Blob
         const byteCharacters = atob(data); // Decodificar el base64
         const byteArrays = [];
@@ -183,19 +181,15 @@ const SGMRC = React.memo(() => {
         }
 
         const pdfBlob = new Blob(byteArrays, { type: 'application/pdf' });
-
         // Crear una URL para el Blob
         const url = window.URL.createObjectURL(pdfBlob);
-
         // Crear un enlace para descargar el archivo
         const link = document.createElement('a');
         link.href = url;
         link.setAttribute('download', filename); // Asigna el nombre del archivo
-
         // Agregar el enlace al DOM y simular un clic para iniciar la descarga
         document.body.appendChild(link);
         link.click();
-
         // Eliminar el enlace después de descargar el archivo
         document.body.removeChild(link);
     } catch (error) {
@@ -211,7 +205,6 @@ const SGMRC = React.memo(() => {
     }
 };
 
-
 const DeletePdf = async (rowId) => {
   try {
     const result = await Swal.fire({
@@ -226,7 +219,7 @@ const DeletePdf = async (rowId) => {
 
     // Verifica si el usuario confirmó la acción
     if (result.isConfirmed) {
-      const response = await axios.delete(`https://ambiocomserver.onrender.com/api/pdfs/${rowId}`);
+      const response = await axios.delete(`http://localhost:4041/api/pdfs/${rowId}`);
 
       // Notificación de éxito
       Swal.fire({
@@ -249,7 +242,6 @@ const DeletePdf = async (rowId) => {
 };
 
 const NotificarAlerta = async (params) => {
-
   try {
     const result = await Swal.fire({
       title: params.notificado ? "Activar Notificaciones":"Notificar Enterado",
@@ -266,7 +258,7 @@ const NotificarAlerta = async (params) => {
 
     // Verifica si el usuario confirmó la acción
     if (result.isConfirmed) {
-      const response = await axios.get(`https://ambiocomserver.onrender.com/api/email/notificar-producto/${params._id}`);
+      const response = await axios.get(`http://localhost:4041/api/email/notificar-producto/${params._id}`);
 
       // Notificación de éxito
       Swal.fire({
@@ -289,16 +281,14 @@ const NotificarAlerta = async (params) => {
   }
 };
 
-  const handleBlur = async () => {
-    
+  const handleBlur = async () => { 
     // Crea una copia de los datos y actualiza el valor modificado
     const newData = [...data];
     newData[editingCell.rowIndex][editingCell.column] = tempValue;
-  
     // TAN PRONTO DESENFOQUE LA CASILLA, GUARDA LOS DATOS
     try {
       // Usar `newData` para enviar los datos modificados al servidor
-      const response = await axios.post('https://ambiocomserver.onrender.com/api/table/datareplaceall', newData);  
+      const response = await axios.post('http://localhost:4041/api/table/datareplaceall', newData);  
       // Si la solicitud es exitosa
       if (response.status === 200) {
         setSnackbarMessage('Datos actualizados correctamente');
@@ -315,9 +305,7 @@ const NotificarAlerta = async (params) => {
     }
   };
   
-
   const agregarDataFila = ()=> {
-
     const newFile = {
       nombre: '----',
       ValorUnitario: null,  // Para seguir el tipo Number
@@ -338,6 +326,7 @@ const NotificarAlerta = async (params) => {
       certificadoAnalisis: null,  // Debería ser un booleano (true/false)
       responsable: '----',
       observaciones: 'Ninguna',
+      InventarioCritico: 0,
       SAP: 0,  // Se puede dejar como Number si corresponde
       ConsumoAcumuladoAnual: 0,  // Este campo debería ser un Number si es relevante
       GastoAcumulado: 0,  // Similar a ConsumoAcumuladoAnual, puede ser un Number
@@ -345,7 +334,7 @@ const NotificarAlerta = async (params) => {
       estado: '----',  // Agregado para el nuevo modelo
     }
 
-    axios.post('https://ambiocomserver.onrender.com/api/table/data', newFile)
+    axios.post('http://localhost:4041/api/table/data', newFile)
     .then(response => {
       // Una vez agregada la fila en la base de datos, agregarla al estado local para que se muestre
       setData(prevData => [response.data, ...prevData]);
@@ -377,10 +366,10 @@ const deleteRowData = (rowId) => {
     // Si el usuario confirma la eliminación
     if (result.isConfirmed) {
       // Realizamos la eliminación de la fila
-      axios.delete(`https://ambiocomserver.onrender.com/api/table/data/${rowId}`)
+      axios.delete(`http://localhost:4041/api/table/data/${rowId}`)
         .then(() => {
           // Si la eliminación es exitosa, obtenemos los datos actualizados
-          axios.get('https://ambiocomserver.onrender.com/api/table/data')
+          axios.get('http://localhost:4041/api/table/data')
             .then(updatedDataResponse => {
               setData(updatedDataResponse.data); // Actualizamos el estado con los nuevos datos
               setSnackbarMessage('Datos eliminados correctamente');
@@ -466,9 +455,7 @@ const clickColumFixed = (columnClicked) => {
 
   const filterData = (row) => {
     // Campos a excluir de la data
-   // const excludedFields = ['_id', 'createdAt', 'updatedAt', '__v'];
-    const excludedFields = ['_id', 'updatedAt', 'createdAt']; // elimino createAt ya que es el ultimo en el objeto en la DB
-  
+    const excludedFields = ['_id', 'updatedAt', 'createdAt','__v']; 
     // Filtrar las propiedades que no quieres mostrar
     return Object.keys(row)
       .filter((key) => !excludedFields.includes(key)) // Excluye los campos no deseados
@@ -546,7 +533,7 @@ const clickColumFixed = (columnClicked) => {
 
   // funcion llamada para realizar el cierre de mes
   const guardarCierreMes = async (cierreData) => {
-    const response = await fetch('https://ambiocomserver.onrender.com/api/cierreMes/data', {
+    const response = await fetch('http://localhost:4041/api/cierreMes/data', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -565,7 +552,7 @@ const clickColumFixed = (columnClicked) => {
     const DescargarManual = async () => {
       try {
         // Solicitar el archivo con la respuesta como 'blob'
-        const response = await axios.get('https://ambiocomserver.onrender.com/api/download/downloadmanual', {
+        const response = await axios.get('http://localhost:4041/api/download/downloadmanual', {
           responseType: 'blob',  // Especificamos que la respuesta es un archivo binario
         });
     
@@ -727,7 +714,7 @@ const clickColumFixed = (columnClicked) => {
             </TableCell>
           </TableRow>
           <TableRow style={{background: "#82ccdd" }}>
-            <TableCell colSpan={26} style={{ fontSize: '18px', textAlign: 'center', fontWeight: 'bold', border: '1px solid rgba(224, 224, 224, 1)' }}>
+            <TableCell colSpan={27} style={{ fontSize: '18px', textAlign: 'center', fontWeight: 'bold', border: '1px solid rgba(224, 224, 224, 1)' }}>
              {/* Botón de filtro al inicio de la fila */}
              <Tooltip title="Filtro" enterDelay={100}>
               <IconButton
@@ -759,7 +746,7 @@ const clickColumFixed = (columnClicked) => {
             <TableCell colSpan={5} style={{ background: "#b8b3fc", textAlign: 'center', fontWeight: 'bold', borderRight: '1px solid rgba(224, 224, 224, 1)' }}>
               Condiciones especiales de manipulacion y almacenamiento
             </TableCell>
-            <TableCell colSpan={4} style={{ background: "#c5fcc5", textAlign: 'center', fontWeight: 'bold', borderRight: '1px solid rgba(224, 224, 224, 1)' }}>
+            <TableCell colSpan={5} style={{ background: "#c5fcc5", textAlign: 'center', fontWeight: 'bold', borderRight: '1px solid rgba(224, 224, 224, 1)' }}>
               Seguimiento Consumo
             </TableCell>
             <TableCell colSpan={2} style={{ background: "#f1c40f", textAlign: 'center', fontWeight: 'bold', borderRight: '1px solid rgba(224, 224, 224, 1)' }}>
@@ -1035,6 +1022,7 @@ const clickColumFixed = (columnClicked) => {
             <TableCell style={{position: 'sticky',top:55, background: "#c9c5fc", textAlign: 'center', borderRight: '1px solid rgba(224, 224, 224, 1)', zIndex: 1 }}>Certificado / MSDS</TableCell>
             <TableCell style={{position: 'sticky',top:55, background: "#c9c5fc", textAlign: 'center', borderRight: '1px solid rgba(224, 224, 224, 1)', zIndex: 1 }}>Responsable de la manipulación</TableCell>
             <TableCell style={{position: 'sticky',top:55, background: "#c9c5fc", textAlign: 'center', borderRight: '1px solid rgba(224, 224, 224, 1)', zIndex: 1 }}>Observaciones</TableCell>
+            <TableCell style={{position: 'sticky',top:55, background: "#d9ffd9", textAlign: 'center', borderRight: '1px solid rgba(224, 224, 224, 1)', zIndex: 1, width:"auto" }}>Inventario Critico</TableCell>
             <TableCell style={{position: 'sticky',top:55, background: "#d9ffd9", textAlign: 'center', borderRight: '1px solid rgba(224, 224, 224, 1)', zIndex: 1, width:"auto" }}>SAP</TableCell>
             <TableCell style={{position: 'sticky',top:55, background: "#d9ffd9", textAlign: 'center', borderRight: '1px solid rgba(224, 224, 224, 1)', zIndex: 1, width:"200px" }}>Consumo Acumulado</TableCell>
             <TableCell style={{position: 'sticky',top:55, background: "#d9ffd9", textAlign: 'center', borderRight: '1px solid rgba(224, 224, 224, 1)', zIndex: 1, width:"200px" }}>Gasto Acumulado</TableCell>
@@ -1070,6 +1058,7 @@ const clickColumFixed = (columnClicked) => {
       </TableRow>
     ) : (
       Array.isArray(data) && data.length > 0 ? (
+        
         data.map((row, rowIndex) => {
 
           const filteredRow = filterData(row); // Filtrar la fila
@@ -1088,10 +1077,11 @@ const clickColumFixed = (columnClicked) => {
           const materialVencido = fechaVencimientoDate < fechaActual; // Comprobar si la fecha ya ha pasado
 
           // columnas que no quiero que se puedan editar
-          const BlockedColumns = [4,5,13,16,20,21,23,24];
+          const BlockedColumns = [4,5,13,16,21,22,23,24];
 
           // Establecer los colores de fondo
           let backgroundColor = 'transparent';
+          let backgroundColorInventarioCritico ="rojo"
           let color = 'inherit'; // Color por defecto para el texto
 
           // Si la fecha de vencimiento ya ha pasado (producto vencido)
@@ -1104,6 +1094,15 @@ const clickColumFixed = (columnClicked) => {
             backgroundColor = 'rgba(255, 235, 59, 0.3)'; // Amarillo claro
             color = '#ff9800'; // Naranja para el texto
           }
+
+          const inventario = parseFloat(filteredRow[Object.keys(filteredRow)[2]]) || 0;
+          const inventarioCritico = parseFloat(filteredRow[Object.keys(filteredRow)[10]]) || 0;
+
+          const esInventarioCritico = inventario < inventarioCritico;
+          if (esInventarioCritico) {
+           backgroundColor = backgroundColorInventarioCritico; // Rojo claro para toda la fila
+           color = '#d32f2f'; // Texto más oscuro para visibilidad
+           }
 
           return (
             <TableRow key={rowIndex}>
@@ -1176,9 +1175,9 @@ const clickColumFixed = (columnClicked) => {
                     />
                   ) : colIndex === 16 ? (
                     renderPdfButtons(row._id) // Mostrar botones solo para la columna 13
-                  ) : colIndex === 23 ? (
-                    renderNotificationsButtons({ _id: row._id, notificado: row.notificado }) // Mostrar boton si fue notificado o sigue en alarma
                   ) : colIndex === 24 ? (
+                    renderNotificationsButtons({ _id: row._id, notificado: row.notificado }) // Mostrar boton si fue notificado o sigue en alarma
+                  ) : colIndex === 25 ? (
                     <IconButton
                     style={{ outline: "none", color: "#fc5a4e" }}
                     onClick={() => deleteRowData(row._id)}
