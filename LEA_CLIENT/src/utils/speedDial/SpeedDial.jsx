@@ -1,0 +1,83 @@
+import * as React from 'react';
+import { useLocation } from 'react-router-dom';
+import { SpeedDial, SpeedDialIcon, SpeedDialAction } from '@mui/material';
+
+// ICONS
+import PostAddIcon from '@mui/icons-material/PostAdd';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import TableRowsIcon from '@mui/icons-material/TableRows';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import ControlPointIcon from '@mui/icons-material/ControlPoint';
+import QueryStatsIcon from '@mui/icons-material/QueryStats';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+
+export default function SpeedDialComponent({
+  sx,
+  reportarConsumo,
+  agregarDataFila,
+  exportExcelTable,
+  DownloadManual,
+  VerMovimientos,
+  CierreMes
+}) {
+  const location = useLocation();
+
+  const onlyCierreMesesActions = [
+    { icon: <QueryStatsIcon />, name: 'Movimientos' },
+    { icon: <FileDownloadIcon />, name: 'Export Excel' }
+  ];
+
+  const defaultActions = [
+    { icon: <ControlPointIcon />, name: 'Nueva Fila' },
+    { icon: <PostAddIcon />, name: 'Reportar Consumo' },
+    { icon: <TableRowsIcon />, name: 'Table de Colores' },
+    { icon: <CalendarMonthIcon />, name: 'Cierre de Mes' },
+    { icon: <QueryStatsIcon />, name: 'Movimientos' },
+    { icon: <FileDownloadIcon />, name: 'Export Excel' },
+    { icon: <PictureAsPdfIcon />, name: 'Descargar Manual' },
+  ];
+
+  const actions = location.pathname === '/mesescerrados'
+    ? onlyCierreMesesActions
+    : [...defaultActions];
+
+  return (
+    <SpeedDial
+      ariaLabel="SpeedDial example"
+      hidden={false}
+      icon={<SpeedDialIcon />}
+      direction="left"
+      sx={sx}
+    >
+      {actions.map((action) => (
+        <SpeedDialAction
+          key={action.name}
+          icon={action.icon}
+          tooltipTitle={action.name}
+          onClick={() => {
+            if (action.name === 'Nueva Fila') {
+              agregarDataFila();
+            } else if (action.name === 'Reportar Consumo') {
+              reportarConsumo();
+            } else if (action.name === 'Export Excel') {
+              exportExcelTable();
+            } else if (action.name === 'Table de Colores') {
+              window.location = '/colors';
+            } else if (action.name === 'Descargar Manual') {
+              DownloadManual();
+            } else if (action.name === 'Movimientos') {
+              VerMovimientos();
+            } else if (action.name === 'Cierre de Mes') {
+              CierreMes();
+            }
+          }}
+          sx={{
+            '&:focus, &:active': {
+              outline: 'none'
+            }
+          }}
+        />
+      ))}
+    </SpeedDial>
+  );
+}
