@@ -455,7 +455,9 @@ const clickColumFixed = (columnClicked) => {
 
   const filterData = (row) => {
     // Campos a excluir de la data
-    const excludedFields = ['_id', 'updatedAt', 'createdAt','__v']; 
+   // const excludedFields = ['_id', 'createdAt', 'updatedAt', '__v'];
+    const excludedFields = ['_id', 'updatedAt', 'createdAt','__v']; // elimino createAt ya que es el ultimo en el objeto en la DB
+ 
     // Filtrar las propiedades que no quieres mostrar
     return Object.keys(row)
       .filter((key) => !excludedFields.includes(key)) // Excluye los campos no deseados
