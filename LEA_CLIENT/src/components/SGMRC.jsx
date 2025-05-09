@@ -693,12 +693,12 @@ const clickColumFixed = (columnClicked) => {
 
   return (
     <TableContainer component={Paper}
-        style={{
-          height: '100vh', // Ocupa el 100% de la altura de la ventana
-          overflow: 'auto', // Permite el desplazamiento vertical y horizontal
-          marginBottom:50,
-          overflowX: 'scroll',
-        }}
+          style={{
+            height: '95vh', // Ocupa el 100% de la altura de la ventana
+            overflow: 'auto', // Permite el desplazamiento vertical y horizontal
+            marginBottom:0,
+            overflowX: 'scroll',
+          }}
       >
       <Table style={{ width: 'max-content' }}>
         <TableHead>
