@@ -26,7 +26,7 @@ const ModalFilterMovimientos = ({ open, onClose }) => {
 
   const fetchData = async () => {
     try {
-      const response = await axios.get('http://localhost:4041/api/registro/movimientos');
+      const response = await axios.get('https://ambiocomserver.onrender.com/api/registro/movimientos');
       setData(response.data);
     } catch (error) {
       console.error("Error al obtener los datos", error);

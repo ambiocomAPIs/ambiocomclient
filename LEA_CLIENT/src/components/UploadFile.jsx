@@ -60,7 +60,7 @@ const FileUpload = ({ uploadrowId }) => {
 
     try {
         // Verificar si ya existe un PDF con este rowId
-        const checkResponse = await axios.get(`http://localhost:4041/api/pdfs/${rowId}`);
+        const checkResponse = await axios.get(`https://ambiocomserver.onrender.com/api/pdfs/${rowId}`);
         
         // Si ya existe un PDF, preguntamos si desea reemplazarlo
         if (checkResponse.status === 200) {
@@ -79,7 +79,7 @@ const FileUpload = ({ uploadrowId }) => {
                 replaceFormData.append('pdf', file);
                 replaceFormData.append('rowId', rowId);
 
-                const replaceResponse = await axios.post('http://localhost:4041/api/pdfs/update', replaceFormData, {
+                const replaceResponse = await axios.post('https://ambiocomserver.onrender.com/api/pdfs/update', replaceFormData, {
                     headers: {
                         'Content-Type': 'multipart/form-data',
                     },
@@ -114,7 +114,7 @@ const FileUpload = ({ uploadrowId }) => {
     } catch (error) {
         if (error.response && error.response.status === 404) {
             // Si no existe un PDF asociado, hacemos la carga normalmente
-            const uploadResponse = await axios.post('http://localhost:4041/api/pdfs/upload', formData, {
+            const uploadResponse = await axios.post('https://ambiocomserver.onrender.com/api/pdfs/upload', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
