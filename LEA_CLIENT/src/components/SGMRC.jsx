@@ -81,7 +81,7 @@ const SGMRC = React.memo(() => {
   const [modalVerGastoIsOpen, setModalVerGastoIsOpen] = useState(false);
   // Abrir modal para Ver Grafica Gasto diario
   const [modalVerGastoDiarioIsOpen, setModalVerGastoDiarioIsOpen] = useState(false);
-  // Abrir modal para Ver Grafica Gasto diario
+  // Abrir modal para Ver Grafica Gasto Mensual
   const [modalVerGastoMensuaIsOpen, setModalVerGastoMensuaIsOpen] = useState(false);
   // Abrir modal para Ver Grafica ModalVerGraficaInventariovsSAPIsOpen
   const [ModalVerGraficaInventariovsSAPIsOpen, setModalVerGraficaInventariovsSAPIsOpen] = useState(false);

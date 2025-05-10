@@ -31,6 +31,7 @@ import ModalComponent from '../utils/modals/ViewPdf';
 import FileUpload from '../components/UploadFile';
 import SpeedDialComponent from '../utils/speedDial/SpeedDial';
 import DataTableChartModalInventariovsSAP from '../utils/modals/DataTableChartModalInventariovsSAP'
+import DataTableChartModalCostMensual from '../utils/modals/DataTableChartModalCostMensual'
 
 import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -81,6 +82,8 @@ const MesesCerrados = React.memo(() => {
   const [fechaSeleccionada, setFechaSeleccionada] = useState('');
   // Estado para el rowIndex a subir
   const [uploadRowIndex, setUploadRowIndex] = useState(null); 
+  // Abrir modal para Ver Grafica Gasto Mensual
+  const [modalVerGastoMensuaIsOpen, setModalVerGastoMensuaIsOpen] = useState(false);
   // Abrir modal para Ver Grafica ModalVerGraficaInventariovsSAPIsOpen
   const [ModalVerGraficaInventariovsSAPIsOpen, setModalVerGraficaInventariovsSAPIsOpen] = useState(false);
 
@@ -357,6 +360,11 @@ const clickColumFixed = (columnClicked) => {
    const openModalVerGastoDiario = () => setModalVerGastoDiarioIsOpen(true);
    // Función para cerrar el modal Gasto diario
    const closeModalVerGastoDiario = () => setModalVerGastoDiarioIsOpen(false);
+
+   // Función para abrir el modal Gasto Mensual
+   const modalVerGastoMensualIsOpen = () => setModalVerGastoMensuaIsOpen(true);
+   // Función para cerrar el modal Gasto diario
+   const closeModalVerMensualIsOpen = () => setModalVerGastoMensuaIsOpen(false);
 
    // Función para abrir el modal GraficaInventariovsSAP
    const openModalVerGraficaInventariovsSAP = () => setModalVerGraficaInventariovsSAPIsOpen(true);
@@ -1019,6 +1027,13 @@ const clickColumFixed = (columnClicked) => {
         closeModal={closeModalVerGastoMesCerrado}
        />
 
+       {/* Modal grafica reactivos status vencimiento */}
+       <DataTableChartModalCostMensual 
+         reactivos={data} 
+         modalIsOpen={modalVerGastoMensuaIsOpen}
+         closeModal={closeModalVerMensualIsOpen }
+       />
+
      {/* Modal grafica reactivos status vencimiento */}
        <DataTableChartModalCost 
         reactivos={data} 
@@ -1036,6 +1051,7 @@ const clickColumFixed = (columnClicked) => {
 
      {/* footer tipo pestañas de excel */}
        <ExcelStyleFooter 
+        openModalFromFooterVerGastosMensualeGrafica={modalVerGastoMensualIsOpen} 
         openModalFromFooterVerGastosMensualesCierreMes={openModalVerGastoMesCerrado} 
         openModalFromFooterVerGastosDiarioCierreMes={openModalVerGastoDiario} 
         openModalGraficaInventariovsSAP={openModalVerGraficaInventariovsSAP} 
