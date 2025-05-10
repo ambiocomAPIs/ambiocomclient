@@ -11,6 +11,7 @@ import TodayIcon from '@mui/icons-material/Today';
 import PriceChangeIcon from '@mui/icons-material/PriceChange';
 import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
 import ContentPasteSearchIcon from '@mui/icons-material/ContentPasteSearch';
+import StraightenIcon from '@mui/icons-material/Straighten';
 
 function ExcelStyleFooter({ 
   openModalFromFooterVerGastosMensualeGrafica, 
@@ -117,7 +118,7 @@ function ExcelStyleFooter({
           onClick={openModalVerGastosMensuales}
           endIcon={<PriceChangeIcon />}
           sx={{
-            display: currentPath === "/mesescerrados" || currentPath === "/seguimientotanquesjornaleros"
+            display: currentPath === "/seguimientotanquesjornaleros"
             ? 'none'
             : 'inline-flex',            
             margin: '0 5px',
@@ -145,7 +146,7 @@ function ExcelStyleFooter({
           onClick={openModalGraficaGastoDiario}
           endIcon={<TodayIcon />}
           sx={{
-            display: currentPath === "/mesescerrados" || currentPath === "/seguimientotanquesjornaleros"
+            display: currentPath === "/seguimientotanquesjornaleros"
             ? 'none'
             : 'inline-flex',     
             margin: '0 5px',
@@ -173,7 +174,7 @@ function ExcelStyleFooter({
           onClick={ModalFromFooterVerGastosMensualeGrafica}
           endIcon={<CalendarMonthIcon />}
           sx={{
-            display: currentPath === "/mesescerrados" || currentPath === "/seguimientotanquesjornaleros"
+            display: currentPath === "/seguimientotanquesjornaleros"
             ? 'none'
             : 'inline-flex',     
             margin: '0 5px',
@@ -229,7 +230,7 @@ function ExcelStyleFooter({
           onClick={InventariovsSAP}
           endIcon={<SsidChartIcon />}
           sx={{
-            display: currentPath === "/mesescerrados" || currentPath === "/seguimientotanquesjornaleros"
+            display:currentPath === "/seguimientotanquesjornaleros"
             ? 'none'
             : 'inline-flex',     
             margin: '0 5px',
@@ -307,6 +308,34 @@ function ExcelStyleFooter({
           }}
         >
           REGISTRAR MOVIMIENTO
+        </Button>
+        <Button
+          variant="outlined"
+          onClick={ModalFromFooterRegistrarMovimientoTanqueJornalero}
+          endIcon={<StraightenIcon />}
+          sx={{
+            display:currentPath === "/seguimientotanquesjornaleros"
+            ? 'inline-flex'
+            : 'none',     
+            margin: '0 5px',
+            color: currentSheet === 'Hoja 1' ? '#1976d2' : '#333',
+            borderColor:'#8ccdf3',
+            textTransform: 'none',
+            borderRadius: '4px',
+            padding: '8px 20px',
+            minWidth: '150px',
+            fontSize: '14px',
+            fontWeight: 600,
+            boxShadow: currentSheet === 'Hoja 1' ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none',
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              borderColor: '#1976d2',
+              color: '#1976d2',
+              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+            },
+          }}
+        >
+          Historico Mensual de Nivel
         </Button>
       </Box>
     </div>
