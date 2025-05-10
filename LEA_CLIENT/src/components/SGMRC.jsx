@@ -1337,3 +1337,4 @@ const clickColumFixed = (columnClicked) => {
 });
 
 export default SGMRC;
+

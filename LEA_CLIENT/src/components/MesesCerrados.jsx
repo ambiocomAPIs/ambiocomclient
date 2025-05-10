@@ -428,6 +428,8 @@ const clickColumFixed = (columnClicked) => {
           style={{
             height: '95vh',
             overflow: 'auto',
+            height: '95vh', // Ocupa el 100% de la altura de la ventana
+            overflow: 'auto', // Permite el desplazamiento vertical y horizontal
             marginBottom:0,
             overflowX: 'scroll',
           }}
