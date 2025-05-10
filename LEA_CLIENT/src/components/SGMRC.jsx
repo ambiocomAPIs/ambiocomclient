@@ -219,7 +219,7 @@ const DeletePdf = async (rowId) => {
 
     // Verifica si el usuario confirmó la acción
     if (result.isConfirmed) {
-      const response = await axios.delete(`http://localhost:4041/api/pdfs/${rowId}`);
+      const response = await axios.delete(`https://ambiocomserver.onrender.com/api/pdfs/${rowId}`);
 
       // Notificación de éxito
       Swal.fire({
@@ -258,7 +258,7 @@ const NotificarAlerta = async (params) => {
 
     // Verifica si el usuario confirmó la acción
     if (result.isConfirmed) {
-      const response = await axios.get(`http://localhost:4041/api/email/notificar-producto/${params._id}`);
+      const response = await axios.get(`https://ambiocomserver.onrender.com/api/email/notificar-producto/${params._id}`);
 
       // Notificación de éxito
       Swal.fire({
@@ -288,7 +288,7 @@ const NotificarAlerta = async (params) => {
     // TAN PRONTO DESENFOQUE LA CASILLA, GUARDA LOS DATOS
     try {
       // Usar `newData` para enviar los datos modificados al servidor
-      const response = await axios.post('http://localhost:4041/api/table/datareplaceall', newData);  
+      const response = await axios.post('https://ambiocomserver.onrender.com/api/table/datareplaceall', newData);  
       // Si la solicitud es exitosa
       if (response.status === 200) {
         setSnackbarMessage('Datos actualizados correctamente');
