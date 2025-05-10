@@ -31,7 +31,6 @@ import ModalComponent from '../utils/modals/ViewPdf';
 import FileUpload from '../components/UploadFile';
 import SpeedDialComponent from '../utils/speedDial/SpeedDial';
 import DataTableChartModalInventariovsSAP from '../utils/modals/DataTableChartModalInventariovsSAP'
-import DataTableChartModalCostMensual from '../utils/modals/DataTableChartModalCostMensual'
 
 import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -82,8 +81,6 @@ const MesesCerrados = React.memo(() => {
   const [fechaSeleccionada, setFechaSeleccionada] = useState('');
   // Estado para el rowIndex a subir
   const [uploadRowIndex, setUploadRowIndex] = useState(null); 
-  // Abrir modal para Ver Grafica Gasto Mensual
-  const [modalVerGastoMensuaIsOpen, setModalVerGastoMensuaIsOpen] = useState(false);
   // Abrir modal para Ver Grafica ModalVerGraficaInventariovsSAPIsOpen
   const [ModalVerGraficaInventariovsSAPIsOpen, setModalVerGraficaInventariovsSAPIsOpen] = useState(false);
 
@@ -119,7 +116,7 @@ const MesesCerrados = React.memo(() => {
 
   const filtrarConsumo = () => {
     setLoading(true); // para mostrar spinner si tienes
-    axios.get('https://ambiocomserver.onrender.com/api/cierreMes/data')
+    axios.get('http://localhost:4041/api/cierreMes/data')
       .then(response => {
               // asi llega el response.data
         //  [
@@ -156,7 +153,7 @@ const MesesCerrados = React.memo(() => {
 
     const fetchPdf = async (rowId) => {
       try {
-          const response = await axios.get(`https://ambiocomserver.onrender.com/api/pdfs/${rowId}`, {
+          const response = await axios.get(`http://localhost:4041/api/pdfs/${rowId}`, {
               responseType: 'blob',  // Especifica que esperas un blob (archivo binario)
           });
   
@@ -176,7 +173,7 @@ const MesesCerrados = React.memo(() => {
   const DownloadPdf = async (rowId) => {
     try {
         // Realiza la solicitud para obtener el archivo PDF
-        const response = await axios.get(`https://ambiocomserver.onrender.com/api/pdfs/download/${rowId}`);
+        const response = await axios.get(`http://localhost:4041/api/pdfs/download/${rowId}`);
 
         // Extraer el nombre del archivo desde los datos JSON
         const { filename, data } = response.data;
@@ -241,7 +238,7 @@ const DeletePdf = async (rowId) => {
 
     // Verifica si el usuario confirmó la acción
     if (result.isConfirmed) {
-      const response = await axios.delete(`https://ambiocomserver.onrender.com/api/pdfs/${rowId}`);
+      const response = await axios.delete(`http://localhost:4041/api/pdfs/${rowId}`);
 
       // Notificación de éxito
       Swal.fire({
@@ -361,11 +358,6 @@ const clickColumFixed = (columnClicked) => {
    // Función para cerrar el modal Gasto diario
    const closeModalVerGastoDiario = () => setModalVerGastoDiarioIsOpen(false);
 
-   // Función para abrir el modal Gasto Mensual
-   const modalVerGastoMensualIsOpen = () => setModalVerGastoMensuaIsOpen(true);
-   // Función para cerrar el modal Gasto diario
-   const closeModalVerMensualIsOpen = () => setModalVerGastoMensuaIsOpen(false);
-
    // Función para abrir el modal GraficaInventariovsSAP
    const openModalVerGraficaInventariovsSAP = () => setModalVerGraficaInventariovsSAPIsOpen(true);
    // Función para cerrar el modal GraficaInventariovsSAP
@@ -436,8 +428,6 @@ const clickColumFixed = (columnClicked) => {
           style={{
             height: '95vh',
             overflow: 'auto',
-            height: '95vh', // Ocupa el 100% de la altura de la ventana
-            overflow: 'auto', // Permite el desplazamiento vertical y horizontal
             marginBottom:0,
             overflowX: 'scroll',
           }}
@@ -1027,13 +1017,6 @@ const clickColumFixed = (columnClicked) => {
         closeModal={closeModalVerGastoMesCerrado}
        />
 
-       {/* Modal grafica reactivos status vencimiento */}
-       <DataTableChartModalCostMensual 
-         reactivos={data} 
-         modalIsOpen={modalVerGastoMensuaIsOpen}
-         closeModal={closeModalVerMensualIsOpen }
-       />
-
      {/* Modal grafica reactivos status vencimiento */}
        <DataTableChartModalCost 
         reactivos={data} 
@@ -1051,7 +1034,6 @@ const clickColumFixed = (columnClicked) => {
 
      {/* footer tipo pestañas de excel */}
        <ExcelStyleFooter 
-        openModalFromFooterVerGastosMensualeGrafica={modalVerGastoMensualIsOpen} 
         openModalFromFooterVerGastosMensualesCierreMes={openModalVerGastoMesCerrado} 
         openModalFromFooterVerGastosDiarioCierreMes={openModalVerGastoDiario} 
         openModalGraficaInventariovsSAP={openModalVerGraficaInventariovsSAP} 

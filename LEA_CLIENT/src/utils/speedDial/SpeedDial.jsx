@@ -27,6 +27,12 @@ export default function SpeedDialComponent({
     { icon: <FileDownloadIcon />, name: 'Export Excel' }
   ];
 
+  const onlyTanquesJornaleros = [
+    { icon: <QueryStatsIcon />, name: 'Movimientos' },
+    { icon: <FileDownloadIcon />, name: 'Export Excel' },
+    { icon: <PostAddIcon />, name: 'Reportar Movimiento' },
+  ];
+
   const defaultActions = [
     { icon: <ControlPointIcon />, name: 'Nueva Fila' },
     { icon: <PostAddIcon />, name: 'Reportar Consumo' },
@@ -38,8 +44,11 @@ export default function SpeedDialComponent({
   ];
 
   const actions = location.pathname === '/mesescerrados'
-    ? onlyCierreMesesActions
-    : [...defaultActions];
+  ? onlyCierreMesesActions
+  : location.pathname === '/seguimientotanquesjornaleros'
+  ? onlyTanquesJornaleros
+  : [...defaultActions];
+
 
   return (
     <SpeedDial

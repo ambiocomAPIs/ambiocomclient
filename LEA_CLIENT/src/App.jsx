@@ -4,6 +4,7 @@ import {BrowserRouter, Route, Routes} from 'react-router-dom'
 import SGMRC from './components/SGMRC';
 import MesesCerrados from './components/MesesCerrados';
 import UploadFile from './components/UploadFile'
+import SeguimientoTKJornaleros from './components/SeguimientoTKJornaleros';
 import CodificacionDeColoresComponent from './components/CodificacionDeColores';
 import { Typography } from '@mui/material';
 
@@ -18,6 +19,7 @@ function App() {
         <Route path="/upload/:rowId" element = {<UploadFile/>}/>
         <Route path="/colors" element = {<CodificacionDeColoresComponent/>}/>
         <Route path="/mesescerrados" element = {<MesesCerrados/>}/>
+        <Route path="/seguimientotanquesjornaleros" element = {<SeguimientoTKJornaleros/>}/>
        </Routes>
       </BrowserRouter>
      </Fragment>
