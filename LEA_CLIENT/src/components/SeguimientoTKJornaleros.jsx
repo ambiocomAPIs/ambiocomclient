@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios'; // <-- nuevo import
+import axios from 'axios';
 import {
   Box,
   Typography,
@@ -43,13 +43,13 @@ function SeguimientoTKJornaleros() {
   const [observaciones, setObservaciones] = useState('');
   const [nivelFinal, setNivelFinal] = useState('');
   const [tanques, setTanques] = useState([]);
+  const [filteredTanques, setFilteredTanques] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Abrir modal para Ver Grafica ModalVerGraficaInventariovsSAPIsOpen
   const [modalVerRegistrarMovimientoTanqueJornaleroIsOpen, setModalVerRegistrarMovimientoTanqueJornaleroIsOpen] = useState(false);
-
   const hoy = new Date().toLocaleDateString('es-ES');
 
-  const handleClose = () => {s
+  const handleClose = () => {
     setTipoMovimiento('');
     setTanqueOrigen('');
     setTanqueDestino('');
@@ -66,25 +66,45 @@ function SeguimientoTKJornaleros() {
       .get('http://localhost:4041/api/seguimientotanquesjornaleros/GetTanquesData')
       .then((res) => {
         setTanques(res.data);
+        setFilteredTanques(res.data);
       })
       .catch((err) => {
         console.error('Error al obtener tanques:', err);
       });
   }, []);
 
-     // Función para abrir el modal RegistrarMovimientoTanqueJornalero
-     const openModalFromFooterRegistrarMovimientoTanqueJornalero = () => setModalVerRegistrarMovimientoTanqueJornaleroIsOpen(true);
-     // Función para abrir el modal RegistrarMovimientoTanqueJornalero
-     const closeModalVerRegistrarMovimientoTanqueJornaleroIsOpen = () => setModalVerRegistrarMovimientoTanqueJornaleroIsOpen(false);
+  useEffect(() => {
+    if (searchQuery === '') {
+      setFilteredTanques(tanques);
+    } else {
+      const filtered = tanques.filter((t) =>
+        t.nombre.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredTanques(filtered);
+    }
+  }, [searchQuery, tanques]);
+
+  const openModalFromFooterRegistrarMovimientoTanqueJornalero = () => setModalVerRegistrarMovimientoTanqueJornaleroIsOpen(true);
+  const closeModalVerRegistrarMovimientoTanqueJornaleroIsOpen = () => setModalVerRegistrarMovimientoTanqueJornaleroIsOpen(false);
 
   return (
     <Box sx={{ padding: 2, pb: 10 }}>
-      <Typography variant="h4" sx={{ marginBottom: 2, textAlign: 'center' }}>
-        Niveles de Tanques Jornaleros
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <TextField
+          label="Filtrar Tanque"
+          variant="outlined"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          size="small"
+          sx={{ width: '20%' }}
+        />
+        <Typography variant="h4" sx={{ textAlign: 'center', flexGrow: 1, marginLeft: '-380px' }}>
+          Niveles de Tanques Jornaleros
+        </Typography>
+      </Box>
 
       <Stack spacing={2}>
-        {tanques.map((tanque, index) => {
+        {filteredTanques.map((tanque, index) => {
           const porcentaje = Math.min((tanque.nivel / tanque.capacidad) * 100, 100);
 
           return (
@@ -251,7 +271,7 @@ function SeguimientoTKJornaleros() {
       </Modal>
 
       <ExcelStyleFooter 
-        openModalFromFooterRegistrarMovimientoTanqueJornalero ={openModalFromFooterRegistrarMovimientoTanqueJornalero}
+        openModalFromFooterRegistrarMovimientoTanqueJornalero={openModalFromFooterRegistrarMovimientoTanqueJornalero}
       />
 
       <SpeedDialComponent
