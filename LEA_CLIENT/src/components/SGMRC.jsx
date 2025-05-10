@@ -118,7 +118,7 @@ const SGMRC = React.memo(() => {
 
   useEffect(() => {
     // Realizar la solicitud GET a la API
-    axios.get('https://ambiocomserver.onrender.com/api/table/data')
+    axios.get('http://localhost:4041/api/table/data')
       .then(response => {
         setData(response.data);
         setLoading(false);
@@ -141,7 +141,7 @@ const SGMRC = React.memo(() => {
 
     const fetchPdf = async (rowId) => {
       try {
-          const response = await axios.get(`https://ambiocomserver.onrender.com/api/pdfs/${rowId}`, {
+          const response = await axios.get(`http://localhost:4041/api/pdfs/${rowId}`, {
               responseType: 'blob',  // Especifica que esperas un blob (archivo binario)
           });
   
@@ -161,7 +161,7 @@ const SGMRC = React.memo(() => {
   const DownloadPdf = async (rowId) => {
     try {
         // Realiza la solicitud para obtener el archivo PDF
-        const response = await axios.get(`https://ambiocomserver.onrender.com/api/pdfs/download/${rowId}`);
+        const response = await axios.get(`http://localhost:4041/api/pdfs/download/${rowId}`);
         // Extraer el nombre del archivo desde los datos JSON
         const { filename, data } = response.data;
 
@@ -219,7 +219,7 @@ const DeletePdf = async (rowId) => {
 
     // Verifica si el usuario confirmó la acción
     if (result.isConfirmed) {
-      const response = await axios.delete(`https://ambiocomserver.onrender.com/api/pdfs/${rowId}`);
+      const response = await axios.delete(`http://localhost:4041/api/pdfs/${rowId}`);
 
       // Notificación de éxito
       Swal.fire({
@@ -258,7 +258,7 @@ const NotificarAlerta = async (params) => {
 
     // Verifica si el usuario confirmó la acción
     if (result.isConfirmed) {
-      const response = await axios.get(`https://ambiocomserver.onrender.com/api/email/notificar-producto/${params._id}`);
+      const response = await axios.get(`http://localhost:4041/api/email/notificar-producto/${params._id}`);
 
       // Notificación de éxito
       Swal.fire({
@@ -288,7 +288,7 @@ const NotificarAlerta = async (params) => {
     // TAN PRONTO DESENFOQUE LA CASILLA, GUARDA LOS DATOS
     try {
       // Usar `newData` para enviar los datos modificados al servidor
-      const response = await axios.post('https://ambiocomserver.onrender.com/api/table/datareplaceall', newData);  
+      const response = await axios.post('http://localhost:4041/api/table/datareplaceall', newData);  
       // Si la solicitud es exitosa
       if (response.status === 200) {
         setSnackbarMessage('Datos actualizados correctamente');
@@ -334,7 +334,7 @@ const NotificarAlerta = async (params) => {
       estado: '----',  // Agregado para el nuevo modelo
     }
 
-    axios.post('https://ambiocomserver.onrender.com/api/table/data', newFile)
+    axios.post('http://localhost:4041/api/table/data', newFile)
     .then(response => {
       // Una vez agregada la fila en la base de datos, agregarla al estado local para que se muestre
       setData(prevData => [response.data, ...prevData]);
@@ -366,10 +366,10 @@ const deleteRowData = (rowId) => {
     // Si el usuario confirma la eliminación
     if (result.isConfirmed) {
       // Realizamos la eliminación de la fila
-      axios.delete(`https://ambiocomserver.onrender.com/api/table/data/${rowId}`)
+      axios.delete(`http://localhost:4041/api/table/data/${rowId}`)
         .then(() => {
           // Si la eliminación es exitosa, obtenemos los datos actualizados
-          axios.get('https://ambiocomserver.onrender.com/api/table/data')
+          axios.get('http://localhost:4041/api/table/data')
             .then(updatedDataResponse => {
               setData(updatedDataResponse.data); // Actualizamos el estado con los nuevos datos
               setSnackbarMessage('Datos eliminados correctamente');
@@ -455,9 +455,7 @@ const clickColumFixed = (columnClicked) => {
 
   const filterData = (row) => {
     // Campos a excluir de la data
-   // const excludedFields = ['_id', 'createdAt', 'updatedAt', '__v'];
-    const excludedFields = ['_id', 'updatedAt', 'createdAt','__v']; // elimino createAt ya que es el ultimo en el objeto en la DB
- 
+    const excludedFields = ['_id', 'updatedAt', 'createdAt','__v']; 
     // Filtrar las propiedades que no quieres mostrar
     return Object.keys(row)
       .filter((key) => !excludedFields.includes(key)) // Excluye los campos no deseados
@@ -535,7 +533,7 @@ const clickColumFixed = (columnClicked) => {
 
   // funcion llamada para realizar el cierre de mes
   const guardarCierreMes = async (cierreData) => {
-    const response = await fetch('https://ambiocomserver.onrender.com/api/cierreMes/data', {
+    const response = await fetch('http://localhost:4041/api/cierreMes/data', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -554,7 +552,7 @@ const clickColumFixed = (columnClicked) => {
     const DescargarManual = async () => {
       try {
         // Solicitar el archivo con la respuesta como 'blob'
-        const response = await axios.get('https://ambiocomserver.onrender.com/api/download/downloadmanual', {
+        const response = await axios.get('http://localhost:4041/api/download/downloadmanual', {
           responseType: 'blob',  // Especificamos que la respuesta es un archivo binario
         });
     
@@ -693,14 +691,14 @@ const clickColumFixed = (columnClicked) => {
 
   return (
     <TableContainer component={Paper}
-          style={{
-            height: '95vh', // Ocupa el 100% de la altura de la ventana
-            overflow: 'auto', // Permite el desplazamiento vertical y horizontal
-            marginBottom:0,
-            overflowX: 'scroll',
-          }}
+        style={{
+          height: '95vh', // Ocupa el 100% de la altura de la ventana
+          overflow: 'auto', // Permite el desplazamiento vertical y horizontal
+          marginBottom:0,
+          overflowX: 'scroll',
+        }}
       >
-      <Table style={{ width: 'max-content' }}>
+      <Table style={{ width: 'max-content'}}>
         <TableHead>
           <TableRow style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 0 }}>
             <TableCell colSpan={1} style={{ fontSize: '25px', fontWeight: 'bold' }}>
@@ -1063,6 +1061,9 @@ const clickColumFixed = (columnClicked) => {
         
         data.map((row, rowIndex) => {
 
+          console.log("row:",row);
+          
+
           const filteredRow = filterData(row); // Filtrar la fila
           const fechaVencimiento = row.fechaVencimiento;  // Fecha de vencimiento (string)
           const mesesRestantes = parseInt(row.mesesRestantes, 10);  // Convertir mesesRestantes a número
@@ -1083,7 +1084,6 @@ const clickColumFixed = (columnClicked) => {
 
           // Establecer los colores de fondo
           let backgroundColor = 'transparent';
-          let backgroundColorInventarioCritico ="rojo"
           let color = 'inherit'; // Color por defecto para el texto
 
           // Si la fecha de vencimiento ya ha pasado (producto vencido)
@@ -1097,13 +1097,15 @@ const clickColumFixed = (columnClicked) => {
             color = '#ff9800'; // Naranja para el texto
           }
 
-          const inventario = parseFloat(filteredRow[Object.keys(filteredRow)[2]]) || 0;
-          const inventarioCritico = parseFloat(filteredRow[Object.keys(filteredRow)[10]]) || 0;
+          const inventario = row.Inventario || 0
+          const inventarioCritico = row.InventarioCritico || 0;
 
           const esInventarioCritico = inventario < inventarioCritico;
           if (esInventarioCritico) {
-           backgroundColor = backgroundColorInventarioCritico; // Rojo claro para toda la fila
-           color = '#d32f2f'; // Texto más oscuro para visibilidad
+            console.log("hola desde inventario critico");
+            
+            backgroundColor = 'rgba(255, 218, 252, 0.3)'; // Amarillo claro
+            color = '#d32f2f'; // Texto más oscuro para visibilidad
            }
 
           return (
@@ -1319,3 +1321,4 @@ const clickColumFixed = (columnClicked) => {
 });
 
 export default SGMRC;
+
