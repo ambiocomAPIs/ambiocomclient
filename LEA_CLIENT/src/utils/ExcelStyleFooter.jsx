@@ -10,7 +10,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import TodayIcon from '@mui/icons-material/Today';
 import PriceChangeIcon from '@mui/icons-material/PriceChange';
 
-function ExcelStyleFooter({ openModalFromFooterVerGastosMensualesCierreMes, openModalFromFooterVerGastosDiarioCierreMes, openModalFromFooterVerGastosMensuales,openModalFromFooterVerGastosDiario, openModalGraficaInventariovsSAP }) {
+function ExcelStyleFooter({ openModalFromFooterVerGastosMensualeGrafica, openModalFromFooterVerGastosMensualesCierreMes, openModalFromFooterVerGastosDiarioCierreMes, openModalFromFooterVerGastosMensuales,openModalFromFooterVerGastosDiario, openModalGraficaInventariovsSAP }) {
   
   const location = useLocation();
   const navigate = useNavigate(); // Inicializamos el hook navigate
@@ -42,12 +42,13 @@ function ExcelStyleFooter({ openModalFromFooterVerGastosMensualesCierreMes, open
     openModalGraficaInventariovsSAP()
   };
 
-  const BackHome = () => {
-    navigate('/')
+  const ModalFromFooterVerGastosMensualeGrafica = () => {
+    openModalFromFooterVerGastosMensualeGrafica()
   };
 
-  console.log("cirrent path:", currentPath);
-  
+  const BackHome = () => {
+    navigate('/')
+  };  
 
   return (
     <div>
@@ -144,7 +145,7 @@ function ExcelStyleFooter({ openModalFromFooterVerGastosMensualesCierreMes, open
         </Button>
         <Button
           variant="outlined"
-          onClick={openModalGraficaGastoDiario}
+          onClick={ModalFromFooterVerGastosMensualeGrafica}
           endIcon={<CalendarMonthIcon />}
           sx={{
             margin: '0 5px',

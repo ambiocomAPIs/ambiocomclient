@@ -27,6 +27,7 @@ import ModalFilterData from '../utils/modals/ModalFilterData';
 import ReportarConsumoModal from '../utils/modals/ReportarConsumoModal';
 import DetallesMovimientos from '../utils/modals/DetallesMovimientos'
 import DataTableChartModalInventariovsSAP from '../utils/modals/DataTableChartModalInventariovsSAP'
+import DataTableChartModalCostMensual from '../utils/modals/DataTableChartModalCostMensual'
 
 // const FileUploadExcel = lazy(() => import('../utils/Functions/UploadExcelDataMasive')); //& aplicando lazy a este componente
 
@@ -80,6 +81,8 @@ const SGMRC = React.memo(() => {
   const [modalVerGastoIsOpen, setModalVerGastoIsOpen] = useState(false);
   // Abrir modal para Ver Grafica Gasto diario
   const [modalVerGastoDiarioIsOpen, setModalVerGastoDiarioIsOpen] = useState(false);
+  // Abrir modal para Ver Grafica Gasto diario
+  const [modalVerGastoMensuaIsOpen, setModalVerGastoMensuaIsOpen] = useState(false);
   // Abrir modal para Ver Grafica ModalVerGraficaInventariovsSAPIsOpen
   const [ModalVerGraficaInventariovsSAPIsOpen, setModalVerGraficaInventariovsSAPIsOpen] = useState(false);
 
@@ -455,9 +458,7 @@ const clickColumFixed = (columnClicked) => {
 
   const filterData = (row) => {
     // Campos a excluir de la data
-   // const excludedFields = ['_id', 'createdAt', 'updatedAt', '__v'];
-    const excludedFields = ['_id', 'updatedAt', 'createdAt','__v']; // elimino createAt ya que es el ultimo en el objeto en la DB
- 
+    const excludedFields = ['_id', 'updatedAt', 'createdAt','__v']; 
     // Filtrar las propiedades que no quieres mostrar
     return Object.keys(row)
       .filter((key) => !excludedFields.includes(key)) // Excluye los campos no deseados
@@ -632,6 +633,11 @@ const clickColumFixed = (columnClicked) => {
    // Función para cerrar el modal Gasto diario
    const closeModalVerGastoDiario = () => setModalVerGastoDiarioIsOpen(false);
 
+   // Función para abrir el modal Gasto Mensual
+   const modalVerGastoMensualIsOpen = () => setModalVerGastoMensuaIsOpen(true);
+   // Función para cerrar el modal Gasto diario
+   const closeModalVerMensualIsOpen = () => setModalVerGastoMensuaIsOpen(false);
+
    // Función para abrir el modal GraficaInventariovsSAP
    const openModalVerGraficaInventariovsSAP = () => setModalVerGraficaInventariovsSAPIsOpen(true);
    // Función para cerrar el modal GraficaInventariovsSAP
@@ -694,13 +700,13 @@ const clickColumFixed = (columnClicked) => {
   return (
     <TableContainer component={Paper}
         style={{
-          height: '100vh', // Ocupa el 100% de la altura de la ventana
+          height: '95vh', // Ocupa el 100% de la altura de la ventana
           overflow: 'auto', // Permite el desplazamiento vertical y horizontal
-          marginBottom:50,
+          marginBottom:0,
           overflowX: 'scroll',
         }}
       >
-      <Table style={{ width: 'max-content' }}>
+      <Table style={{ width: 'max-content'}}>
         <TableHead>
           <TableRow style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 0 }}>
             <TableCell colSpan={1} style={{ fontSize: '25px', fontWeight: 'bold' }}>
@@ -1063,6 +1069,9 @@ const clickColumFixed = (columnClicked) => {
         
         data.map((row, rowIndex) => {
 
+          console.log("row:",row);
+          
+
           const filteredRow = filterData(row); // Filtrar la fila
           const fechaVencimiento = row.fechaVencimiento;  // Fecha de vencimiento (string)
           const mesesRestantes = parseInt(row.mesesRestantes, 10);  // Convertir mesesRestantes a número
@@ -1083,7 +1092,6 @@ const clickColumFixed = (columnClicked) => {
 
           // Establecer los colores de fondo
           let backgroundColor = 'transparent';
-          let backgroundColorInventarioCritico ="rojo"
           let color = 'inherit'; // Color por defecto para el texto
 
           // Si la fecha de vencimiento ya ha pasado (producto vencido)
@@ -1097,13 +1105,15 @@ const clickColumFixed = (columnClicked) => {
             color = '#ff9800'; // Naranja para el texto
           }
 
-          const inventario = parseFloat(filteredRow[Object.keys(filteredRow)[2]]) || 0;
-          const inventarioCritico = parseFloat(filteredRow[Object.keys(filteredRow)[10]]) || 0;
+          const inventario = row.Inventario || 0
+          const inventarioCritico = row.InventarioCritico || 0;
 
           const esInventarioCritico = inventario < inventarioCritico;
           if (esInventarioCritico) {
-           backgroundColor = backgroundColorInventarioCritico; // Rojo claro para toda la fila
-           color = '#d32f2f'; // Texto más oscuro para visibilidad
+            console.log("hola desde inventario critico");
+            
+            backgroundColor = 'rgba(255, 218, 252, 0.3)'; // Amarillo claro
+            color = '#d32f2f'; // Texto más oscuro para visibilidad
            }
 
           return (
@@ -1268,6 +1278,13 @@ const clickColumFixed = (columnClicked) => {
         closeModal={closeModalVerGastoDiario}
        />
 
+     {/* Modal grafica reactivos status vencimiento */}
+       <DataTableChartModalCostMensual 
+        reactivos={data} 
+        modalIsOpen={modalVerGastoMensuaIsOpen}
+        closeModal={closeModalVerMensualIsOpen }
+       />
+
      {/* Modal grafica inventario vs SAP*/}
        <DataTableChartModalInventariovsSAP 
         reactivos={data}
@@ -1278,6 +1295,7 @@ const clickColumFixed = (columnClicked) => {
      {/* footer tipo pestañas de excel */}
        <ExcelStyleFooter 
         openModalFromFooterVerGastosMensuales={openModalVerGasto} 
+        openModalFromFooterVerGastosMensualeGrafica={modalVerGastoMensualIsOpen} 
         openModalFromFooterVerGastosDiario={openModalVerGastoDiario} 
         openModalGraficaInventariovsSAP={openModalVerGraficaInventariovsSAP} 
        />

@@ -13,9 +13,6 @@ const FileUpload = ({ uploadrowId }) => {
   const [fileName, setFileName] = useState('Arrastra y suelta tu archivo aquí');
 
   const { rowId } = useParams(); // Obtener el rowId de los parámetros de la URL
-
-  console.log("uploadrowId useParams()", rowId);
-
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
     if (selectedFile) {

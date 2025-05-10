@@ -19,11 +19,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip,
 Modal.setAppElement('#root');
 
 const DataTableChartModalInventariovsSAP = ({ modalIsOpen, closeModal, reactivos }) => {
-
-  console.log("ingreso reactivos:", reactivos);
-
   const chartRef = useRef(null);
-
   const consumoData = useMemo(() => {
     return reactivos.map(item => ({
       producto: `${item.nombre} - Lote: ${item.lote}`, // Identificar producto por nombre + lote
