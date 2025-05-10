@@ -14,7 +14,8 @@ import {
   Button, 
   IconButton ,
   Snackbar,
-  Alert
+  Alert,
+  Box
   } from '@mui/material';
 
 import Swal from 'sweetalert2'
@@ -69,6 +70,9 @@ const SGMRC = React.memo(() => {
   // Visualizador de Pdf
   const [isModalOpen, setModalOpen] = useState(false);
   const [pdfUrl, setPdfUrl] = useState('');
+  //filtrar data de la tabla interactivamente
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredData, setFilteredData] = useState([]);
   // Abrir modal para carga masiva
   const [openUploadExcelModal, setOpenUploadExcelModal] = useState(false);
   // Abrir modal para filtrar data
@@ -161,6 +165,25 @@ const SGMRC = React.memo(() => {
       }
   };
 
+  //filtrado de datos interactivo
+  useEffect(() => {
+    if (!data) return;
+  
+    if (searchQuery === '') {
+      setFilteredData(data);
+    } else {
+      const query = searchQuery.toLowerCase();
+      const filtered = data.filter((item) =>
+        // Aquí cambias "nombre" por la propiedad por la que quieras filtrar
+        Object.values(item).some(val =>
+          typeof val === 'string' && val.toLowerCase().includes(query)
+        )
+      );
+      setFilteredData(filtered);
+    }
+  }, [searchQuery, data]);
+
+  
   const DownloadPdf = async (rowId) => {
     try {
         // Realiza la solicitud para obtener el archivo PDF
@@ -721,24 +744,51 @@ const clickColumFixed = (columnClicked) => {
             <TableCell colSpan={20} style={{fontSize:'25px',fontWeight:'bold',textAlign: 'center',position: 'sticky',}}>
             </TableCell>
           </TableRow>
-          <TableRow style={{background: "#82ccdd" }}>
-            <TableCell colSpan={27} style={{ fontSize: '18px', textAlign: 'center', fontWeight: 'bold', border: '1px solid rgba(224, 224, 224, 1)' }}>
-             {/* Botón de filtro al inicio de la fila */}
-             <Tooltip title="Filtro" enterDelay={100}>
-              <IconButton
-               style={{
-                position: 'absolute',  // Posicionamos el botón dentro de la celda
-                top: '65px',            // A 15px del borde superior de la celda
-                left: '10px',           // A 10px del borde izquierdo de la celda
-                zIndex: 1,           // Asegura que el botón esté por encima de otros elementos
-                outline: 'none'
-                }}
-                  onClick={() => openFilterModal()}  // Aquí puedes agregar la lógica para abrir el filtro
-                 >
-                  <SearchIcon /> {/* Este es el ícono para el filtro */}
-               </IconButton>
-              </Tooltip>
-              Seguimiento General al Material y Consumo
+          <TableRow style={{ background: "#82ccdd" }}>
+          <TableCell
+           colSpan={27}
+            style={{
+            fontSize: '18px',
+            fontWeight: 'bold',
+            border: '1px solid rgba(224, 224, 224, 1)',
+            padding: '16px',
+            }}
+            >
+           <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+           {/* Icono de filtro */}
+           <Tooltip title="Filtro" enterDelay={10}>
+            <IconButton
+             onClick={() => openFilterModal()}
+             sx={{
+              mr: 1,
+              outline: 'none',
+             }}
+            >
+             <SearchIcon />
+            </IconButton>
+            </Tooltip>
+           {/* Campo de búsqueda */}
+           <TextField
+            label="Buscar"
+            variant="outlined"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            size="small"
+            sx={{ width: '280px', mr: 2 }}
+            />
+           {/* Texto centrado usando posicionamiento absoluto */}
+           <Box
+            sx={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              textAlign: 'center',
+              pointerEvents: 'none', // Evita que bloquee interacciones con otros elementos
+             }}
+             >
+               Seguimiento General al Material y Consumo
+             </Box>
+             </Box>
             </TableCell>
           </TableRow>
           <TableRow style={{position: 'sticky', top: 0, zIndex: 0, }}>
@@ -1065,13 +1115,9 @@ const clickColumFixed = (columnClicked) => {
        </TableCell>
       </TableRow>
     ) : (
-      Array.isArray(data) && data.length > 0 ? (
+      Array.isArray(filteredData) && filteredData.length > 0 ? (
         
-        data.map((row, rowIndex) => {
-
-          console.log("row:",row);
-          
-
+        filteredData.map((row, rowIndex) => {    
           const filteredRow = filterData(row); // Filtrar la fila
           const fechaVencimiento = row.fechaVencimiento;  // Fecha de vencimiento (string)
           const mesesRestantes = parseInt(row.mesesRestantes, 10);  // Convertir mesesRestantes a número
