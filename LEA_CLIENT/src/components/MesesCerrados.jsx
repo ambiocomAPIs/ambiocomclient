@@ -14,7 +14,8 @@ import {
   Button, 
   IconButton ,
   Snackbar,
-  Alert
+  Alert,
+  Box
   } from '@mui/material';
 
 import Swal from 'sweetalert2'
@@ -65,6 +66,9 @@ const MesesCerrados = React.memo(() => {
   // Visualizador de Pdf
   const [isModalOpen, setModalOpen] = useState(false);
   const [pdfUrl, setPdfUrl] = useState('');
+   //filtrar data de la tabla interactivamente
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredData, setFilteredData] = useState([]);
   // Abrir modal para filtrar data
   const [isModalFilterOpen, setIsModalFilterOpen] = useState(false);
   // Abrir modal para Crear Consumo data
@@ -147,6 +151,24 @@ const MesesCerrados = React.memo(() => {
       });
   };
 
+  //filtrado de datos interactivo
+    useEffect(() => {
+      if (!data) return;
+    
+      if (searchQuery === '') {
+        setFilteredData(data);
+      } else {
+        const query = searchQuery.toLowerCase();
+        const filtered = data.filter((item) =>
+          // Aquí cambias "nombre" por la propiedad por la que quieras filtrar
+          Object.values(item).some(val =>
+            typeof val === 'string' && val.toLowerCase().includes(query)
+          )
+        );
+        setFilteredData(filtered);
+      }
+    }, [searchQuery, data]);
+  
     if (error) {
       return <div>{error}</div>;
     }
@@ -448,60 +470,67 @@ const clickColumFixed = (columnClicked) => {
               <div >INVENTARIO DE CIERRE DE MES</div>
             </TableCell>
           </TableRow>
-          <TableRow style={{background: "#82ccdd" }}>
-            <TableCell colSpan={26} style={{ fontSize: '18px', textAlign: 'center', fontWeight: 'bold', border: '1px solid rgba(224, 224, 224, 1)' }}>
-             {/* Botón de filtro al inicio de la fila */}
-             <Tooltip title="Filtro" enterDelay={100}>
-              <IconButton
-               style={{
-                position: 'absolute',  // Posicionamos el botón dentro de la celda
-                top: '65px',            // A 15px del borde superior de la celda
-                left: '10px',           // A 10px del borde izquierdo de la celda
-                zIndex: 1,           // Asegura que el botón esté por encima de otros elementos
-                outline: 'none'
-                }}
-                  onClick={() => openFilterModal()}  // Aquí puedes agregar la lógica para abrir el filtro
-                 >
-                  <SearchIcon /> {/* Este es el ícono para el filtro */}
-               </IconButton>
-              </Tooltip>
-              {/* Filtro por mes y año usando input tipo "date" */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'left', marginTop: '0px', marginLeft:'50px' }}>
-              <input
-               type="month"
-               value={fechaSeleccionada}
-               onChange={handleDateChange}
-               style={{
-                padding: '1px',
-                fontSize: '16px',
-                borderRadius: '4px',
-                border: '1px solid #ccc',
-                marginRight: '10px',
-                }}
-               />
-  
-              <button
-               onClick={filtrarConsumo}
-               style={{
-                padding: '5px 10px',
-                fontSize: '16px',
-                borderRadius: '4px',
-                border: '1px solid #007bff',
-                backgroundColor: '#007bff',
-                color: 'white',
-                cursor: 'pointer',
-                marginRight: '10px'
-                }}
-              >
-               Filtrar
-             </button>
+          <TableRow style={{ background: "#82ccdd" }}>
+  <TableCell
+    colSpan={26}
+    style={{
+      fontSize: '18px',
+      fontWeight: 'bold',
+      border: '1px solid rgba(224, 224, 224, 1)',
+      padding: '16px',
+    }}
+  >
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      {/* TextField de búsqueda */}
+      <Tooltip title="Filtro" enterDelay={100}>
+        <TextField
+          label="Buscar"
+          variant="outlined"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          size="small"
+          sx={{ width: '280px' }}
+        />
+      </Tooltip>
 
-             {mesFiltradoCierreMes && (
-              <strong>Mes Seleccionado: {mesFiltradoCierreMes}</strong>
-             )}
-            </div>
-           </TableCell>
-          </TableRow>
+      {/* Input de mes */}
+      <input
+        type="month"
+        value={fechaSeleccionada}
+        onChange={handleDateChange}
+        style={{
+          padding: '5px',
+          fontSize: '16px',
+          borderRadius: '4px',
+          border: '1px solid #ccc',
+        }}
+      />
+
+      {/* Botón Filtrar */}
+      <button
+        onClick={filtrarConsumo}
+        style={{
+          padding: '6px 14px',
+          fontSize: '16px',
+          borderRadius: '4px',
+          border: '1px solid #007bff',
+          backgroundColor: '#007bff',
+          color: 'white',
+          cursor: 'pointer',
+        }}
+      >
+        Filtrar
+      </button>
+
+      {/* Texto Mes seleccionado */}
+      {mesFiltradoCierreMes && (
+        <strong style={{ fontSize: '16px' }}>
+          Mes Seleccionado: {mesFiltradoCierreMes}
+        </strong>
+      )}
+    </Box>
+  </TableCell>
+</TableRow>
           <TableRow style={{position: 'sticky', top: 0, zIndex: 0, }}>
             <TableCell colSpan={7} style={{ background: "#78e08f", textAlign: 'center', fontWeight: 'bold', borderRight: '1px solid rgba(224, 224, 224, 1)' }}>
               Seguimiento inventario
@@ -825,8 +854,8 @@ const clickColumFixed = (columnClicked) => {
        </TableCell>
       </TableRow>
     ) : (
-      Array.isArray(data) && data.length > 0 ? (
-        data.map((row, rowIndex) => {
+      Array.isArray(filteredData) && filteredData.length > 0 ? (
+        filteredData.map((row, rowIndex) => {
 
           const filteredRow = filterData(row); // Filtrar la fila
           const fechaVencimiento = row.fechaVencimiento;  // Fecha de vencimiento (string)
