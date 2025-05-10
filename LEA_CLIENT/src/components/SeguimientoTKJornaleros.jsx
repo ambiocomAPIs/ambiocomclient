@@ -63,7 +63,7 @@ function SeguimientoTKJornaleros() {
 
   useEffect(() => {
     axios
-      .get('http://localhost:4041/api/seguimientotanquesjornaleros/GetTanquesData')
+      .get('https://ambiocomserver.onrender.com/api/seguimientotanquesjornaleros/GetTanquesData')
       .then((res) => {
         setTanques(res.data);
         setFilteredTanques(res.data);
