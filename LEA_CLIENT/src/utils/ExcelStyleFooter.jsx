@@ -9,6 +9,8 @@ import DateRangeIcon from '@mui/icons-material/DateRange';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import TodayIcon from '@mui/icons-material/Today';
 import PriceChangeIcon from '@mui/icons-material/PriceChange';
+import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
+import ContentPasteSearchIcon from '@mui/icons-material/ContentPasteSearch';
 
 function ExcelStyleFooter({ 
   openModalFromFooterVerGastosMensualeGrafica, 
@@ -253,7 +255,7 @@ function ExcelStyleFooter({
         <Button
           variant="outlined"
           onClick={InventarioJornalerosTK}
-          endIcon={<SsidChartIcon />}
+          endIcon={<ContentPasteSearchIcon />}
           sx={{
             display: currentPath === "/mesescerrados" || currentPath === "/seguimientotanquesjornaleros"
             ? 'none'
@@ -281,7 +283,7 @@ function ExcelStyleFooter({
         <Button
           variant="outlined"
           onClick={ModalFromFooterRegistrarMovimientoTanqueJornalero}
-          endIcon={<SsidChartIcon />}
+          endIcon={<AppRegistrationIcon />}
           sx={{
             display:currentPath === "/seguimientotanquesjornaleros"
             ? 'inline-flex'
