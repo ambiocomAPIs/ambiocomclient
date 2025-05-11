@@ -24,7 +24,8 @@ function ExcelStyleFooter({
   openModalFromFooterVerGastosDiario,
   openModalGraficaInventariovsSAP,
   openModalFromFooterRegistrarMovimientoTanqueJornalero,
-  openModalReportarNivelesTanquesJornaleros
+  openModalReportarNivelesTanquesJornaleros,
+  DataTableChartModalCostMensualMesesCerrados
 }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -57,8 +58,12 @@ function ExcelStyleFooter({
     openModalGraficaInventariovsSAP();
   };
 
-  const ModalFromFooterVerGastosMensualeGrafica = () => {
+  const ModalFromFooterVerGastosMensualeGrafica = () => {    
+    currentPath === '/mesescerrados' ?
+    DataTableChartModalCostMensualMesesCerrados()
+    :
     openModalFromFooterVerGastosMensualeGrafica();
+
   };
 
   const BackHome = () => {
@@ -204,7 +209,7 @@ function ExcelStyleFooter({
             },
           }}
         >
-          Ver Gastos Mensuales
+          {currentPath === '/mesescerrados'? <>Ver Gastos Mes Cerrado</>:<>Ver Gastos Mensuales</>}
         </Button>
         <Button
           variant="outlined"

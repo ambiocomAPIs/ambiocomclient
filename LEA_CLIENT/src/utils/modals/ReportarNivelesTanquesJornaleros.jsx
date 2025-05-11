@@ -24,7 +24,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
   useEffect(() => {
     // Obtén la data de los tanques
     axios
-      .get('https://ambiocomserver.onrender.com/api/seguimientotanquesjornaleros/GetTanquesData')
+      .get('http://localhost:4041/api/seguimientotanquesjornaleros/GetTanquesData')
       .then((res) => {
         setTanquesData(res.data);
       })
