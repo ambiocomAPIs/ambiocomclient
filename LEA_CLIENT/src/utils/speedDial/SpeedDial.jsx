@@ -30,7 +30,6 @@ export default function SpeedDialComponent({
   const onlyTanquesJornaleros = [
     { icon: <QueryStatsIcon />, name: 'Movimientos' },
     { icon: <FileDownloadIcon />, name: 'Export Excel' },
-    { icon: <PostAddIcon />, name: 'Reportar Movimiento' },
   ];
 
   const defaultActions = [

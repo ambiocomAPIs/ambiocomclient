@@ -15,7 +15,7 @@ import {
   FormControl
 } from '@mui/material';
 
-export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [] }) {
+export default function ReportarMovimientoTanquesModal({ open, onClose, onSubmit, data = [] }) {
   const [formData, setFormData] = React.useState({});
 
   const handleInputChange = (field) => (event) => {

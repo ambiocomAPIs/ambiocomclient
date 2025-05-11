@@ -12,60 +12,73 @@ import PriceChangeIcon from '@mui/icons-material/PriceChange';
 import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
 import ContentPasteSearchIcon from '@mui/icons-material/ContentPasteSearch';
 import StraightenIcon from '@mui/icons-material/Straighten';
+import SquareFootIcon from '@mui/icons-material/SquareFoot';
 
-function ExcelStyleFooter({ 
-  openModalFromFooterVerGastosMensualeGrafica, 
-  openModalFromFooterVerGastosMensualesCierreMes, 
-  openModalFromFooterVerGastosDiarioCierreMes, 
+import GraficoNivelesTanquesPorDiaModal from './modals/GraficoNivelesTanquesPorDia';
+
+function ExcelStyleFooter({
+  openModalFromFooterVerGastosMensualeGrafica,
+  openModalFromFooterVerGastosMensualesCierreMes,
+  openModalFromFooterVerGastosDiarioCierreMes,
   openModalFromFooterVerGastosMensuales,
-  openModalFromFooterVerGastosDiario, 
-  openModalGraficaInventariovsSAP, 
-  openModalFromFooterRegistrarMovimientoTanqueJornalero }) {
-  
+  openModalFromFooterVerGastosDiario,
+  openModalGraficaInventariovsSAP,
+  openModalFromFooterRegistrarMovimientoTanqueJornalero,
+  openModalReportarNivelesTanquesJornaleros
+}) {
   const location = useLocation();
-  const navigate = useNavigate(); // Inicializamos el hook navigate
-  
-  const [openModal, setOpenModal] = useState(false);
-  const [currentSheet, setCurrentSheet] = useState('');
-  // Estado para capturar la ruta
+  const navigate = useNavigate();
+
   const [currentPath, setCurrentPath] = useState('');
+  const [isGraficoNivelesModalOpen, setIsGraficoNivelesModalOpen] = useState(false);
 
-   useEffect(() => {
-      setCurrentPath(location.pathname);
-    }, [location]);
-
+  useEffect(() => {
+    setCurrentPath(location.pathname);
+  }, [location]);
 
   // Funciones para abrir el modal para cada caso específico
   const openModalVerGastosMensuales = () => {
-    currentPath == '/mesescerrados' ? openModalFromFooterVerGastosMensualesCierreMes(): openModalFromFooterVerGastosMensuales(); // Llamada a la función pasada como prop
+    currentPath === '/mesescerrados'
+      ? openModalFromFooterVerGastosMensualesCierreMes()
+      : openModalFromFooterVerGastosMensuales();
   };
 
   const openModalGraficaGastoDiario = () => {
-    currentPath == '/mesescerrados' ? openModalFromFooterVerGastosDiarioCierreMes():openModalFromFooterVerGastosDiario(); // Llamada a la función pasada como prop
+    currentPath === '/mesescerrados'
+      ? openModalFromFooterVerGastosDiarioCierreMes()
+      : openModalFromFooterVerGastosDiario();
   };
 
   const HistoricoMesesCerrados = () => {
-    navigate('/mesescerrados')
+    navigate('/mesescerrados');
   };
-  
+
   const InventariovsSAP = () => {
-    openModalGraficaInventariovsSAP()
+    openModalGraficaInventariovsSAP();
   };
 
   const ModalFromFooterVerGastosMensualeGrafica = () => {
-    openModalFromFooterVerGastosMensualeGrafica()
+    openModalFromFooterVerGastosMensualeGrafica();
   };
 
   const BackHome = () => {
-    navigate('/')
-  };  
+    navigate('/');
+  };
 
   const InventarioJornalerosTK = () => {
-    navigate('/seguimientotanquesjornaleros')
-  };  
+    navigate('/seguimientotanquesjornaleros');
+  };
 
   const ModalFromFooterRegistrarMovimientoTanqueJornalero = () => {
-    openModalFromFooterRegistrarMovimientoTanqueJornalero()
+    openModalFromFooterRegistrarMovimientoTanqueJornalero();
+  };
+
+  const ModalFromFooteropenGraficoNivelesTanquesPorDia = () => {
+    setIsGraficoNivelesModalOpen(true)
+  };
+  
+  const ModalReportarNivelesTanquesJornaleros = () => {
+    openModalReportarNivelesTanquesJornaleros()
   };
 
   return (
@@ -88,21 +101,23 @@ function ExcelStyleFooter({
           variant="outlined"
           onClick={BackHome}
           endIcon={<HomeIcon />}
-          hidden={currentPath=="/mesescerrados" ? false:true}
+          hidden={currentPath === '/mesescerrados' ? false : true}
           sx={{
-            display: currentPath === "/mesescerrados" || currentPath === "/seguimientotanquesjornaleros"
-            ? 'inline-flex'
-            : 'none',            
+            display:
+              currentPath === '/mesescerrados' ||
+              currentPath === '/seguimientotanquesjornaleros'
+                ? 'inline-flex'
+                : 'none',
             margin: '0 5px',
             color: 'green',
-            borderColor:'#9fd8f9',
+            borderColor: '#9fd8f9',
             textTransform: 'none',
             borderRadius: '4px',
             padding: '8px 20px',
             minWidth: '150px',
             fontSize: '14px',
             fontWeight: 600,
-            boxShadow: currentSheet === 'Hoja W1' ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
             transition: 'all 0.3s ease',
             '&:hover': {
               borderColor: 'green',
@@ -118,19 +133,17 @@ function ExcelStyleFooter({
           onClick={openModalVerGastosMensuales}
           endIcon={<PriceChangeIcon />}
           sx={{
-            display: currentPath === "/seguimientotanquesjornaleros"
-            ? 'none'
-            : 'inline-flex',            
+            display: currentPath === '/seguimientotanquesjornaleros' ? 'none' : 'inline-flex',
             margin: '0 5px',
-            color: currentSheet === 'Hoja 1' ? '#aadfff' : '#333',
-            borderColor:'#8ccdf3',
+            color: '#1976d2',
+            borderColor: '#8ccdf3',
             textTransform: 'none',
             borderRadius: '4px',
             padding: '8px 20px',
             minWidth: '150px',
             fontSize: '14px',
             fontWeight: 600,
-            boxShadow: currentSheet === 'Hoja W1' ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
             transition: 'all 0.3s ease',
             '&:hover': {
               borderColor: '#1976d2',
@@ -146,19 +159,17 @@ function ExcelStyleFooter({
           onClick={openModalGraficaGastoDiario}
           endIcon={<TodayIcon />}
           sx={{
-            display: currentPath === "/seguimientotanquesjornaleros"
-            ? 'none'
-            : 'inline-flex',     
+            display: currentPath === '/seguimientotanquesjornaleros' ? 'none' : 'inline-flex',
             margin: '0 5px',
-            color: currentSheet === 'Hoja 1' ? '#1976d2' : '#333',
-            borderColor:'#8ccdf3 ',
+            color: '#1976d2',
+            borderColor: '#8ccdf3',
             textTransform: 'none',
             borderRadius: '4px',
             padding: '8px 20px',
             minWidth: '150px',
             fontSize: '14px',
             fontWeight: 600,
-            boxShadow: currentSheet === 'Hoja 1' ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
             transition: 'all 0.3s ease',
             '&:hover': {
               borderColor: '#1976d2',
@@ -174,19 +185,17 @@ function ExcelStyleFooter({
           onClick={ModalFromFooterVerGastosMensualeGrafica}
           endIcon={<CalendarMonthIcon />}
           sx={{
-            display: currentPath === "/seguimientotanquesjornaleros"
-            ? 'none'
-            : 'inline-flex',     
+            display: currentPath === '/seguimientotanquesjornaleros' ? 'none' : 'inline-flex',
             margin: '0 5px',
-            color: currentSheet === 'Hoja 1' ? '#1976d2' : '#333',
-            borderColor:'#8ccdf3',
+            color: '#1976d2',
+            borderColor: '#8ccdf3',
             textTransform: 'none',
             borderRadius: '4px',
             padding: '8px 20px',
             minWidth: '150px',
             fontSize: '14px',
             fontWeight: 600,
-            boxShadow: currentSheet === 'Hoja 1' ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
             transition: 'all 0.3s ease',
             '&:hover': {
               borderColor: '#1976d2',
@@ -202,19 +211,17 @@ function ExcelStyleFooter({
           onClick={HistoricoMesesCerrados}
           endIcon={<DateRangeIcon />}
           sx={{
-            display: currentPath === "/mesescerrados" || currentPath === "/seguimientotanquesjornaleros"
-            ? 'none'
-            : 'inline-flex',     
+            display: currentPath === '/mesescerrados' || currentPath === '/seguimientotanquesjornaleros' ? 'none' : 'inline-flex',
             margin: '0 5px',
-            color: currentSheet === 'Hoja 1' ? '#1976d2' : '#333',
-            borderColor:'#8ccdf3',
+            color: '#1976d2',
+            borderColor: '#8ccdf3',
             textTransform: 'none',
             borderRadius: '4px',
             padding: '8px 20px',
             minWidth: '150px',
             fontSize: '14px',
             fontWeight: 600,
-            boxShadow: currentSheet === 'Hoja 1' ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
             transition: 'all 0.3s ease',
             '&:hover': {
               borderColor: '#1976d2',
@@ -230,19 +237,17 @@ function ExcelStyleFooter({
           onClick={InventariovsSAP}
           endIcon={<SsidChartIcon />}
           sx={{
-            display:currentPath === "/seguimientotanquesjornaleros"
-            ? 'none'
-            : 'inline-flex',     
+            display: currentPath === '/seguimientotanquesjornaleros' ? 'none' : 'inline-flex',
             margin: '0 5px',
-            color: currentSheet === 'Hoja 1' ? '#1976d2' : '#333',
-            borderColor:'#8ccdf3',
+            color: '#1976d2',
+            borderColor: '#8ccdf3',
             textTransform: 'none',
             borderRadius: '4px',
             padding: '8px 20px',
             minWidth: '150px',
             fontSize: '14px',
             fontWeight: 600,
-            boxShadow: currentSheet === 'Hoja 1' ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
             transition: 'all 0.3s ease',
             '&:hover': {
               borderColor: '#1976d2',
@@ -258,19 +263,17 @@ function ExcelStyleFooter({
           onClick={InventarioJornalerosTK}
           endIcon={<ContentPasteSearchIcon />}
           sx={{
-            display: currentPath === "/mesescerrados" || currentPath === "/seguimientotanquesjornaleros"
-            ? 'none'
-            : 'inline-flex',     
+            display: currentPath === '/mesescerrados' || currentPath === '/seguimientotanquesjornaleros' ? 'none' : 'inline-flex',
             margin: '0 5px',
-            color: currentSheet === 'Hoja 1' ? '#1976d2' : '#333',
-            borderColor:'#8ccdf3',
+            color: '#1976d2',
+            borderColor: '#8ccdf3',
             textTransform: 'none',
             borderRadius: '4px',
             padding: '8px 20px',
             minWidth: '150px',
             fontSize: '14px',
             fontWeight: 600,
-            boxShadow: currentSheet === 'Hoja 1' ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
             transition: 'all 0.3s ease',
             '&:hover': {
               borderColor: '#1976d2',
@@ -279,26 +282,24 @@ function ExcelStyleFooter({
             },
           }}
         >
-          Seguimiento Tanques jornaleros
+          Inventario Tanques Jornaleros
         </Button>
         <Button
           variant="outlined"
           onClick={ModalFromFooterRegistrarMovimientoTanqueJornalero}
           endIcon={<AppRegistrationIcon />}
           sx={{
-            display:currentPath === "/seguimientotanquesjornaleros"
-            ? 'inline-flex'
-            : 'none',     
+            display: currentPath === '/seguimientotanquesjornaleros' ? 'inline-flex' : 'none',
             margin: '0 5px',
-            color: currentSheet === 'Hoja 1' ? '#1976d2' : '#333',
-            borderColor:'#8ccdf3',
+            color: '#1976d2',
+            borderColor: '#8ccdf3',
             textTransform: 'none',
             borderRadius: '4px',
             padding: '8px 20px',
             minWidth: '150px',
             fontSize: '14px',
             fontWeight: 600,
-            boxShadow: currentSheet === 'Hoja 1' ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
             transition: 'all 0.3s ease',
             '&:hover': {
               borderColor: '#1976d2',
@@ -307,26 +308,50 @@ function ExcelStyleFooter({
             },
           }}
         >
-          REGISTRAR MOVIMIENTO
+          Registrar Movimiento Tanque
         </Button>
         <Button
           variant="outlined"
-          onClick={ModalFromFooterRegistrarMovimientoTanqueJornalero}
-          endIcon={<StraightenIcon />}
+          onClick={ModalReportarNivelesTanquesJornaleros}
+          endIcon={<SquareFootIcon />}
           sx={{
-            display:currentPath === "/seguimientotanquesjornaleros"
-            ? 'inline-flex'
-            : 'none',     
+            display: currentPath === '/seguimientotanquesjornaleros' ? 'inline-flex' : 'none',
             margin: '0 5px',
-            color: currentSheet === 'Hoja 1' ? '#1976d2' : '#333',
-            borderColor:'#8ccdf3',
+            color: '#1976d2',
+            borderColor: '#8ccdf3',
             textTransform: 'none',
             borderRadius: '4px',
             padding: '8px 20px',
             minWidth: '150px',
             fontSize: '14px',
             fontWeight: 600,
-            boxShadow: currentSheet === 'Hoja 1' ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              borderColor: '#1976d2',
+              color: '#1976d2',
+              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+            },
+          }}
+        >
+          Reportar Niveles Diarios
+        </Button>
+        <Button
+          variant="outlined"
+          onClick={ModalFromFooteropenGraficoNivelesTanquesPorDia}
+          endIcon={<StraightenIcon />}
+          sx={{
+            display: currentPath === '/seguimientotanquesjornaleros' ? 'inline-flex' : 'none',
+            margin: '0 5px',
+            color: '#1976d2',
+            borderColor: '#8ccdf3',
+            textTransform: 'none',
+            borderRadius: '4px',
+            padding: '8px 20px',
+            minWidth: '150px',
+            fontSize: '14px',
+            fontWeight: 600,
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
             transition: 'all 0.3s ease',
             '&:hover': {
               borderColor: '#1976d2',
@@ -338,6 +363,12 @@ function ExcelStyleFooter({
           Historico Mensual de Nivel
         </Button>
       </Box>
+      {/* Modal GraficoNivelesTanquesPorDia */}
+        <GraficoNivelesTanquesPorDiaModal
+         modalIsOpen={isGraficoNivelesModalOpen}
+        //  onClose={} // Pasar la función para cerrar el modal
+        // Puedes agregar otras props necesarias aquí
+      />
     </div>
   );
 }

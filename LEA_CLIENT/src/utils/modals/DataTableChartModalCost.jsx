@@ -32,7 +32,7 @@ const DataTableChartModalCost = ({ modalIsOpen, closeModal }) => {
   useEffect(() => {
     const fetchMovimientos = async () => {
       try {
-        const response = await axios.get('https://ambiocomserver.onrender.com/api/registro/movimientos');
+        const response = await axios.get('http://localhost:4041/api/registro/movimientos');
         const movimientos = response.data;
 
         const { month, year } = dateRange;

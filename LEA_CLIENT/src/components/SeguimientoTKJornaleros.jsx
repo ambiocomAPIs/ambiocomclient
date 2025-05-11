@@ -12,11 +12,14 @@ import {
   MenuItem,
   Select,
   InputLabel,
-  FormControl
+  FormControl,
+  Snackbar,
+  Alert
 } from '@mui/material';
 
 import SpeedDialComponent from '../utils/speedDial/SpeedDial';
 import ExcelStyleFooter from '../utils/ExcelStyleFooter';
+import ReportarNivelesTanquesJornaleros from '../utils/modals/ReportarNivelesTanquesJornaleros';
 
 const styleModal = {
   position: 'absolute',
@@ -41,12 +44,13 @@ function SeguimientoTKJornaleros() {
   const [cliente, setCliente] = useState('');
   const [factura, setFactura] = useState('');
   const [observaciones, setObservaciones] = useState('');
-  const [nivelFinal, setNivelFinal] = useState('');
   const [tanques, setTanques] = useState([]);
   const [filteredTanques, setFilteredTanques] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   const [modalVerRegistrarMovimientoTanqueJornaleroIsOpen, setModalVerRegistrarMovimientoTanqueJornaleroIsOpen] = useState(false);
+  const [modalReportarNivelesTanquesJornalerosIsOpen, setModalReportarNivelesTanquesJornalerosIsOpen] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
   const hoy = new Date().toLocaleDateString('es-ES');
 
   const handleClose = () => {
@@ -58,12 +62,15 @@ function SeguimientoTKJornaleros() {
     setCliente('');
     setFactura('');
     setObservaciones('');
-    setNivelFinal('');
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
   };
 
   useEffect(() => {
     axios
-      .get('https://ambiocomserver.onrender.com/api/seguimientotanquesjornaleros/GetTanquesData')
+      .get('http://localhost:4041/api/seguimientotanquesjornaleros/GetTanquesData')
       .then((res) => {
         setTanques(res.data);
         setFilteredTanques(res.data);
@@ -86,6 +93,36 @@ function SeguimientoTKJornaleros() {
 
   const openModalFromFooterRegistrarMovimientoTanqueJornalero = () => setModalVerRegistrarMovimientoTanqueJornaleroIsOpen(true);
   const closeModalVerRegistrarMovimientoTanqueJornaleroIsOpen = () => setModalVerRegistrarMovimientoTanqueJornaleroIsOpen(false);
+ 
+  const openModalReportarNivelesTanquesJornalerosIsOpen = () => setModalReportarNivelesTanquesJornalerosIsOpen(true);
+  const closeModalReportarNivelesTanquesJornalerosIsOpen = () => setModalReportarNivelesTanquesJornalerosIsOpen(false);
+
+  const handleSaveMovement = () => {
+    const data = {
+      tipoDeMovimiento: tipoMovimiento,
+      tanqueOrigen: tipoMovimiento === 'movimiento' || tipoMovimiento === 'despacho' ? tanqueOrigen : null,
+      tanqueDestino: tipoMovimiento === 'movimiento' || tipoMovimiento === 'carga' ? tanqueDestino : null,
+      cantidad: parseFloat(cantidad),
+      responsable,
+      cliente: tipoMovimiento === 'despacho' ? cliente : null,
+      detalleFactura: tipoMovimiento === 'despacho' ? factura : null,
+      observaciones,
+    };
+
+    axios
+      .post('http://localhost:4041/api/reportar/operacionesdetanques', data)
+      .then((response) => {
+        console.log('Movimiento registrado:', response.data);
+        setSnackbarOpen(true); // Abre el snackbar cuando se guarde correctamente
+        setTimeout(() => {
+          window.location.reload(); // Recarga la página después de 2 segundos
+        }, 2000);
+        handleClose();
+      })
+      .catch((error) => {
+        console.error('Error al registrar movimiento:', error);
+      });
+  };
 
   return (
     <Box sx={{ padding: 2, pb: 10 }}>
@@ -98,7 +135,7 @@ function SeguimientoTKJornaleros() {
           size="small"
           sx={{ width: '20%' }}
         />
-        <Typography variant="h4" sx={{ textAlign: 'center', flexGrow: 1, marginLeft: '-380px' }}>
+        <Typography variant="h4" sx={{ textAlign: 'center', flexGrow: 1, marginLeft: '-380px'}}>
           Niveles de Tanques Jornaleros
         </Typography>
       </Box>
@@ -136,7 +173,7 @@ function SeguimientoTKJornaleros() {
       <Modal open={modalVerRegistrarMovimientoTanqueJornaleroIsOpen} onClose={closeModalVerRegistrarMovimientoTanqueJornaleroIsOpen}>
         <Box sx={styleModal}>
           <Typography variant="h6" mb={2} style={{ textAlign: 'center' }}>
-            Nuevo Movimiento - {hoy}
+            Nueva operacion de tanques - {hoy}
           </Typography>
 
           <FormControl fullWidth sx={{ mb: 2 }}>
@@ -226,15 +263,6 @@ function SeguimientoTKJornaleros() {
           )}
 
           <TextField
-            label="Nivel Final (L)"
-            type="number"
-            fullWidth
-            value={nivelFinal}
-            onChange={(e) => setNivelFinal(e.target.value)}
-            sx={{ mb: 2 }}
-          />
-
-          <TextField
             label="Observaciones"
             fullWidth
             multiline
@@ -248,30 +276,33 @@ function SeguimientoTKJornaleros() {
             variant="contained"
             color="success"
             fullWidth
-            onClick={() => {
-              const data = {
-                tipoMovimiento,
-                tanqueOrigen,
-                tanqueDestino,
-                cantidad,
-                responsable,
-                cliente: tipoMovimiento === 'despacho' ? cliente : null,
-                factura: tipoMovimiento === 'despacho' ? factura : null,
-                nivelFinal,
-                observaciones,
-                fecha: hoy,
-              };
-              console.log('Movimiento registrado:', data);
-              handleClose();
-            }}
+            onClick={handleSaveMovement}
           >
             Guardar Movimiento
           </Button>
         </Box>
       </Modal>
 
+      {/* Snackbar for success message */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+      >
+        <Alert onClose={handleSnackbarClose} severity="success" sx={{ width: '100%' }}>
+          Movimiento registrado correctamente!
+        </Alert>
+      </Snackbar>
+      
+      {/* Modal para reportar niveles diarios en tanques jornaleros */}
+      <ReportarNivelesTanquesJornaleros 
+        open={modalReportarNivelesTanquesJornalerosIsOpen}
+        onClose={closeModalReportarNivelesTanquesJornalerosIsOpen}
+      />
+
       <ExcelStyleFooter 
         openModalFromFooterRegistrarMovimientoTanqueJornalero={openModalFromFooterRegistrarMovimientoTanqueJornalero}
+        openModalReportarNivelesTanquesJornaleros={openModalReportarNivelesTanquesJornalerosIsOpen}     
       />
 
       <SpeedDialComponent
