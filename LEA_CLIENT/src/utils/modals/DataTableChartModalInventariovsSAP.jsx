@@ -28,6 +28,14 @@ const DataTableChartModalInventariovsSAP = ({ modalIsOpen, closeModal, reactivos
     }));
   }, [reactivos]);
 
+  const highlightedPoints = consumoData.map((d, index) => {
+    const diff = Math.abs(d.Inventario - d.SAP);
+    return diff > 2 ? {
+      x: d.producto,
+      y: Math.max(d.Inventario, d.SAP),
+    } : null;
+  }).filter(Boolean);
+
   const chartData = {
     labels: consumoData.map(d => d.producto), // Etiquetas de productos con lote
     datasets: [
@@ -46,6 +54,16 @@ const DataTableChartModalInventariovsSAP = ({ modalIsOpen, closeModal, reactivos
         backgroundColor: 'rgba(255, 87, 51, 0.2)',  // Color de fondo para SAP
         fill: true,
         tension: 0.3,
+      },
+      {
+        label: 'Diferencia > 2',
+        data: highlightedPoints,
+        pointStyle: 'star',
+        pointRadius: 8,
+        pointBackgroundColor: 'red',
+        pointBorderColor: 'black',
+        pointBorderWidth: 1,
+        showLine: false,
       }
     ]
   };
