@@ -55,7 +55,7 @@ const CodificacionDeColoresComponent = React.memo(() => {
 
   useEffect(() => {
     // Realizar la solicitud GET a la API
-    axios.get('http://localhost:4041/api/tableColors/dataColors')
+    axios.get('https://ambiocomserver.onrender.com/api/tableColors/dataColors')
       .then(response => {
         setDataColors(response.data);
         setLoading(false);
@@ -92,7 +92,7 @@ const CodificacionDeColoresComponent = React.memo(() => {
     
       try {
         const response = await axios.put(
-          'http://localhost:4041/api/tableColors/dataColorsreplaceall',
+          'https://ambiocomserver.onrender.com/api/tableColors/dataColorsreplaceall',
           [editedRow]
         );
     
@@ -125,7 +125,7 @@ const CodificacionDeColoresComponent = React.memo(() => {
       Color: '----',
       Accion: '----'
     };
-    axios.post('http://localhost:4041/api/tableColors/dataColors', newFile)
+    axios.post('https://ambiocomserver.onrender.com/api/tableColors/dataColors', newFile)
       .then(response => {        
         // Una vez agregada la fila en la base de datos, agregarla al estado local para que se muestre
         setDataColors(prevData => [response.data, ...prevData]);
@@ -156,10 +156,10 @@ const deleteRowData = (rowId) => {
     // Si el usuario confirma la eliminación
     if (result.isConfirmed) {
       // Realizamos la eliminación de la fila
-      axios.delete(`http://localhost:4041/api/tableColors/dataColors/${rowId}`)
+      axios.delete(`https://ambiocomserver.onrender.com/api/tableColors/dataColors/${rowId}`)
         .then(() => {
           // Si la eliminación es exitosa, obtenemos los datos actualizados
-          axios.get('http://localhost:4041/api/tableColors/dataColors')
+          axios.get('https://ambiocomserver.onrender.com/api/tableColors/dataColors')
             .then(updatedDataResponse => {
               setDataColors(updatedDataResponse.data); // Actualizamos el estado con los nuevos datos
               setSnackbarMessage('Datos eliminados correctamente');

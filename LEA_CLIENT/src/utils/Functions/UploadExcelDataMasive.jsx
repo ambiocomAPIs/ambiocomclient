@@ -83,7 +83,7 @@
         
 //         const rutaConsumoPost = module == 'dataTableColors' ? 'tableColors/dataColorsreplaceall' : 'table/datareplaceall'
 //         //? Enviar los datos al backend para guardarlos en la base de datos
-//         await axios.post(`http://localhost:4041/api/${rutaConsumoPost}`, formattedData);
+//         await axios.post(`https://ambiocomserver.onrender.com/api/${rutaConsumoPost}`, formattedData);
 //         alert('Datos cargados correctamente');
 //         onClose();  // Cerrar el modal después de la carga
 //         window.location.reload();
