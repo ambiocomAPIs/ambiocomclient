@@ -37,7 +37,7 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
           Responsable: selectedProduct.responsable || '',
           Area: selectedProduct.area || '',
           ObservacionesAdicionales: selectedProduct.ObservacionesAdicionales || '',
-          SAP: selectedProduct.SAP || 0  // Asignar automáticamente el valor de SAP
+          SAP: selectedProduct.SAP || 0
         }));
       }
     }
@@ -58,7 +58,7 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
           Responsable: selectedLote.responsable || '',
           Area: selectedLote.area || '',
           ObservacionesAdicionales: selectedLote.ObservacionesAdicionales || '',
-          SAP: selectedLote.SAP || 0  // Asignar automáticamente el valor de SAP
+          SAP: selectedLote.SAP || 0
         }));
       }
     }
@@ -66,36 +66,57 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
 
   const handleSubmit = async () => {
     try {
-      // Calcular costoMensual
-      const costoMensual = formData.Costo * formData.ConsumoAReportar;
+      const cantidad = Number(formData.ConsumoAReportar) || 0;
+      const inventarioActual = Number(formData.Inventario) || 0;
+      const costoUnitario = Number(formData.Costo) || 0;
+      const tipoOperacion = formData.TipoOperación;
 
-      // Asegurarse de enviar todos los datos con el nuevo campo
-      const updateInventoryResponse = await axios.post('https://ambiocomserver.onrender.com/api/registro/movimientos', {
-        TipoOperación: formData.TipoOperación,
+      let nuevoInventario = inventarioActual;
+      let cantidadReportada = cantidad;
+      let costoMensual = 0;
+
+      if (tipoOperacion === 'Consumo de Material') {
+        // Validar que no se consuma más de lo disponible
+        if (cantidad > inventarioActual) {
+          alert('No puedes consumir más del inventario disponible.');
+          return;
+        }
+        nuevoInventario = inventarioActual - cantidad;
+        cantidadReportada = -cantidad; // Registrar como negativo
+        costoMensual = costoUnitario * cantidad;
+      } else if (tipoOperacion === 'Ingreso Material') {
+        nuevoInventario = inventarioActual + cantidad;
+        cantidadReportada = cantidad; // Positivo
+        costoMensual = 0;
+      }
+
+      // Enviar los datos actualizados
+      await axios.post('https://ambiocomserver.onrender.com/api/registro/movimientos', {
+        TipoOperación: tipoOperacion,
         Producto: formData.Producto,
         Lote: formData.Lote,
-        Inventario: formData.Inventario - formData.ConsumoAReportar,  // Disminuir el inventario por el consumo reportado
+        Inventario: nuevoInventario,
         Unidad: formData.Unidad,
-        Costo: formData.Costo,
+        Costo: costoUnitario,
         Proveedor: formData.Proveedor,
         Responsable: formData.Responsable,
         Area: formData.Area,
-        ConsumoAReportar: formData.ConsumoAReportar,  // Asegurarse de que este campo esté incluido
+        ConsumoAReportar: cantidadReportada,
         costoMensual: costoMensual,
-        ObservacionesAdicionales: formData.ObservacionesAdicionales || 'Sin observacion',  // Cambié a "ObservacionesAdicionales"
+        ObservacionesAdicionales: formData.ObservacionesAdicionales || 'Sin observacion',
         SAP: formData.SAP || 0
       });
 
-      // Registrar el movimiento
-      const registerMovementResponse = await axios.post('https://ambiocomserver.onrender.com/api/table/data/reportar-operacion', formData);
+      await axios.post('https://ambiocomserver.onrender.com/api/table/data/reportar-operacion', {
+        ...formData,
+        ConsumoAReportar: cantidadReportada // También reflejamos el valor corregido en el segundo registro
+      });
 
-      // Si ambos procesos fueron exitosos, mostrar el mensaje
       alert('Inventario actualizado y movimiento registrado con éxito');
 
-      // Usamos setTimeout para esperar a que el usuario cierre el alert
       setTimeout(() => {
-        window.location.reload(); // Refresca la página después de que se cierre el alert
-      }, 10); // Delay muy corto para hacer el refresco justo después de que el alert se cierre
+        window.location.reload();
+      }, 10);
 
       onSubmit(formData);
       if (typeof onClose === 'function') onClose();
@@ -189,12 +210,11 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
             </Grid>
           ))}
 
-          {/* Nuevo campo de texto para Observación Adicional (se expande a todo el ancho del modal) */}
           <Grid item xs={12}>
             <TextField
               label="Observaciones Adicionales"
               multiline
-              rows={4}  // Puedes ajustar el número de filas según el espacio necesario
+              rows={4}
               fullWidth
               variant="outlined"
               value={formData['ObservacionesAdicionales'] || ''}
