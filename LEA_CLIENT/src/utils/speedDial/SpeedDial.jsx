@@ -18,7 +18,8 @@ export default function SpeedDialComponent({
   exportExcelTable,
   DownloadManual,
   VerMovimientos,
-  CierreMes
+  CierreMes,
+  VerMovimientosTanquesJornaleros
 }) {
   const location = useLocation();
 
@@ -28,7 +29,7 @@ export default function SpeedDialComponent({
   ];
 
   const onlyTanquesJornaleros = [
-    { icon: <QueryStatsIcon />, name: 'Movimientos' },
+    { icon: <QueryStatsIcon />, name: 'MovimientosTanquesJornaleros' },
     { icon: <FileDownloadIcon />, name: 'Export Excel' },
   ];
 
@@ -77,6 +78,8 @@ export default function SpeedDialComponent({
               VerMovimientos();
             } else if (action.name === 'Cierre de Mes') {
               CierreMes();
+            }else if (action.name === 'MovimientosTanquesJornaleros') {
+              VerMovimientosTanquesJornaleros();
             }
           }}
           sx={{

@@ -79,12 +79,6 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, registros= [],onClose})
     setInternalModalIsOpen(modalIsOpen); // sincronizar con prop al abrir
   }, [modalIsOpen]);
 
-  const closeModal = () => {
-
-    const modalIsOpen=!modalIsOpen
-    setInternalModalIsOpen(modalIsOpen)
-    };
-
   const exportToCSV = () => {
     const csv = Papa.unparse(rawData);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -121,14 +115,11 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, registros= [],onClose})
 
     doc.save('niveles_tanques_mes.pdf');
   };
-
-  console.log("valor del modal: ", internalModalIsOpen);
-  console.log("isopen: ", modalIsOpen);
   
   return (
     <Modal
       isOpen={modalIsOpen}
-      onRequestClose={internalModalIsOpen}
+      onRequestClose={onClose}
       style={{
         content: {
           top: '50%',
@@ -149,7 +140,7 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, registros= [],onClose})
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
         <h2 style={{ margin: 0 }}>{`${monthName} ${currentYear}`}</h2>
         <button
-          onClick={closeModal}
+          onClick={onClose}
           style={{
             padding: '8px 16px',
             backgroundColor: '#d32f2f',

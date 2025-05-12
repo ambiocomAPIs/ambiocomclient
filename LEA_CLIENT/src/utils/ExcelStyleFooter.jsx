@@ -25,13 +25,13 @@ function ExcelStyleFooter({
   openModalGraficaInventariovsSAP,
   openModalFromFooterRegistrarMovimientoTanqueJornalero,
   openModalReportarNivelesTanquesJornaleros,
-  DataTableChartModalCostMensualMesesCerrados
+  DataTableChartModalCostMensualMesesCerrados,
+  openModalGraficoNivelesModalOpen
 }) {
   const location = useLocation();
   const navigate = useNavigate();
 
   const [currentPath, setCurrentPath] = useState('');
-  const [isGraficoNivelesModalOpen, setIsGraficoNivelesModalOpen] = useState(false);
 
   useEffect(() => {
     setCurrentPath(location.pathname);
@@ -79,7 +79,7 @@ function ExcelStyleFooter({
   };
 
   const ModalFromFooteropenGraficoNivelesTanquesPorDia = () => {
-    setIsGraficoNivelesModalOpen(true)
+    openModalGraficoNivelesModalOpen()
   };
   
   const ModalReportarNivelesTanquesJornaleros = () => {
@@ -102,7 +102,7 @@ function ExcelStyleFooter({
           zIndex: 999,
         }}
       >
-        <Button
+        <Button 
           variant="outlined"
           onClick={BackHome}
           endIcon={<HomeIcon />}
@@ -368,12 +368,6 @@ function ExcelStyleFooter({
           Historico Mensual de Nivel
         </Button>
       </Box>
-      {/* Modal GraficoNivelesTanquesPorDia */}
-        <GraficoNivelesTanquesPorDiaModal
-         modalIsOpen={isGraficoNivelesModalOpen}
-        //  onClose={} // Pasar la función para cerrar el modal
-        // Puedes agregar otras props necesarias aquí
-      />
     </div>
   );
 }

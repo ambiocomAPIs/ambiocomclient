@@ -20,6 +20,8 @@ import {
 import SpeedDialComponent from '../utils/speedDial/SpeedDial';
 import ExcelStyleFooter from '../utils/ExcelStyleFooter';
 import ReportarNivelesTanquesJornaleros from '../utils/modals/ReportarNivelesTanquesJornaleros';
+import DetallesMovimientosDeTanquesJornaleros from '../utils/modals/DetallesMovimientosDeTanquesJornaleros';
+import GraficoNivelesTanquesPorDiaModal from '../utils/modals/GraficoNivelesTanquesPorDia'
 
 const styleModal = {
   position: 'absolute',
@@ -51,6 +53,8 @@ function SeguimientoTKJornaleros() {
   const [modalVerRegistrarMovimientoTanqueJornaleroIsOpen, setModalVerRegistrarMovimientoTanqueJornaleroIsOpen] = useState(false);
   const [modalReportarNivelesTanquesJornalerosIsOpen, setModalReportarNivelesTanquesJornalerosIsOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [modalVerMovimientosTanquesJornalerosIsOpen, setModalVerMovimientosTanquesJornalerosIsOpen] = useState(false);
+  const [modalOpenModalGraficoNivelesModalIsOpen, setopenModalGraficoNivelesModalIsOpen] = useState(false);
   const hoy = new Date().toLocaleDateString('es-ES');
 
   const handleClose = () => {
@@ -97,6 +101,12 @@ function SeguimientoTKJornaleros() {
   const openModalReportarNivelesTanquesJornalerosIsOpen = () => setModalReportarNivelesTanquesJornalerosIsOpen(true);
   const closeModalReportarNivelesTanquesJornalerosIsOpen = () => setModalReportarNivelesTanquesJornalerosIsOpen(false);
 
+  const openModalVerMovimientosTanquesJornaleros = () => setModalVerMovimientosTanquesJornalerosIsOpen(true);
+  const closeModalVerMovimientosTanquesJornaleros = () => setModalVerMovimientosTanquesJornalerosIsOpen(false);
+  
+  const openModalGraficoNivelesModalIsOpen = () => setopenModalGraficoNivelesModalIsOpen(true);
+  const closeModalGraficoNivelesModalIsOpen = () => setopenModalGraficoNivelesModalIsOpen(false);
+
   const handleSaveMovement = () => {
     const data = {
       tipoDeMovimiento: tipoMovimiento,
@@ -116,13 +126,33 @@ function SeguimientoTKJornaleros() {
         setSnackbarOpen(true); // Abre el snackbar cuando se guarde correctamente
         setTimeout(() => {
           window.location.reload(); // Recarga la página después de 2 segundos
-        }, 2000);
+        }, 500);
         handleClose();
       })
       .catch((error) => {
         console.error('Error al registrar movimiento:', error);
       });
   };
+
+
+  const registros = (() => {
+  const tanques = ['TK101', 'TK102', 'TK103', 'TK104', 'TK105', 'TK106', 'TK107', 'TK108'];
+  const registros = [];
+  const startDate = new Date('2025-01-01');
+  const today = new Date('2025-05-11');
+
+  for (let d = new Date(startDate); d <= today; d.setDate(d.getDate() + 1)) {
+    tanques.forEach(nombre => {
+      registros.push({
+        nombre,
+        createdAt: new Date(d).toISOString(),
+        nivel: Math.floor(Math.random() * 91) + 10, // Nivel entre 10 y 100
+      });
+    });
+  }
+
+  return registros;
+})();
 
   return (
     <Box sx={{ padding: 2, pb: 10 }}>
@@ -300,12 +330,24 @@ function SeguimientoTKJornaleros() {
         onClose={closeModalReportarNivelesTanquesJornalerosIsOpen}
       />
 
+      <DetallesMovimientosDeTanquesJornaleros 
+        open={modalVerMovimientosTanquesJornalerosIsOpen}
+        onClose={closeModalVerMovimientosTanquesJornaleros}
+      />
+
+      <GraficoNivelesTanquesPorDiaModal 
+        modalIsOpen={modalOpenModalGraficoNivelesModalIsOpen}
+        onClose={closeModalGraficoNivelesModalIsOpen}
+      />
+
       <ExcelStyleFooter 
+        openModalGraficoNivelesModalOpen={openModalGraficoNivelesModalIsOpen}
         openModalFromFooterRegistrarMovimientoTanqueJornalero={openModalFromFooterRegistrarMovimientoTanqueJornalero}
         openModalReportarNivelesTanquesJornaleros={openModalReportarNivelesTanquesJornalerosIsOpen}     
       />
 
       <SpeedDialComponent
+       VerMovimientosTanquesJornaleros={openModalVerMovimientosTanquesJornaleros}
         sx={{
           position: 'fixed',
           top: 16,
