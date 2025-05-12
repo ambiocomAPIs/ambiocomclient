@@ -70,27 +70,34 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
       const inventarioActual = Number(formData.Inventario) || 0;
       const costoUnitario = Number(formData.Costo) || 0;
       const tipoOperacion = formData.TipoOperación;
-
+  
       let nuevoInventario = inventarioActual;
       let cantidadReportada = cantidad;
       let costoMensual = 0;
-
+      let ConsumoMensual = 0;
+      let GastoMensual = 0;
+  
       if (tipoOperacion === 'Consumo de Material') {
-        // Validar que no se consuma más de lo disponible
         if (cantidad > inventarioActual) {
           alert('No puedes consumir más del inventario disponible.');
           return;
         }
         nuevoInventario = inventarioActual - cantidad;
-        cantidadReportada = -cantidad; // Registrar como negativo
+        cantidadReportada = -cantidad; // Se registra como negativo solo para el historial
         costoMensual = costoUnitario * cantidad;
+  
+        // Estos se envían en positivo
+        ConsumoMensual = cantidad;
+        GastoMensual = costoMensual;
       } else if (tipoOperacion === 'Ingreso Material') {
         nuevoInventario = inventarioActual + cantidad;
-        cantidadReportada = cantidad; // Positivo
+        cantidadReportada = cantidad;
         costoMensual = 0;
+        ConsumoMensual = 0;
+        GastoMensual = 0;
       }
-
-      // Enviar los datos actualizados
+  
+      // Enviar los datos actualizados a la API de movimientos
       await axios.post('https://ambiocomserver.onrender.com/api/registro/movimientos', {
         TipoOperación: tipoOperacion,
         Producto: formData.Producto,
@@ -104,20 +111,23 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
         ConsumoAReportar: cantidadReportada,
         costoMensual: costoMensual,
         ObservacionesAdicionales: formData.ObservacionesAdicionales || 'Sin observacion',
-        SAP: formData.SAP || 0
+        SAP: formData.SAP || 0,
+        ConsumoMensual: ConsumoMensual,
+        GastoMensual: GastoMensual
       });
-
+  
+      // Enviar el segundo registro (histórico o log)
       await axios.post('https://ambiocomserver.onrender.com/api/table/data/reportar-operacion', {
         ...formData,
-        ConsumoAReportar: cantidadReportada // También reflejamos el valor corregido en el segundo registro
+        ConsumoAReportar: cantidadReportada
       });
-
+  
       alert('Inventario actualizado y movimiento registrado con éxito');
-
+  
       setTimeout(() => {
         window.location.reload();
       }, 10);
-
+  
       onSubmit(formData);
       if (typeof onClose === 'function') onClose();
     } catch (error) {
@@ -125,7 +135,7 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
       alert('Error al actualizar inventario y registrar movimiento');
     }
   };
-
+  
   const handleCancel = () => {
     if (typeof onClose === 'function') onClose();
   };
