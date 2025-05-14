@@ -6,6 +6,7 @@ import MesesCerrados from './components/MesesCerrados';
 import UploadFile from './components/UploadFile'
 import SeguimientoTKJornaleros from './components/SeguimientoTKJornaleros';
 import CodificacionDeColoresComponent from './components/CodificacionDeColores';
+import UploadExcelTanquesDiariosMasivo from './utils/Functions/UploadExcelTanquesDiariosMasivo'
 import { Typography } from '@mui/material';
 
 
@@ -20,6 +21,7 @@ function App() {
         <Route path="/colors" element = {<CodificacionDeColoresComponent/>}/>
         <Route path="/mesescerrados" element = {<MesesCerrados/>}/>
         <Route path="/seguimientotanquesjornaleros" element = {<SeguimientoTKJornaleros/>}/>
+        <Route path="/cargamasivatanquesjornaleros" element = {<UploadExcelTanquesDiariosMasivo/>}/>
        </Routes>
       </BrowserRouter>
      </Fragment>

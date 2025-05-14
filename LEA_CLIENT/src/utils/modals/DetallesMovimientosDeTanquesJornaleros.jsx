@@ -25,9 +25,8 @@ const DetallesMovimientosDeTanquesJornaleros = ({ open, onClose }) => {
 
   const fetchData = async () => {
     try {
-      const response = await axios.get('https://ambiocomserver.onrender.com/api/reportar/veroperacionesdetanques');
+      const response = await axios.get('http://localhost:4041/api/reportar/veroperacionesdetanques');
       setData(response.data);
-      console.log("data que llega de operaciones de tanques:", response.data);
     } catch (error) {
       console.error("Error al obtener los datos", error);
     }

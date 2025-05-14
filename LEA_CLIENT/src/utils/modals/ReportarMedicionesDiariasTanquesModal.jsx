@@ -70,7 +70,7 @@ export default function ReportarMovimientoTanquesModal({ open, onClose, onSubmit
       const costoMensual = formData.Costo * formData.ConsumoAReportar;
 
       // Asegurarse de enviar todos los datos con el nuevo campo
-      const updateInventoryResponse = await axios.post('https://ambiocomserver.onrender.com/api/registro/movimientos', {
+      const updateInventoryResponse = await axios.post('http://localhost:4041/api/registro/movimientos', {
         TipoOperación: formData.TipoOperación,
         Producto: formData.Producto,
         Lote: formData.Lote,
@@ -87,7 +87,7 @@ export default function ReportarMovimientoTanquesModal({ open, onClose, onSubmit
       });
 
       // Registrar el movimiento
-      const registerMovementResponse = await axios.post('https://ambiocomserver.onrender.com/api/table/data/reportar-operacion', formData);
+      const registerMovementResponse = await axios.post('http://localhost:4041/api/table/data/reportar-operacion', formData);
 
       // Si ambos procesos fueron exitosos, mostrar el mensaje
       alert('Inventario actualizado y movimiento registrado con éxito');
