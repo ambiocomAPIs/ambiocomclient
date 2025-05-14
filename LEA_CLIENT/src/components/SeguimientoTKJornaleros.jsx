@@ -74,7 +74,7 @@ function SeguimientoTKJornaleros() {
 
   useEffect(() => {
     axios
-      .get('http://localhost:4041/api/seguimientotanquesjornaleros/GetTanquesData')
+      .get('https://ambiocomserver.onrender.com/api/seguimientotanquesjornaleros/GetTanquesData')
       .then((res) => {
         setTanques(res.data);
         setFilteredTanques(res.data);
@@ -120,7 +120,7 @@ function SeguimientoTKJornaleros() {
     };
 
     axios
-      .post('http://localhost:4041/api/reportar/operacionesdetanques', data)
+      .post('https://ambiocomserver.onrender.com/api/reportar/operacionesdetanques', data)
       .then((response) => {
         console.log('Movimiento registrado:', response.data);
         setSnackbarOpen(true); // Abre el snackbar cuando se guarde correctamente

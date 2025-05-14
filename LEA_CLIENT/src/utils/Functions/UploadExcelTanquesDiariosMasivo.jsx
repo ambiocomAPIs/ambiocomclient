@@ -28,7 +28,7 @@ const CargarMasivaTanquesDiariosExcel = () => {
     try {
       // Enviar el archivo al backend
       const response = await axios.post(
-        'http://localhost:4041/api/tanquesjornaleros/nivelesdiariostanquesjornaleros/uploadExcel', // Endpoint donde se cargará el archivo
+        'https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros/uploadExcel', // Endpoint donde se cargará el archivo
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } } // Encabezados necesarios para carga de archivos
       );
