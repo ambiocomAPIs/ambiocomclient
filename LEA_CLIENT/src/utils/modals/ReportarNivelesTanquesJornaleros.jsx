@@ -25,7 +25,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
 
   useEffect(() => {
     axios
-      .get('http://localhost:4041/api/tanquesjornaleros/nivelesdiariostanquesjornaleros')
+      .get('https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros')
       .then((res) => {
         setTanquesData(res.data);
       })
@@ -55,8 +55,8 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
     
     axios
       .post(
-         'http://localhost:4041/api/tanquesjornaleros/nivelesdiariostanquesjornaleros',
-        // 'http://localhost:4041/api/tanquesjornaleros/',
+         'https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros',
+        // 'https://ambiocomserver.onrender.com/api/tanquesjornaleros/',
         datosAEnviar
       )
       .then((res) => {
