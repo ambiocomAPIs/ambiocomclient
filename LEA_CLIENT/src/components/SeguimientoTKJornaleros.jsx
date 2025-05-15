@@ -104,7 +104,7 @@ function SeguimientoTKJornaleros() {
     if (searchQuery === '') {
       setFilteredTanques(filtered);
     } else {
-      setFilteredTanques(filtered.filter((t) => t.nombre.toLowerCase().includes(searchQuery.toLowerCase())));
+      setFilteredTanques(filtered.filter((t) => t?.NombreTanque?.toLowerCase().includes(searchQuery.toLowerCase())));
     }
   }, [searchQuery, tanques, fechaFiltro]);
 
