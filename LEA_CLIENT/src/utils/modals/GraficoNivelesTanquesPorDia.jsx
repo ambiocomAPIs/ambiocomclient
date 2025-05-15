@@ -34,7 +34,7 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
     if (modalIsOpen) {
       setIsLoading(true);
       axios
-        .get('https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros')
+        .get('http://localhost:4041/api/tanquesjornaleros/nivelesdiariostanquesjornaleros')
         .then((response) => {
           if (Array.isArray(response.data)) {
             setRegistros(response.data);
@@ -164,7 +164,7 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
           right: 'auto',
           bottom: 'auto',
           transform: 'translate(-50%, -50%)',
-          width: '70%',
+          width: '90vw',
           maxHeight: '90vh',
           padding: '30px',
           borderRadius: '12px',
@@ -244,7 +244,7 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
         <p>{error}</p>
       ) : chartData && chartData.labels.length > 0 ? (
         <>
-          <div style={{ height: '600px', marginBottom: '30px' }}>
+          <div style={{ height: '600px', marginBottom: '30px', width: '80vw' }}>
             <Line data={chartData} ref={chartRef} />
           </div>
           <div style={{ marginTop: '20px', maxHeight: '300px', overflowY: 'auto' }}>

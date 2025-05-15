@@ -9,12 +9,12 @@ import {
   Button,
   Modal,
   TextField,
-  MenuItem,
-  Select,
-  InputLabel,
-  FormControl,
   Snackbar,
-  Alert
+  Alert,
+  FormControl, 
+  InputLabel,
+  Select,
+  MenuItem 
 } from '@mui/material';
 
 import SpeedDialComponent from '../utils/speedDial/SpeedDial';
@@ -49,12 +49,13 @@ function SeguimientoTKJornaleros() {
   const [tanques, setTanques] = useState([]);
   const [filteredTanques, setFilteredTanques] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-
+  const [fechaFiltro, setFechaFiltro] = useState(''); // Nuevo estado para filtro por fecha
   const [modalVerRegistrarMovimientoTanqueJornaleroIsOpen, setModalVerRegistrarMovimientoTanqueJornaleroIsOpen] = useState(false);
   const [modalReportarNivelesTanquesJornalerosIsOpen, setModalReportarNivelesTanquesJornalerosIsOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [modalVerMovimientosTanquesJornalerosIsOpen, setModalVerMovimientosTanquesJornalerosIsOpen] = useState(false);
   const [modalOpenModalGraficoNivelesModalIsOpen, setopenModalGraficoNivelesModalIsOpen] = useState(false);
+
   const hoy = new Date().toLocaleDateString('es-ES');
 
   const handleClose = () => {
@@ -73,8 +74,17 @@ function SeguimientoTKJornaleros() {
   };
 
   useEffect(() => {
+    const hoy = new Date();
+    const año = hoy.getFullYear();
+    const mes = String(hoy.getMonth() + 1).padStart(2, '0'); // Meses empiezan desde 0
+    const dia = String(hoy.getDate()).padStart(2, '0');
+    const fechaFormateada = `${año}-${mes}-${dia}`;
+    setFechaFiltro(fechaFormateada); // Almacena la fecha formateada en el estado
+  }, []);
+
+  useEffect(() => {
     axios
-      .get('https://ambiocomserver.onrender.com/api/seguimientotanquesjornaleros/GetTanquesData')
+      .get('http://localhost:4041/api/tanquesjornaleros/nivelesdiariostanquesjornaleros')
       .then((res) => {
         setTanques(res.data);
         setFilteredTanques(res.data);
@@ -85,25 +95,28 @@ function SeguimientoTKJornaleros() {
   }, []);
 
   useEffect(() => {
+    // Filtrar los tanques por fecha
+    const filtered = tanques.filter((t) => {
+      const fechaRegistro = t.FechaRegistro; // Suponiendo que el campo se llama FechaRegistro
+      return fechaFiltro ? fechaRegistro === fechaFiltro : true;
+    });
+
     if (searchQuery === '') {
-      setFilteredTanques(tanques);
-    } else {
-      const filtered = tanques.filter((t) =>
-        t.nombre.toLowerCase().includes(searchQuery.toLowerCase())
-      );
       setFilteredTanques(filtered);
+    } else {
+      setFilteredTanques(filtered.filter((t) => t.nombre.toLowerCase().includes(searchQuery.toLowerCase())));
     }
-  }, [searchQuery, tanques]);
+  }, [searchQuery, tanques, fechaFiltro]);
 
   const openModalFromFooterRegistrarMovimientoTanqueJornalero = () => setModalVerRegistrarMovimientoTanqueJornaleroIsOpen(true);
   const closeModalVerRegistrarMovimientoTanqueJornaleroIsOpen = () => setModalVerRegistrarMovimientoTanqueJornaleroIsOpen(false);
- 
+
   const openModalReportarNivelesTanquesJornalerosIsOpen = () => setModalReportarNivelesTanquesJornalerosIsOpen(true);
   const closeModalReportarNivelesTanquesJornalerosIsOpen = () => setModalReportarNivelesTanquesJornalerosIsOpen(false);
 
   const openModalVerMovimientosTanquesJornaleros = () => setModalVerMovimientosTanquesJornalerosIsOpen(true);
   const closeModalVerMovimientosTanquesJornaleros = () => setModalVerMovimientosTanquesJornalerosIsOpen(false);
-  
+
   const openModalGraficoNivelesModalIsOpen = () => setopenModalGraficoNivelesModalIsOpen(true);
   const closeModalGraficoNivelesModalIsOpen = () => setopenModalGraficoNivelesModalIsOpen(false);
 
@@ -120,12 +133,12 @@ function SeguimientoTKJornaleros() {
     };
 
     axios
-      .post('https://ambiocomserver.onrender.com/api/reportar/operacionesdetanques', data)
+      .post('http://localhost:4041/api/reportar/operacionesdetanques', data)
       .then((response) => {
         console.log('Movimiento registrado:', response.data);
-        setSnackbarOpen(true); // Abre el snackbar cuando se guarde correctamente
+        setSnackbarOpen(true);
         setTimeout(() => {
-          window.location.reload(); // Recarga la página después de 2 segundos
+          window.location.reload();
         }, 500);
         handleClose();
       })
@@ -134,25 +147,14 @@ function SeguimientoTKJornaleros() {
       });
   };
 
-
-  const registros = (() => {
-  const tanques = ['TK101', 'TK102', 'TK103', 'TK104', 'TK105', 'TK106', 'TK107', 'TK108'];
-  const registros = [];
-  const startDate = new Date('2025-01-01');
-  const today = new Date('2025-05-11');
-
-  for (let d = new Date(startDate); d <= today; d.setDate(d.getDate() + 1)) {
-    tanques.forEach(nombre => {
-      registros.push({
-        nombre,
-        createdAt: new Date(d).toISOString(),
-        nivel: Math.floor(Math.random() * 91) + 10, // Nivel entre 10 y 100
-      });
-    });
-  }
-
-  return registros;
-})();
+  const InformacionTanques = {
+    "402A": [628, 9620],"402B": [628, 9620],"801A": [640, 139982],"801B": [640, 139982],
+    "305": [213750, 9620],"403A": [255, 2830],"403B": [255, 2830],"803": [185, 38680],
+    "D300": [92000, 44390],"401A": [300, 2681],"401B": [300, 2681],"802": [1001, 6615],
+    "805": [360, 44390],"806": [360, 44390],"404": [160, 1000],"804": [290, 2120],
+    "405": [450, 4966], "102B": [630, 139976],"102A": [630, 139976],"304": [213750, 0],
+    "807": [360, 44390],"808": [360, 44390]
+  };
 
   return (
     <Box sx={{ padding: 2, pb: 10 }}>
@@ -165,39 +167,69 @@ function SeguimientoTKJornaleros() {
           size="small"
           sx={{ width: '20%' }}
         />
-        <Typography variant="h4" sx={{ textAlign: 'center', flexGrow: 1, marginLeft: '-380px'}}>
+        <TextField
+          label="Fecha"
+          type="date"
+          value={fechaFiltro}
+          onChange={(e) => setFechaFiltro(e.target.value)}
+          InputLabelProps={{
+            shrink: true,
+          }}
+          sx={{ width: '12%', marginLeft:"10px" }}
+        />
+        <Typography variant="h4" sx={{ textAlign: 'center', flexGrow: 1, marginLeft: '-550px' }}>
           Niveles de Tanques Jornaleros
         </Typography>
       </Box>
 
       <Stack spacing={2}>
-        {filteredTanques.map((tanque, index) => {
-          const porcentaje = Math.min((tanque.nivel / tanque.capacidad) * 100, 100);
+        {filteredTanques.length > 0 ? (
+          filteredTanques.map((tanque, index) => {
+            // const porcentaje = Math.min((tanque.nivel / tanque.capacidad) * 100, 100);
 
-          return (
-            <Paper key={index} elevation={4} sx={{ padding: 2 }}>
-              <Typography variant="subtitle1" fontWeight={600}>
-                {tanque.nombre}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Capacidad: {tanque.capacidad} L | Nivel: {tanque.nivel} L | Volumen: {tanque.volumen} L ({porcentaje.toFixed(1)}%)
-              </Typography>
-              <Box sx={{ mt: 1 }}>
-                <LinearProgress
-                  variant="determinate"
-                  value={porcentaje}
-                  sx={{
-                    height: 20,
-                    borderRadius: 1,
-                    '& .MuiLinearProgress-bar': {
-                      backgroundColor: '#4caf50',
-                    },
-                  }}
-                />
-              </Box>
-            </Paper>
-          );
-        })}
+            const infoTanque = InformacionTanques[tanque.NombreTanque]; // obtenemos [capacidad, factor]
+    
+            if (!infoTanque) return null; // Si no hay datos del tanque en el objeto, salta
+        
+            const capacidad = infoTanque[0];
+            const factor = infoTanque[1];
+            const volumen = tanque.NivelTanque * factor;
+            const porcentaje = Math.min((tanque.NivelTanque / (capacidad/100) ) * 100, 100);
+
+            // console.log("capacidad:", capacidad);
+            // console.log("factor:", factor);
+            // console.log("volumen:", volumen);
+            // console.log("porcentaje:", porcentaje);
+            
+            return (
+              <Paper key={index} elevation={4} sx={{ padding: 2 }}>
+                <Typography variant="subtitle1" fontWeight={600}>
+                  TK-{tanque.NombreTanque}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Capacidad: Nivel: {tanque.NivelTanque} m  | Capacidad: {capacidad/100} m | Volumen: {volumen} L ({porcentaje.toFixed(1)}%)
+                </Typography>
+                <Box sx={{ mt: 1 }}>
+                  <LinearProgress
+                    variant="determinate"
+                    value={porcentaje}
+                    sx={{
+                      height: 20,
+                      borderRadius: 1,
+                      '& .MuiLinearProgress-bar': {
+                        backgroundColor: '#4caf50',
+                      },
+                    }}
+                  />
+                </Box>
+              </Paper>
+            );
+          })
+        ) : (
+          <Typography variant="body1" sx={{ textAlign: 'center' }}>
+            No hay datos para el día seleccionado.
+          </Typography>
+        )}
       </Stack>
 
       <Modal open={modalVerRegistrarMovimientoTanqueJornaleroIsOpen} onClose={closeModalVerRegistrarMovimientoTanqueJornaleroIsOpen}>
@@ -323,31 +355,31 @@ function SeguimientoTKJornaleros() {
           Movimiento registrado correctamente!
         </Alert>
       </Snackbar>
-      
-      {/* Modal para reportar niveles diarios en tanques jornaleros */}
-      <ReportarNivelesTanquesJornaleros 
+
+      {/* Modales */}
+      <ReportarNivelesTanquesJornaleros
         open={modalReportarNivelesTanquesJornalerosIsOpen}
         onClose={closeModalReportarNivelesTanquesJornalerosIsOpen}
       />
 
-      <DetallesMovimientosDeTanquesJornaleros 
+      <DetallesMovimientosDeTanquesJornaleros
         open={modalVerMovimientosTanquesJornalerosIsOpen}
         onClose={closeModalVerMovimientosTanquesJornaleros}
       />
 
-      <GraficoNivelesTanquesPorDiaModal 
+      <GraficoNivelesTanquesPorDiaModal
         modalIsOpen={modalOpenModalGraficoNivelesModalIsOpen}
         onClose={closeModalGraficoNivelesModalIsOpen}
       />
 
-      <ExcelStyleFooter 
+      <ExcelStyleFooter
         openModalGraficoNivelesModalOpen={openModalGraficoNivelesModalIsOpen}
         openModalFromFooterRegistrarMovimientoTanqueJornalero={openModalFromFooterRegistrarMovimientoTanqueJornalero}
-        openModalReportarNivelesTanquesJornaleros={openModalReportarNivelesTanquesJornalerosIsOpen}     
+        openModalReportarNivelesTanquesJornaleros={openModalReportarNivelesTanquesJornalerosIsOpen}
       />
 
       <SpeedDialComponent
-       VerMovimientosTanquesJornaleros={openModalVerMovimientosTanquesJornaleros}
+        VerMovimientosTanquesJornaleros={openModalVerMovimientosTanquesJornaleros}
         sx={{
           position: 'fixed',
           top: 16,

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Box, Typography, Modal, TextField, Button } from '@mui/material';
+import Swal from 'sweetalert2'; // Agrega la importación de SweetAlert2
 
 const styleModal = {
   position: 'absolute',
@@ -19,12 +20,12 @@ const styleModal = {
 const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
   const [tanquesData, setTanquesData] = useState([]);
   const [inputs, setInputs] = useState({});
-  const [responsable, setResponsable] = useState(''); // Estado para el responsable
-  
+  const [responsable, setResponsable] = useState('');
+  const [observaciones, setObservaciones] = useState('');
+
   useEffect(() => {
-    // Obtén la data de los tanques
     axios
-      .get('https://ambiocomserver.onrender.com/api/seguimientotanquesjornaleros/GetTanquesData')
+      .get('http://localhost:4041/api/tanquesjornaleros/nivelesdiariostanquesjornaleros')
       .then((res) => {
         setTanquesData(res.data);
       })
@@ -41,10 +42,56 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
   };
 
   const handleSubmit = () => {
-    console.log('Inputs generados:', inputs);
-    console.log('Responsable:', responsable); // Mostramos el responsable
-    onClose();  // Cierra el modal después de guardar los datos
+    const hoy = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+    console.log("FECHA REGISTRO:", hoy);
+    
+    const datosAEnviar = tanquesUnicos.map((tanque) => ({
+      NombreTanque: tanque.NombreTanque,
+      NivelTanque: Number(inputs[tanque.NombreTanque]) || 0,
+      Responsable: responsable,
+      Observaciones: observaciones,
+      FechaRegistro: hoy,
+    }));
+    
+    axios
+      .post(
+         'http://localhost:4041/api/tanquesjornaleros/nivelesdiariostanquesjornaleros',
+        // 'http://localhost:4041/api/tanquesjornaleros/',
+        datosAEnviar
+      )
+      .then((res) => {
+        console.log('Datos enviados correctamente:', res.data);
+        
+        // Alerta de éxito con SweetAlert
+        Swal.fire({
+          title: '¡Éxito!',
+          text: 'Los datos se han subido correctamente.',
+          icon: 'success',
+          confirmButtonText: 'Aceptar',
+        }).then(() => {
+          // Recargar la página después de mostrar la alerta
+          window.location.reload();
+        });
+        
+        onClose();
+        window.location.reload();
+      })
+      .catch((err) => {
+        console.error('Error al enviar los datos:', err);
+        onClose();
+        // Alerta de error con SweetAlert
+        Swal.fire({
+          title: '¡Error!',
+          text: `error al subir los datos: ${err.response.data.error}`,
+          icon: 'error',
+          confirmButtonText: 'Aceptar',
+        });
+      });
   };
+
+  const tanquesUnicos = Array.from(
+    new Map(tanquesData.map((t) => [t.NombreTanque, t])).values()
+  );
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -55,28 +102,35 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
         {tanquesData.length === 0 ? (
           <Typography>No hay datos de tanques disponibles.</Typography>
         ) : (
-          tanquesData.map((tanque, index) => (
+          tanquesUnicos.map((tanque, index) => (
             <Box key={index} sx={{ mb: 0 }}>
-              <Typography variant="body1" fontWeight="bold">
-                {tanque.nombre}
-              </Typography>
               <TextField
+                label={'TK-' + tanque.NombreTanque}
                 type="number"
                 fullWidth
-                value={inputs[tanque.nombre] || ''}
-                onChange={(e) => handleInputChange(tanque.nombre, e.target.value)}
+                value={inputs[tanque.NombreTanque] || ''}
+                onChange={(e) =>
+                  handleInputChange(tanque.NombreTanque, e.target.value)
+                }
                 sx={{ mb: 2 }}
               />
             </Box>
           ))
         )}
 
-        {/* Campo para ingresar el responsable */}
         <TextField
           label="Responsable"
           fullWidth
           value={responsable}
-          onChange={(e) => setResponsable(e.target.value)}  // Actualizamos el estado del responsable
+          onChange={(e) => setResponsable(e.target.value)}
+          sx={{ mb: 2 }}
+        />
+
+        <TextField
+          label="Observaciones"
+          fullWidth
+          value={observaciones}
+          onChange={(e) => setObservaciones(e.target.value)}
           sx={{ mb: 2 }}
         />
 
