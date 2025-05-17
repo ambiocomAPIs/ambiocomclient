@@ -182,7 +182,6 @@ const SGMRC = React.memo(() => {
       setFilteredData(filtered);
     }
   }, [searchQuery, data]);
-
   
   const DownloadPdf = async (rowId) => {
     try {
@@ -242,19 +241,15 @@ const DeletePdf = async (rowId) => {
       cancelButtonColor: "#d33",
       confirmButtonText: "Yes, delete it!",
     });
-
     // Verifica si el usuario confirmó la acción
     if (result.isConfirmed) {
       const response = await axios.delete(`https://ambiocomserver.onrender.com/api/pdfs/${rowId}`);
-
       // Notificación de éxito
       Swal.fire({
         icon: 'success',
         title: 'PDF eliminado',
         text: response.data.message,
       });
-
-      // Aquí puedes realizar cualquier acción adicional, como actualizar el estado de la lista de PDFs
     }
    } catch (error) {
      console.error('Error al eliminar el PDF:', error);
@@ -308,10 +303,23 @@ const NotificarAlerta = async (params) => {
 };
 
   const handleBlur = async () => { 
+
+    const newData = data.map(item => {
+      if (item._id === editingCell.row._id) {
+        return {
+          ...item,
+          [editingCell.column]: tempValue
+        };
+      }
+      return item;
+    });
+
+    console.log("newData:",newData);
+    
     // Crea una copia de los datos y actualiza el valor modificado
-    const newData = [...data];
-    newData[editingCell.rowIndex][editingCell.column] = tempValue;
-    // TAN PRONTO DESENFOQUE LA CASILLA, GUARDA LOS DATOS
+    // const newData = [...data];
+    // newData[editingCell.rowIndex][editingCell.column] = tempValue;
+    //newData[editingCell.row[editingCell.column][editingCell.column]] = tempValue;
     try {
       // Usar `newData` para enviar los datos modificados al servidor
       const response = await axios.post('https://ambiocomserver.onrender.com/api/table/datareplaceall', newData);  
@@ -446,9 +454,16 @@ const handleCloseModal = () => {
   setIsModalConsumoOpen(false);
 };
 
-const handleDoubleClick = (rowIndex, column) => {
-  setEditingCell({ rowIndex, column });
-  setTempValue(data[rowIndex][column]);
+const handleDoubleClick = (rowIndex, column, row) => {
+  console.log("row en doble click:", row);
+  console.log("rowIndex en doble click:", rowIndex);
+  console.log("column en doble click:", column);
+  console.log("data[rowIndex][column]:", data[rowIndex][column]);
+  console.log("row[column]:", row[column]);
+  
+  setEditingCell({ rowIndex, column, row });
+  setTempValue(row[column]);
+  // setTempValue(data[rowIndex][column]);
 };
 
 const handleChange = (event) => {
@@ -1118,6 +1133,9 @@ const clickColumFixed = (columnClicked) => {
       Array.isArray(filteredData) && filteredData.length > 0 ? (
         
         filteredData.map((row, rowIndex) => {    
+          // console.log("row:",row);
+          // console.log("rowIndex:",rowIndex);
+          
           const filteredRow = filterData(row); // Filtrar la fila
           const fechaVencimiento = row.fechaVencimiento;  // Fecha de vencimiento (string)
           const mesesRestantes = parseInt(row.mesesRestantes, 10);  // Convertir mesesRestantes a número
@@ -1155,9 +1173,7 @@ const clickColumFixed = (columnClicked) => {
           const inventarioCritico = row.InventarioCritico || 0;
 
           const esInventarioCritico = inventario < inventarioCritico;
-          if (esInventarioCritico) {
-            console.log("hola desde inventario critico");
-            
+          if (esInventarioCritico) {            
             backgroundColor = 'rgba(255, 218, 252, 0.3)'; // Amarillo claro
             color = '#d32f2f'; // Texto más oscuro para visibilidad
            }
@@ -1203,7 +1219,7 @@ const clickColumFixed = (columnClicked) => {
                 backgroundColor: backgroundColor, // Color de fondo
                 color: color, // Color de texto
               }}
-                onClick={() => handleDoubleClick(rowIndex, column)}
+                onClick={() => handleDoubleClick(rowIndex, column, row)}
                 >
                   {editingCell.rowIndex === rowIndex 
                     && editingCell.column === column && !BlockedColumns.includes(colIndex) ? (

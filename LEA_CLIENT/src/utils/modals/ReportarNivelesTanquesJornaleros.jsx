@@ -42,7 +42,8 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
   };
 
   const handleSubmit = () => {
-    const hoy = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+    //const hoy = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD ojo toma en otra zona horaria
+    const hoy = new Date().toLocaleDateString('en-CA'); // Formato YYYY-MM-DD
     console.log("FECHA REGISTRO:", hoy);
     
     const datosAEnviar = tanquesUnicos.map((tanque) => ({

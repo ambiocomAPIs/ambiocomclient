@@ -66,10 +66,7 @@ export default function ReportarMovimientoTanquesModal({ open, onClose, onSubmit
 
   const handleSubmit = async () => {
     try {
-      // Calcular costoMensual
       const costoMensual = formData.Costo * formData.ConsumoAReportar;
-
-      // Asegurarse de enviar todos los datos con el nuevo campo
       const updateInventoryResponse = await axios.post('https://ambiocomserver.onrender.com/api/registro/movimientos', {
         TipoOperación: formData.TipoOperación,
         Producto: formData.Producto,
@@ -85,17 +82,11 @@ export default function ReportarMovimientoTanquesModal({ open, onClose, onSubmit
         ObservacionesAdicionales: formData.ObservacionesAdicionales || 'Sin observacion',  // Cambié a "ObservacionesAdicionales"
         SAP: formData.SAP || 0
       });
-
-      // Registrar el movimiento
       const registerMovementResponse = await axios.post('https://ambiocomserver.onrender.com/api/table/data/reportar-operacion', formData);
-
-      // Si ambos procesos fueron exitosos, mostrar el mensaje
       alert('Inventario actualizado y movimiento registrado con éxito');
-
-      // Usamos setTimeout para esperar a que el usuario cierre el alert
       setTimeout(() => {
-        window.location.reload(); // Refresca la página después de que se cierre el alert
-      }, 10); // Delay muy corto para hacer el refresco justo después de que el alert se cierre
+        window.location.reload(); 
+      }, 10); 
 
       onSubmit(formData);
       if (typeof onClose === 'function') onClose();

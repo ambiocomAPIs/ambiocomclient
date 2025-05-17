@@ -248,6 +248,7 @@ const MesesCerrados = React.memo(() => {
     }
 };
 
+
 const DeletePdf = async (rowId) => {
   try {
     const result = await Swal.fire({
