@@ -5,9 +5,12 @@ import {
   Button, TextField, Select, MenuItem, InputLabel,
   FormControl, Grid, IconButton, Autocomplete
 } from '@mui/material';
+
+import ExcelJS from 'exceljs';
 import { format, parseISO, isValid } from 'date-fns';
 
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import ExcelIcon from '../../../public/excelIcon.png'; 
 
 const ModalFilterMovimientos = ({ open, onClose }) => {
   const [selectedVariable, setSelectedVariable] = useState('');
@@ -159,6 +162,118 @@ const ModalFilterMovimientos = ({ open, onClose }) => {
         .replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
     }
     return '$0.00';
+  };
+
+  const exportarMovimientosExcel = async () => {
+  
+    // 1. Crear un nuevo workbook y hoja
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Movimientos');
+    
+    const response = await fetch('/ambiocom.png');
+    const logoBlob  = await response.blob();
+    const base64 = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(logoBlob);
+    });
+  
+    const imageId = workbook.addImage({
+      base64: base64,
+      extension: 'png',
+    });
+  
+    // Colocar la imagen en la parte superior izquierda de la hoja
+    worksheet.addImage(imageId, {
+      tl: { col: 0, row: 0 },
+      ext: { width: 1500, height: 500 }  // Ajusta el tamaño de la imagen
+    });
+  
+    // 2. Definir las columnas
+    worksheet.columns = [
+      { header: 'Fecha', key: 'fecha', width: 15 },
+      { header: 'Producto', key: 'producto', width: 30 },
+      { header: 'Unidad', key: 'unidad', width: 10 },
+      { header: 'Inventario', key: 'inventario', width: 15 },
+      { header: 'Costo Unitario', key: 'costoUnitario', width: 15, style: { numFmt: '"$"#,##0.00' } },
+      { header: 'Tipo de Operacion', key: 'tipoOperacion', width: 25 },
+      { header: 'Consumo', key: 'consumo', width: 15 },
+      { header: 'Costo Total', key: 'costoTotal', width: 20, style: { numFmt: '"$"#,##0.00' } },
+      { header: 'Cantidad De Ingreso', key: 'cantidadIngreso', width: 20 },
+      { header: 'Costo Total En Ingreso', key: 'CostoIngreso', width: 20, style: { numFmt: '"$"#,##0.00' } },
+      { header: 'Responsable', key: 'responsable', width: 30 },
+      { header: 'Área', key: 'area', width: 25 },
+      { header: 'Lote', key: 'lote', width: 25 },
+      { header: 'Proveedor', key: 'proveedor', width: 25 },
+      { header: 'Observaciones', key: 'observaciones', width: 100 },
+    ];
+  
+    // 3. Agregar los datos
+    data.forEach(item => {
+      const row = worksheet.addRow({
+        fecha: item.fechaMovimiento,
+        producto: item.producto,
+        unidad: item.unidad,
+        inventario: item.inventario,
+        costoUnitario: item.costoUnitario,
+        tipoOperacion: item.tipoOperacion,
+        consumo: item.consumoReportado,
+        costoTotal: item.CostoMovimiento,
+        cantidadIngreso: item.cantidadIngreso,
+        CostoIngreso: (item.cantidadIngreso) * (item.costoUnitario),
+        responsable: item.responsable,
+        area: item.area,
+        lote: item.lote,
+        proveedor: item.proveedor,
+        observaciones: item.ObservacionesAdicionales,
+      });
+  
+      // Estilo rojo si "consumo" es negativo
+      const consumoCell = row.getCell('consumo');
+      if (item.consumoReportado < 0) {
+        consumoCell.font = { color: { argb: 'FFFF0000' } }; // rojo
+      }
+    });
+  
+    // 4. Estilizar cabecera
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF0077CC' }, // Color de la cabecera
+    };
+  
+    // 5. Estilizar las filas de datos
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) {
+        row.eachCell(cell => {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFFFFFF' }, // Fondo blanco para las filas de datos
+            // Elimina la configuración de fondo para que se use el fondo predeterminado de Excel
+          };
+        });
+      }
+    });
+
+  // Proteger la hoja
+   worksheet.protect("ambiocom", {
+     selectLockedCells: false, // Deshabilitar la selección de celdas protegidas
+     selectUnlockedCells: false, // Permitir la selección de celdas no protegidas
+    });
+
+    // 6. Exportar (en navegador)
+    const buffer = await workbook.xlsx.writeBuffer();
+  
+    // 7. Crear archivo descargable
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'MovimientosInventario.xlsx';
+    anchor.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const renderItem = (item, index) => {
@@ -345,6 +460,7 @@ const ModalFilterMovimientos = ({ open, onClose }) => {
         </div>
       </DialogContent>
       <DialogActions>
+        <Button onClick={exportarMovimientosExcel} endIcon={<img src={ExcelIcon} alt="Excel Icon" style={{ width: 35, height: 35 }} />} color="success">Exportar</Button>
         <Button onClick={() => onClose(false)} color="secondary">Cerrar</Button>
         <Button onClick={applyAllFilters} color="primary">Aplicar Filtro</Button>
         <Button onClick={showAllData} color="default">Ver toda la data</Button>

@@ -65,19 +65,11 @@ const DataTableChartModalCost = ({ modalIsOpen, closeModal }) => {
               const gasto = Math.abs(mov.costoUnitario * mov.consumoReportado);
               dailyTotals[dateKey] += gasto;
             } 
-            
-
-            console.log(" mov.tipoOperacion:",  mov.tipoOperacion);
-            console.log(" mov:",  mov);
-            console.log(" typeof mov.costoUnitario:",  typeof mov.costoUnitario);
-            console.log(" typeof mov.cantidadIngreso:",  typeof mov.cantidadIngreso);
-            
             if (
               mov.tipoOperacion === 'Ingreso Material' &&
               typeof mov.costoUnitario === 'number' &&
               typeof mov.cantidadIngreso === 'string'
             ) {
-              console.log("hola desde else");
               const ingreso =  Math.abs(mov.costoUnitario * Number(mov.cantidadIngreso));
               dailyIngreso[dateKey] += ingreso;
               totalIngresoTemp += ingreso;
@@ -127,6 +119,7 @@ const DataTableChartModalCost = ({ modalIsOpen, closeModal }) => {
     ],
   };
 
+  
   const exportToCSV = () => {
     const dataToExport = showIngresoTotal ? ingresoData : filteredData;
     const total = dataToExport.reduce((acc, curr) => acc + curr.valor, 0);
