@@ -22,6 +22,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
   const [inputs, setInputs] = useState({});
   const [responsable, setResponsable] = useState('');
   const [observaciones, setObservaciones] = useState('');
+  const [fecha, setFecha] = useState('');
 
   useEffect(() => {
     axios
@@ -45,20 +46,28 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
     //const hoy = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD ojo toma en otra zona horaria
     const hoy = new Date().toLocaleDateString('en-CA'); // Formato YYYY-MM-DD
     console.log("FECHA REGISTRO:", hoy);
+    console.log("Fecha seleccionada:", fecha);
     
     const datosAEnviar = tanquesUnicos.map((tanque) => ({
       NombreTanque: tanque.NombreTanque,
       NivelTanque: Number(inputs[tanque.NombreTanque]) || 0,
       Responsable: responsable,
       Observaciones: observaciones,
-      FechaRegistro: hoy,
+      FechaRegistro: fecha,
     }));
-    
-    axios
+
+    if(fecha == "" || fecha == null || fecha == undefined)
+     {
+      Swal.fire({
+        title: 'Fecha Incorrecta',
+        text: 'Por Favor Selecciona Una Fecha Valida',
+        icon: "question",
+        confirmButtonText: 'Aceptar',
+      })
+     }else{
+      axios
       .post(
-         'https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros',
-        // 'https://ambiocomserver.onrender.com/api/tanquesjornaleros/',
-        datosAEnviar
+         'https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros',datosAEnviar
       )
       .then((res) => {
         console.log('Datos enviados correctamente:', res.data);
@@ -88,11 +97,18 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
           confirmButtonText: 'Aceptar',
         });
       });
+     }
   };
 
   const tanquesUnicos = Array.from(
     new Map(tanquesData.map((t) => [t.NombreTanque, t])).values()
   );
+
+  const handleChangeFecha = (e) => {
+    setFecha(e.target.value);
+    console.log("fecha seleccionada:", e.target.value);
+    
+  };
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -139,6 +155,25 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
           <Button variant="outlined" color="secondary" onClick={onClose}>
             Cancelar
           </Button>
+          <input 
+           type="date" 
+           value={fecha} 
+           onChange={handleChangeFecha} 
+           max={new Date().toLocaleDateString('en-CA')}  // maximo hoy
+           style={{
+            padding: '10px 12px',
+            fontSize: '16px',
+            borderRadius: '6px',
+            border: '1px solid #ccc',
+            backgroundColor: '#fff',
+            color: '#333',
+            boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.1)',
+            outline: 'none',
+            transition: 'border-color 0.2s ease-in-out',
+           }}
+           onFocus={(e) => (e.target.style.borderColor = '#007bff')}
+           onBlur={(e) => (e.target.style.borderColor = '#ccc')}
+          />
           <Button variant="contained" color="primary" onClick={handleSubmit}>
             Reportar
           </Button>

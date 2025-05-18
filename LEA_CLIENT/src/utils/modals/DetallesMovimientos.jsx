@@ -5,7 +5,8 @@ import {
   Button, TextField, Select, MenuItem, InputLabel,
   FormControl, Grid, IconButton, Autocomplete
 } from '@mui/material';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
+
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 
 const ModalFilterMovimientos = ({ open, onClose }) => {
@@ -26,7 +27,7 @@ const ModalFilterMovimientos = ({ open, onClose }) => {
 
   const fetchData = async () => {
     try {
-      const response = await axios.get('https://ambiocomserver.onrender.com/api/registro/movimientos');
+      const response = await axios.get('https://ambiocomserver.onrender.com/api/registro/movimientos');      
       setData(response.data);
     } catch (error) {
       console.error("Error al obtener los datos", error);
@@ -68,17 +69,15 @@ const ModalFilterMovimientos = ({ open, onClose }) => {
   };
 
   const filterByDate = (date) => {
-    const formattedDate = format(parseISO(date), 'yyyy-MM-dd');
     return data.filter((item) => {
-      const itemDate = format(parseISO(item.fechaMovimiento), 'yyyy-MM-dd');
-      return itemDate === formattedDate;
+      return item.fechaMovimiento?.slice(0, 10) === date;
     });
   };
-
+  
   const filterByMonthYear = (month, year) => {
     return data.filter((item) => {
-      const itemMonthYear = format(parseISO(item.fechaMovimiento), 'MM/yyyy');
-      return itemMonthYear === `${month}/${year}`;
+      const itemMonthYear = item.fechaMovimiento?.slice(0, 7); // solo me trae 2025-05
+      return itemMonthYear === `${year}-${month}`;
     });
   };
 
@@ -105,6 +104,23 @@ const ModalFilterMovimientos = ({ open, onClose }) => {
       setNoDataMessage('');
     }
 
+    if (editableOpciones) {
+      filtered = filtered.filter((item) =>
+        item.tipoOperacion == editableOpciones
+      );
+    }
+
+    if (editableArea) {
+      filtered = filtered.filter((item) =>
+        item.area?.toString() === editableArea
+      );
+    }
+
+    if (editableResponsable) {
+      filtered = filtered.filter((item) =>
+        item.responsable?.toString() == editableResponsable
+      );
+    }
     setFilteredData(filtered);
   };
 
@@ -119,7 +135,21 @@ const ModalFilterMovimientos = ({ open, onClose }) => {
   };
 
   const formatDate = (date) => {
-    return format(parseISO(date), 'dd/MM/yyyy HH:mm');
+    if (!date) return '';
+  
+    let parsedDate;
+  
+    if (typeof date === 'string') {
+      parsedDate = new Date(date); // más flexible que parseISO
+    } else if (date instanceof Date) {
+      parsedDate = date;
+    } else {
+      return '';
+    }
+  
+    if (!isValid(parsedDate)) return '';
+  
+    return format(parsedDate, 'dd/MM/yyyy HH:mm');
   };
 
   const formatCurrency = (amount) => {
@@ -191,6 +221,7 @@ const ModalFilterMovimientos = ({ open, onClose }) => {
               value={filterValue}
               onInputChange={handleInputChange}
               options={data.map((item) => item[selectedVariable])}
+              disabled={!selectedVariable || data.length === 0 || !data.some(item => item[selectedVariable])}
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -255,28 +286,56 @@ const ModalFilterMovimientos = ({ open, onClose }) => {
             <TextField
               fullWidth
               label="Responsable"
+              select
               value={editableResponsable}
               onChange={(e) => setEditableResponsable(e.target.value)}
-            />
+            >
+             <MenuItem value="">
+              <em>Limpiar</em>
+             </MenuItem>
+             {[...new Set(data.map((item) => item.responsable))]
+             .filter(Boolean) // filtra null/undefined
+             .map((responsable, idx) => (
+             <MenuItem key={idx} value={responsable}>
+              {responsable}
+             </MenuItem>
+             ))}
+            </TextField>
           </Grid>
           <Grid item xs={12} sm={4}>
             <TextField
               fullWidth
+              select
               label="Área"
               value={editableArea}
               onChange={(e) => setEditableArea(e.target.value)}
-            />
+            >
+             <MenuItem value="">
+              <em>Limpiar</em>
+             </MenuItem>
+             {[...new Set(data.map((item) => item.area))]
+             .filter(Boolean) // filtra null/undefined
+             .map((area, idx) => (
+             <MenuItem key={idx} value={area}>
+              {area}
+             </MenuItem>
+             ))}
+           </TextField>
           </Grid>
           <Grid item xs={12} sm={4}>
-            <TextField
-              fullWidth
-              label="Opciones"
-              value={editableOpciones}
-              onChange={(e) => setEditableOpciones(e.target.value)}
-            />
+           <TextField
+             fullWidth
+             label="Tipo de Operacion"
+             select 
+             value={editableOpciones}
+             onChange={(e) => setEditableOpciones(e.target.value)}
+            >
+             <MenuItem value="">Limpiar</MenuItem>
+             <MenuItem value="Consumo de Material">Consumo de Material</MenuItem>
+             <MenuItem value="Ingreso Material">Ingreso Material</MenuItem>
+           </TextField>
           </Grid>
-        </Grid>
-
+          </Grid>
         {/* Resultados */}
         <div style={{ marginTop: 20 }}>
           <h3>Movimientos filtrados:</h3>

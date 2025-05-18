@@ -34,8 +34,7 @@ const DataTableChartModalCost = ({ modalIsOpen, closeModal }) => {
       try {
         const response = await axios.get('https://ambiocomserver.onrender.com/api/registro/movimientos');
         const movimientos = response.data;
-
-        const { month, year } = dateRange;
+        const { month, year } = dateRange; // month esta llegando como 5 y no como 05
         const daysInMonth = new Date(year, month, 0).getDate();
 
         const dailyTotals = {};
@@ -50,15 +49,14 @@ const DataTableChartModalCost = ({ modalIsOpen, closeModal }) => {
 
         movimientos.forEach((mov) => {
           if (!mov.fechaMovimiento) return;
+          const date = mov.fechaMovimiento;
 
-          const date = new Date(mov.fechaMovimiento);
-          const movYear = date.getFullYear();
-          const movMonth = date.getMonth() + 1;
-
-          if (movYear === year && movMonth === month) {
-            const movDay = String(date.getDate()).padStart(2, '0');
+          const movYear = date.slice(0, 4);
+          const movMonth = date.slice(5, 7);
+          const movDay = date.slice(8, 10);
+          if (movYear === String(year) && movMonth === String(month).padStart(2, '0')) {
+            const movDay = date.slice(8, 10);
             const dateKey = `${year}-${String(month).padStart(2, '0')}-${movDay}`;
-
             if (
               mov.tipoOperacion === 'Consumo de Material' &&
               typeof mov.costoUnitario === 'number' &&
@@ -66,12 +64,21 @@ const DataTableChartModalCost = ({ modalIsOpen, closeModal }) => {
             ) {
               const gasto = Math.abs(mov.costoUnitario * mov.consumoReportado);
               dailyTotals[dateKey] += gasto;
-            } else if (
-              mov.tipoOperacion === 'Ingreso de Material' &&
-              typeof mov.valorUnitario === 'number' &&
-              typeof mov.cantidadIngreso === 'number'
+            } 
+            
+
+            console.log(" mov.tipoOperacion:",  mov.tipoOperacion);
+            console.log(" mov:",  mov);
+            console.log(" typeof mov.costoUnitario:",  typeof mov.costoUnitario);
+            console.log(" typeof mov.cantidadIngreso:",  typeof mov.cantidadIngreso);
+            
+            if (
+              mov.tipoOperacion === 'Ingreso Material' &&
+              typeof mov.costoUnitario === 'number' &&
+              typeof mov.cantidadIngreso === 'string'
             ) {
-              const ingreso = mov.valorUnitario * mov.cantidadIngreso;
+              console.log("hola desde else");
+              const ingreso =  Math.abs(mov.costoUnitario * Number(mov.cantidadIngreso));
               dailyIngreso[dateKey] += ingreso;
               totalIngresoTemp += ingreso;
             }

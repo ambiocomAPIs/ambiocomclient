@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import axios from 'axios';
 import {
   Dialog,
@@ -17,6 +17,7 @@ import {
 
 export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [] }) {
   const [formData, setFormData] = React.useState({});
+  const [Fecha, setFecha] = useState('');
 
   const handleInputChange = (field) => (event) => {
     setFormData({ ...formData, [field]: event.target.value });
@@ -37,7 +38,8 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
           Responsable: selectedProduct.responsable || '',
           Area: selectedProduct.area || '',
           ObservacionesAdicionales: selectedProduct.ObservacionesAdicionales || '',
-          SAP: selectedProduct.SAP || 0
+          SAP: selectedProduct.SAP || 0,
+          cantidadIngreso: selectedProduct.cantidadIngreso || 0
         }));
       }
     }
@@ -58,7 +60,8 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
           Responsable: selectedLote.responsable || '',
           Area: selectedLote.area || '',
           ObservacionesAdicionales: selectedLote.ObservacionesAdicionales || '',
-          SAP: selectedLote.SAP || 0
+          SAP: selectedLote.SAP || 0,
+          cantidadIngreso: selectedProduct.cantidadIngreso || 0
         }));
       }
     }
@@ -109,7 +112,10 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
         ObservacionesAdicionales: formData.ObservacionesAdicionales || 'Sin observacion',
         SAP: formData.SAP || 0,
         ConsumoMensual: cantidadParaBaseDeDatos,
-        GastoMensual: costoMensual
+        GastoMensual: costoMensual,
+        fechaMovimiento: Fecha,
+        cantidadIngreso: cantidadIngreso
+
       });
   
       // Base de datos (positivo siempre y con inventario actualizado)
@@ -135,6 +141,12 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
   
   const handleCancel = () => {
     if (typeof onClose === 'function') onClose();
+  };
+
+  
+  const handleChangeFecha = (e) => {
+    setFecha(e.target.value);
+    console.log("fecha seleccionada consumos:", e.target.value);
   };
 
   const filteredData = data.filter(item => item.activo !== false);
@@ -233,9 +245,27 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
       </DialogContent>
       <DialogActions>
         <Button onClick={handleCancel}>Cancelar</Button>
+        <input 
+           type="date" 
+           value={Fecha} 
+           onChange={handleChangeFecha} 
+           max={new Date().toLocaleDateString('en-CA')}  // maximo hoy
+           style={{
+            padding: '10px 12px',
+            fontSize: '16px',
+            borderRadius: '6px',
+            border: '1px solid #ccc',
+            backgroundColor: '#fff',
+            color: '#333',
+            boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.1)',
+            outline: 'none',
+            transition: 'border-color 0.2s ease-in-out',
+           }}
+           onFocus={(e) => (e.target.style.borderColor = '#007bff')}
+           onBlur={(e) => (e.target.style.borderColor = '#ccc')}
+          />
         <Button variant="contained" onClick={handleSubmit}>Reportar</Button>
       </DialogActions>
-
       <Grid container justifyContent="center" style={{ padding: '10px' }}>
         <img src="/ambiocom.png" alt="Logo" style={{ maxHeight: '50px' }} />
       </Grid>
