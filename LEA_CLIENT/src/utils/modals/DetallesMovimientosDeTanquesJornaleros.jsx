@@ -5,8 +5,12 @@ import {
   Button, TextField, Select, MenuItem, InputLabel,
   FormControl, Grid, IconButton, Autocomplete
 } from '@mui/material';
-import { format, parseISO } from 'date-fns';
+
+import ExcelJS from 'exceljs';
+import { format, parseISO, isValid } from 'date-fns';
+
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import ExcelIcon from '../../../public/excelIcon.png'; 
 
 const DetallesMovimientosDeTanquesJornaleros = ({ open, onClose }) => {
   const [selectedVariable, setSelectedVariable] = useState('');
@@ -135,6 +139,79 @@ const DetallesMovimientosDeTanquesJornaleros = ({ open, onClose }) => {
     }
     return '$0.00';
   };
+
+    const exportarMovimientosExcel = async () => {
+    
+      // 1. Crear un nuevo workbook y hoja
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Operaciones');
+      
+      // 2. Definir las columnas
+      worksheet.columns = [
+        { header: 'Fecha', key: 'fecha', width: 15 },
+        { header: 'Tipo de Producto', key: 'tipoDeMovimiento', width: 30 },
+        { header: 'Tanque Origen', key: 'tanqueOrigen', width: 50 },
+        { header: 'Tanque Destino', key: 'tanqueDestino', width: 50 },
+        { header: 'Cantidad', key: 'cantidad', width: 20 },
+        { header: 'Cliente', key: 'cliente', width: 35 },
+        { header: 'Detalle de Factura', key: 'detalleFactura', width: 25 },
+        { header: 'Observaciones', key: 'observaciones', width: 150 },
+      ];
+    
+      // 3. Agregar los datos
+      data.forEach(item => {
+        const row = worksheet.addRow({
+          fecha: new Date(item.createdAt),
+          tipoDeMovimiento: item.tipoDeMovimiento || "----",
+          tanqueOrigen: item.tanqueOrigen || "----",
+          tanqueDestino: item.tanqueDestino || "----",
+          cantidad: item.cantidad || "----",
+          cliente: item.cliente || "----",
+          detalleFactura: item.detalleFactura || "N/A",
+          observaciones: item.observaciones || "Sin Observaciones",
+        });
+      });
+    
+      // 4. Estilizar cabecera
+      worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      worksheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF0077CC' }, // Color de la cabecera
+      };
+    
+      // 5. Estilizar las filas de datos
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber > 1) {
+          row.eachCell(cell => {
+            cell.fill = {
+              // type: 'pattern',
+              // pattern: 'solid',
+              // fgColor: { argb: 'FFFFFFFF' }, // Fondo blanco para las filas de datos
+              // Elimina la configuración de fondo para que se use el fondo predeterminado de Excel
+            };
+          });
+        }
+      });
+  
+    // Proteger la hoja
+     worksheet.protect("ambiocom", {
+       selectLockedCells: false, // Deshabilitar la selección de celdas protegidas
+       selectUnlockedCells: false, // Permitir la selección de celdas no protegidas
+      });
+  
+      // 6. Exportar (en navegador)
+      const buffer = await workbook.xlsx.writeBuffer();
+    
+      // 7. Crear archivo descargable
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = 'MovimientosDeTanques.xlsx';
+      anchor.click();
+      window.URL.revokeObjectURL(url);
+    };
 
   const renderItem = (item, index) => {
     const { _id, ...displayItem } = item;
@@ -287,6 +364,7 @@ const DetallesMovimientosDeTanquesJornaleros = ({ open, onClose }) => {
         </div>
       </DialogContent>
       <DialogActions>
+        <Button onClick={exportarMovimientosExcel} endIcon={<img src={ExcelIcon} alt="Excel Icon" style={{ width: 35, height: 35 }} />} color="success">Exportar</Button>
         <Button onClick={() => onClose(false)} color="secondary">Cerrar</Button>
         <Button onClick={applyAllFilters} color="primary">Aplicar Filtro</Button>
         <Button onClick={showAllData} color="default">Ver toda la data</Button>

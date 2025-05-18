@@ -170,24 +170,24 @@ const ModalFilterMovimientos = ({ open, onClose }) => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Movimientos');
     
-    const response = await fetch('/ambiocom.png');
-    const logoBlob  = await response.blob();
-    const base64 = await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.readAsDataURL(logoBlob);
-    });
+    // const response = await fetch('/ambiocom.png');
+    // const logoBlob  = await response.blob();
+    // const base64 = await new Promise((resolve) => {
+    //   const reader = new FileReader();
+    //   reader.onloadend = () => resolve(reader.result);
+    //   reader.readAsDataURL(logoBlob);
+    // });
   
-    const imageId = workbook.addImage({
-      base64: base64,
-      extension: 'png',
-    });
+    // const imageId = workbook.addImage({
+    //   base64: base64,
+    //   extension: 'png',
+    // });
   
-    // Colocar la imagen en la parte superior izquierda de la hoja
-    worksheet.addImage(imageId, {
-      tl: { col: 0, row: 0 },
-      ext: { width: 1500, height: 500 }  // Ajusta el tamaño de la imagen
-    });
+    // // Colocar la imagen en la parte superior izquierda de la hoja
+    // worksheet.addImage(imageId, {
+    //   tl: { col: 0, row: 0 },
+    //   ext: { width: 1500, height: 500 }  // Ajusta el tamaño de la imagen
+    // });
   
     // 2. Definir las columnas
     worksheet.columns = [
@@ -205,27 +205,27 @@ const ModalFilterMovimientos = ({ open, onClose }) => {
       { header: 'Área', key: 'area', width: 25 },
       { header: 'Lote', key: 'lote', width: 25 },
       { header: 'Proveedor', key: 'proveedor', width: 25 },
-      { header: 'Observaciones', key: 'observaciones', width: 100 },
+      { header: 'Observaciones', key: 'observaciones', width: 150 },
     ];
   
     // 3. Agregar los datos
     data.forEach(item => {
       const row = worksheet.addRow({
         fecha: item.fechaMovimiento,
-        producto: item.producto,
-        unidad: item.unidad,
-        inventario: item.inventario,
-        costoUnitario: item.costoUnitario,
-        tipoOperacion: item.tipoOperacion,
-        consumo: item.consumoReportado,
-        costoTotal: item.CostoMovimiento,
-        cantidadIngreso: item.cantidadIngreso,
-        CostoIngreso: (item.cantidadIngreso) * (item.costoUnitario),
-        responsable: item.responsable,
-        area: item.area,
-        lote: item.lote,
-        proveedor: item.proveedor,
-        observaciones: item.ObservacionesAdicionales,
+        producto: item.producto || "----",
+        unidad: item.unidad || "----",
+        inventario: item.inventario || "----",
+        costoUnitario: item.costoUnitario || "----",
+        tipoOperacion: item.tipoOperacion || "----",
+        consumo: item.consumoReportado || "----",
+        costoTotal: item.CostoMovimiento || "----",
+        cantidadIngreso: item.cantidadIngreso || "----",
+        CostoIngreso: (item.cantidadIngreso) * (item.costoUnitario) || "----",
+        responsable: item.responsable || "----",
+        area: item.area || "----",
+        lote: item.lote || "----",
+        proveedor: item.proveedor || "----",
+        observaciones: item.ObservacionesAdicionales || "----",
       });
   
       // Estilo rojo si "consumo" es negativo

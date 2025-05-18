@@ -19,6 +19,8 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip,
 Modal.setAppElement('#root');
 
 const DataTableChartModalInventariovsSAP = ({ modalIsOpen, closeModal, reactivos }) => {
+  console.log("reactivos:", reactivos);
+  
   const chartRef = useRef(null);
   const consumoData = useMemo(() => {
     return reactivos.map(item => ({
@@ -30,7 +32,7 @@ const DataTableChartModalInventariovsSAP = ({ modalIsOpen, closeModal, reactivos
 
   const highlightedPoints = consumoData.map((d, index) => {
     const diff = Math.abs(d.Inventario - d.SAP);
-    return diff > 2 ? {
+    return diff > 1 ? {
       x: d.producto,
       y: Math.max(d.Inventario, d.SAP),
     } : null;

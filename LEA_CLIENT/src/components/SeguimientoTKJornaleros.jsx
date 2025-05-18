@@ -261,10 +261,10 @@ function SeguimientoTKJornaleros() {
                 label="Tanque Origen"
                 onChange={(e) => setTanqueOrigen(e.target.value)}
               >
-                {tanques.map((t) => (
-                  <MenuItem key={t.nombre} value={t.nombre}>
-                    {t.nombre}
-                  </MenuItem>
+              {[...new Map(tanques.map(t => [t.NombreTanque, t])).values()].map((t) => (
+                <MenuItem key={t.NombreTanque} value={t.NombreTanque}>
+                 TK-{t.NombreTanque}
+                </MenuItem>
                 ))}
               </Select>
             </FormControl>
@@ -279,10 +279,10 @@ function SeguimientoTKJornaleros() {
                 label="Tanque Destino"
                 onChange={(e) => setTanqueDestino(e.target.value)}
               >
-                {tanques.map((t) => (
-                  <MenuItem key={t.nombre} value={t.nombre}>
-                    {t.nombre}
-                  </MenuItem>
+               {[...new Map(tanques.map(t => [t.NombreTanque, t])).values()].map((t) => (
+                <MenuItem key={t.NombreTanque} value={t.NombreTanque}>
+                 TK-{t.NombreTanque}
+                </MenuItem>
                 ))}
               </Select>
             </FormControl>

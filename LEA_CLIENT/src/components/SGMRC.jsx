@@ -90,9 +90,8 @@ const SGMRC = React.memo(() => {
   // Abrir modal para Ver Grafica ModalVerGraficaInventariovsSAPIsOpen
   const [ModalVerGraficaInventariovsSAPIsOpen, setModalVerGraficaInventariovsSAPIsOpen] = useState(false);
 
-
   const [uploadRowIndex, setUploadRowIndex] = useState(null); // Estado para el rowIndex a subir
-
+  
   useEffect(() => {
     console.log("location:");
   }, [location]);
@@ -455,12 +454,6 @@ const handleCloseModal = () => {
 };
 
 const handleDoubleClick = (rowIndex, column, row) => {
-  console.log("row en doble click:", row);
-  console.log("rowIndex en doble click:", rowIndex);
-  console.log("column en doble click:", column);
-  console.log("data[rowIndex][column]:", data[rowIndex][column]);
-  console.log("row[column]:", row[column]);
-  
   setEditingCell({ rowIndex, column, row });
   setTempValue(row[column]);
   // setTempValue(data[rowIndex][column]);
