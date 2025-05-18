@@ -244,15 +244,15 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
         <p>{error}</p>
       ) : chartData && chartData.labels.length > 0 ? (
         <>
-          <div style={{ height: '600px', marginBottom: '30px', width: '80vw' }}>
+          <div style={{ height: '600px', marginBottom: '30px', width: '88vw' }}>
             <Line 
             data={chartData} 
             options={{
-              responsive: false,
+              responsive: true,
               maintainAspectRatio: false,
             }}
-            width={1800}
-            height={600}
+            // width={1800}
+            // height={600}
             ref={chartRef} 
             />
           </div>

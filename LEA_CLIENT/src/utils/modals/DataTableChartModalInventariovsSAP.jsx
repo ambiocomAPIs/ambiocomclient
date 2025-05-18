@@ -127,9 +127,10 @@ const DataTableChartModalInventariovsSAP = ({ modalIsOpen, closeModal, reactivos
           right: 'auto',
           bottom: 'auto',
           transform: 'translate(-50%, -50%)',
-          width: '70%',
+          width: '80vw',
+          height: '85vh',
           maxHeight: '90vh',
-          padding: '30px',
+          padding: '15px',
           borderRadius: '12px',
           border: 'none',
           overflow: 'auto',
@@ -188,14 +189,14 @@ const DataTableChartModalInventariovsSAP = ({ modalIsOpen, closeModal, reactivos
         </button>
       </div>
 
-      <div style={{ width: '100%', height: '400px' }}>
+      <div style={{  height: '60vh', marginBottom: '5px', width: '92%', marginTop:"50px" }}>
         <Line 
-          ref={chartRef} 
           data={chartData} 
           options={{
             responsive: true,
             maintainAspectRatio: false,
           }}
+          ref={chartRef} 
           />
       </div>
     </Modal>
