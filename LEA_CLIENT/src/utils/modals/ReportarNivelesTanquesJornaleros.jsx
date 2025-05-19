@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Box, Typography, Modal, TextField, Button } from '@mui/material';
-import Swal from 'sweetalert2'; // Agrega la importación de SweetAlert2
+import { Box, Typography, Modal, TextField, Button, IconButton, Tooltip} from '@mui/material';
 
+import Swal from 'sweetalert2';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 const styleModal = {
   position: 'absolute',
   top: '50%',
@@ -23,6 +24,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
   const [responsable, setResponsable] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [fecha, setFecha] = useState('');
+  const [eliminados, setEliminados] = useState(0);
 
   useEffect(() => {
     axios
@@ -58,6 +60,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
 
     if(fecha == "" || fecha == null || fecha == undefined)
      {
+      onClose()
       Swal.fire({
         title: 'Fecha Incorrecta',
         text: 'Por Favor Selecciona Una Fecha Valida',
@@ -70,19 +73,15 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
          'https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros',datosAEnviar
       )
       .then((res) => {
-        console.log('Datos enviados correctamente:', res.data);
-        
-        // Alerta de éxito con SweetAlert
+        onClose()
         Swal.fire({
           title: '¡Éxito!',
           text: 'Los datos se han subido correctamente.',
           icon: 'success',
           confirmButtonText: 'Aceptar',
         }).then(() => {
-          // Recargar la página después de mostrar la alerta
           window.location.reload();
         });
-        
         onClose();
         window.location.reload();
       })
@@ -98,6 +97,92 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
         });
       });
      }
+  };
+
+  const handleEliminarPorFecha = async () => {
+    setEliminados(0);
+  
+    if (!fecha) {
+      onClose();
+      Swal.fire({
+        title: 'No se ha asociado una Fecha',
+        text: 'Por favor asocie una fecha a la operación',
+        icon: 'error',
+        confirmButtonText: 'Aceptar',
+      });
+      return;
+    }
+    onClose();
+    const confirmacion = await Swal.fire(
+      {
+      title: '¿Estás seguro?',
+      text: `¿Deseas eliminar los datos del día ${fecha}? Esta acción no se puede deshacer.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, continuar',
+      cancelButtonText: 'Cancelar',
+    });
+  
+    if (!confirmacion.isConfirmed) {
+      return;
+    }
+  
+    const clavePrompt = await Swal.fire({
+      title: 'Confirmación requerida',
+      text: 'Por favor ingresa la clave para continuar:',
+      input: 'password',
+      inputPlaceholder: 'Clave de autorización',
+      inputAttributes: {
+        autocapitalize: 'off',
+        autocorrect: 'off'
+      },
+      showCancelButton: true,
+      confirmButtonText: 'Eliminar',
+      cancelButtonText: 'Cancelar',
+      inputValidator: (value) => {
+        if (!value) return 'Debes ingresar una clave.';
+        return null;
+      }
+    });
+  
+    const claveIngresada = clavePrompt.value;
+    // Validar clave
+    const CLAVE_AUTORIZADA = 'admin123'; 
+    if (claveIngresada !== CLAVE_AUTORIZADA) {
+      onClose();
+      Swal.fire({
+        title: 'Clave incorrecta',
+        text: 'La clave que ingresaste no es válida.',
+        icon: 'error',
+        confirmButtonText: 'Aceptar',
+      });
+      return;
+    }
+    try {
+      const response = await axios.delete('https://ambiocomserver.onrender.com/api/tanquesjornaleros/eliminarporfecha', {
+        data: { FechaRegistro: fecha },
+      });
+  
+      onClose();
+      Swal.fire({
+        title: 'Datos eliminados',
+        text: `Los datos del ${fecha} se han eliminado correctamente.`,
+        icon: 'success',
+        confirmButtonText: 'Aceptar',
+      });
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      onClose();
+      Swal.fire({
+        title: 'Error al eliminar los registros',
+        text: err.response?.data?.message || 'Ocurrió un error al eliminar los registros.',
+        icon: 'error',
+        confirmButtonText: 'Aceptar',
+      });
+    }
   };
 
   const tanquesUnicos = Array.from(
@@ -177,6 +262,11 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
           <Button variant="contained" color="primary" onClick={handleSubmit}>
             Reportar
           </Button>
+          <Tooltip title="Eliminar Registro" enterDelay={100}>
+          <IconButton color="error" onClick={handleEliminarPorFecha}>
+            <DeleteForeverIcon />
+          </IconButton>
+          </Tooltip>
         </Box>
       </Box>
     </Modal>
