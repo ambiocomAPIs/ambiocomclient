@@ -97,7 +97,7 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
       }
   
       // Movimientos
-      await axios.post('https://ambiocomserver.onrender.com/api/registro/movimientos', {
+      await axios.post('http://localhost:4041/api/registro/movimientos', {
         TipoOperación: tipoOperacion,
         Producto: formData.Producto,
         Lote: formData.Lote,
@@ -115,11 +115,10 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
         GastoMensual: costoMensual,
         fechaMovimiento: Fecha,
         cantidadIngreso: cantidadIngreso
-
       });
   
       // Base de datos (positivo siempre y con inventario actualizado)
-      await axios.post('https://ambiocomserver.onrender.com/api/table/data/reportar-operacion', {
+      await axios.post('http://localhost:4041/api/table/data/reportar-operacion', {
         ...formData,
         ConsumoAReportar: cantidadParaBaseDeDatos,
         Inventario: nuevoInventario
