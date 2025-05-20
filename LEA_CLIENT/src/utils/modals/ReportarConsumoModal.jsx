@@ -15,6 +15,8 @@ import {
   FormControl
 } from '@mui/material';
 
+import Swal from 'sweetalert2'
+
 export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [] }) {
   const [formData, setFormData] = React.useState({});
   const [Fecha, setFecha] = useState('');
@@ -37,7 +39,7 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
           Proveedor: selectedProduct.proveedor || '',
           Responsable: selectedProduct.responsable || '',
           Area: selectedProduct.area || '',
-          ObservacionesAdicionales: selectedProduct.ObservacionesAdicionales || '',
+          ObservacionesAdicionales: selectedProduct.ObservacionesAdicionales || 'Ninguna',
           SAP: selectedProduct.SAP || 0,
           cantidadIngreso: selectedProduct.cantidadIngreso || 0
         }));
@@ -59,7 +61,7 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
           Proveedor: selectedLote.proveedor || '',
           Responsable: selectedLote.responsable || '',
           Area: selectedLote.area || '',
-          ObservacionesAdicionales: selectedLote.ObservacionesAdicionales || '',
+          ObservacionesAdicionales: selectedLote.ObservacionesAdicionales || 'Ninguna',
           SAP: selectedLote.SAP || 0,
           cantidadIngreso: selectedProduct.cantidadIngreso || 0
         }));
@@ -68,36 +70,61 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
   };
 
   const handleSubmit = async () => {
-    try {
-      const cantidad = Number(formData.ConsumoAReportar) || 0;
-      const inventarioActual = Number(formData.Inventario) || 0;
-      const costoUnitario = Number(formData.Costo) || 0;
-      const tipoOperacion = formData.TipoOperación;
+    const cantidad = Number(formData.ConsumoAReportar) || 0;
+    const inventarioActual = Number(formData.Inventario) || 0;
+    const costoUnitario = Number(formData.Costo) || 0;
+    const tipoOperacion = formData.TipoOperación;
+    // const Fecha = new Date().toISOString().split('T')[0];
+    
+    let nuevoInventario = inventarioActual;
+    let cantidadReportadaMovimiento = cantidad;
+    let cantidadParaBaseDeDatos = cantidad;
+    let costoMensual = 0;
   
-      let nuevoInventario = inventarioActual;
-      let cantidadReportadaMovimiento = cantidad;
-      let cantidadParaBaseDeDatos = cantidad;
-      let costoMensual = 0;
-  
-      if (tipoOperacion === 'Consumo de Material') {
-        if (cantidad > inventarioActual) {
-          alert('No puedes consumir más del inventario disponible.');
-          return;
-        }
-  
-        nuevoInventario = inventarioActual - cantidad;
-        cantidadReportadaMovimiento = -cantidad; // NEGATIVO para movimientos
-        cantidadParaBaseDeDatos = cantidad;      // POSITIVO para base de datos
-        costoMensual = costoUnitario * cantidad;
-      } else if (tipoOperacion === 'Ingreso Material') {
-        nuevoInventario = inventarioActual + cantidad;
-        cantidadReportadaMovimiento = cantidad;   // Positivo
-        cantidadParaBaseDeDatos = cantidad;
-        costoMensual = 0;
+    // Validar tipo de operación
+    if (tipoOperacion === 'Consumo de Material') {
+      // Validación de consumo de material
+      if (cantidad > inventarioActual) {
+        alert('No puedes consumir más del inventario disponible.');
+        return;
       }
   
-      // Movimientos
-      await axios.post('https://ambiocomserver.onrender.com/api/registro/movimientos', {
+      // Calcular el nuevo inventario y otras variables asociadas
+      nuevoInventario = inventarioActual - cantidad;
+      cantidadReportadaMovimiento = -cantidad;
+      cantidadParaBaseDeDatos = cantidad;
+      costoMensual = costoUnitario * cantidad;
+    } else if (tipoOperacion === 'Ingreso Material') {
+      // Calcular el nuevo inventario y otras variables asociadas para ingreso de material
+      nuevoInventario = inventarioActual + cantidad;
+      cantidadReportadaMovimiento = cantidad;
+      cantidadParaBaseDeDatos = cantidad;
+      costoMensual = 0;
+    } else {
+      // Si no es una operación válida, salimos de la función
+      alert('Tipo de operación no válido');
+      return;
+    }
+  
+    let movimientoRegistrado = false;
+    let baseActualizada = false;
+  
+    // Verificar si la fecha está definida
+    if (Fecha=="") {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Fecha requerida',
+        text: 'Por favor selecciona una fecha antes de continuar.',
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: 'Entendido'
+      });
+      onClose()
+      return;
+    }
+  
+    try {
+      // 1. Registrar movimiento
+      await axios.post('http://localhost:4041/api/registro/movimientos', {
         TipoOperación: tipoOperacion,
         Producto: formData.Producto,
         Lote: formData.Lote,
@@ -114,29 +141,41 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
         ConsumoMensual: cantidadParaBaseDeDatos,
         GastoMensual: costoMensual,
         fechaMovimiento: Fecha,
-        cantidadIngreso: cantidadIngreso
+        cantidadIngreso: formData.cantidadIngreso
       });
+      movimientoRegistrado = true;
   
-      // Base de datos (positivo siempre y con inventario actualizado)
-      await axios.post('https://ambiocomserver.onrender.com/api/table/data/reportar-operacion', {
+      // 2. Actualizar base de datos
+      await axios.post('http://localhost:4041/api/table/data/reportar-operacion', {
         ...formData,
         ConsumoAReportar: cantidadParaBaseDeDatos,
         Inventario: nuevoInventario
       });
+      baseActualizada = true;
   
-      alert('Inventario actualizado y movimiento registrado con éxito');
-  
-      setTimeout(() => {
-        window.location.reload();
-      }, 10);
-  
-      onSubmit(formData);
-      if (typeof onClose === 'function') onClose();
+      // 3. Mostrar resultado final
+      if (movimientoRegistrado && baseActualizada) {
+        alert('Inventario actualizado y movimiento registrado con éxito');
+        // onSubmit(formData);
+        // if (typeof onClose === 'function') onClose();
+        setTimeout(() => window.location.reload(), 10);
+      }
     } catch (error) {
       console.error(error);
-      alert('Error al actualizar inventario y registrar movimiento');
+  
+      // Mostrar alerta más específica
+      if (!movimientoRegistrado && !baseActualizada) {
+        alert('Error al registrar el movimiento y actualizar la base de datos');
+      } else if (!movimientoRegistrado) {
+        alert('Base de datos actualizada, pero falló al registrar el movimiento');
+      } else if (!baseActualizada) {
+        alert('Movimiento registrado, pero falló al actualizar la base de datos');
+      } else {
+        alert('Error inesperado al procesar la operación');
+      }
     }
-  };  
+  };
+  
   
   const handleCancel = () => {
     if (typeof onClose === 'function') onClose();
@@ -253,7 +292,7 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
             padding: '10px 12px',
             fontSize: '16px',
             borderRadius: '6px',
-            border: '1px solid #ccc', 
+            border: '1px solid #ccc',
             backgroundColor: '#fff',
             color: '#333',
             boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.1)',
