@@ -373,16 +373,20 @@ const DataTableChartModalCostMensual = ({ modalIsOpen, closeModal }) => {
         </button>
       </div>
 
-      <div>
+      <div style={{  height: '60vh', marginBottom: '5px', width: '92%', marginTop:"50px" }}>
         <Line
-          ref={chartRef}
           data={
             showComparativo
               ? comparativoChartData
               : showIngresoTotal
               ? ingresoChartData
               : chartData
-          }
+            }
+            options={{
+              responsive: true,
+              maintainAspectRatio: false,
+            }} 
+            ref={chartRef}
         />
       </div>
     </Modal>

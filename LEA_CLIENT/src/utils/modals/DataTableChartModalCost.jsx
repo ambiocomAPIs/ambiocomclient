@@ -284,8 +284,15 @@ const DataTableChartModalCost = ({ modalIsOpen, closeModal }) => {
         </button>
       </div>
 
-      <div>
-        <Line ref={chartRef} data={showIngresoTotal ? ingresoChartData : chartData} />
+      <div style={{  height: '60vh', marginBottom: '5px', width: '92%', marginTop:"50px" }}>
+        <Line 
+        data={showIngresoTotal ? ingresoChartData : chartData} 
+        options={{
+          responsive: true,
+          maintainAspectRatio: false,
+        }} 
+        ref={chartRef} 
+        />
       </div>
     </Modal>
   );
