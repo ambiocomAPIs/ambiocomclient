@@ -186,7 +186,7 @@ const DataTableChartModalCost = ({ modalIsOpen, closeModal }) => {
           bottom: 'auto',
           transform: 'translate(-50%, -50%)',
           width: '80vw',
-          height: '85vh',
+          height: '80vh',
           maxHeight: '90vh',
           padding: '30px',
           borderRadius: '12px',
