@@ -195,7 +195,7 @@ const DataTableChartModalInventariovsSAP = ({ modalIsOpen, closeModal, reactivos
           options={{
             responsive: true,
             maintainAspectRatio: false,
-          }}
+          }} 
           ref={chartRef} 
           />
       </div>
