@@ -23,17 +23,33 @@ function BitacoraComponentProduccion() {
     REGISTROS: [],
   });
 
-  const handleHeaderChange = (field, value) => {
-    setHeaderData({ ...headerData, [field]: value });
+  const clearFieldsExceptFechaTurno = () => {
+    console.log("ejecutandose para limpiar data ?");
+    
+    setHeaderData(prev => ({
+      ...prev,
+      supervisor: "",
+      op_destileria: "",
+      op_caldera: "",
+      op_aguas: "",
+      aux_caldera: "",
+      analista1: "",
+      analista2: "",
+    }));
   };
+
+  const handleHeaderChange = (field, value) => {
+    setHeaderData(prev => ({ ...prev, [field]: value }));
+  };  
 
   const addNote = (section, noteText) => {
     const newNote = {
       id: Date.now(),
       text: noteText,
       createdAt: new Date().toLocaleString(),
+      consumo: "hola pao"
     };
-    setNotes((prev) => ({
+    setNotes(prev => ({
       ...prev,
       [section]: [...prev[section], newNote],
     }));
@@ -41,27 +57,29 @@ function BitacoraComponentProduccion() {
 
   return (
     <Box sx={{ width: "99%", py: 3, minHeight: "95vh", marginRight:"10px", marginLeft:"10px" }}>
-      {/* Logo flotante en la esquina superior izquierda */}
       <img
-        src="/ambiocom.png" // Ruta de la imagen dentro de la carpeta public
+        src="/ambiocom.png"
         alt="Logo"
         style={{
           position: "absolute",
-          top: 5, // Ajusta la distancia desde la parte superior
-          left: 15, // Ajusta la distancia desde la izquierda
-          width: 250, // Ancho del logo
-          height: 60, // Alto del logo
+          top: 5,
+          left: 15,
+          width: 250,
+          height: 60,
         }}
       />
       
-      {/* Header */}
       <Typography variant="h4" gutterBottom sx={{ pl: 2 }} style={{ textAlign: "center"}}>
         Bitácora de Turnos Diarios Supervisores
       </Typography>
-
-      {/* Header Form and Notes Section */}
-      <HeaderForm data={headerData} onChange={handleHeaderChange} />
-      <NoteBoard notes={notes} onAddNote={addNote} />
+      <HeaderForm data={headerData} onChange={handleHeaderChange} clearFieldsExceptFechaTurno={clearFieldsExceptFechaTurno} />
+      <NoteBoard 
+      notes={notes} 
+      onAddNote={addNote} 
+      supervisor={headerData.supervisor}
+      turno={headerData.turno}
+      fecha={headerData.fecha}
+      />
     </Box>
   );
 }
