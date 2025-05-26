@@ -219,7 +219,7 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
                 }}
                 label="Tipo de Operación"
               >
-                {['administrativo','supervisor','laboratorio','logistica','gerente','developer'].includes(usuario?.rol) && (
+                {['supervisor','laboratorio','logistica','gerente','developer'].includes(usuario?.rol) && (
                 <MenuItem value="Consumo de Material">Consumo de Material</MenuItem>
                 )}
                 {['administrativo','supervisor','gerente','developer'].includes(usuario?.rol) && (
