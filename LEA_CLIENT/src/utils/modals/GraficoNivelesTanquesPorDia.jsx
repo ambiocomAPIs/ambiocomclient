@@ -23,12 +23,25 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
   const [registros, setRegistros] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  // trae los usurios del sesio storage
+  const [usuario, setUsuario] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
   const chartRef = useRef(null);
+
+ useEffect(() => {
+   const storedUser = sessionStorage.getItem("usuario");
+    if (storedUser) {
+      try {
+        setUsuario(JSON.parse(storedUser));
+      } catch (e) {
+        console.error("Error al parsear usuario:", e);
+      }
+    }
+    }, []);
 
   useEffect(() => {
     if (modalIsOpen) {
@@ -212,9 +225,10 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '20px' }}>
         <button
           onClick={exportToCSV}
+          disabled={!['gerente','supervisor','developer'].includes(usuario?.rol)} 
           style={{
             padding: '8px 16px',
-            backgroundColor: '#0288d1',
+            backgroundColor: !['gerente','supervisor','developer'].includes(usuario?.rol) ? 'gray':'#0288d1',
             color: 'white',
             border: 'none',
             borderRadius: '5px',
@@ -225,9 +239,10 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
         </button>
         <button
           onClick={exportToPDF}
+          disabled={!['gerente','supervisor','developer'].includes(usuario?.rol)} 
           style={{
             padding: '8px 16px',
-            backgroundColor: '#0288d1',
+            backgroundColor: !['gerente','supervisor','developer'].includes(usuario?.rol) ? 'gray':'#0288d1',
             color: 'white',
             border: 'none',
             borderRadius: '5px',

@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import axios from 'axios';
 import {
   Dialog,
@@ -20,6 +20,19 @@ import Swal from 'sweetalert2'
 export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [] }) {
   const [formData, setFormData] = React.useState({});
   const [Fecha, setFecha] = useState('');
+  // trae los usurios del sesio storage
+  const [usuario, setUsuario] = useState(null);
+
+    useEffect(() => {
+     const storedUser = sessionStorage.getItem("usuario");
+      if (storedUser) {
+       try {
+        setUsuario(JSON.parse(storedUser));
+       } catch (e) {
+         console.error("Error al parsear usuario:", e);
+       }
+     }
+    }, []);
 
   const handleInputChange = (field) => (event) => {
     setFormData({ ...formData, [field]: event.target.value });
@@ -206,8 +219,12 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
                 }}
                 label="Tipo de Operación"
               >
+                {['administrativo','supervisor','laboratorio','logistica','gerente','developer'].includes(usuario?.rol) && (
                 <MenuItem value="Consumo de Material">Consumo de Material</MenuItem>
-                <MenuItem value="Ingreso Material">Ingreso Material</MenuItem>
+                )}
+                {['administrativo','supervisor','gerente','developer'].includes(usuario?.rol) && (
+                 <MenuItem value="Ingreso Material">Ingreso Material</MenuItem>
+                )}
               </Select>
             </FormControl>
           </Grid>

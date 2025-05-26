@@ -25,6 +25,19 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
   const [observaciones, setObservaciones] = useState('');
   const [fecha, setFecha] = useState('');
   const [eliminados, setEliminados] = useState(0);
+  // trae los usurios del sesio storage
+  const [usuario, setUsuario] = useState(null);
+
+  useEffect(() => {
+   const storedUser = sessionStorage.getItem("usuario");
+    if (storedUser) {
+     try {
+      setUsuario(JSON.parse(storedUser));
+     } catch (e) {
+       console.error("Error al parsear usuario:", e);
+     }
+   }
+  }, []);
 
   useEffect(() => {
     axios
@@ -263,7 +276,9 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
             Reportar
           </Button>
           <Tooltip title="Eliminar Registro" enterDelay={100}>
-          <IconButton color="error" onClick={handleEliminarPorFecha}>
+          <IconButton color="error" onClick={handleEliminarPorFecha} 
+             disabled={!['developer','gerente'].includes(usuario?.rol)}
+          >
             <DeleteForeverIcon />
           </IconButton>
           </Tooltip>

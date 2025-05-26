@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+
 import {
   Box,
   Typography,
@@ -55,8 +57,23 @@ function SeguimientoTKJornaleros() {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [modalVerMovimientosTanquesJornalerosIsOpen, setModalVerMovimientosTanquesJornalerosIsOpen] = useState(false);
   const [modalOpenModalGraficoNivelesModalIsOpen, setopenModalGraficoNivelesModalIsOpen] = useState(false);
+  // trae los usurios del sesio storage
+  const [usuario, setUsuario] = useState(null);
+  
+  const navigate = useNavigate();
 
   const hoy = new Date().toLocaleDateString('es-ES');
+
+    useEffect(() => {
+      const storedUser = sessionStorage.getItem("usuario");
+      if (storedUser) {
+        try {
+          setUsuario(JSON.parse(storedUser));
+        } catch (e) {
+          console.error("Error al parsear usuario:", e);
+        }
+      }
+      }, []);
 
   const handleClose = () => {
     setTipoMovimiento('');
@@ -108,6 +125,16 @@ function SeguimientoTKJornaleros() {
     }
   }, [searchQuery, tanques, fechaFiltro]);
 
+   // Redireccionar si no tiene rol autorizado
+   useEffect(() => {
+    if (usuario === null) return; // Espera a que el usuario se cargue
+  
+    const rolesPermitidos = ["logistica", "gerente", "supervisor", "developer"];
+    if (!rolesPermitidos.includes(usuario.rol)) {
+      navigate('/');
+    }
+  }, [usuario, navigate]);
+
   const openModalFromFooterRegistrarMovimientoTanqueJornalero = () => setModalVerRegistrarMovimientoTanqueJornaleroIsOpen(true);
   const closeModalVerRegistrarMovimientoTanqueJornaleroIsOpen = () => setModalVerRegistrarMovimientoTanqueJornaleroIsOpen(false);
 
@@ -155,6 +182,11 @@ function SeguimientoTKJornaleros() {
     "405": [450, 4966], "102B": [630, 139976],"102A": [630, 139976],"304": [213750, 0],
     "807": [360, 44390],"808": [360, 44390]
   };
+
+  const rolesPermitidos = ["logistica", "gerente", "supervisor", "developer"];
+  if (!rolesPermitidos.includes(usuario?.rol)) {
+    return null; 
+  }
 
   return (
     <Box sx={{ padding: 2, pb: 10 }}>

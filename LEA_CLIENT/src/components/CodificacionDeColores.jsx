@@ -51,7 +51,19 @@ const CodificacionDeColoresComponent = React.memo(() => {
   const [openUploadExcelModal, setOpenUploadExcelModal] = useState(false);
   // Abrir modal para filtrar data
   const [isModalFilterOpen, setIsModalFilterOpen] = useState(false);
+  // trae los usurios del sesio storage
+  const [usuario, setUsuario] = useState(null);
 
+  useEffect(() => {
+    const storedUser = sessionStorage.getItem("usuario");
+    if (storedUser) {
+      try {
+        setUsuario(JSON.parse(storedUser));
+      } catch (e) {
+        console.error("Error al parsear usuario:", e);
+      }
+    }
+    }, []);
 
   useEffect(() => {
     // Realizar la solicitud GET a la API

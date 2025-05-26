@@ -14,8 +14,6 @@ import ContentPasteSearchIcon from '@mui/icons-material/ContentPasteSearch';
 import StraightenIcon from '@mui/icons-material/Straighten';
 import SquareFootIcon from '@mui/icons-material/SquareFoot';
 
-import GraficoNivelesTanquesPorDiaModal from './modals/GraficoNivelesTanquesPorDia';
-
 function ExcelStyleFooter({
   openModalFromFooterVerGastosMensualeGrafica,
   openModalFromFooterVerGastosMensualesCierreMes,
@@ -26,12 +24,25 @@ function ExcelStyleFooter({
   openModalFromFooterRegistrarMovimientoTanqueJornalero,
   openModalReportarNivelesTanquesJornaleros,
   DataTableChartModalCostMensualMesesCerrados,
-  openModalGraficoNivelesModalOpen
+  openModalGraficoNivelesModalOpen 
 }) {
   const location = useLocation();
   const navigate = useNavigate();
 
   const [currentPath, setCurrentPath] = useState('');
+  // trae los usurios del sesio storage
+  const [usuario, setUsuario] = useState(null);
+ 
+     useEffect(() => {
+        const storedUser = sessionStorage.getItem("usuario");
+        if (storedUser) {
+          try {
+            setUsuario(JSON.parse(storedUser));
+          } catch (e) {
+            console.error("Error al parsear usuario:", e);
+          }
+        }
+        }, []);
 
   useEffect(() => {
     setCurrentPath(location.pathname);
@@ -67,7 +78,7 @@ function ExcelStyleFooter({
   };
 
   const BackHome = () => {
-    navigate('/');
+    navigate('/principal');
   };
 
   const InventarioJornalerosTK = () => {
@@ -107,6 +118,7 @@ function ExcelStyleFooter({
           onClick={BackHome}
           endIcon={<HomeIcon />}
           hidden={currentPath === '/mesescerrados' ? false : true}
+          disabled={usuario?.rol=="administrativo" || usuario?.rol =="laboratorio"}
           sx={{
             display:
               currentPath === '/mesescerrados' ||
@@ -137,6 +149,7 @@ function ExcelStyleFooter({
           variant="outlined"
           onClick={openModalVerGastosMensuales}
           endIcon={<PriceChangeIcon />}
+          disabled={usuario?.rol=="laboratorio" || usuario?.rol =="administrativo"}
           sx={{
             display: currentPath === '/seguimientotanquesjornaleros' ? 'none' : 'inline-flex',
             margin: '0 5px',
@@ -163,6 +176,7 @@ function ExcelStyleFooter({
           variant="outlined"
           onClick={openModalGraficaGastoDiario}
           endIcon={<TodayIcon />}
+          disabled={usuario?.rol=="laboratorio" || usuario?.rol =="administrativo"}
           sx={{
             display: currentPath === '/seguimientotanquesjornaleros' ? 'none' : 'inline-flex',
             margin: '0 5px',
@@ -189,6 +203,7 @@ function ExcelStyleFooter({
           variant="outlined"
           onClick={ModalFromFooterVerGastosMensualeGrafica}
           endIcon={<CalendarMonthIcon />}
+          disabled={usuario?.rol=="laboratorio" || usuario?.rol =="administrativo"}
           sx={{
             display: currentPath === '/seguimientotanquesjornaleros' ? 'none' : 'inline-flex',
             margin: '0 5px',
@@ -215,6 +230,7 @@ function ExcelStyleFooter({
           variant="outlined"
           onClick={HistoricoMesesCerrados}
           endIcon={<DateRangeIcon />}
+          disabled={usuario?.rol=="laboratorio" || usuario?.rol =="administrativo"}
           sx={{
             display: currentPath === '/mesescerrados' || currentPath === '/seguimientotanquesjornaleros' ? 'none' : 'inline-flex',
             margin: '0 5px',
@@ -241,6 +257,7 @@ function ExcelStyleFooter({
           variant="outlined"
           onClick={InventariovsSAP}
           endIcon={<SsidChartIcon />}
+          disabled={usuario?.rol=="laboratorio" || usuario?.rol =="administrativo"}
           sx={{
             display: currentPath === '/seguimientotanquesjornaleros' ? 'none' : 'inline-flex',
             margin: '0 5px',
@@ -267,6 +284,7 @@ function ExcelStyleFooter({
           variant="outlined"
           onClick={InventarioJornalerosTK}
           endIcon={<ContentPasteSearchIcon />}
+          disabled={usuario?.rol=="laboratorio" || usuario?.rol =="administrativo"}
           sx={{
             display: currentPath === '/mesescerrados' || currentPath === '/seguimientotanquesjornaleros' ? 'none' : 'inline-flex',
             margin: '0 5px',
@@ -293,6 +311,7 @@ function ExcelStyleFooter({
           variant="outlined"
           onClick={ModalFromFooterRegistrarMovimientoTanqueJornalero}
           endIcon={<AppRegistrationIcon />}
+          disabled={usuario?.rol=="laboratorio" || usuario?.rol =="administrativo"}
           sx={{
             display: currentPath === '/seguimientotanquesjornaleros' ? 'inline-flex' : 'none',
             margin: '0 5px',
@@ -319,6 +338,7 @@ function ExcelStyleFooter({
           variant="outlined"
           onClick={ModalReportarNivelesTanquesJornaleros}
           endIcon={<SquareFootIcon />}
+          disabled={usuario?.rol=="laboratorio" || usuario?.rol =="administrativo"}
           sx={{
             display: currentPath === '/seguimientotanquesjornaleros' ? 'inline-flex' : 'none',
             margin: '0 5px',
@@ -345,6 +365,7 @@ function ExcelStyleFooter({
           variant="outlined"
           onClick={ModalFromFooteropenGraficoNivelesTanquesPorDia}
           endIcon={<StraightenIcon />}
+          disabled={usuario?.rol=="laboratorio" || usuario?.rol =="administrativo"}
           sx={{
             display: currentPath === '/seguimientotanquesjornaleros' ? 'inline-flex' : 'none',
             margin: '0 5px',

@@ -91,7 +91,20 @@ const SGMRC = React.memo(() => {
   const [ModalVerGraficaInventariovsSAPIsOpen, setModalVerGraficaInventariovsSAPIsOpen] = useState(false);
 
   const [uploadRowIndex, setUploadRowIndex] = useState(null); // Estado para el rowIndex a subir
-  
+  // trae los usurios del sesio storage
+  const [usuario, setUsuario] = useState(null);
+
+  useEffect(() => {
+   const storedUser = sessionStorage.getItem("usuario");
+    if (storedUser) {
+     try {
+      setUsuario(JSON.parse(storedUser));
+     } catch (e) {
+       console.error("Error al parsear usuario:", e);
+      }
+    }
+   }, []);
+
   useEffect(() => {
     console.log("location:");
   }, [location]);
@@ -683,19 +696,21 @@ const clickColumFixed = (columnClicked) => {
         <RemoveRedEyeIcon />
       </IconButton>
       <IconButton
-        style={{ outline: "none", color: "#3172f5" }}
+        style={{ outline: "none", color: ['administrativo','logistica','laboratorio'].includes(usuario?.rol)? "gray": "#3172f5" }}
+        disabled={['administrativo','logistica','laboratorio'].includes(usuario?.rol)}
         onClick={() => handleUploadIndex(rowId)}
       >
         <CloudUploadIcon />
       </IconButton>
       <IconButton
-        style={{ outline: "none", color: "#0f9638" }}
+        style={{ outline: "none", color:"#0f9638" }}
         onClick={() => DownloadPdf(rowId)}
       >
         <DownloadForOfflineIcon />
       </IconButton>
       <IconButton
-        style={{ outline: "none", color: "#ed1111" }}
+        style={{ outline: "none", color:['administrativo','logistica','laboratorio'].includes(usuario?.rol)? "gray": "#ed1111" }}
+        disabled={['administrativo','logistica','laboratorio'].includes(usuario?.rol)}
         onClick={() => DeletePdf(rowId)}
       >
         <DeleteIcon />
@@ -709,7 +724,8 @@ const clickColumFixed = (columnClicked) => {
       {params.notificado ? 
        <Tooltip title="Alerta Desactivada" enterDelay={1000}>
          <IconButton
-          style={{ outline: "none", color: "#5d6d7e" }}
+          style={{ outline: "none", color: ['administrativo', 'logistica', 'laboratorio'].includes(usuario?.rol) ? "gray" : "#5d6d7e" }}
+          disabled={['administrativo','logistica','laboratorio'].includes(usuario?.rol)}
           onClick={() => NotificarAlerta(params)}
          >
           <NotificationsOffIcon />
@@ -718,7 +734,8 @@ const clickColumFixed = (columnClicked) => {
         :
         <Tooltip title="Recibir Alerta" >
          <IconButton
-          style={{ outline: "none", color: "#212f3c" }}
+          style={{ outline: "none", color: ['administrativo', 'logistica', 'laboratorio'].includes(usuario?.rol) ? "gray" : "#212f3c" }}
+          disabled={['administrativo','logistica','laboratorio'].includes(usuario?.rol)}
           onClick={() => NotificarAlerta(params)}
          >
           <NotificationsActiveIcon />
@@ -1126,27 +1143,25 @@ const clickColumFixed = (columnClicked) => {
       Array.isArray(filteredData) && filteredData.length > 0 ? (
         
         filteredData.map((row, rowIndex) => {    
-          // console.log("row:",row);
-          // console.log("rowIndex:",rowIndex);
-          
           const filteredRow = filterData(row); // Filtrar la fila
           const fechaVencimiento = row.fechaVencimiento;  // Fecha de vencimiento (string)
           const mesesRestantes = parseInt(row.mesesRestantes, 10);  // Convertir mesesRestantes a número
-
-          // Convertimos la fecha de vencimiento a un objeto Date para asegurarnos de que sea válida
           const fechaVencimientoDate = new Date(fechaVencimiento); // Convertir a Date
           const fechaActual = new Date(); // Fecha actual
-          
-          // Calcular la diferencia en meses entre la fecha actual y la fecha de vencimiento
           const diferenciaMeses = calcularDiferenciaEnMeses(fechaActual, fechaVencimientoDate);
-
-          // Comprobar si la fecha de vencimiento está dentro del rango de mesesRestantes
           const esProximoAVencer = diferenciaMeses <= mesesRestantes;
           const materialVencido = fechaVencimientoDate < fechaActual; // Comprobar si la fecha ya ha pasado
 
+          let BlockedColumns
           // columnas que no quiero que se puedan editar
-          const BlockedColumns = [4,5,13,16,21,22,23,24];
-
+          if (['administrativo'].includes(usuario?.rol)) { // todas menos 19 y 20 inventario critico y SAP
+            BlockedColumns = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,21, 22, 23, 24,25];
+          } else if(['laboratorio','logistica'].includes(usuario?.rol)){ // todas.
+            BlockedColumns = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21, 22, 23, 24,25];
+          }
+          else {
+            BlockedColumns = [4, 5, 13, 16, 21, 22, 23, 24]; // gerentes, supervisores, desarrolladores
+          }
           // Establecer los colores de fondo
           let backgroundColor = 'transparent';
           let color = 'inherit'; // Color por defecto para el texto
@@ -1246,7 +1261,8 @@ const clickColumFixed = (columnClicked) => {
                     renderNotificationsButtons({ _id: row._id, notificado: row.notificado }) // Mostrar boton si fue notificado o sigue en alarma
                   ) : colIndex === 25 ? (
                     <IconButton
-                    style={{ outline: "none", color: "#fc5a4e" }}
+                    style={{ outline: "none", color: ['administrativo', 'logistica', 'laboratorio'].includes(usuario?.rol) ? "gray" : "#fc5a4e"}}
+                    disabled={['administrativo','logistica','laboratorio'].includes(usuario?.rol)}
                     onClick={() => deleteRowData(row._id)}
                     >
                       <HighlightOffIcon />

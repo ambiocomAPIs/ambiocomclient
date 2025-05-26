@@ -1,4 +1,5 @@
 import * as React from 'react';
+import {useEffect,useState } from 'react'
 import { useLocation } from 'react-router-dom';
 import { SpeedDial, SpeedDialIcon, SpeedDialAction } from '@mui/material';
 
@@ -21,7 +22,22 @@ export default function SpeedDialComponent({
   CierreMes,
   VerMovimientosTanquesJornaleros
 }) {
+
+  // trae los usurios del sesio storage
+  const [usuario, setUsuario] = useState(null);
+
   const location = useLocation();
+
+     useEffect(() => {
+        const storedUser = sessionStorage.getItem("usuario");
+        if (storedUser) {
+          try {
+            setUsuario(JSON.parse(storedUser));
+          } catch (e) {
+            console.error("Error al parsear usuario:", e);
+          }
+        }
+        }, []);
 
   const onlyCierreMesesActions = [
     { icon: <QueryStatsIcon />, name: 'Movimientos' },
@@ -86,6 +102,16 @@ export default function SpeedDialComponent({
             '&:focus, &:active': {
               outline: 'none'
             }
+          }}
+          FabProps={{
+            disabled:
+              (action.name === 'Nueva Fila' && !['developer','gerente','supervisor'].includes(usuario?.rol)) ||
+              (action.name === 'Reportar Consumo' && !['developer','gerente','supervisor','laboratorio','administrativo'].includes(usuario?.rol)) ||
+              (action.name === 'Export Excel' && !['developer','gerente','supervisor', 'administrativo'].includes(usuario?.rol)) ||
+              (action.name === 'Movimientos' && !['developer','gerente','supervisor', 'administrativo'].includes(usuario?.rol)) ||
+              (action.name === 'MovimientosTanquesJornaleros' && !['developer','gerente','supervisor', 'logistica'].includes(usuario?.rol)) ||
+              (action.name === 'Cierre de Mes' && !['developer','gerente','supervisor'].includes(usuario?.rol)) ||
+              (action.name === 'Descargar Manual' && !['developer','gerente','supervisor','logistica','laboratorio','administrativo'].includes(usuario?.rol))
           }}
         />
       ))}
