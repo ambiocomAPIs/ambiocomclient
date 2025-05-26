@@ -9,6 +9,19 @@ const ModalFilterData = ({ isOpen, onClose, data, module }) => {
   const [filterValue, setFilterValue] = useState('');
   const [filteredData, setFilteredData] = useState([]);
   const [availableKeys, setAvailableKeys] = useState([]);
+  // trae los usurios del sesio storage
+  const [usuario, setUsuario] = useState(null);
+  
+      useEffect(() => {
+       const storedUser = sessionStorage.getItem("usuario");
+        if (storedUser) {
+         try {
+          setUsuario(JSON.parse(storedUser));
+         } catch (e) {
+           console.error("Error al parsear usuario:", e);
+         }
+       }
+      }, []);
 
   // Extraemos las claves del primer objeto de los datos, sin incluir el `id`
   useEffect(() => {
@@ -175,7 +188,8 @@ const ModalFilterData = ({ isOpen, onClose, data, module }) => {
         <div style={{ textAlign: 'right', marginTop: '10px' }}>
           <Button
             variant="outlined"
-            color="error"
+            disabled={['laboratorio','logistica','administrativo','supervisor'].includes(usuario?.rol)}
+            color= {['laboratorio','logistica','administrativo','supervisor'].includes(usuario?.rol)? "gray":"error"}
             startIcon={<DeleteIcon />}
             onClick={() => deleteItem(item._id)} // Pasamos el _id aquí
           >
