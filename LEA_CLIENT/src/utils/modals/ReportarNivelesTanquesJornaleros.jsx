@@ -19,6 +19,19 @@ const styleModal = {
 };
 
 const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
+
+  // No mover de posicion, la posicion es clave para el funcionamiento, debe estar por encima de los estados
+  const LOCAL_STORAGE_KEY = 'nivelesTanquesJornalerosDraft';
+
+  const draft = (() => {
+    try {
+      return JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || {};
+    } catch (e) {
+      console.error("Error al parsear localStorage:", e);
+      return {};
+    }
+  })();
+
   const [tanquesData, setTanquesData] = useState([]);
   const [inputs, setInputs] = useState({});
   const [responsable, setResponsable] = useState('');
@@ -27,6 +40,43 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
   const [eliminados, setEliminados] = useState(0);
   // trae los usurios del sesio storage
   const [usuario, setUsuario] = useState(null);
+
+  // guarda cada qe cambien los inputs
+  useEffect(() => {
+    const hayDatos = Object.keys(inputs).length > 0 || responsable || observaciones || fecha;
+  
+    if (hayDatos) {
+      const draftData = {
+        inputs,
+        responsable,
+        observaciones,
+        fecha,
+      };
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(draftData));
+    }
+  }, [inputs, responsable, observaciones, fecha]);
+
+  useEffect(() => {
+    if (open) {
+      const draft = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (draft) {
+        try {
+          const data = JSON.parse(draft);
+          setInputs(data.inputs || {});
+          setResponsable(data.responsable || '');
+          setObservaciones(data.observaciones || '');
+          setFecha(data.fecha || '');
+        } catch (e) {
+          console.error("Error al recuperar borrador:", e);
+        }
+      }
+    }
+  }, [open]);
+
+  const handleCancelar = () => {
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    onClose();
+  };
 
   useEffect(() => {
    const storedUser = sessionStorage.getItem("usuario");
@@ -60,9 +110,6 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
   const handleSubmit = () => {
     //const hoy = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD ojo toma en otra zona horaria
     const hoy = new Date().toLocaleDateString('en-CA'); // Formato YYYY-MM-DD
-    console.log("FECHA REGISTRO:", hoy);
-    console.log("Fecha seleccionada:", fecha);
-    
     const datosAEnviar = tanquesUnicos.map((tanque) => ({
       NombreTanque: tanque.NombreTanque,
       NivelTanque: Number(inputs[tanque.NombreTanque]) || 0,
@@ -86,7 +133,8 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
          'https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros',datosAEnviar
       )
       .then((res) => {
-        onClose()
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+        onClose();
         Swal.fire({
           title: '¡Éxito!',
           text: 'Los datos se han subido correctamente.',
@@ -95,8 +143,6 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
         }).then(() => {
           window.location.reload();
         });
-        onClose();
-        window.location.reload();
       })
       .catch((err) => {
         console.error('Error al enviar los datos:', err);
@@ -198,9 +244,24 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
     }
   };
 
+  // no filtra por orden, solo que sean unicos
+  // const tanquesUnicos = Array.from(
+  //   new Map(tanquesData.map((t) => [t.NombreTanque, t])).values()
+  // );
+
   const tanquesUnicos = Array.from(
     new Map(tanquesData.map((t) => [t.NombreTanque, t])).values()
-  );
+  ).sort((a, b) => {
+    const numA = parseFloat(a.NombreTanque);
+    const numB = parseFloat(b.NombreTanque);
+  
+    if (!isNaN(numA) && !isNaN(numB)) {
+      return numA - numB;
+    }
+  
+    return b.NombreTanque.localeCompare(a.NombreTanque);
+  });
+  
 
   const handleChangeFecha = (e) => {
     setFecha(e.target.value);
