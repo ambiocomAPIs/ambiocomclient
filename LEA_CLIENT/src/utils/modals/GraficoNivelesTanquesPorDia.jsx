@@ -25,6 +25,8 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
   const [error, setError] = useState(null);
   // trae los usurios del sesio storage
   const [usuario, setUsuario] = useState(null);
+  // Boton ver y no ver grafica
+  const [datasetsHidden, setDatasetsHidden] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -166,6 +168,17 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
     doc.save('niveles_tanques_dia.pdf');
   };
 
+    const toggleAll = () => {
+      const chart = chartRef.current;
+      if (chart) {
+        chart.data.datasets.forEach(dataset => {
+          dataset.hidden = !datasetsHidden;
+        });
+        chart.update();
+        setDatasetsHidden(!datasetsHidden);
+      }
+    };
+
   return (
     <Modal
       isOpen={modalIsOpen}
@@ -192,8 +205,12 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-        <h2 style={{ margin: 0 }}>Niveles de Tanques - {selectedMonth}</h2>
-        <button
+      <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+       <h2 style={{ margin: 0 }}>
+         Niveles de Tanques - {selectedMonth}
+       </h2>
+      </div>        
+      <button
           onClick={onClose}
           style={{
             padding: '8px 16px',
@@ -208,7 +225,6 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
           Cerrar
         </button>
       </div>
-
       <div style={{ marginBottom: '20px' }}>
         <input
           type="month"
@@ -218,40 +234,70 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
             padding: '8px',
             borderRadius: '5px',
             border: '1px solid #ccc',
+            marginLeft: '60px'
           }}
         />
       </div>
+<div style={{ 
+  display: 'flex', 
+  justifyContent: 'space-between', 
+  alignItems: 'center', 
+  gap: '10px', 
+  marginBottom: '20px' 
+}}>
+  
+  {/* Botones Ocultar/Mostrar a la izquierda */}
+  <div>
+  <button  
+  style={{
+    padding: '8px 16px',
+    backgroundColor: !['gerente','supervisor','developer'].includes(usuario?.rol) ? 'gray' : '#0288d1',
+    color: 'white',
+    border: 'none',
+    borderRadius: '5px',
+    cursor: 'pointer',
+    marginLeft: '60px'
+  }}
+  onClick={toggleAll}
+>
+  {datasetsHidden ? '👁️ Mostrar todas' : '👁️ Ocultar todas'}
+</button>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '20px' }}>
-        <button
-          onClick={exportToCSV}
-          disabled={!['gerente','supervisor','developer'].includes(usuario?.rol)} 
-          style={{
-            padding: '8px 16px',
-            backgroundColor: !['gerente','supervisor','developer'].includes(usuario?.rol) ? 'gray':'#0288d1',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer',
-          }}
-        >
-          Exportar CSV
-        </button>
-        <button
-          onClick={exportToPDF}
-          disabled={!['gerente','supervisor','developer'].includes(usuario?.rol)} 
-          style={{
-            padding: '8px 16px',
-            backgroundColor: !['gerente','supervisor','developer'].includes(usuario?.rol) ? 'gray':'#0288d1',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer',
-          }}
-        >
-          Exportar PDF
-        </button>
-      </div>
+  </div>
+
+  {/* Botones Exportar a la derecha */}
+  <div>
+    <button
+      onClick={exportToCSV}
+      disabled={!['gerente','supervisor','developer'].includes(usuario?.rol)} 
+      style={{
+        padding: '8px 16px',
+        backgroundColor: !['gerente','supervisor','developer'].includes(usuario?.rol) ? 'gray':'#5ccb28',
+        color: 'white',
+        border: 'none',
+        borderRadius: '5px',
+        cursor: 'pointer',
+        marginRight: '5px'
+      }}
+    >
+      Exportar CSV
+    </button>
+    <button
+      onClick={exportToPDF}
+      disabled={!['gerente','supervisor','developer'].includes(usuario?.rol)} 
+      style={{
+        padding: '8px 16px',
+        backgroundColor: !['gerente','supervisor','developer'].includes(usuario?.rol) ? 'gray':'#f07d38',
+        color: 'white',
+        border: 'none',
+        borderRadius: '5px',
+        cursor: 'pointer',
+      }}
+    >
+      Exportar PDF
+    </button>
+  </div>
+</div>
 
       {isLoading ? (
         <p>Cargando datos...</p>
