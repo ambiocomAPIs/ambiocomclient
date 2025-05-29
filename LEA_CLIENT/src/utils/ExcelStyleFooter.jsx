@@ -32,6 +32,8 @@ function ExcelStyleFooter({
   const [currentPath, setCurrentPath] = useState('');
   // trae los usurios del sesio storage
   const [usuario, setUsuario] = useState(null);
+  // LOADING PARA evitar doble peticion
+  const [loadingButton, setLoadingButton] = React.useState(false);
  
      useEffect(() => {
         const storedUser = sessionStorage.getItem("usuario");
@@ -337,7 +339,7 @@ function ExcelStyleFooter({
         <Button
           variant="outlined"
           onClick={ModalReportarNivelesTanquesJornaleros}
-          endIcon={<SquareFootIcon />}
+          loadingIndicator="Loading…"
           disabled={usuario?.rol=="laboratorio" || usuario?.rol =="administrativo"}
           sx={{
             display: currentPath === '/seguimientotanquesjornaleros' ? 'inline-flex' : 'none',

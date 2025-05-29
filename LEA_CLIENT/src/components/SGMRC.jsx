@@ -48,6 +48,11 @@ import CircularProgress from '@mui/material/CircularProgress';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import SearchIcon from '@mui/icons-material/Search';
+import InsertPhotoIcon from '@mui/icons-material/InsertPhoto';
+import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
+
+import withReactContent from 'sweetalert2-react-content';
+const MySwal = withReactContent(Swal);
 
 const SGMRC = React.memo(() => {
   const location = useLocation();
@@ -89,11 +94,43 @@ const SGMRC = React.memo(() => {
   const [modalVerGastoMensuaIsOpen, setModalVerGastoMensuaIsOpen] = useState(false);
   // Abrir modal para Ver Grafica ModalVerGraficaInventariovsSAPIsOpen
   const [ModalVerGraficaInventariovsSAPIsOpen, setModalVerGraficaInventariovsSAPIsOpen] = useState(false);
-
   const [uploadRowIndex, setUploadRowIndex] = useState(null); // Estado para el rowIndex a subir
   // trae los usurios del sesio storage
   const [usuario, setUsuario] = useState(null);
+  // verifica si el id tiene imagen asociada
+  const [imagenesExistentes, setImagenesExistentes] = useState({});
 
+  console.log("imagenesExistentes:",imagenesExistentes);
+  
+  const verificarImagen = async (id) => {
+    if (!id) return false;
+    try {
+      const res = await fetch(`https://ambiocomserver.onrender.com/imagenes/${id}.jpg`, { method: 'HEAD' });
+      console.log(`verificarImagen para ${id}: `, res.ok);
+      return res.ok;
+    } catch {
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    const verificarTodas = async () => {
+      const nuevosEstados = {};
+  
+      await Promise.all(
+        data.map(async (row) => {
+          if (!row?.id) return; // ✅ Previene errores si row.id es undefined o null
+          const existe = await verificarImagen(row.id);
+          nuevosEstados[row.id] = existe;
+        })
+      );
+  
+      setImagenesExistentes(nuevosEstados);
+    };
+  
+    if (data?.length) verificarTodas();
+  }, [data]);
+  
   useEffect(() => {
    const storedUser = sessionStorage.getItem("usuario");
     if (storedUser) {
@@ -634,7 +671,67 @@ const clickColumFixed = (columnClicked) => {
       }
     };    
     
+    const handleImageUpload = async (id) => {
+      console.log("id que llega en handleImageUpload:", id);
+      
+      try {
+        // Verificar si la imagen ya existe
+        const exists = await fetch(`https://ambiocomserver.onrender.com/imagenes/${id}.jpg`, { method: 'HEAD' })
+          .then(res => res.ok)
+          .catch(() => false);
     
+        if (exists) {
+          return Swal.fire({
+            title: 'Imagen Cargada',
+            imageUrl: `https://ambiocomserver.onrender.com/imagenes/${id}.jpg`,
+            imageWidth: 400,
+            imageHeight: 350,
+            imageAlt: 'Imagen del elemento',
+            confirmButtonText: 'Aceptar'
+          });
+        }
+    
+        // Pedir archivo al usuario
+        const { value: file } = await Swal.fire({
+          title: 'Selecciona una imagen',
+          input: 'file',
+          inputAttributes: {
+            accept: 'image/*',
+            'aria-label': 'Sube tu imagen'
+          },
+          showCancelButton: true
+        });
+    
+        if (!file) return;
+    
+        const formData = new FormData();
+        formData.append('image', file);
+    
+        // Mostrar loading
+        Swal.fire({
+          title: 'Subiendo...',
+          didOpen: () => Swal.showLoading(),
+          allowOutsideClick: false
+        });
+    
+        const response = await fetch(`https://ambiocomserver.onrender.com/upload/${id}`, {
+          method: 'POST',
+          body: formData
+        });
+    
+        if (!response.ok) throw new Error('Error al subir la imagen');
+    
+        // Verifica de nuevo después de subir
+        const existe = await verificarImagen(id);
+        setImagenesExistentes(prev => ({ ...prev, [id]: existe }));
+    
+        Swal.fire('Éxito', 'Imagen subida correctamente', 'success');
+    
+      } catch (error) {
+        Swal.fire('Error', error.message, 'error');
+      }
+    };
+
     //? Función para abrir el modal
     const handleOpenModalUploadExcel = () => {      
       setOpenUploadExcelModal(true);
@@ -656,12 +753,10 @@ const clickColumFixed = (columnClicked) => {
     const handleOpenModalReportarConsumo = () => {
       setIsModalConsumoOpen(true);
     };
-
   // Función para abrir el modal de movimientos
   const openModalMovimientos = () => {
     setIsOpenModalMovimientos(true);
   };
-
   // Función para cerrar el modal
   const closeModalMovimientos = () => {
     setIsOpenModalMovimientos(false);
@@ -714,6 +809,17 @@ const clickColumFixed = (columnClicked) => {
         onClick={() => DeletePdf(rowId)}
       >
         <DeleteIcon />
+      </IconButton>
+      <IconButton
+        style={{ outline: "none", color:['administrativo','logistica','laboratorio'].includes(usuario?.rol)? "gray": "purple" }}
+        disabled={['administrativo','logistica','laboratorio'].includes(usuario?.rol)}
+        onClick={() => handleImageUpload(rowId)}
+      >
+       {imagenesExistentes[String(rowId)] ? (
+        <InsertPhotoIcon /> // Muestra solo si ya tiene imagen
+        ) : (
+        <AddPhotoAlternateIcon/> // Muestra si no tiene imagen
+        )}
       </IconButton>
     </div>
   );

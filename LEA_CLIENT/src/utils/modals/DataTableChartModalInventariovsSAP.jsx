@@ -19,7 +19,6 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip,
 Modal.setAppElement('#root');
 
 const DataTableChartModalInventariovsSAP = ({ modalIsOpen, closeModal, reactivos }) => {
-  console.log("reactivos:", reactivos);
   
   const chartRef = useRef(null);
   const consumoData = useMemo(() => {

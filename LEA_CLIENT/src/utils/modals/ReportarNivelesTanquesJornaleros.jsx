@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Box, Typography, Modal, TextField, Button, IconButton, Tooltip} from '@mui/material';
+import { Box, Typography, Modal, TextField, Button, IconButton, Tooltip, CircularProgress} from '@mui/material';
 
 import Swal from 'sweetalert2';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
@@ -20,6 +20,8 @@ const styleModal = {
 
 const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
 
+  // LOADING PARA evitar doble peticion
+  const [loadingButton, setLoadingButton] = React.useState(false);
   // No mover de posicion, la posicion es clave para el funcionamiento, debe estar por encima de los estados
   const LOCAL_STORAGE_KEY = 'nivelesTanquesJornalerosDraft';
 
@@ -108,6 +110,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
   };
 
   const handleSubmit = () => {
+    setLoadingButton(true)
     //const hoy = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD ojo toma en otra zona horaria
     const hoy = new Date().toLocaleDateString('en-CA'); // Formato YYYY-MM-DD
     const datosAEnviar = tanquesUnicos.map((tanque) => ({
@@ -133,6 +136,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
          'https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros',datosAEnviar
       )
       .then((res) => {
+        setLoadingButton(true)
         localStorage.removeItem(LOCAL_STORAGE_KEY);
         onClose();
         Swal.fire({
@@ -146,6 +150,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
       })
       .catch((err) => {
         console.error('Error al enviar los datos:', err);
+        setLoadingButton(false)
         onClose();
         // Alerta de error con SweetAlert
         Swal.fire({
@@ -265,6 +270,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
 
   const handleChangeFecha = (e) => {
     setFecha(e.target.value);
+    setLoadingButton(false)
     console.log("fecha seleccionada:", e.target.value);
     
   };
@@ -333,7 +339,19 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
            onFocus={(e) => (e.target.style.borderColor = '#007bff')}
            onBlur={(e) => (e.target.style.borderColor = '#ccc')}
           />
-          <Button variant="contained" color="primary" onClick={handleSubmit}>
+          <Button 
+            variant="contained" 
+            disabled={loadingButton} 
+            color="primary" 
+            onClick={handleSubmit}  
+            endIcon={
+              loadingButton ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : (
+                <></>
+              )
+            }
+            >
             Reportar
           </Button>
           <Tooltip title="Eliminar Registro" enterDelay={100}>
