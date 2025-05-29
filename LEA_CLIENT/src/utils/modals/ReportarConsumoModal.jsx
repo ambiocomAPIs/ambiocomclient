@@ -12,7 +12,8 @@ import {
   Select,
   MenuItem,
   InputLabel,
-  FormControl
+  FormControl,
+  CircularProgress
 } from '@mui/material';
 
 import Swal from 'sweetalert2'
@@ -20,6 +21,8 @@ import Swal from 'sweetalert2'
 export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [] }) {
   const [formData, setFormData] = React.useState({});
   const [Fecha, setFecha] = useState('');
+  // LOADING PARA evitar doble peticion
+  const [loadingButton, setLoadingButton] = React.useState(false);
   // trae los usurios del sesio storage
   const [usuario, setUsuario] = useState(null);
 
@@ -83,6 +86,7 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
   };
 
   const handleSubmit = async () => {
+    setLoadingButton(true)
     const cantidad = Number(formData.ConsumoAReportar) || 0;
     const inventarioActual = Number(formData.Inventario) || 0;
     const costoUnitario = Number(formData.Costo) || 0;
@@ -175,7 +179,7 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
       }
     } catch (error) {
       console.error(error);
-  
+      setLoadingButton(false)
       // Mostrar alerta más específica
       if (!movimientoRegistrado && !baseActualizada) {
         alert('Error al registrar el movimiento y actualizar la base de datos');
@@ -196,6 +200,7 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
 
   
   const handleChangeFecha = (e) => {
+    setLoadingButton(false)
     setFecha(e.target.value);
     console.log("fecha seleccionada consumos:", e.target.value);
   };
@@ -319,7 +324,20 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
            onFocus={(e) => (e.target.style.borderColor = '#007bff')}
            onBlur={(e) => (e.target.style.borderColor = '#ccc')}
           />
-        <Button variant="contained" onClick={handleSubmit}>Reportar</Button>
+        <Button 
+         variant="contained" 
+         onClick={handleSubmit}
+         disabled={loadingButton} 
+         endIcon={
+          loadingButton ? (
+            <CircularProgress size={20} color="inherit" />
+           ) : (
+           <></>
+           )
+         }
+        >
+          Reportar
+        </Button>
       </DialogActions>
       <Grid container justifyContent="center" style={{ padding: '10px' }}>
         <img src="/ambiocom.png" alt="Logo" style={{ maxHeight: '50px' }} />

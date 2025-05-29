@@ -339,7 +339,6 @@ function ExcelStyleFooter({
         <Button
           variant="outlined"
           onClick={ModalReportarNivelesTanquesJornaleros}
-          loadingIndicator="Loading…"
           disabled={usuario?.rol=="laboratorio" || usuario?.rol =="administrativo"}
           sx={{
             display: currentPath === '/seguimientotanquesjornaleros' ? 'inline-flex' : 'none',
