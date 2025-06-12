@@ -8,6 +8,7 @@ import SeguimientoTKJornaleros from './components/SeguimientoTKJornaleros';
 import CodificacionDeColoresComponent from './components/CodificacionDeColores';
 import UploadExcelTanquesDiariosMasivo from './utils/Functions/UploadExcelTanquesDiariosMasivo'
 import BitacoraComponentProduccion from './components/Bitacora/BitacoraComponentesProduccion'
+import PanelHoras from './components/PanelHoras'
 import IngresoPrivado from './components/IngresoPrivado'
 import { Typography } from '@mui/material';
 
@@ -20,6 +21,7 @@ function App() {
        <Routes>
         <Route path='/' element = {<IngresoPrivado/>}/>
         <Route path='/principal' element = {<SGMRC/>}/>
+        <Route path='/panelhoras' element = {<PanelHoras/>}/>
         <Route path="/upload/:rowId" element = {<UploadFile/>}/>
         <Route path="/colors" element = {<CodificacionDeColoresComponent/>}/>
         <Route path="/mesescerrados" element = {<MesesCerrados/>}/>
