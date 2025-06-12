@@ -25,6 +25,7 @@ const DataTableChartModalInventariovsSAP = ({ modalIsOpen, closeModal, reactivos
     return reactivos.map(item => ({
       producto: `${item.nombre} - Lote: ${item.lote}`, // Identificar producto por nombre + lote
       Inventario: item.Inventario,
+      ConsumoMensual : item.ConsumoMensual,
       SAP: item.SAP || 0  // Si SAP no tiene valor, asigna cero
     }));
   }, [reactivos]);
@@ -49,10 +50,18 @@ const DataTableChartModalInventariovsSAP = ({ modalIsOpen, closeModal, reactivos
         tension: 0.3,
       },
       {
-        label: 'SAP',  // Graficamos SAP
+        label: 'SAP-SALIDA',  // Graficamos SAP
         data: consumoData.map(d => d.SAP),  // Datos de SAP para cada producto
         borderColor: '#FF5733',  // Color de la línea de SAP
         backgroundColor: 'rgba(255, 87, 51, 0.2)',  // Color de fondo para SAP
+        fill: true,
+        tension: 0.3,
+      },
+      {
+        label: 'SAP-INVENTARIO',  // Graficamos SAP
+        data: consumoData.map(d => d.ConsumoMensual),  // Datos de SAP para cada producto
+        borderColor: '#63f75e',  // Color de la línea de SAP
+        backgroundColor: 'rgba(51, 255, 85, 0.2)',  // Color de fondo para SAP
         fill: true,
         tension: 0.3,
       },
