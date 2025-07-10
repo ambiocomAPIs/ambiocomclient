@@ -99,8 +99,6 @@ const SGMRC = React.memo(() => {
   const [usuario, setUsuario] = useState(null);
   // verifica si el id tiene imagen asociada
   const [imagenesExistentes, setImagenesExistentes] = useState({});
-
-  console.log("imagenesExistentes:",imagenesExistentes);
   
   const verificarImagen = async (id) => {
     if (!id) return false;
@@ -854,10 +852,12 @@ const clickColumFixed = (columnClicked) => {
   return (
     <TableContainer component={Paper}
         style={{
-          height: '95vh', // Ocupa el 100% de la altura de la ventana
+          marginTop:50,
+          height: '87vh', // Ocupa el 100% de la altura de la ventana
           overflow: 'auto', // Permite el desplazamiento vertical y horizontal
           marginBottom:0,
           overflowX: 'scroll',
+          marginBottom:50
         }}
       >
       <Table style={{ width: 'max-content'}}>

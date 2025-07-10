@@ -108,7 +108,7 @@ export default function SpeedDialComponent({
               (action.name === 'Nueva Fila' && !['developer','gerente','supervisor'].includes(usuario?.rol)) ||
               (action.name === 'Reportar Consumo' && !['developer','gerente','supervisor','laboratorio','administrativo'].includes(usuario?.rol)) ||
               (action.name === 'Export Excel' && !['developer','gerente','supervisor', 'administrativo'].includes(usuario?.rol)) ||
-              (action.name === 'Movimientos' && !['developer','gerente','supervisor', 'administrativo'].includes(usuario?.rol)) ||
+              (action.name === 'Movimientos' && !['developer','gerente','supervisor', 'administrativo','laboratorio'].includes(usuario?.rol)) ||
               (action.name === 'MovimientosTanquesJornaleros' && !['developer','gerente','supervisor', 'logistica'].includes(usuario?.rol)) ||
               (action.name === 'Cierre de Mes' && !['developer','gerente','supervisor'].includes(usuario?.rol)) ||
               (action.name === 'Descargar Manual' && !['developer','gerente','supervisor','logistica','laboratorio','administrativo'].includes(usuario?.rol))

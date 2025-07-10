@@ -190,6 +190,8 @@ function SeguimientoTKJornaleros() {
 
   return (
     <Box sx={{ padding: 2, pb: 10 }}>
+      <br/>
+      <br/>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <TextField
           label="Filtrar Tanque"
