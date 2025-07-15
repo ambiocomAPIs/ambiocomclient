@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
-import { Button, Box } from '@mui/material';
-import HomeIcon from '@mui/icons-material/Home';
-import SsidChartIcon from '@mui/icons-material/SsidChart';
-import DateRangeIcon from '@mui/icons-material/DateRange';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import TodayIcon from '@mui/icons-material/Today';
-import PriceChangeIcon from '@mui/icons-material/PriceChange';
-import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
-import ContentPasteSearchIcon from '@mui/icons-material/ContentPasteSearch';
-import StraightenIcon from '@mui/icons-material/Straighten';
-import SquareFootIcon from '@mui/icons-material/SquareFoot';
+import { Button, Box } from "@mui/material";
+import HomeIcon from "@mui/icons-material/Home";
+import SsidChartIcon from "@mui/icons-material/SsidChart";
+import DateRangeIcon from "@mui/icons-material/DateRange";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import TodayIcon from "@mui/icons-material/Today";
+import PriceChangeIcon from "@mui/icons-material/PriceChange";
+import AppRegistrationIcon from "@mui/icons-material/AppRegistration";
+import ContentPasteSearchIcon from "@mui/icons-material/ContentPasteSearch";
+import StraightenIcon from "@mui/icons-material/Straighten";
+import SquareFootIcon from "@mui/icons-material/SquareFoot";
 
 function ExcelStyleFooter({
   moduloActivo,
@@ -25,30 +25,29 @@ function ExcelStyleFooter({
   openModalFromFooterRegistrarMovimientoTanqueJornalero,
   openModalReportarNivelesTanquesJornaleros,
   DataTableChartModalCostMensualMesesCerrados,
-  openModalGraficoNivelesModalOpen 
+  openModalGraficoNivelesModalOpen,
 }) {
+  console.log("modulo activo recibido:", moduloActivo);
 
-  console.log("modulo activo:", moduloActivo);
-  
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [currentPath, setCurrentPath] = useState('');
+  const [currentPath, setCurrentPath] = useState("");
   // trae los usurios del sesio storage
   const [usuario, setUsuario] = useState(null);
   // LOADING PARA evitar doble peticion
   const [loadingButton, setLoadingButton] = React.useState(false);
- 
-     useEffect(() => {
-        const storedUser = sessionStorage.getItem("usuario");
-        if (storedUser) {
-          try {
-            setUsuario(JSON.parse(storedUser));
-          } catch (e) {
-            console.error("Error al parsear usuario:", e);
-          }
-        }
-        }, []);
+
+  useEffect(() => {
+    const storedUser = sessionStorage.getItem("usuario");
+    if (storedUser) {
+      try {
+        setUsuario(JSON.parse(storedUser));
+      } catch (e) {
+        console.error("Error al parsear usuario:", e);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     setCurrentPath(location.pathname);
@@ -56,35 +55,36 @@ function ExcelStyleFooter({
 
   // Funciones para abrir el modal para cada caso específico
   const openModalVerGastosMensuales = () => {
-    moduloActivo === '/mesescerrados'
+    moduloActivo === "mesescerrados"
       ? openModalFromFooterVerGastosMensualesCierreMes()
       : openModalFromFooterVerGastosMensuales();
   };
 
   const openModalGraficaGastoDiario = () => {
-    moduloActivo === '/mesescerrados'
+    moduloActivo === "mesescerrados"
       ? openModalFromFooterVerGastosDiarioCierreMes()
       : openModalFromFooterVerGastosDiario();
   };
 
   const HistoricoMesesCerrados = () => {
-    navigate('/mesescerrados');
+    navigate("/mesescerrados");
   };
 
   const InventariovsSAP = () => {
+    console.log(
+      "ejecutando en excelstylefooter openModalGraficaInventariovsSAP"
+    );
     openModalGraficaInventariovsSAP();
   };
 
-  const ModalFromFooterVerGastosMensualeGrafica = () => {    
-    moduloActivo === '/mesescerrados' ?
-    DataTableChartModalCostMensualMesesCerrados()
-    :
-    openModalFromFooterVerGastosMensualeGrafica();
-
+  const ModalFromFooterVerGastosMensualeGrafica = () => {
+    moduloActivo === "mesescerrados"
+      ? DataTableChartModalCostMensualMesesCerrados()
+      : openModalFromFooterVerGastosMensualeGrafica();
   };
 
   const BackHome = () => {
-    navigate('/principal');
+    navigate("/principal");
   };
 
   const ModalFromFooterRegistrarMovimientoTanqueJornalero = () => {
@@ -92,26 +92,26 @@ function ExcelStyleFooter({
   };
 
   const ModalFromFooteropenGraficoNivelesTanquesPorDia = () => {
-    openModalGraficoNivelesModalOpen()
+    openModalGraficoNivelesModalOpen();
   };
-  
+
   const ModalReportarNivelesTanquesJornaleros = () => {
-    openModalReportarNivelesTanquesJornaleros()
+    openModalReportarNivelesTanquesJornaleros();
   };
 
   return (
     <div>
       <Box
         sx={{
-          display: 'flex',
-          justifyContent: 'flex-start',
-          borderTop: '2px solid #ccc',
-          padding: '4px 0',
-          backgroundColor: '#f4f4f4',
-          position: 'fixed',
+          display: "flex",
+          justifyContent: "flex-start",
+          borderTop: "2px solid #ccc",
+          padding: "4px 0",
+          backgroundColor: "#f4f4f4",
+          position: "fixed",
           bottom: 0,
           left: 0,
-width: '100vw',
+          width: "100vw",
           zIndex: 999,
         }}
       >
@@ -119,24 +119,29 @@ width: '100vw',
           variant="outlined"
           onClick={openModalVerGastosMensuales}
           endIcon={<PriceChangeIcon />}
-          disabled={usuario?.rol=="laboratorio" || usuario?.rol =="administrativo"}
+          disabled={
+            usuario?.rol == "laboratorio" || usuario?.rol == "administrativo"
+          }
           sx={{
-            display: moduloActivo === 'Tanquesjornaleros' ? 'none' : 'inline-flex',
-            margin: '0 5px',
-            color: '#1976d2',
-            borderColor: '#8ccdf3',
-            textTransform: 'none',
-            borderRadius: '4px',
-            padding: '8px 20px',
-            minWidth: '150px',
-            fontSize: '14px',
+            display:
+            moduloActivo === "mesescerrados" ||
+            moduloActivo === "sgmrc" ?
+             "inline-flex" : "none",
+            margin: "0 5px",
+            color: "#1976d2",
+            borderColor: "#8ccdf3",
+            textTransform: "none",
+            borderRadius: "4px",
+            padding: "8px 20px",
+            minWidth: "150px",
+            fontSize: "14px",
             fontWeight: 600,
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-            transition: 'all 0.3s ease',
-            '&:hover': {
-              borderColor: '#1976d2',
-              color: '#1976d2',
-              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+            transition: "all 0.3s ease",
+            "&:hover": {
+              borderColor: "#1976d2",
+              color: "#1976d2",
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
             },
           }}
         >
@@ -146,24 +151,29 @@ width: '100vw',
           variant="outlined"
           onClick={openModalGraficaGastoDiario}
           endIcon={<TodayIcon />}
-          disabled={usuario?.rol=="laboratorio" || usuario?.rol =="administrativo"}
+          disabled={
+            usuario?.rol == "laboratorio" || usuario?.rol == "administrativo"
+          }
           sx={{
-            display: moduloActivo === 'Tanquesjornaleros' ? 'none' : 'inline-flex',
-            margin: '0 5px',
-            color: '#1976d2',
-            borderColor: '#8ccdf3',
-            textTransform: 'none',
-            borderRadius: '4px',
-            padding: '8px 20px',
-            minWidth: '150px',
-            fontSize: '14px',
+            display:
+            moduloActivo === "mesescerrados" ||
+            moduloActivo === "sgmrc" ?
+             "inline-flex" : "none",
+            margin: "0 5px",
+            color: "#1976d2",
+            borderColor: "#8ccdf3",
+            textTransform: "none",
+            borderRadius: "4px",
+            padding: "8px 20px",
+            minWidth: "150px",
+            fontSize: "14px",
             fontWeight: 600,
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-            transition: 'all 0.3s ease',
-            '&:hover': {
-              borderColor: '#1976d2',
-              color: '#1976d2',
-              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+            transition: "all 0.3s ease",
+            "&:hover": {
+              borderColor: "#1976d2",
+              color: "#1976d2",
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
             },
           }}
         >
@@ -173,51 +183,64 @@ width: '100vw',
           variant="outlined"
           onClick={ModalFromFooterVerGastosMensualeGrafica}
           endIcon={<CalendarMonthIcon />}
-          disabled={usuario?.rol=="laboratorio" || usuario?.rol =="administrativo"}
+          disabled={
+            usuario?.rol == "laboratorio" || usuario?.rol == "administrativo"
+          }
           sx={{
-            display: moduloActivo === 'Tanquesjornaleros' ? 'none' : 'inline-flex',
-            margin: '0 5px',
-            color: '#1976d2',
-            borderColor: '#8ccdf3',
-            textTransform: 'none',
-            borderRadius: '4px',
-            padding: '8px 20px',
-            minWidth: '150px',
-            fontSize: '14px',
+            display:
+            moduloActivo === "mesescerrados" ||
+            moduloActivo === "sgmrc" ?
+             "inline-flex" : "none",
+            margin: "0 5px",
+            color: "#1976d2",
+            borderColor: "#8ccdf3",
+            textTransform: "none",
+            borderRadius: "4px",
+            padding: "8px 20px",
+            minWidth: "150px",
+            fontSize: "14px",
             fontWeight: 600,
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-            transition: 'all 0.3s ease',
-            '&:hover': {
-              borderColor: '#1976d2',
-              color: '#1976d2',
-              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+            transition: "all 0.3s ease",
+            "&:hover": {
+              borderColor: "#1976d2",
+              color: "#1976d2",
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
             },
           }}
         >
-          {moduloActivo === '/mesescerrados'? <>Ver Gastos Mes Cerrado</>:<>Ver Gastos Mensuales</>}
+          {moduloActivo === "mesescerrados" ? (
+            <>Ver Gastos Mes Cerrado</>
+          ) : (
+            <>Ver Gastos Mensuales</>
+          )}
         </Button>
         <Button
           variant="outlined"
           onClick={HistoricoMesesCerrados}
           endIcon={<DateRangeIcon />}
-          disabled={usuario?.rol=="laboratorio" || usuario?.rol =="administrativo"}
+          disabled={
+            usuario?.rol == "laboratorio" || usuario?.rol == "administrativo"
+          }
           sx={{
-            display: moduloActivo === '/mesescerrados' || moduloActivo === 'Tanquesjornaleros' ? 'none' : 'inline-flex',
-            margin: '0 5px',
-            color: '#1976d2',
-            borderColor: '#8ccdf3',
-            textTransform: 'none',
-            borderRadius: '4px',
-            padding: '8px 20px',
-            minWidth: '150px',
-            fontSize: '14px',
+            display:
+              moduloActivo === "sgmrc" ?
+               "inline-flex" : "none",
+            margin: "0 5px",
+            color: "#1976d2",
+            borderColor: "#8ccdf3",
+            textTransform: "none",
+            borderRadius: "4px",
+            padding: "8px 20px",
+            minWidth: "150px",
+            fontSize: "14px",
             fontWeight: 600,
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-            transition: 'all 0.3s ease',
-            '&:hover': {
-              borderColor: '#1976d2',
-              color: '#1976d2',
-              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+            transition: "all 0.3s ease",
+            "&:hover": {
+              borderColor: "#1976d2",
+              color: "#1976d2",
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
             },
           }}
         >
@@ -227,24 +250,29 @@ width: '100vw',
           variant="outlined"
           onClick={InventariovsSAP}
           endIcon={<SsidChartIcon />}
-          disabled={usuario?.rol=="laboratorio" || usuario?.rol =="administrativo"}
+          disabled={
+            usuario?.rol == "laboratorio" || usuario?.rol == "administrativo"
+          }
           sx={{
-            display: moduloActivo === 'Tanquesjornaleros' ? 'none' : 'inline-flex',
-            margin: '0 5px',
-            color: '#1976d2',
-            borderColor: '#8ccdf3',
-            textTransform: 'none',
-            borderRadius: '4px',
-            padding: '8px 20px',
-            minWidth: '150px',
-            fontSize: '14px',
+            display:
+            moduloActivo === "mesescerrados" ||
+            moduloActivo === "sgmrc" ?
+             "inline-flex" : "none",
+            margin: "0 5px",
+            color: "#1976d2",
+            borderColor: "#8ccdf3",
+            textTransform: "none",
+            borderRadius: "4px",
+            padding: "8px 20px",
+            minWidth: "150px",
+            fontSize: "14px",
             fontWeight: 600,
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-            transition: 'all 0.3s ease',
-            '&:hover': {
-              borderColor: '#1976d2',
-              color: '#1976d2',
-              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+            transition: "all 0.3s ease",
+            "&:hover": {
+              borderColor: "#1976d2",
+              color: "#1976d2",
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
             },
           }}
         >
@@ -254,24 +282,27 @@ width: '100vw',
           variant="outlined"
           onClick={ModalFromFooterRegistrarMovimientoTanqueJornalero}
           endIcon={<AppRegistrationIcon />}
-          disabled={usuario?.rol=="laboratorio" || usuario?.rol =="administrativo"}
+          disabled={
+            usuario?.rol == "laboratorio" || usuario?.rol == "administrativo"
+          }
           sx={{
-            display: moduloActivo === 'Tanquesjornaleros' ? 'inline-flex' : 'none',
-            margin: '0 5px',
-            color: '#1976d2',
-            borderColor: '#8ccdf3',
-            textTransform: 'none',
-            borderRadius: '4px',
-            padding: '8px 20px',
-            minWidth: '150px',
-            fontSize: '14px',
+            display:
+            moduloActivo === "tanquesjornaleros" ? "inline-flex" : "none",
+            margin: "0 5px",
+            color: "#1976d2",
+            borderColor: "#8ccdf3",
+            textTransform: "none",
+            borderRadius: "4px",
+            padding: "8px 20px",
+            minWidth: "150px",
+            fontSize: "14px",
             fontWeight: 600,
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-            transition: 'all 0.3s ease',
-            '&:hover': {
-              borderColor: '#1976d2',
-              color: '#1976d2',
-              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+            transition: "all 0.3s ease",
+            "&:hover": {
+              borderColor: "#1976d2",
+              color: "#1976d2",
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
             },
           }}
         >
@@ -280,24 +311,27 @@ width: '100vw',
         <Button
           variant="outlined"
           onClick={ModalReportarNivelesTanquesJornaleros}
-          disabled={usuario?.rol=="laboratorio" || usuario?.rol =="administrativo"}
+          disabled={
+            usuario?.rol == "laboratorio" || usuario?.rol == "administrativo"
+          }
           sx={{
-            display: moduloActivo === 'Tanquesjornaleros' ? 'inline-flex' : 'none',
-            margin: '0 5px',
-            color: '#1976d2',
-            borderColor: '#8ccdf3',
-            textTransform: 'none',
-            borderRadius: '4px',
-            padding: '8px 20px',
-            minWidth: '150px',
-            fontSize: '14px',
+            display:
+              moduloActivo === "tanquesjornaleros" ? "inline-flex" : "none",
+            margin: "0 5px",
+            color: "#1976d2",
+            borderColor: "#8ccdf3",
+            textTransform: "none",
+            borderRadius: "4px",
+            padding: "8px 20px",
+            minWidth: "150px",
+            fontSize: "14px",
             fontWeight: 600,
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-            transition: 'all 0.3s ease',
-            '&:hover': {
-              borderColor: '#1976d2',
-              color: '#1976d2',
-              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+            transition: "all 0.3s ease",
+            "&:hover": {
+              borderColor: "#1976d2",
+              color: "#1976d2",
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
             },
           }}
         >
@@ -307,28 +341,61 @@ width: '100vw',
           variant="outlined"
           onClick={ModalFromFooteropenGraficoNivelesTanquesPorDia}
           endIcon={<StraightenIcon />}
-          disabled={usuario?.rol=="laboratorio" || usuario?.rol =="administrativo"}
+          disabled={
+            usuario?.rol == "laboratorio" || usuario?.rol == "administrativo"
+          }
           sx={{
-            display: moduloActivo === 'Tanquesjornaleros' ? 'inline-flex' : 'none',
-            margin: '0 5px',
-            color: '#1976d2',
-            borderColor: '#8ccdf3',
-            textTransform: 'none',
-            borderRadius: '4px',
-            padding: '8px 20px',
-            minWidth: '150px',
-            fontSize: '14px',
+            display: moduloActivo === "tanquesjornaleros" ? "inline-flex" : "none",
+            margin: "0 5px",
+            color: "#1976d2",
+            borderColor: "#8ccdf3",
+            textTransform: "none",
+            borderRadius: "4px",
+            padding: "8px 20px",
+            minWidth: "150px",
+            fontSize: "14px",
             fontWeight: 600,
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-            transition: 'all 0.3s ease',
-            '&:hover': {
-              borderColor: '#1976d2',
-              color: '#1976d2',
-              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+            transition: "all 0.3s ease",
+            "&:hover": {
+              borderColor: "#1976d2",
+              color: "#1976d2",
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
             },
           }}
         >
           Historico Mensual de Nivel
+        </Button>
+        <Button
+          variant="outlined"
+          onClick={BackHome}
+          endIcon={<HomeIcon />}
+          disabled={
+            usuario?.rol == "laboratorio" || usuario?.rol == "administrativo"
+          }
+          sx={{
+            display:
+             moduloActivo === "mesescerrados" ?
+              "inline-flex" : "none",
+            margin: "0 5px",
+            color: "green",
+            borderColor: "#8ccdf3",
+            textTransform: "none",
+            borderRadius: "4px",
+            padding: "8px 20px",
+            minWidth: "150px",
+            fontSize: "14px",
+            fontWeight: 600,
+            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+            transition: "all 0.3s ease",
+            "&:hover": {
+              borderColor: "#1976d2",
+              color: "#86f082",
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+            },
+          }}
+        >
+          HOME
         </Button>
       </Box>
     </div>

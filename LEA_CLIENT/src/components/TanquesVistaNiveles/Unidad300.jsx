@@ -15,10 +15,18 @@ const TanquesUnidadTreCientos = () => {
 
     return (
         <div style={{ marginTop: 80, textAlign: "center" }}>
-            <Typography variant="h4" gutterBottom>
-                Unidad de Fermentación
+            <Typography
+                variant="h4"
+                gutterBottom
+                sx={{
+                    fontWeight: 600,
+                    color: '#1A237E',
+                    letterSpacing: 0.5,
+                    textTransform: 'none'
+                }}
+            >
+                Unidad de Fermentacion Tanques de Almacenamiento 
             </Typography>
-
             <div
                 style={{
                     display: "flex",

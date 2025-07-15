@@ -2,26 +2,35 @@ import React from "react";
 import Typography from "@mui/material/Typography";
 
 const tanques = [
-    { nombre: "TK300A", nivel: 70, imagen: "/TanquesAlmacenamiento/tanque1.png", ancho: 380 },
-    { nombre: "TK300B", nivel: 40, imagen: "/TanquesAlmacenamiento/tanque1.png", ancho: 380 },
+    { nombre: "TK102A", nivel: 70, imagen: "/TanquesAlmacenamiento/tanque2.png", ancho: 680 },
+    { nombre: "TK102B", nivel: 40, imagen: "/TanquesAlmacenamiento/tanque2.png", ancho: 680 },
 ];
 
-const TanquesUnidadCien = () => {
-    const contenedorAltura = 250; // altura fija para alinear los tanques
+const UnidadCienAlmacenamiento = () => {
+    const contenedorAltura = 460; // altura fija para alinear los tanques
 
     return (
-        <div style={{ marginTop: 65, textAlign: "center" }}>
-            <Typography variant="h4" gutterBottom>
-                Cubas de Fermentación
+        <div style={{ marginTop: 75, textAlign: "center" }}>
+            <Typography
+                variant="h4"
+                gutterBottom
+                sx={{
+                    fontWeight: 600,
+                    color: '#1A237E',
+                    letterSpacing: 0.5,
+                    textTransform: 'none'
+                }}
+            >
+                Tanques de Almacenamiento 102 A/B
             </Typography>
 
             <div
                 style={{
                     display: "flex",
-                    gap: "200px",
+                    gap: "150px",
                     justifyContent: "center",
                     alignItems: "flex-end",
-                    marginTop: 400,
+                    marginTop: 230,
                 }}
             >
 
@@ -65,15 +74,15 @@ const TanquesUnidadCien = () => {
                                 }}
                             />
                         </div>
-                        <Typography variant="h6" style={{ marginBottom: "-50px" }} >
+                        <Typography variant="h6" style={{ marginBottom: "0px" }} >
                             F: 285071,42
                         </Typography>
                         <img
                             src={imagen}
                             alt={`Tanque ${nombre}`}
                             style={{
-                                width: `800px`,
-                                height: "400",
+                                width: `${ancho}px`,
+                                height: "auto",
                                 zIndex: 1,
                                 position: "relative",
                             }}
@@ -89,9 +98,9 @@ const TanquesUnidadCien = () => {
                             style={{
                                 position: "absolute",
                                 top: "5%",
-                                left: "50%",
+                                left: "47%",
                                 transform: "translate(-50%, -50%)",
-                                fontSize: "15px",
+                                fontSize: "23px",
                                 width: "100px",
                                 textAlign: "center",
                                 border: "1px solid #ccc",
@@ -110,4 +119,4 @@ const TanquesUnidadCien = () => {
     );
 };
 
-export default TanquesUnidadCien;
+export default UnidadCienAlmacenamiento;

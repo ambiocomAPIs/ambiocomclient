@@ -1070,6 +1070,7 @@ const clickColumFixed = (columnClicked) => {
 
      {/* footer tipo pestañas de excel */}
        <ExcelStyleFooter 
+        moduloActivo={"mesescerrados"}
         openModalFromFooterVerGastosMensualesCierreMes={openModalVerGastoMesCerrado} 
         openModalFromFooterVerGastosDiarioCierreMes={openModalVerGastoDiario} 
         openModalGraficaInventariovsSAP={openModalVerGraficaInventariovsSAP} 

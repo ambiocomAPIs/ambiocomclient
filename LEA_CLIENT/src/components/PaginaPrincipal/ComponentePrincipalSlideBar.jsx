@@ -48,10 +48,14 @@ import StraightenIcon from '@mui/icons-material/Straighten';
 
 import SeguimientoTKJornaleros from '../SeguimientoTKJornaleros';
 import ExcelStyleFooter from '../../utils/ExcelStyleFooter';
+import ChatBox from '../IA/ChatBox';
+import BitacoraDeSupervisores from '../Bitacora/BitacoraComponentesProduccion'
+import PanelHoras from '../PanelHoras';
 
 import TanquesUnidadTreCientos from '../TanquesVistaNiveles/Unidad300';
 import CubaDeFermentacion from '../TanquesVistaNiveles/CubasDeFermentacion';
 import TanquesUnidadCien from '../TanquesVistaNiveles/Unidad100';
+import UnidadOchoCientosAlmacenamiento from '../TanquesVistaNiveles/Unidad800'
 
 // import AppointmentCalendar from './AppointmentCalendar';
 // import PatientRegistration from './PatientRegistration';
@@ -78,6 +82,9 @@ const ptapIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM
 const GraphIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAACXBIWXMAAAsTAAALEwEAmpwYAAAES0lEQVR4nN2Y709bZRTH+8po4nvjS/UP8ZXGLG4NWxEipT+4HVO24WbL7b2lBfp7K2VCXTOhvT86WhhQoC2lsGfULKHq3skYzGTq1phsySBue7dg9R7zXCZIKtDeewvEk3zftE3zyXnO+Z7zPCrV/zWaOapex5AZE9+5TvC2kpGlQM9YIXb2Y4h9cQI4UiOEHU0bbqd+hQqcsRwIVOuw7W191DpLcPSfrcMOwZULwdCdONy4l4KZn+dh/tEtiLUdg5f5MDzL9sGv8S4o9J+DEcspYDs04HEa7lP+z99VHOz97u7XDVHrjJGlhM5MHySWJgEV8/8pDAiFaJmepi7Dgv80xC6owePWr7Z1t72pCJzhGnXMyNN/mJN+IXk/sysY2gfwH62lApB2NEGE1AhWP2GSBWdkOny4tsLfxfYFQxUCilqMwCpDw/X2E+DwttyQBKdnyIiJt8Ho8lTFcKhSwFd6POGF4Qtq6PEQ31adOQyXXN3/SJEMQKzn2SsipMNjHK285liq6swhiYBYT5I+8bjpS2eIfbsVN0Q1NYcUAMTCNRnp0Ah7dreRITO4W6XCIRmAuHFS9iZsQSu7mjD2uUqspCaAhU0Lwj5pcZ9/rwwQTwhswnLgkExArFt+kzhxygDx+ErcnTx0wKdTl8WxWDb48Wy9WVw4dEAoRGHEchKoS63tW4C6KDmDB79cOKQQ4GLfOXB0tT3cAsQrE95KjgrgL8MO6Cc/++vf9Vcauzd9ZAB/zwSB+VK7XYd4cuB97qgAvsyHgW+v2wbUR60w/2hBMcCYAuLPHq8NoG8awafePHjTa9A790KSArlnoLbP1uaIUTEP7iSCJl8efJl1SYD+zDrUObJQkyZBCmSye+IxaFxpYYfNDCpkM0iBTFr4B9DgH93YNmqGzLjmBhQHRBIzaeq/Aw2939zdBhwya1qv2xUZdUh2Jp/Dya4cfHJl4PzOZYG3lRJLyZoAoiogHWO/gcaZ3rksiFbD0jOd6WDNAFGFkC1ffQ+NgcHVMsDGiPctvLBOSLgoIYVq0jX1BOq6sqANhd4pA9zMojVtnvDJWvmRxEwGci9AF7gNDb3XllV7XZoIjtq4WuDgoCHN7E9wyjUl1PddfEO1V2gjlo/kXDuRBEg68VA82oZQ0KCqJJojpJvgbFDrekTFPNhHsqDunIXGYCihqiYMUWoQQ44sy7+noF2E70AET4M27B9TSQndEOnEx311kVcU7GZxAb5eZKGFpUEfsfZIgtuCjFIfEiy9YZ7wCuOradlw4yspuDjuEVo4asPAkh+olAjc3XqGTBk5WsBmHl+aFLOAqshY/Mck2FJBMHKUoGfJqfrx+tdUSgc2czxxCJ4u4dntzA1sPgEvT796Al4QlXkwJ342+EMcenIDcDpmFwjOVsJPK/g/VAcRzUNWtY4hp028bQ3PcQN+RI9aRRkZCvBn+Dv8Gy1rPn4gUIcRfwOBHIfq+y/q7QAAAABJRU5ErkJggg=="
 const BarGraphIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAACXBIWXMAAAsTAAALEwEAmpwYAAABxklEQVR4nO2UP0sDMRjGIy4iCErFD9Ev4WztJenQNd9C6cUcN7g4ii4qHdy0DlVqkrOF4tLJT1EqVgVbO3TqchILtdQr9q73r3IPBI7cXfLL87x5AUj0T4SZyGJmdRGzOojJDIibELM6Rqlls9KznWPWB4ibkGH1FJxx3QoeELuMCxfKKUTFCzZkX8FhKnZiE9e2+bgCKW9oVBwGCjUtLszkAOoyDRxlL2lUXKmhnkHYcWEmO5Den2g6b0NdnOfM6tb4t8o1SPlT1qysgijjwoVyCur8VNP5O6L8ArOHLmayDw94O2tWNj3DfS9uWH2/4oK6TCNmDcYO/OkZLJ+/WdYoP9YobyEme8O4xJlyQbmhXAG/42ooF/9KZO52Avfu1jSdVyDlVWTero+/2y3wDaiLI0jFG6T8chQXFa+TNeYMKDOIyY7rdvJzGWRPuabcUy5OPYSfcbm9DMqRWf9hYXV/L5shr3FNiBT37ckR2GZepIBqzfpoOAJGKZIALpqDZJaijxqw5mLDBHBWR6ZFP7eDftUUcTkfek2RBLA5X02RsB0kAc87ggTpCPEDMAoQkgA2EweHSmqwmFySenwbNYlgHiyCvgBQj7g8r5CLcAAAAABJRU5ErkJggg=="
 const BarGraphComparativeIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAkklEQVR4nO2WQQqAIBBF525dyUV3aOHOVaeRwKt0A5cT7gIrQjMs3oO/lc9nnPkifyMMg55JeiAZidZmChi8CQleYdyiZ+oiQeMW9atmwuBdSLAWEqyFBGtLx5sJhpJ3MLiDBCMz2PCTmFa17UmDvsW6wqAjQWEGA59EWDPKok5wSSK3+ADKgissC+M0a4+SL7ABfPOo7DWe7fUAAAAASUVORK5CYII"
+const robotAssistanceIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAACXBIWXMAAAsTAAALEwEAmpwYAAADtklEQVR4nO2YS08TURTHu1I/BC7Vb8BCEjFBSRFI1FALdUFc8KiJcSkYA34CYSMuMJF22lKViAtpZwahkiBC6Ux5JRZs60KQkiBtx7R0SttjzpWSMrYw04epkZOcNHPn3nN/93/PPTMdlep/sWHaedbKumdNtCtmZd0zlG22QlVOZmXds07PRjK4m4R5z0bi5bj7o6qczMxwsZ1oAoQ4AP7itaqczPrePYPKIZyTKMhPq8rJKNtsBW4rRbsIXNnlYNoouwtU5WzUCeC/qiBlc9WaGM4wzPLrFO0SEYSS67RLHGb5b2aWGzLS81eLC2Z3XrAwnHNkcinEewOJ9WAUsBhjvRNkOvbHcTh+ZHIpaGG5OcPY3PmC4Qw2Z7XJzocWfFtiWJQPJBzhYTEFC/5A3EzzIdM77lJByploPuQLhFPFABMkjnFx8WaWP5cXIG7rgm8rXgo4Yd/d3oBoYfhPiuEwkTHncDtKCRgWU4DzUDauRhGgmeGNmNClhBP2nf+ymbCw3AtFgFhKNoK7JYcT4kBON5YgRYD40qm0lAh5Or794Hw5YTQazakG3d3+ep0+VNfcDmmXBkJgp2cD3kwtg4nm5Bdpu4v0x3E4PtvCM+et1+mDDTp9H3IRQLzQdnZFHvZb4fHAW+JSQAw6NvMZHLwXfoQjkEymQIklkyky7gPvJXGkkDhfem7k0HZ2R5CLAKJymXDZAHHlCFcMm+S8JF4uQPTuPitRkgBKb2YDxO1BBdCGmFVo6qHBwK7JApL2xzijU8tHAqYZZAOaGQ72EkkyQVMvAw9MftD0MrIApf3jewmwMFxxATMVRCVwUiO7KgtQ2n87pFBB3Gs5OYgJXgxzKM3B36e4O4KNx51iTHBUIJ9TvB2KELjjTjFy3OroijTe1j/JqIP6PiSWUwdH86yDozLr4LWWzuihOpjNMOjfeIoI+575N+Eg946yE8B4iRXc+inChMsH1nH3sfn3amIBHLwfNsOxY7dYrb53Wt3cnigIEOFeTy7Csm8TorE4OaUr/u9/nNx0W0zcgxVfAEYcixDIAZkGrG3pqFRr29YKAkTllr2bWWGOasMFOdz+rDHH570EsE7bNqbWtvUUBIjbmlYuF8zTQQNcrLkOVVduwMCg8aAdq6c03k50D3jPVyBwzW3T1a2tZwoCxHtSW5EAVtdpoPJyI/Gq2puH6pzU63WdcOf+I0DlZMEVA3Bg0Hig4LPn1KF72WIGhJiyzyWFAuZqyxVX8fccRd9d7MVxRYDlZL8Agbnn0yuvRjUAAAAASUVORK5CYII="
+const bitacoraIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAACXBIWXMAAAsTAAALEwEAmpwYAAABEElEQVR4nGNgGAwgo2aCT2b1xHdplf3/qY0Z8IHMmolv1+y9+H/DwSv/H77+RDVM0GKQApCloxY/fP3p/6yD6/8nz6/6P/vgBvoGdcqCqv/zz6z4n7Kgmr4Wzz64AWz5nEN09vHD0VT9mk5BPWs0Vb8eTdWfhlk+njWaql+PpupPQzBVp1dN+F/YPIPqLUyCFufUT/5/5+Gz/9QER05f+Z/fOHUzfovrJr+9ff8pisbjzs7/v/f3o2CQGEkWN0zbhD+oayZ4gSxHDiKYxV97e8EYZjFVgxobAFnytq7u/xkfny8gDGKDxBhoDY47O/8/4eb24ZiLS9gxJ6fQE66u7+hl8apDHh6iMD6IDRKj1GAAU3kcAI8XyOkAAAAASUVORK5CYII="
+const StopWatchIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAACXBIWXMAAAsTAAALEwEAmpwYAAAEpUlEQVR4nN1W7U9bVRxu4ttf4fSf0K9+dC6zvRdDRPyAX9Y5upZF46DtPS1BYBNQN4ExwcW5CXEFptvae06jGYJtjYnJyiiyoNKNF93YpHSd2Ut7+zPPhZLS3b6R7IsnOTm9vef+nvN7e55jMlUxJKbGzK4AFU6J8aumJznMrgB18/XHJv7/fwJbFD5jGGqFT5ue9DAbABsespm/KCl8ocYTHLdaf31mR2C77epzlhZ1j6yIMzWeIDwki1vVVxnPLPjVXlfgNezbAlb4dduJ6UxDdyQte4SoCvwV78TTkivwrqTwRF3Hj8mmL2Y1r2+ZOr5bpS51TV+9o8vkGJrV3uqYSGKfxe3fr3+n8LkDfVeoK5AggNcwcaEi0D1u/wsS4/P1nZP3YLx1bIUaB65ob7Zf1mQmsmZ3gLDiufFEVPOOrpDHt0xvH5lKyYpY3WwzAjg8lxURLwsquS69jNM7BmPptvN/U0NXOCMznj3UH9bGQ3G6emOdrM5j+joWilNTf0jD+4auSAb77YMzGtIAcJmJWeQaOS/vqcITzWf/JOfwAsmKIFsPz/ono3T3EW1Nq/PTbc/DgRDZPxZZ7HcNxwnfW9zq/b3NF3dVllPG5+EpQHHq8fANmltcpeajp2j9gbYNLDfv3HtEh48M0eKdu3oEZIWTcyQOz9MyE9dgt3SIneoB5BThwskR1pzxm8n7hqD54LnfOjjj1Hb+JtV3TqYkl2otCopWQIhRSMhp0/EfNHhQCqzYXPonRfZPgtmG7kjG61tC5NbyW23bQJ+iZVCdKJRzPELvtZ+klbV/KfmQqK13hK4t3S4LCs8/6Byir/0h3Q7s1XVMJF9v8e82BJYZP4s+Rcsc6g9nYORW8sGWwV9iC/R+5yD9dv1WWfDbqYf62tQXytgGoppjKKZZFH7aGNgT/B1hRl/m5zZ/VgOO6ZuKU137ZQ3hlj1i3riwFJ7suLCqk0JssXhuAW5v7SObp5fO8XBJYPR5jSeYBcPJikgYAptdagY0CA4GORT2af5sZJ/p7+2t/UX34P0+5zHd3keBNbK4Amnj4lLUdf1kTGRx0lKewNOD3j7yidIeRzc9bkckFZ7YcY6rnRXl2MLEaahM40A0i2rEh8WYqpKWwmrv/UmzDUxrjsGYVsOCpwyBoaeQNqgQ+g/cDJosx1jF6BPcDTutY39RXftE0uK69Gpp5vItEVTG1qNmwdE78RiMZ+sR2YbucIZtMlet1/esIbAebrd/f33nVCrH1eDcnDEwWCXhxRydWtC5+sNvN7naHdhnKjWgIlATqBOkDSoDcHgA+sxnskKmAk2Co3VQhevSePDkTFpifK621vdUSWA9180Xd23p8ciGyjiOf699I35+rE/zn8HNNugx2wA9fOYPhDhhcYvny4JugbeoL+Ej6CmkDSqDQnH0hTS0SP4NBB46ejduIO/0RDIIr/3zmbTk5gnYqRg033OEHTlCwUFlGgeiGvoSpABGwopnCAGqF4Wk55Txuao8NRWMjVumakVVQtqgMrjQbbtl+pYI/6NlsA+FVFFOKxloBegpSAYMBMIHt2N9wyPmJSa+RJ+WbJmC8R+Umw7cgZO8TwAAAABJRU5ErkJggg=="
 
 //https://icons8.com/icons/set/industrial--style-office
 const menuItems = [
@@ -87,10 +94,12 @@ const menuItems = [
         subItems: [
             { text: 'Inventario de insumos', subKey: 'Inventariodeinsumos', icon: <img src={inventoryIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
             { text: 'Tanques Jornaleros', subKey: 'Tanquesjornaleros', icon: <img src={rulerIcon} alt="tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
-            { text: 'Inventario Combust', subKey: 'Tanquesjornaleros', icon: <img src={coalInventoryIcon} alt="inventariomaderaycarbon" style={{ width: 25, height: 25 }} /> },
+            { text: 'Bitacora Supervisores', subKey: 'bitacoradeturnosupervisores', icon: <img src={bitacoraIcon} alt="bitacoradeturnosupervisores" style={{ width: 25, height: 25 }} /> },
+            { text: 'Inventario Combust', subKey: 'inventariodecarbonymadera', icon: <img src={coalInventoryIcon} alt="Tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
+            { text: 'Horas Extras', subKey: 'horasextrassupervisores', icon: <img src={StopWatchIcon} alt="horasextrassupervisores" style={{ width: 25, height: 25 }} /> },
         ],
     },
-    { text: 'Despacho', 
+    { text: 'Logistica', 
       icon: <img src={despachoIcon} alt="Despacho" style={{ width: 25, height: 25 }} />, 
        key: 'Despacho',
        subItems: [
@@ -125,6 +134,7 @@ const menuItems = [
     },
     { text: 'Laboratorio', icon: <img src={laboratoryIcon} alt="laboratorio" style={{ width: 25, height: 25 }}  />, key: 'Laboratorio' },
     { text: 'Planta de Aguas', icon: <img src={ptapIcon} alt="plantadeaguas" style={{ width: 25, height: 25 }}  />, key: 'Laboratorio' },
+    { text: 'Assistance', icon: <img src={robotAssistanceIcon} alt="robotassistance" style={{ width: 25, height: 25 }}  />, key: 'Laboratorio' },
 ];
 
 export default function MedicalSchedulerApp() {
@@ -174,16 +184,19 @@ export default function MedicalSchedulerApp() {
         switch (selectedMenu) {
             case 'Tanquesjornaleros': return <SeguimientoTKJornaleros />;
             case 'Inventariodeinsumos': return <SGMRC />;
-            case 'nivelesunidadtrecientos': return <TanquesUnidadTreCientos/>;
-            case 'cubadefermentacion': return <CubaDeFermentacion/>;
             case 'nivelesunidadtrecien': return <TanquesUnidadCien/>;
+            case 'nivelesunidadtrecientos': return <TanquesUnidadTreCientos/>;
+            case 'nivelesunidadochocientos': return <UnidadOchoCientosAlmacenamiento/>;
+            case 'cubadefermentacion': return <CubaDeFermentacion/>;
+            case 'bitacoradeturnosupervisores': return <BitacoraDeSupervisores/>;
+            case 'horasextrassupervisores': return <PanelHoras/>;
 
             case 'Agendar Cita': return <AppointmentScheduler patients={patients} onCreate={refreshAppointments} />;
             case 'Calendario': return <AppointmentCalendar appointments={appointments} />;
             case 'Seguimiento': return <FollowUpPanel patients={patients} />;
             case 'Historial_Rayos': return <DocumentsPdfHistoriaClinicaPaciente patients={patients} />;
             case 'Historial_General': return <HistorialCompletoPaciente patients={patients} />;
-            case 'pacientes': return <PatientList />;
+            case 'Assistance': return <ChatBox />;
             default: return null;
         }
     };
@@ -324,9 +337,9 @@ export default function MedicalSchedulerApp() {
                     </Box>
                 </Fade>
             </Box>
-            <ExcelStyleFooter
+            {/* <ExcelStyleFooter
                 moduloActivo={selectedMenu}
-            />
+            /> */}
         </Box>
     );
 }

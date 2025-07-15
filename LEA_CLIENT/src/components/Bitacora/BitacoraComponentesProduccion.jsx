@@ -69,7 +69,7 @@ function BitacoraComponentProduccion() {
         }}
       />
       
-      <Typography variant="h4" gutterBottom sx={{ pl: 2 }} style={{ textAlign: "center"}}>
+      <Typography variant="h4" gutterBottom sx={{ pl: 2, mt:6}} style={{ textAlign: "center"}}>
         Bitácora de Turnos Diarios Supervisores
       </Typography>
       <HeaderForm data={headerData} onChange={handleHeaderChange} clearFieldsExceptFechaTurno={clearFieldsExceptFechaTurno} />

@@ -761,7 +761,12 @@ const clickColumFixed = (columnClicked) => {
   };
 
    // Función para abrir el modal
-   const openModalVerGasto = () => setModalVerGastoIsOpen(true);
+   const openModalVerGasto = () => {
+    console.log("ejecutado openModalVerGasto");
+    
+    setModalVerGastoIsOpen(true);
+  }
+
    // Función para cerrar el modal
    const closeModalVerGasto = () => setModalVerGastoIsOpen(false);
 
@@ -776,7 +781,11 @@ const clickColumFixed = (columnClicked) => {
    const closeModalVerMensualIsOpen = () => setModalVerGastoMensuaIsOpen(false);
 
    // Función para abrir el modal GraficaInventariovsSAP
-   const openModalVerGraficaInventariovsSAP = () => setModalVerGraficaInventariovsSAPIsOpen(true);
+   const openModalVerGraficaInventariovsSAP = () => {
+    console.log("abriendo openModalVerGraficaInventariovsSAP en SGMRC");
+    
+    setModalVerGraficaInventariovsSAPIsOpen(true);
+  }
    // Función para cerrar el modal GraficaInventariovsSAP
    const closeModalVerGraficaInventariovsSAP = () => setModalVerGraficaInventariovsSAPIsOpen(false);
  
@@ -855,7 +864,6 @@ const clickColumFixed = (columnClicked) => {
           marginTop:50,
           height: '87vh', // Ocupa el 100% de la altura de la ventana
           overflow: 'auto', // Permite el desplazamiento vertical y horizontal
-          marginBottom:0,
           overflowX: 'scroll',
           marginBottom:50
         }}
@@ -1471,10 +1479,16 @@ const clickColumFixed = (columnClicked) => {
 
      {/* footer tipo pestañas de excel */}
        <ExcelStyleFooter 
+        moduloActivo ={"sgmrc"}
         openModalFromFooterVerGastosMensuales={openModalVerGasto} 
         openModalFromFooterVerGastosMensualeGrafica={modalVerGastoMensualIsOpen} 
         openModalFromFooterVerGastosDiario={openModalVerGastoDiario} 
-        openModalGraficaInventariovsSAP={openModalVerGraficaInventariovsSAP} 
+        openModalGraficaInventariovsSAP={()=>{ 
+          setModalVerGraficaInventariovsSAPIsOpen(true)
+          console.log("ejecutando en sgmrc");
+          
+        }
+        } 
        />
 
       {/* Speed Dial */}

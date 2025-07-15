@@ -407,6 +407,7 @@ function SeguimientoTKJornaleros() {
       />
 
       <ExcelStyleFooter
+        moduloActivo={"tanquesjornaleros"}
         openModalGraficoNivelesModalOpen={openModalGraficoNivelesModalIsOpen}
         openModalFromFooterRegistrarMovimientoTanqueJornalero={openModalFromFooterRegistrarMovimientoTanqueJornalero}
         openModalReportarNivelesTanquesJornaleros={openModalReportarNivelesTanquesJornalerosIsOpen}

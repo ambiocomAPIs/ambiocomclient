@@ -280,7 +280,7 @@ const PanelHoras = () => {
   };
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: 20, marginTop:25 }}>
       <h2>Panel de Control de Horas Extras</h2>
       <div style={{ marginBottom: 10 }}>
         <label>

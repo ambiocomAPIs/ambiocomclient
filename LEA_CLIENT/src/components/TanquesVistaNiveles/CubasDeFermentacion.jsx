@@ -11,8 +11,17 @@ const CubaDeFermentacion = () => {
 
     return (
         <div style={{ marginTop: 65, textAlign: "center" }}>
-            <Typography variant="h4" gutterBottom>
-                Cubas de Fermentación
+            <Typography
+                variant="h4"
+                gutterBottom
+                sx={{
+                    fontWeight: 600,
+                    color: '#1A237E',
+                    letterSpacing: 0.5,
+                    textTransform: 'none'
+                }}
+            >
+                Cubas de Fermentacion
             </Typography>
 
             <div
