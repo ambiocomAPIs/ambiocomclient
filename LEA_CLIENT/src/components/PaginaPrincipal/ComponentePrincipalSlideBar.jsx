@@ -51,6 +51,7 @@ import ExcelStyleFooter from '../../utils/ExcelStyleFooter';
 import ChatBox from '../IA/ChatBox';
 import BitacoraDeSupervisores from '../Bitacora/BitacoraComponentesProduccion'
 import PanelHoras from '../PanelHoras';
+import InventarioCarbonMadera from '../InventarioCarbonMadera';
 
 import TanquesUnidadTreCientos from '../TanquesVistaNiveles/Unidad300';
 import CubaDeFermentacion from '../TanquesVistaNiveles/CubasDeFermentacion';
@@ -190,6 +191,7 @@ export default function MedicalSchedulerApp() {
             case 'cubadefermentacion': return <CubaDeFermentacion/>;
             case 'bitacoradeturnosupervisores': return <BitacoraDeSupervisores/>;
             case 'horasextrassupervisores': return <PanelHoras/>;
+            case 'inventariodecarbonymadera': return <InventarioCarbonMadera/>;
 
             case 'Agendar Cita': return <AppointmentScheduler patients={patients} onCreate={refreshAppointments} />;
             case 'Calendario': return <AppointmentCalendar appointments={appointments} />;
