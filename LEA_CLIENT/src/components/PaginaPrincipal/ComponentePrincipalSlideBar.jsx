@@ -42,11 +42,7 @@ import ChatBox from '../IA/ChatBox';
 import BitacoraDeSupervisores from '../Bitacora/BitacoraComponentesProduccion'
 import PanelHoras from '../PanelHoras';
 import InventarioCarbonMadera from '../InventarioCarbonMadera';
-<<<<<<< HEAD
 //Modulo Tanques
-=======
-
->>>>>>> 431bbee834657bc3b894f3bb318aa1ccf70bf4b6
 import TanquesUnidadTreCientos from '../TanquesVistaNiveles/Unidad300';
 import CubaDeFermentacion from '../TanquesVistaNiveles/CubasDeFermentacion';
 import TanquesUnidadCien from '../TanquesVistaNiveles/Unidad100';
@@ -149,7 +145,6 @@ export default function MedicalSchedulerApp() {
         switch (selectedMenu) {
             case 'Tanquesjornaleros': return <SeguimientoTKJornaleros />;
             case 'Inventariodeinsumos': return <SGMRC />;
-<<<<<<< HEAD
             case 'nivelesunidadtrecien': return <TanquesUnidadCien />;
             case 'nivelesunidadtrecientos': return <TanquesUnidadTreCientos />;
             case 'nivelesunidadochocientos': return <UnidadOchoCientosAlmacenamiento />;
@@ -159,22 +154,6 @@ export default function MedicalSchedulerApp() {
             case 'inventariodecarbonymadera': return <InventarioCarbonMadera />;
             case 'basededatos': return <ConsultasHttpDb />;
             case 'robotassistance': return <ChatBox />;
-=======
-            case 'nivelesunidadtrecien': return <TanquesUnidadCien/>;
-            case 'nivelesunidadtrecientos': return <TanquesUnidadTreCientos/>;
-            case 'nivelesunidadochocientos': return <UnidadOchoCientosAlmacenamiento/>;
-            case 'cubadefermentacion': return <CubaDeFermentacion/>;
-            case 'bitacoradeturnosupervisores': return <BitacoraDeSupervisores/>;
-            case 'horasextrassupervisores': return <PanelHoras/>;
-            case 'inventariodecarbonymadera': return <InventarioCarbonMadera/>;
-
-            case 'Agendar Cita': return <AppointmentScheduler patients={patients} onCreate={refreshAppointments} />;
-            case 'Calendario': return <AppointmentCalendar appointments={appointments} />;
-            case 'Seguimiento': return <FollowUpPanel patients={patients} />;
-            case 'Historial_Rayos': return <DocumentsPdfHistoriaClinicaPaciente patients={patients} />;
-            case 'Historial_General': return <HistorialCompletoPaciente patients={patients} />;
-            case 'Assistance': return <ChatBox />;
->>>>>>> 431bbee834657bc3b894f3bb318aa1ccf70bf4b6
             default: return null;
         }
     };
