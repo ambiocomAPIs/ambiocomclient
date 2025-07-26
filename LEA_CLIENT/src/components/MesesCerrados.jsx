@@ -22,7 +22,7 @@ import Swal from 'sweetalert2'
 
 import {calcularDiferenciaEnMeses} from '../utils/Functions/CalcularDiferenciaFechas'
 import {ExportExcelWithTemplate} from '../utils/Functions/DownloadExcelData'
-import DataTableChartModal from '../utils/modals/DataTableChartModal'
+import DataTablePieChartInsumosModal from '../utils/modals/DataTablePieChartInsumosModal'
 import DataTableChartModalCost from '../utils/modals/DataTableChartModalCost'
 import ModalFilterData from '../utils/modals/ModalFilterData';
 import ReportarConsumoModal from '../utils/modals/ReportarConsumoModal';
@@ -1040,7 +1040,7 @@ const clickColumFixed = (columnClicked) => {
       </Snackbar>
 
      {/* Modal grafica reactivos y sus costos por mes */}
-       <DataTableChartModal 
+       <DataTablePieChartInsumosModal 
         reactivos={dataMesCerrado} 
         modalIsOpen={modalVerGastoMesCerradoIsOpen}
 

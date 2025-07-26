@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
   Dialog,
@@ -18,24 +18,38 @@ import {
 
 import Swal from 'sweetalert2'
 
-export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [] }) {
+export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [], tipoOperacionParaIngresoOConsumo }) {
   const [formData, setFormData] = React.useState({});
   const [Fecha, setFecha] = useState('');
   // LOADING PARA evitar doble peticion
   const [loadingButton, setLoadingButton] = React.useState(false);
   // trae los usurios del sesio storage
   const [usuario, setUsuario] = useState(null);
+  
+ useEffect(() => {
+  if (tipoOperacionParaIngresoOConsumo) {
+    setFormData(prev => ({
+      ...prev,
+      TipoOperación:
+        tipoOperacionParaIngresoOConsumo === 'Reportar Consumo'
+          ? 'Consumo de Insumo'
+          : tipoOperacionParaIngresoOConsumo === 'Reportar Ingreso'
+          ? 'Ingreso Insumo'
+          : ''
+    }));
+  }
+}, [tipoOperacionParaIngresoOConsumo]);
 
-    useEffect(() => {
-     const storedUser = sessionStorage.getItem("usuario");
-      if (storedUser) {
-       try {
+  useEffect(() => {
+    const storedUser = sessionStorage.getItem("usuario");
+    if (storedUser) {
+      try {
         setUsuario(JSON.parse(storedUser));
-       } catch (e) {
-         console.error("Error al parsear usuario:", e);
-       }
-     }
-    }, []);
+      } catch (e) {
+        console.error("Error al parsear usuario:", e);
+      }
+    }
+  }, []);
 
   const handleInputChange = (field) => (event) => {
     setFormData({ ...formData, [field]: event.target.value });
@@ -92,12 +106,12 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
     const costoUnitario = Number(formData.Costo) || 0;
     const tipoOperacion = formData.TipoOperación;
     // const Fecha = new Date().toISOString().split('T')[0];
-    
+
     let nuevoInventario = inventarioActual;
     let cantidadReportadaMovimiento = cantidad;
     let cantidadParaBaseDeDatos = cantidad;
     let costoMensual = 0;
-  
+
     // Validar tipo de operación
     if (tipoOperacion === 'Consumo de Material') {
       // Validación de consumo de material
@@ -105,13 +119,13 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
         alert('No puedes consumir más del inventario disponible.');
         return;
       }
-  
+
       // Calcular el nuevo inventario y otras variables asociadas
       nuevoInventario = inventarioActual - cantidad;
       cantidadReportadaMovimiento = -cantidad;
       cantidadParaBaseDeDatos = cantidad;
       costoMensual = costoUnitario * cantidad;
-    } else if (tipoOperacion === 'Ingreso Material') {
+    } else if (tipoOperacion === 'Ingreso Insumo') {
       // Calcular el nuevo inventario y otras variables asociadas para ingreso de material
       nuevoInventario = inventarioActual + cantidad;
       cantidadReportadaMovimiento = cantidad;
@@ -122,12 +136,12 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
       alert('Tipo de operación no válido');
       return;
     }
-  
+
     let movimientoRegistrado = false;
     let baseActualizada = false;
-  
+
     // Verificar si la fecha está definida
-    if (Fecha=="") {
+    if (Fecha == "") {
       Swal.fire({
         icon: 'warning',
         title: 'Fecha requerida',
@@ -138,7 +152,7 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
       onClose()
       return;
     }
-  
+
     try {
       // 1. Registrar movimiento
       await axios.post('https://ambiocomserver.onrender.com/api/registro/movimientos', {
@@ -161,7 +175,7 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
         cantidadIngreso: formData.cantidadIngreso
       });
       movimientoRegistrado = true;
-  
+
       // 2. Actualizar base de datos
       await axios.post('https://ambiocomserver.onrender.com/api/table/data/reportar-operacion', {
         ...formData,
@@ -169,7 +183,7 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
         Inventario: nuevoInventario
       });
       baseActualizada = true;
-  
+
       // 3. Mostrar resultado final
       if (movimientoRegistrado && baseActualizada) {
         alert('Inventario actualizado y movimiento registrado con éxito');
@@ -192,13 +206,13 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
       }
     }
   };
-  
-  
+
+
   const handleCancel = () => {
     if (typeof onClose === 'function') onClose();
   };
 
-  
+
   const handleChangeFecha = (e) => {
     setLoadingButton(false)
     setFecha(e.target.value);
@@ -210,7 +224,7 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
   return (
     <Dialog open={open} onClose={handleCancel} maxWidth="md" fullWidth>
       <DialogTitle sx={{ textAlign: 'center', fontWeight: 'bold' }}>
-        Reportar Consumo / Ingreso
+          {tipoOperacionParaIngresoOConsumo ==='Reportar Ingreso' ? 'Reportar Ingreso De Insumo' : ' Reportar Consumo De Insumo'}
       </DialogTitle>
       <DialogContent>
         <Grid container spacing={2} style={{ marginTop: 5 }}>
@@ -224,12 +238,12 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
                 }}
                 label="Tipo de Operación"
               >
-                {['supervisor','laboratorio','logistica','gerente','developer'].includes(usuario?.rol) && (
-                <MenuItem value="Consumo de Material">Consumo de Material</MenuItem>
-                )}
-                {['administrativo','supervisor','gerente','developer'].includes(usuario?.rol) && (
-                 <MenuItem value="Ingreso Material">Ingreso Material</MenuItem>
-                )}
+                 {['supervisor', 'laboratorio', 'logistica', 'gerente', 'developer'].includes(
+                    usuario?.rol
+                  ) && tipoOperacionParaIngresoOConsumo ==='Reportar Consumo' && <MenuItem value="Consumo de Insumo">Consumo de Insumo</MenuItem>}
+                  {['administrativo', 'supervisor', 'gerente', 'developer'].includes(
+                    usuario?.rol
+                  ) && tipoOperacionParaIngresoOConsumo ==='Reportar Ingreso' && <MenuItem value="Ingreso Insumo">Ingreso Insumo</MenuItem>}
               </Select>
             </FormControl>
           </Grid>
@@ -268,7 +282,7 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
             />
           </Grid>
 
-          {[ 
+          {[
             { label: 'Inventario', key: 'Inventario' },
             { label: 'Unidad', key: 'Unidad' },
             { label: 'Costo Unitario', key: 'Costo' },
@@ -305,12 +319,12 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
       </DialogContent>
       <DialogActions>
         <Button onClick={handleCancel}>Cancelar</Button>
-        <input 
-           type="date" 
-           value={Fecha} 
-           onChange={handleChangeFecha} 
-           max={new Date().toLocaleDateString('en-CA')}  // maximo hoy
-           style={{
+        <input
+          type="date"
+          value={Fecha}
+          onChange={handleChangeFecha}
+          max={new Date().toLocaleDateString('en-CA')}  // maximo hoy
+          style={{
             padding: '10px 12px',
             fontSize: '16px',
             borderRadius: '6px',
@@ -320,21 +334,21 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
             boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.1)',
             outline: 'none',
             transition: 'border-color 0.2s ease-in-out',
-           }}
-           onFocus={(e) => (e.target.style.borderColor = '#007bff')}
-           onBlur={(e) => (e.target.style.borderColor = '#ccc')}
-          />
-        <Button 
-         variant="contained" 
-         onClick={handleSubmit}
-         disabled={loadingButton} 
-         endIcon={
-          loadingButton ? (
-            <CircularProgress size={20} color="inherit" />
-           ) : (
-           <></>
-           )
-         }
+          }}
+          onFocus={(e) => (e.target.style.borderColor = '#007bff')}
+          onBlur={(e) => (e.target.style.borderColor = '#ccc')}
+        />
+        <Button
+          variant="contained"
+          onClick={handleSubmit}
+          disabled={loadingButton}
+          endIcon={
+            loadingButton ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              <></>
+            )
+          }
         >
           Reportar
         </Button>

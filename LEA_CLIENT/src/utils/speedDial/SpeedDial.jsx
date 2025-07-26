@@ -11,10 +11,13 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import ControlPointIcon from '@mui/icons-material/ControlPoint';
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import UnarchiveIcon from '@mui/icons-material/Unarchive';
+
+import { PdfIcon,ExportExcelIcon,ShowPropertyIcon,ViewScheduleIcon,AddRowIcon } from '../icons/SvgIcons';
 
 export default function SpeedDialComponent({
   sx,
-  reportarConsumo,
+  tipoOperacionParaIngresoOConsumo,
   agregarDataFila,
   exportExcelTable,
   DownloadManual,
@@ -50,13 +53,19 @@ export default function SpeedDialComponent({
   ];
 
   const defaultActions = [
-    { icon: <ControlPointIcon />, name: 'Nueva Fila' },
+    { icon: <img src={AddRowIcon} alt="PDF" width={28} height={28} style={{ objectFit: 'contain' }} />, name: 'Nueva Fila' },
+    // { icon: <ControlPointIcon />, name: 'Nueva Fila' },
     { icon: <PostAddIcon />, name: 'Reportar Consumo' },
+    { icon: <UnarchiveIcon />, name: 'Reportar Ingreso' },
+    // { icon: <CalendarMonthIcon />, name: 'Cierre de Mes' },
+    // { icon: <QueryStatsIcon />, name: 'Movimientos' },
+    // { icon: <FileDownloadIcon />, name: 'Export Excel' },
+    // { icon: <PictureAsPdfIcon />, name: 'Descargar Manual' },
+    { icon: <img src={ViewScheduleIcon} alt="PDF" width={28} height={28} style={{ objectFit: 'contain' }} />, name: 'Cierre de Mes' },
+    { icon: <img src={ShowPropertyIcon} alt="PDF" width={28} height={28} style={{ objectFit: 'contain' }} />, name: 'Movimientos' },
+    { icon: <img src={ExportExcelIcon} alt="PDF" width={25} height={25} style={{ objectFit: 'contain' }} />, name: 'Export Excel' },
     { icon: <TableRowsIcon />, name: 'Table de Colores' },
-    { icon: <CalendarMonthIcon />, name: 'Cierre de Mes' },
-    { icon: <QueryStatsIcon />, name: 'Movimientos' },
-    { icon: <FileDownloadIcon />, name: 'Export Excel' },
-    { icon: <PictureAsPdfIcon />, name: 'Descargar Manual' },
+    { icon: <img src={PdfIcon} alt="PDF" width={25} height={25} style={{ objectFit: 'contain' }} />, name: 'Descargar Manual' },
   ];
 
   const actions = location.pathname === '/mesescerrados'
@@ -83,7 +92,9 @@ export default function SpeedDialComponent({
             if (action.name === 'Nueva Fila') {
               agregarDataFila();
             } else if (action.name === 'Reportar Consumo') {
-              reportarConsumo();
+              tipoOperacionParaIngresoOConsumo({ tipoOperacion: 'Reportar Consumo' });
+            } else if (action.name === 'Reportar Ingreso') {
+               tipoOperacionParaIngresoOConsumo({ tipoOperacion: 'Reportar Ingreso' });
             } else if (action.name === 'Export Excel') {
               exportExcelTable();
             } else if (action.name === 'Table de Colores') {
@@ -107,6 +118,7 @@ export default function SpeedDialComponent({
             disabled:
               (action.name === 'Nueva Fila' && !['developer','gerente','supervisor'].includes(usuario?.rol)) ||
               (action.name === 'Reportar Consumo' && !['developer','gerente','supervisor','laboratorio','administrativo'].includes(usuario?.rol)) ||
+              (action.name === 'Reportar Ingreso' && !['developer','gerente','supervisor','laboratorio','administrativo'].includes(usuario?.rol)) ||
               (action.name === 'Export Excel' && !['developer','gerente','supervisor', 'administrativo'].includes(usuario?.rol)) ||
               (action.name === 'Movimientos' && !['developer','gerente','supervisor', 'administrativo','laboratorio'].includes(usuario?.rol)) ||
               (action.name === 'MovimientosTanquesJornaleros' && !['developer','gerente','supervisor', 'logistica'].includes(usuario?.rol)) ||
