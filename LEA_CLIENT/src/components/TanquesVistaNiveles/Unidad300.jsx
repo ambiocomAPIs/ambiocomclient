@@ -2,12 +2,12 @@ import React from "react";
 import Typography from "@mui/material/Typography";
 
 const tanques = [
-    { nombre: "TK300A", nivel: 70, imagen: "/TanquesAlmacenamiento/tanque1.png", ancho: 230 },
-    { nombre: "TK300B", nivel: 40, imagen: "/TanquesAlmacenamiento/tanque1.png", ancho: 250 },
-    { nombre: "TK300C", nivel: 90, imagen: "/TanquesAlmacenamiento/tanque1.png", ancho: 250 },
-    { nombre: "TK300D", nivel: 55, imagen: "/TanquesAlmacenamiento/tanque1.png", ancho: 250 },
-    { nombre: "TK300E", nivel: 80, imagen: "/TanquesAlmacenamiento/tanque1.png", ancho: 250 },
-    { nombre: "TK300F", nivel: 30, imagen: "/TanquesAlmacenamiento/tanque1.png", ancho: 250 },
+    { nombre: "TK300A", nivel: 70, imagen: "/TanquesAlmacenamiento/tanque5.png", ancho: 230 },
+    { nombre: "TK300B", nivel: 40, imagen: "/TanquesAlmacenamiento/tanque5.png", ancho: 250 },
+    { nombre: "TK300C", nivel: 90, imagen: "/TanquesAlmacenamiento/tanque5.png", ancho: 250 },
+    { nombre: "TK300D", nivel: 55, imagen: "/TanquesAlmacenamiento/tanque5.png", ancho: 250 },
+    { nombre: "TK300E", nivel: 80, imagen: "/TanquesAlmacenamiento/tanque5.png", ancho: 250 },
+    { nombre: "TK300F", nivel: 30, imagen: "/TanquesAlmacenamiento/tanque5.png", ancho: 250 },
 ];
 
 const TanquesUnidadTreCientos = () => {

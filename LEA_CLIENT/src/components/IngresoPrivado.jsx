@@ -32,7 +32,6 @@ const LoginBox = () => {
   }, []);
 
   const handleLogin = () => {
-    console.log("email y passwor recibidos:", email, password);
     
     if (!email || !password) {
       setError("Por favor completa ambos campos");
