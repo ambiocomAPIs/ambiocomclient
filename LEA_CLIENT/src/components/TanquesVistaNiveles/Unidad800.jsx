@@ -12,7 +12,7 @@ const UnidadOchoCientosAlmacenamiento = () => {
   const titulos = {
     "TK801AB": "Tanques de Almacenamiento de Producto Terminado 801 A/B",
     "TK805-8": "Tanques de Almacenamiento 805/806/807/808",
-    "802-3": "Tanques de Almacenamiento de Alcohol Industrial 802-803",
+    "802-3": "Tanques de Almacenamiento de Alcohol Industrial 802-803-804",
   };
   
   return (
@@ -44,7 +44,7 @@ const UnidadOchoCientosAlmacenamiento = () => {
           variant={tanqueActivo === '802-3' ? "contained" : "outlined"}
           onClick={() => setTanqueActivo("802-3")}
         >
-          802-3
+          802-4
         </Button>
       </Box>
     </Box>

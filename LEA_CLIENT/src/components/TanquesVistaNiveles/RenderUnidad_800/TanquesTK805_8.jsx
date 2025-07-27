@@ -59,7 +59,7 @@ const TanquesTK805_8 = () => {
       gap="55px"
       justifyContent="center"
       alignItems="flex-end"
-      mt={30}
+      mt={28}
     >
       {tanques.map(({ nombre, nivel, imagen, ancho, diposicion }, index) => (
         <Box

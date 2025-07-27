@@ -46,7 +46,7 @@ const TanquesTK801AB = () => {
     };
 
   return (
-    <Box display="flex" gap="150px" justifyContent="center" alignItems="flex-end" mt={30}>
+    <Box display="flex" gap="180px" justifyContent="center" alignItems="flex-end" mt={30}>
       {tanques.map(({ nombre, nivel, imagen, ancho, diposicion },index) => (
         <Box 
            key={nombre}
