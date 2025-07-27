@@ -9,10 +9,16 @@ import Tanques802_3 from "./RenderUnidad_800/Tanques802_3"
 const UnidadOchoCientosAlmacenamiento = () => {
   const [tanqueActivo, setTanqueActivo] = useState("TK801AB");
 
+  const titulos = {
+    "TK801AB": "Tanques de Almacenamiento 801 A/B",
+    "TK805-8": "Tanques de Almacenamiento 805/806/807/808",
+    "802-3": "Tanques de Almacenamiento 802-803",
+  };
+  
   return (
     <Box sx={{ mt: 10, textAlign: "center", position: "relative", pb: 8 }}>
       <Typography variant="h4" sx={{ fontWeight: 600, color: '#1A237E' }}>
-        Tanques de Almacenamiento 801 A/B
+      {titulos[tanqueActivo]}
       </Typography>
 
       {/* Renderizado condicional del tanque activo */}

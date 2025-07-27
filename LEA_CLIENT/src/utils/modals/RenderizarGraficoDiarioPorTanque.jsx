@@ -19,7 +19,9 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip,
 
 Modal.setAppElement('#root');
 
-const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
+const RenderizarGraficoDiarioPorTanque = ({ modalIsOpen, onClose, nombreTanque}) => {
+    // console.log("nombre tanque llega:", nombreTanque);
+    
   const [registros, setRegistros] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -33,6 +35,14 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
   });
 
   const chartRef = useRef(null);
+
+  // este useEffect me inicia las gracias ocultas
+  useEffect(() => {
+    if (modalIsOpen) {
+      setDatasetsHidden(true); // Reinicia ocultas cuando se abre el modal
+    }
+  }, [modalIsOpen]);
+  // TERMINA-- este useEffect me inicia las gracias ocultas
 
  useEffect(() => {
    const storedUser = sessionStorage.getItem("usuario");
@@ -66,7 +76,7 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
     } else {
       setRegistros([]);
     }
-  }, [modalIsOpen, selectedMonth]);
+  }, [ modalIsOpen, selectedMonth]);
 
   const getDaysInMonth = (year, month) => {
     const date = new Date(year, month - 1, 1);
@@ -112,6 +122,7 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
         backgroundColor: 'transparent',
         fill: false,
         tension: 0.3,
+        hidden: nombre !== nombreTanque,
       };
     });
 
@@ -350,4 +361,4 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
   );
 };
 
-export default GraficoNivelesTanquesPorDiaModal;
+export default RenderizarGraficoDiarioPorTanque;

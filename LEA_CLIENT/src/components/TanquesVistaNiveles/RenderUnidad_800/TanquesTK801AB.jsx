@@ -2,8 +2,8 @@
 import { Box, Typography } from "@mui/material";
 
 const tanques = [
-  { nombre: "TK801A", nivel: 70, imagen: "/TanquesAlmacenamiento/tanque2.png", ancho: 680 },
-  { nombre: "TK801B", nivel: 40, imagen: "/TanquesAlmacenamiento/tanque2.png", ancho: 680 },
+  { nombre: "TK801A", nivel: 70, imagen: "/TanquesAlmacenamiento/tanque2.png", ancho: 630 },
+  { nombre: "TK801B", nivel: 40, imagen: "/TanquesAlmacenamiento/tanque2.png", ancho: 630 },
 ];
 
 const contenedorAltura = 460;
@@ -16,11 +16,11 @@ const TanquesTK801AB = () => {
           <Box
             sx={{
               position: "absolute",
-              top: -10,
-              left: "20%",
+              top: 5,
+              left: "15%",
               transform: "translateX(-50%)",
               width: "16px",
-              height: "80%",
+              height: "78%",
               backgroundColor: "#ddd",
               borderRadius: "5px",
               border: "1px solid #ccc",
@@ -52,7 +52,7 @@ const TanquesTK801AB = () => {
             value={nombre}
             style={{
               position: "absolute",
-              top: "5%",
+              top: "8%",
               left: "47%",
               transform: "translate(-50%, -50%)",
               fontSize: "23px",
