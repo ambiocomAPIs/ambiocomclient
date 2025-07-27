@@ -1,5 +1,8 @@
 // components/Tanques/TanquesTK801AB.js
+import React, { useState } from "react";
 import { Box, Typography } from "@mui/material";
+
+import RenderizarGraficoDiarioPorTanque from '../../../utils/modals/RenderizarGraficoDiarioPorTanque'
 
 const tanques = [
   { nombre: "TK801A", nivel: 70, imagen: "/TanquesAlmacenamiento/tanque2.png", ancho: 630 },
@@ -9,18 +12,61 @@ const tanques = [
 const contenedorAltura = 460;
 
 const TanquesTK801AB = () => {
+
+   const [modalOpenGraficaTanque, setModalOpenGraficaTanque] = useState(false);
+    const [tanqueSeleccionado, setTanqueSeleccionado] = useState(null);
+    const [tanques, setTanques] = useState([
+      {
+        nombre: "801A",
+        diposicion: "Producto Terminado",
+        nivel: 70,
+        imagen: "/TanquesAlmacenamiento/tanque2.png",
+        ancho: 630,
+      },
+      {
+        nombre: "801B",
+        diposicion: "Producto Terminado",
+        nivel: 40,
+        imagen: "/TanquesAlmacenamiento/tanque2.png",
+        ancho: 630,
+      }
+    ]);
+  
+    const handleDobleClickTanque = (nombreTanque) => {
+      console.log("nombre tanque que llega:", nombreTanque);
+      
+      setTanqueSeleccionado(nombreTanque);
+      setModalOpenGraficaTanque(true);
+    };
+  
+    const handleNombreChange = (index, nuevoNombre) => {
+      const nuevosTanques = [...tanques];
+      nuevosTanques[index].diposicion = nuevoNombre;
+      setTanques(nuevosTanques);
+    };
+
   return (
     <Box display="flex" gap="150px" justifyContent="center" alignItems="flex-end" mt={30}>
-      {tanques.map(({ nombre, nivel, imagen, ancho }) => (
-        <Box key={nombre} position="relative" display="flex" flexDirection="column" alignItems="center" height={contenedorAltura} width={ancho} justifyContent="flex-end">
+      {tanques.map(({ nombre, nivel, imagen, ancho, diposicion },index) => (
+        <Box 
+           key={nombre}
+           onDoubleClick={() => handleDobleClickTanque(nombre)}
+           position="relative" 
+           display="flex" 
+           flexDirection="column" 
+           alignItems="center" 
+           height={contenedorAltura} 
+           width={ancho} 
+           justifyContent="flex-end"
+           >
           <Box
             sx={{
               position: "absolute",
-              top: 5,
-              left: "15%",
+              top: 6,
+              left: "10%",
               transform: "translateX(-50%)",
               width: "16px",
-              height: "78%",
+              height: "74%",
               backgroundColor: "#ddd",
               borderRadius: "5px",
               border: "1px solid #ccc",
@@ -66,8 +112,33 @@ const TanquesTK801AB = () => {
               zIndex: 4,
             }}
           />
+          <input
+            type="text"
+            onChange={(e) => handleNombreChange(index, e.target.value)}
+            value={diposicion}
+            style={{
+              position: "absolute",
+              top: "18%",
+              left: "47%",
+              transform: "translate(-50%, -50%)",
+              fontSize: "23px",
+              width: "250px",
+              textAlign: "center",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+              padding: "4px",
+              backgroundColor: "rgba(255, 255, 255, 0.8)",
+              cursor: "default",
+              zIndex: 4,
+            }}
+          />
         </Box>
       ))}
+       <RenderizarGraficoDiarioPorTanque
+              modalIsOpen={modalOpenGraficaTanque}
+              onClose={() => setModalOpenGraficaTanque(false)}
+              nombreTanque={tanqueSeleccionado}
+            />
     </Box>
   );
 };

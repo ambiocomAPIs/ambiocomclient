@@ -1,16 +1,70 @@
-import React from "react";
+import React, { useState } from "react";
 import Typography from "@mui/material/Typography";
 
-const tanques = [
-    { nombre: "TK300A", nivel: 70, imagen: "/TanquesAlmacenamiento/tanque5.png", ancho: 230 },
-    { nombre: "TK300B", nivel: 40, imagen: "/TanquesAlmacenamiento/tanque5.png", ancho: 250 },
-    { nombre: "TK300C", nivel: 90, imagen: "/TanquesAlmacenamiento/tanque5.png", ancho: 250 },
-    { nombre: "TK300D", nivel: 55, imagen: "/TanquesAlmacenamiento/tanque5.png", ancho: 250 },
-    { nombre: "TK300E", nivel: 80, imagen: "/TanquesAlmacenamiento/tanque5.png", ancho: 250 },
-    { nombre: "TK300F", nivel: 30, imagen: "/TanquesAlmacenamiento/tanque5.png", ancho: 250 },
-];
+import RenderizarGraficoDiarioPorTanque from '../../utils/modals/RenderizarGraficoDiarioPorTanque'
+
 
 const TanquesUnidadTreCientos = () => {
+     const [modalOpenGraficaTanque, setModalOpenGraficaTanque] = useState(false);
+      const [tanqueSeleccionado, setTanqueSeleccionado] = useState(null);
+      const [tanques, setTanques] = useState([
+        {
+          nombre: "TK300A",
+          diposicion: "Materia Prima",
+          nivel: 70,
+          imagen: "/TanquesAlmacenamiento/tanque5.png",
+          ancho: 250,
+        },
+        {
+          nombre: "TK300B",
+          diposicion: "Materia Prima",
+          nivel: 10,
+          imagen: "/TanquesAlmacenamiento/tanque5.png",
+          ancho: 280,
+        },
+        {
+          nombre: "TK300C",
+          diposicion: "Materia Prima",
+          nivel: 48,
+          imagen: "/TanquesAlmacenamiento/tanque5.png",
+          ancho: 280,
+        },
+        {
+          nombre: "TK300D",
+          diposicion: "Materia Prima",
+          nivel: 75,
+          imagen: "/TanquesAlmacenamiento/tanque5.png",
+          ancho: 280,
+        },
+        {
+          nombre: "TK300D",
+          diposicion: "Materia Prima",
+          nivel: 100,
+          imagen: "/TanquesAlmacenamiento/tanque5.png",
+          ancho: 280,
+        },
+        {
+          nombre: "TK300D",
+          diposicion: "Materia Prima",
+          nivel: 100,
+          imagen: "/TanquesAlmacenamiento/tanque5.png",
+          ancho: 280,
+        },
+      ]);
+
+      const handleDobleClickTanque = (nombreTanque) => {
+        console.log("nombre tanque que llega:", nombreTanque);
+        
+        setTanqueSeleccionado(nombreTanque);
+        setModalOpenGraficaTanque(true);
+      };
+
+      const handleNombreChange = (index, nuevoNombre) => {
+        const nuevosTanques = [...tanques];
+        nuevosTanques[index].diposicion = nuevoNombre;
+        setTanques(nuevosTanques);
+      };
+    
     const contenedorAltura = 320; // altura fija para alinear los tanques
 
     return (
@@ -33,13 +87,14 @@ const TanquesUnidadTreCientos = () => {
                     gap: "40px",
                     justifyContent: "center",
                     alignItems: "flex-end",
-                    marginTop: 230,
+                    marginTop: 330,
                 }}
             >
 
-                {tanques.map(({ nombre, nivel, imagen, ancho }, index) => (
+                {tanques.map(({ nombre, nivel, imagen, ancho, diposicion }, index) => (
                     <div
                         key={index}
+                        onDoubleClick={() => handleDobleClickTanque(nombre)}
                         style={{
                             position: "relative",
                             display: "flex",
@@ -54,15 +109,15 @@ const TanquesUnidadTreCientos = () => {
                         <div
                             style={{
                                 position: "absolute",
-                                top: -20,
-                                left: "20%",
+                                top: index === 0 ? -55 : -90,
+                                left: index === 0 ? "15%" : "13%",
                                 transform: "translateX(-50%)",
                                 width: "16px",
-                                height: "80%", // ocupará la altura completa del contenedor (mismo que la imagen)
+                                height: index === 0 ? "88%":"95%", // ocupará la altura completa del contenedor (mismo que la imagen)
                                 backgroundColor: "#ddd",
                                 borderRadius: "5px",
                                 border: "1px solid #ccc",
-                                display: "flex",
+                                display: "flex", 
                                 flexDirection: "column-reverse",
                                 overflow: "hidden",
                                 zIndex: 2,
@@ -101,7 +156,7 @@ const TanquesUnidadTreCientos = () => {
                             value={nombre}
                             style={{
                                 position: "absolute",
-                                top: "10%",
+                                top: index === 0 ? "-10%" : "-20%",
                                 left: "50%",
                                 transform: "translate(-50%, -50%)",
                                 fontSize: "15px",
@@ -115,10 +170,36 @@ const TanquesUnidadTreCientos = () => {
                                 zIndex: 4,
                             }}
                         />
+                        <input
+                            type="text"
+                            onChange={(e) => handleNombreChange(index, e.target.value)}
+                            value={diposicion}
+                            style={{
+                                position: "absolute",
+                                top: index === 0 ? "0%" : "-10%",
+                                left: "50%",
+                                transform: "translate(-50%, -50%)",
+                                fontSize: "15px",
+                                width: index === 0 ? "130px":"150px",
+                                textAlign: "center",
+                                border: "1px solid #ccc",
+                                borderRadius: "4px",
+                                padding: "2px",
+                                backgroundColor: "rgba(255, 255, 255, 0.8)", // con transparencia para no tapar todo
+                                cursor: "default",
+                                zIndex: 500,
+                            }}
+                        />
 
                     </div>
                 ))}
             </div>
+                  <RenderizarGraficoDiarioPorTanque
+                    modalIsOpen={modalOpenGraficaTanque}
+                    onClose={() => setModalOpenGraficaTanque(false)}
+                    // nombreTanque={tanqueSeleccionado}
+                    nombreTanque={"801B"}
+                  />
         </div>
     );
 };
