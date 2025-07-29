@@ -6,9 +6,18 @@ import RenderizarGraficoDiarioPorTanque from "../../../utils/modals/RenderizarGr
 const contenedorAltura = 460;
 
 // Componente base reutilizable
-const RenderTanque = ({ nombre, nivel, imagen, ancho, factor, diposicion , index}) => (
+const RenderTanque = ({
+  nombre,
+  nivel,
+  imagen,
+  ancho,
+  factor,
+  diposicion,
+  index,
+  onDoubleClick,
+}) => (
   <Box
-    onDoubleClick={() => handleDobleClickTanque(nombre)}
+    onDoubleClick={() => onDoubleClick(nombre)}
     position="relative"
     display="flex"
     flexDirection="column"
@@ -21,11 +30,11 @@ const RenderTanque = ({ nombre, nivel, imagen, ancho, factor, diposicion , index
     <Box
       sx={{
         position: "absolute",
-        top: index === 0 ? "-5%" : index === 1? "18%" :"-8%" ,
-        left:  index === 0 ? "20%": index === 1 ? "10%":"22%",
+        top: index === 0 ? "-5%" : index === 1 ? "18%" : "-8%",
+        left: index === 0 ? "20%" : index === 1 ? "10%" : "22%",
         transform: "translateX(-50%)",
         width: "16px",
-        height: index === 0 ? "80%" : index === 1? "55%" :"62%",
+        height: index === 0 ? "80%" : index === 1 ? "55%" : "62%",
         backgroundColor: "#ddd",
         borderRadius: "5px",
         border: "1px solid #ccc",
@@ -72,7 +81,7 @@ const RenderTanque = ({ nombre, nivel, imagen, ancho, factor, diposicion , index
       value={nombre}
       style={{
         position: "absolute",
-        top: index === 0 ? "5%":index === 1? "25%" :"0%",
+        top: index === 0 ? "5%" : index === 1 ? "25%" : "0%",
         left: "50%",
         transform: "translate(-50%, -50%)",
         fontSize: "23px",
@@ -92,11 +101,11 @@ const RenderTanque = ({ nombre, nivel, imagen, ancho, factor, diposicion , index
       value={diposicion}
       style={{
         position: "absolute",
-        top: index === 0 ? "15%":index === 1? "35%" :"10%",
+        top: index === 0 ? "15%" : index === 1 ? "35%" : "10%",
         left: "50%",
         transform: "translate(-50%, -50%)",
         fontSize: "23px",
-        width: index === 0 ? "110px": index === 1 ? "250px" : "120px",
+        width: index === 0 ? "110px" : index === 1 ? "250px" : "120px",
         textAlign: "center",
         border: "1px solid #ccc",
         borderRadius: "4px",
@@ -108,46 +117,6 @@ const RenderTanque = ({ nombre, nivel, imagen, ancho, factor, diposicion , index
     />
   </Box>
 );
-
-// Componentes individuales independientes
-
-export const TanqueTK801 = () => (
-  <RenderTanque
-    nombre="802"
-    diposicion="FUSEL"
-    nivel={70}
-    imagen="/TanquesAlmacenamiento/tanque802.png"
-    ancho={230}
-    factor={285071.42}
-    index={0}
-  />
-);
-
-export const TanqueTK802 = () => (
-  <RenderTanque
-    nombre="804"
-    diposicion="Alcohol Indsutrial"
-    nivel={40}
-    imagen="/TanquesAlmacenamiento/tanque804.png"
-    ancho={700}
-    factor={172031.1}
-    index={1}
-  />
-);
-
-export const TanqueTK803 = () => (
-  <RenderTanque
-    nombre="803"
-    diposicion="Alcohol Indsutrial"
-    nivel={60}
-    imagen="/TanquesAlmacenamiento/tanque803.png"
-    ancho={260}
-    factor={193000.5}
-    index={2}
-  />
-);
-
-// Puedes importar y usar los tanques por separado o juntos donde los necesites
 
 const Tanques802_3 = () => {
   const [modalOpenGraficaTanque, setModalOpenGraficaTanque] = useState(false);
@@ -204,15 +173,40 @@ const Tanques802_3 = () => {
       alignItems="flex-end"
       mt={30}
     >
-      <TanqueTK801 />
-      <TanqueTK802 />
-      <TanqueTK803 />
-
+      <RenderTanque
+        nombre="802"
+        diposicion="FUSEL"
+        nivel={70}
+        imagen="/TanquesAlmacenamiento/tanque802.png"
+        ancho={230}
+        factor={285071.42}
+        index={0}
+        onDoubleClick={handleDobleClickTanque}
+      />
+      <RenderTanque
+        nombre="804"
+        diposicion="Alcohol Indsutrial"
+        nivel={40}
+        imagen="/TanquesAlmacenamiento/tanque804.png"
+        ancho={700}
+        factor={172031.1}
+        index={1}
+        onDoubleClick={handleDobleClickTanque}
+      />
+      <RenderTanque
+        nombre="803"
+        diposicion="Alcohol Indsutrial"
+        nivel={60}
+        imagen="/TanquesAlmacenamiento/tanque803.png"
+        ancho={260}
+        factor={193000.5}
+        index={2}
+        onDoubleClick={handleDobleClickTanque}
+      />
       <RenderizarGraficoDiarioPorTanque
         modalIsOpen={modalOpenGraficaTanque}
         onClose={() => setModalOpenGraficaTanque(false)}
-        // nombreTanque={tanqueSeleccionado}
-        nombreTanque={"801B"}
+        nombreTanque={tanqueSeleccionado}
       />
     </Box>
   );

@@ -236,13 +236,13 @@ export default function MedicalSchedulerApp() {
                 ))}
             </List>
             <Box sx={{ p: 2, textAlign: 'center', color: 'text.secondary', fontSize: 12 }}>
-                © 2025 HCabal. Todos los derechos reservados.
+                © 2025 AMBIOCOM SAS. Todos los derechos reservados.
             </Box>
         </Box>
     );
 
     return (
-        <Box sx={{ display: 'flex' }}>
+        <Box sx={{ display: 'flex' }} onClick={handleDrawerToggle}>
             <CssBaseline />
             <AppBar
                 position="fixed"
