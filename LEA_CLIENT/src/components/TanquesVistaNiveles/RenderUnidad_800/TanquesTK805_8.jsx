@@ -100,6 +100,7 @@ const TanquesTK805_8 = () => {
             />
           </Box>
 
+          <Typography variant="h6">VT: 285071,42</Typography>
           <Typography variant="h6">F: 285071,42</Typography>
 
           <img

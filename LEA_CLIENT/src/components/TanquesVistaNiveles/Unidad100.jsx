@@ -54,7 +54,7 @@ const UnidadCienAlmacenamiento = () => {
       <div
         style={{
           display: "flex",
-          gap: "150px",
+          gap: "200px",
           justifyContent: "center",
           alignItems: "flex-end",
           marginTop: 210,
@@ -101,9 +101,10 @@ const UnidadCienAlmacenamiento = () => {
                 }}
               />
             </div>
-            <Typography variant="h6" style={{ marginBottom: "0px" }}>
-              F: 285071,42
-            </Typography>
+
+            <Typography variant="h6" style={{ marginBottom: "0px" }}>VT: 285071,42</Typography>
+            <Typography variant="h6" style={{ marginBottom: "0px" }}>F: 285071,42</Typography>
+
             <img
               src={imagen}
               alt={`Tanque ${nombre}`}

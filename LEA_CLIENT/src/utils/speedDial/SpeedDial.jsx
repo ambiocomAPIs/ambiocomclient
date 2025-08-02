@@ -13,7 +13,7 @@ import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import UnarchiveIcon from '@mui/icons-material/Unarchive';
 
-import { PdfIcon,ExportExcelIcon,ShowPropertyIcon,ViewScheduleIcon,AddRowIcon } from '../icons/SvgIcons';
+import { PdfIcon,ExportExcelIcon,ShowPropertyIcon,ViewScheduleIcon,AddRowIcon,CvIconTable, parsefromclipboard } from '../icons/SvgIcons';
 
 export default function SpeedDialComponent({
   sx,
@@ -43,13 +43,13 @@ export default function SpeedDialComponent({
         }, []);
 
   const onlyCierreMesesActions = [
-    { icon: <QueryStatsIcon />, name: 'Movimientos' },
-    { icon: <FileDownloadIcon />, name: 'Export Excel' }
+    { icon: <img src={parsefromclipboard} alt="PDF" width={28} height={28} style={{ objectFit: 'contain' }} />, name: 'Movimientos' },
+    { icon: <img src={ExportExcelIcon} alt="PDF" width={25} height={25} style={{ objectFit: 'contain' }} />, name: 'Export Excel' },
   ];
 
   const onlyTanquesJornaleros = [
     { icon: <QueryStatsIcon />, name: 'MovimientosTanquesJornaleros' },
-    { icon: <FileDownloadIcon />, name: 'Export Excel' },
+    { icon: <img src={ExportExcelIcon} alt="PDF" width={25} height={25} style={{ objectFit: 'contain' }} />, name: 'Export Excel' },
   ];
 
   const defaultActions = [
@@ -62,7 +62,7 @@ export default function SpeedDialComponent({
     // { icon: <FileDownloadIcon />, name: 'Export Excel' },
     // { icon: <PictureAsPdfIcon />, name: 'Descargar Manual' },
     { icon: <img src={ViewScheduleIcon} alt="PDF" width={28} height={28} style={{ objectFit: 'contain' }} />, name: 'Cierre de Mes' },
-    { icon: <img src={ShowPropertyIcon} alt="PDF" width={28} height={28} style={{ objectFit: 'contain' }} />, name: 'Movimientos' },
+    { icon: <img src={parsefromclipboard} alt="PDF" width={28} height={28} style={{ objectFit: 'contain' }} />, name: 'Movimientos' },
     { icon: <img src={ExportExcelIcon} alt="PDF" width={25} height={25} style={{ objectFit: 'contain' }} />, name: 'Export Excel' },
     { icon: <TableRowsIcon />, name: 'Table de Colores' },
     { icon: <img src={PdfIcon} alt="PDF" width={25} height={25} style={{ objectFit: 'contain' }} />, name: 'Descargar Manual' },

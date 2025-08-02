@@ -86,6 +86,7 @@ const TanquesTK801AB = () => {
             />
           </Box>
 
+          <Typography variant="h6">VT: 285071,42</Typography>
           <Typography variant="h6">F: 285071,42</Typography>
 
           <img src={imagen} alt={`Tanque ${nombre}`} style={{ width: `${ancho}px`, height: "auto", zIndex: 1, position: "relative" }} />

@@ -47,6 +47,7 @@ import TanquesUnidadTreCientos from '../TanquesVistaNiveles/Unidad300';
 import CubaDeFermentacion from '../TanquesVistaNiveles/CubasDeFermentacion';
 import TanquesUnidadCien from '../TanquesVistaNiveles/Unidad100';
 import UnidadOchoCientosAlmacenamiento from '../TanquesVistaNiveles/Unidad800'
+import Unidad400Component from '../TanquesVistaNiveles/Unidad400.jsx';
 //Modulo DB
 import ConsultasHttpDb from '../DB_Consultas_View/ConsultasHttpDb.jsx';
 //Utils
@@ -89,11 +90,11 @@ const menuItems = [
         key: 'tanquesniveles',
         icon: <img src={tanqueIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
         subItems: [
-            { text: 'UNIDAD 100', subKey: 'nivelesunidadtrecien', icon: <img src={oilTankIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
-            { text: 'UNIDAD 300', subKey: 'nivelesunidadtrecientos', icon: <img src={oilTankIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
-            { text: 'UNIDAD 450', subKey: 'nivelesunidadcuatrocientos', icon: <img src={oilTankIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
-            { text: 'UNIDAD 800', subKey: 'nivelesunidadochocientos', icon: <img src={oilTankIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
-            { text: 'Cuba Fermentac', subKey: 'cubadefermentacion', icon: <img src={oilTankIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
+            { text: 'UNIDAD 100', subKey: 'nivelesunidadtrecien', icon: <img src={oilTankIcon} alt="nivelesunidadtrecien" style={{ width: 25, height: 25 }} /> },
+            { text: 'UNIDAD 300', subKey: 'nivelesunidadtrecientos', icon: <img src={oilTankIcon} alt="nivelesunidadtrecientos" style={{ width: 25, height: 25 }} /> },
+            { text: 'UNIDAD 450', subKey: 'nivelesunidadcuatrocientos', icon: <img src={oilTankIcon} alt="nivelesunidadcuatrocientos" style={{ width: 25, height: 25 }} /> },
+            { text: 'UNIDAD 800', subKey: 'nivelesunidadochocientos', icon: <img src={oilTankIcon} alt="nivelesunidadochocientos" style={{ width: 25, height: 25 }} /> },
+            { text: 'Cuba Fermentac', subKey: 'cubadefermentacion', icon: <img src={oilTankIcon} alt="cubadefermentacion" style={{ width: 25, height: 25 }} /> },
         ],
     },
     {
@@ -141,12 +142,21 @@ export default function MedicalSchedulerApp() {
         }
     };
 
+    const handleDrawerToggleComponent = () => {
+        if (isMobile) {
+            setMobileOpen(false);
+        } else {
+            setSidebarOpen(false);
+        }
+    };
+
     const renderContent = () => {
         switch (selectedMenu) {
             case 'Tanquesjornaleros': return <SeguimientoTKJornaleros />;
             case 'Inventariodeinsumos': return <SGMRC />;
             case 'nivelesunidadtrecien': return <TanquesUnidadCien />;
             case 'nivelesunidadtrecientos': return <TanquesUnidadTreCientos />;
+            case 'nivelesunidadcuatrocientos': return <Unidad400Component />;
             case 'nivelesunidadochocientos': return <UnidadOchoCientosAlmacenamiento />;
             case 'cubadefermentacion': return <CubaDeFermentacion />;
             case 'bitacoradeturnosupervisores': return <BitacoraDeSupervisores />;
@@ -242,7 +252,7 @@ export default function MedicalSchedulerApp() {
     );
 
     return (
-        <Box sx={{ display: 'flex' }} onClick={handleDrawerToggle}>
+        <Box sx={{ display: 'flex' }}>
             <CssBaseline />
             <AppBar
                 position="fixed"
@@ -286,6 +296,7 @@ export default function MedicalSchedulerApp() {
 
             <Box
                 component="main"
+                onClick={handleDrawerToggleComponent}
                 sx={{
                     flexGrow: 1,
                     mr: '5px',

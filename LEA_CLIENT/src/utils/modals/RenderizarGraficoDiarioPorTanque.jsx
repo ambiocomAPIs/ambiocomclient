@@ -250,9 +250,9 @@ const RenderizarGraficoDiarioPorTanque = ({
             <span style={{ fontWeight: "bold", color: "blue" }}>
             TK-{nombreTanque}
             </span>{" "}
-            para la fecha
+            para la fecha:
             <span style={{ fontWeight: "bold", color: "blue" }}>
-            {" "}º  {selectedMonth}
+            {" "}  {selectedMonth}
             </span>
           </h2>
         </div>
