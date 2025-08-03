@@ -36,7 +36,9 @@ import {
     Image as ImageIcon,
 } from '@mui/icons-material';
 
+//Modulo Produccion
 import SeguimientoTKJornaleros from '../SeguimientoTKJornaleros';
+import TanquesList from '../TanquesList.jsx'
 import ExcelStyleFooter from '../../utils/ExcelStyleFooter';
 import ChatBox from '../IA/ChatBox';
 import BitacoraDeSupervisores from '../Bitacora/BitacoraComponentesProduccion'
@@ -74,6 +76,7 @@ const menuItems = [
             { text: 'Bitacora Supervisores', subKey: 'bitacoradeturnosupervisores', icon: <img src={bitacoraIcon} alt="bitacoradeturnosupervisores" style={{ width: 25, height: 25 }} /> },
             { text: 'Inventario Combust', subKey: 'inventariodecarbonymadera', icon: <img src={coalInventoryIcon} alt="Tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
             { text: 'Horas Extras', subKey: 'horasextrassupervisores', icon: <img src={StopWatchIcon} alt="horasextrassupervisores" style={{ width: 25, height: 25 }} /> },
+            { text: 'CRUD Tanques', subKey: 'tanquescrud', icon: <img src={tanqueIcon} alt="tanquescrud" style={{ width: 25, height: 25 }} /> },
         ],
     },
     {
@@ -164,6 +167,7 @@ export default function MedicalSchedulerApp() {
             case 'inventariodecarbonymadera': return <InventarioCarbonMadera />;
             case 'basededatos': return <ConsultasHttpDb />;
             case 'robotassistance': return <ChatBox />;
+            case 'tanquescrud': return <TanquesList />;
             default: return null;
         }
     };
