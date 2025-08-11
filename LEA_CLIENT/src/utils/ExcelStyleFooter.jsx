@@ -27,7 +27,7 @@ function ExcelStyleFooter({
   DataTableChartModalCostMensualMesesCerrados,
   openModalGraficoNivelesModalOpen,
 }) {
-  console.log("modulo activo recibido:", moduloActivo);
+  // console.log("modulo activo recibido:", moduloActivo);
 
   const location = useLocation();
   const navigate = useNavigate();

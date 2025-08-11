@@ -22,7 +22,7 @@ import Swal from 'sweetalert2'
 
 import {calcularDiferenciaEnMeses} from '../utils/Functions/CalcularDiferenciaFechas'
 import {ExportExcelWithTemplate} from '../utils/Functions/DownloadExcelData'
-import DataTableChartModal from '../utils/modals/DataTableChartModal'
+import DataTablePieChartInsumosModal from '../utils/modals/DataTablePieChartInsumosModal'
 import DataTableChartModalCost from '../utils/modals/DataTableChartModalCost'
 import ModalFilterData from '../utils/modals/ModalFilterData';
 import ReportarConsumoModal from '../utils/modals/ReportarConsumoModal';
@@ -68,6 +68,8 @@ const SGMRC = React.memo(() => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);  // Estado para controlar el Snackbar
   const [snackbarMessage, setSnackbarMessage] = useState("");  // Mensaje del Snackbar
   const [snackbarSeverity, setSnackbarSeverity] = useState('');  // 'success' o 'error'
+// abre modal con el tipodeoperacion
+  const [tipoOperacionParaConsumo, setTipoOperacionParaConsumo] = useState('');
 
   // carga de data
   const [loading, setLoading] = useState(true);
@@ -740,6 +742,13 @@ const clickColumFixed = (columnClicked) => {
       setOpenUploadExcelModal(false);
     };
 
+    //Funcion para pasar tipo de oepracion seleccionada en el speed dial
+   const handleReportarOperacionparaConsumo = ({ tipoOperacion }) => {
+    console.log("tipo de operacion:", tipoOperacion);
+     setTipoOperacionParaConsumo(tipoOperacion);
+     setIsModalConsumoOpen(true);
+   };
+
     const openFilterModal = () => {
       setIsModalFilterOpen(true);
     };
@@ -748,9 +757,6 @@ const clickColumFixed = (columnClicked) => {
       setIsModalFilterOpen(false);
     };
 
-    const handleOpenModalReportarConsumo = () => {
-      setIsModalConsumoOpen(true);
-    };
   // Función para abrir el modal de movimientos
   const openModalMovimientos = () => {
     setIsOpenModalMovimientos(true);
@@ -871,13 +877,11 @@ const clickColumFixed = (columnClicked) => {
       <Table style={{ width: 'max-content'}}>
         <TableHead>
           <TableRow style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 0 }}>
-            <TableCell colSpan={1} style={{ fontSize: '25px', fontWeight: 'bold' }}>
-              <img src='/logo_ambiocom.png' style={{ width:'0px',height:'auto',position:'absolute'}}></img>
-            </TableCell>
+
             <TableCell colSpan={1} style={{ marginTop:0}}>
-              <img src='/ambiocom.png' style={{ marginTop:-20,width:'180px',height:'auto',position:'absolute'}}></img>
+              <img src='/ambiocom.png' style={{ marginTop:-20, marginLeft:10,width:'180px',height:'auto',position:'absolute'}}></img>
             </TableCell>
-            <TableCell colSpan={2} style={{fontSize:'25px',fontWeight:'bold',textAlign: 'center',position: 'sticky',}}>
+            <TableCell colSpan={9} style={{fontSize:'25px', fontWeight:'bold',textAlign: 'center',position: 'sticky',}}>
               <div >{fechaHoraActual}</div>
             </TableCell>
             <TableCell colSpan={20} style={{fontSize:'25px',fontWeight:'bold',textAlign: 'center',position: 'sticky',}}>
@@ -1425,6 +1429,7 @@ const clickColumFixed = (columnClicked) => {
      open={isModalConsumoOpen} 
      onClose={handleCloseModal} 
      data={data}
+     tipoOperacionParaIngresoOConsumo={tipoOperacionParaConsumo}
      />
 
     <DetallesMovimientos 
@@ -1450,7 +1455,7 @@ const clickColumFixed = (columnClicked) => {
       </Snackbar>
 
      {/* Modal grafica reactivos status vencimiento */}
-       <DataTableChartModal 
+       <DataTablePieChartInsumosModal 
         reactivos={data} 
         modalIsOpen={modalVerGastoIsOpen}
         closeModal={closeModalVerGasto}
@@ -1495,9 +1500,9 @@ const clickColumFixed = (columnClicked) => {
       <SpeedDialComponent
         exportExcelTable={exportExcelDataTable}
         agregarDataFila={agregarDataFila} // ejecuto la funcion agregar fila desde el speedDial
-        reportarConsumo={handleOpenModalReportarConsumo}
         DownloadManual={DescargarManual}
         VerMovimientos={openModalMovimientos}
+        tipoOperacionParaIngresoOConsumo={handleReportarOperacionparaConsumo}
         CierreMes={CierreMes}
               sx={{
                 position: 'fixed',
