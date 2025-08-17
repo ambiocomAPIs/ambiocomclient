@@ -26,7 +26,11 @@ const TanquesList = () => {
   const [visualModalOpen, setVisualModalOpen] = useState(false);
   const [tanqueSeleccionadoVisual, setTanqueSeleccionadoVisual] = useState("");
   const [operacionEjecutada, setOperacionEjecutada] = useState("");
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> e376955c30d49624222615a059ac9bbf511f7fb3
   const fetchTanques = async () => {
     try {
       const res = await axios.get("https://ambiocomserver.onrender.com/api/tanques");
@@ -46,10 +50,16 @@ const TanquesList = () => {
   };
 
   const handleSubmit = async (data) => {
+    console.log("data que entra:", data);
+    
     try {
+<<<<<<< HEAD
       const { _id, ...dataLimpia } = data;  // elimino el id del objeto
 
       if (data._id && operacionEjecutada === "update") {
+=======
+      if (data._id || operacionEjecutada === 'update') {
+>>>>>>> e376955c30d49624222615a059ac9bbf511f7fb3
         await axios.put(`https://ambiocomserver.onrender.com/api/tanques/${data._id}`, data);
         Swal.fire("Actualizado", "Tanque actualizado correctamente", "success");
       } else {
@@ -120,6 +130,7 @@ const TanquesList = () => {
       </Box>
 
       <TableContainer
+<<<<<<< HEAD
         component={Paper}
         elevation={3}
         sx={{
@@ -210,6 +221,58 @@ const TanquesList = () => {
               ))}
             </TableRow>
           </TableHead>
+=======
+  component={Paper}
+  elevation={3}
+  sx={{
+    borderRadius: 3,
+    maxHeight: 'calc(100vh - 200px)', // Ajusta según tu layout
+    overflow: 'auto',
+  }}
+>
+  <Table stickyHeader>
+    <TableHead>
+      <TableRow sx={{ backgroundColor: "#e0e0e0" }}>
+        <TableCell align="center" colSpan={2} sx={{ borderRight: "2px solid #bdbdbd", position: "sticky", top: 0, backgroundColor: "#e0e0e0", zIndex: 1 }}>
+          <strong>Información</strong>
+        </TableCell>
+        <TableCell align="center" colSpan={2} sx={{ borderRight: "2px solid #bdbdbd", position: "sticky", top: 0, backgroundColor: "#e0e0e0", zIndex: 1 }}>
+          <strong>Factores</strong>
+        </TableCell>
+        <TableCell align="center" colSpan={2} sx={{ position: "sticky", top: 0, backgroundColor: "#e0e0e0", zIndex: 1 }}>
+          <strong>Volumen</strong>
+        </TableCell>
+        <TableCell align="center" rowSpan={2} sx={{ borderLeft: "2px solid #bdbdbd", position: "sticky", top: 0, backgroundColor: "#e0e0e0", zIndex: 1 }}>
+          <strong>Acciones</strong>
+        </TableCell>
+      </TableRow>
+
+      <TableRow  sx={{ backgroundColor: "#f5f5f5" }}>
+        {[
+          "Nombre del Tanque",
+          "Disposición [Uso Actual]",
+          "Factor [L/m]",
+          "Factor [L/cm]",
+          "Volumen Total [L]",
+          "Volumen Total [m³]",
+        ].map((text, index) => (
+          <TableCell
+          align="center"
+            key={index}
+            sx={{
+              position: "sticky",
+              top: 40,
+              backgroundColor: "#f5f5f5",
+              zIndex: 1,
+              borderRight: index === 1 || index === 3 ? "2px solid #e0e0e0" : "none",
+            }}
+          >
+            <strong>{text}</strong>
+          </TableCell>
+        ))}
+      </TableRow>
+    </TableHead>
+>>>>>>> e376955c30d49624222615a059ac9bbf511f7fb3
           <TableBody>
             {tanques.map((t) => (
               <TableRow
@@ -220,6 +283,7 @@ const TanquesList = () => {
                   "&:hover": { backgroundColor: "#fafafa" },
                 }}
               >
+<<<<<<< HEAD
                 <TableCell
                   align="center"
                   onDoubleClick={() => {
@@ -249,6 +313,39 @@ const TanquesList = () => {
                 <TableCell align="center">
                   {t.VolumenTotal
                     ? Number(t.VolumenTotal / 1000).toFixed(2) + " " + "m³"
+=======
+ <TableCell
+  align="center"
+  onDoubleClick={() => {
+    setTanqueSeleccionadoVisual(t.NombreTanque);
+    setVisualModalOpen(true);
+  }}
+  sx={{
+    cursor: "pointer",
+    userSelect: "none",
+    color: "#1976d2", // Azul tipo link
+    fontWeight: 600,
+    textDecoration: "underline",
+    "&:hover": {
+      color: "#004ba0", // más oscuro al pasar el mouse
+      textDecoration: "underline",
+    },
+  }}
+>
+  TK-{t.NombreTanque}
+</TableCell>
+                <TableCell align="center">{t.Disposicion}</TableCell>
+                <TableCell align="center">{t.Factor}</TableCell>
+                <TableCell align="center">{(t.Factor)/100}</TableCell>
+                <TableCell align="center">
+                  {t.VolumenTotal
+                    ? Number(t.VolumenTotal)+" "+ "L"
+                    : "N/A"}
+                </TableCell>
+                <TableCell align="center">
+                  {t.VolumenTotal
+                    ? Number(t.VolumenTotal/1000).toFixed(2)+" "+ "m³"
+>>>>>>> e376955c30d49624222615a059ac9bbf511f7fb3
                     : "N/A"}
                 </TableCell>
                 <TableCell align="center">
@@ -257,7 +354,11 @@ const TanquesList = () => {
                       color="primary"
                       onClick={() => {
                         setSelectedTanque(t);
+<<<<<<< HEAD
                         setOperacionEjecutada("update");
+=======
+                        setOperacionEjecutada("update")
+>>>>>>> e376955c30d49624222615a059ac9bbf511f7fb3
                         setModalOpen(true);
                       }}
                     >
