@@ -22,6 +22,8 @@ const PaperComponent = (props) => {
 };
 
 const TanquesModal = ({ open, onClose, onSubmit, initialData }) => {
+  console.log("initialData:",initialData);
+  
   const [formData, setFormData] = useState({
     NombreTanque: "",
     Disposicion: "",
@@ -36,6 +38,7 @@ const TanquesModal = ({ open, onClose, onSubmit, initialData }) => {
         Disposicion: initialData.Disposicion || "",
         Factor: initialData.Factor || "",
         VolumenTotal: initialData.VolumenTotal || "",
+        _id: initialData._id || "",
       });
     } else {
       setFormData({
@@ -43,6 +46,7 @@ const TanquesModal = ({ open, onClose, onSubmit, initialData }) => {
         Disposicion: "",
         Factor: "",
         VolumenTotal: "",
+        _id:""
       });
     }
   }, [initialData, open]);
@@ -91,6 +95,7 @@ const TanquesModal = ({ open, onClose, onSubmit, initialData }) => {
             name="NombreTanque"
             value={formData.NombreTanque}
             onChange={handleChange}
+            placeholder="Ingrese nombre sin prefijos ni espacios ej : 300A ⛔ NO tk300A"
             fullWidth
           />
           <TextField
@@ -98,6 +103,7 @@ const TanquesModal = ({ open, onClose, onSubmit, initialData }) => {
             name="Disposicion"
             value={formData.Disposicion}
             onChange={handleChange}
+            placeholder="Describa el Uso del Tanque. ej: Materia Prima"
             fullWidth
           />
           <TextField
@@ -105,7 +111,7 @@ const TanquesModal = ({ open, onClose, onSubmit, initialData }) => {
             name="Factor"
             value={formData.Factor}
             onChange={handleChange}
-            type="number"
+            placeholder="Factor en L/m"
             fullWidth
           />
           <TextField
@@ -113,7 +119,7 @@ const TanquesModal = ({ open, onClose, onSubmit, initialData }) => {
             name="VolumenTotal"
             value={formData.VolumenTotal}
             onChange={handleChange}
-            type="number"
+            placeholder="Volumen en Litros "
             fullWidth
           />
         </Box>

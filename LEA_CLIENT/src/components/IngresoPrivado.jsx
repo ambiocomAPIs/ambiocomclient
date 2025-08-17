@@ -87,9 +87,9 @@ const LoginBox = () => {
 
       <div style={{
         position: 'absolute',
-        top: '35%',
-        left: '40%',
-        transform: 'translate(-50%, -50%)',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%) scale(1.5)',
         backgroundColor: 'rgba(255, 255, 255, 0.85)',
         padding: '40px 30px',
         borderRadius: '10px',
@@ -98,7 +98,6 @@ const LoginBox = () => {
         boxShadow: '0 0 15px rgba(0,0,0,0.3)',
         textAlign: 'center',
         backdropFilter: 'blur(5px)',
-        transform : 'scale(1.4)'
       }}>
         <div style={{ marginBottom: '20px' }}>
           <img src="/ambiocom.png" alt="Logo" style={{ maxWidth: '250px', height: 'auto' }} />

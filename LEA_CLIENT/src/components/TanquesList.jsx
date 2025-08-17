@@ -25,6 +25,7 @@ const TanquesList = () => {
   const [selectedTanque, setSelectedTanque] = useState(null);
   const [visualModalOpen, setVisualModalOpen] = useState(false);
   const [tanqueSeleccionadoVisual, setTanqueSeleccionadoVisual] = useState("");
+  const [operacionEjecutada, setOperacionEjecutada] = useState("");
 
   const fetchTanques = async () => {
     try {
@@ -46,11 +47,13 @@ const TanquesList = () => {
 
   const handleSubmit = async (data) => {
     try {
-      if (data._id) {
+      const { _id, ...dataLimpia } = data;  // elimino el id del objeto
+
+      if (data._id && operacionEjecutada === "update") {
         await axios.put(`https://ambiocomserver.onrender.com/api/tanques/${data._id}`, data);
         Swal.fire("Actualizado", "Tanque actualizado correctamente", "success");
       } else {
-        await axios.post("https://ambiocomserver.onrender.com/api/tanques", data);
+        await axios.post("https://ambiocomserver.onrender.com/api/tanques", dataLimpia);
         Swal.fire("Creado", "Tanque registrado correctamente", "success");
       }
       fetchTanques();
@@ -90,8 +93,20 @@ const TanquesList = () => {
 
   return (
     <Box p={4}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} mt={5}>
-        <Typography variant="h4" fontWeight="bold" color="primary.dark" align="left" sx={{ flex: 1 }}>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={3}
+        mt={5}
+      >
+        <Typography
+          variant="h4"
+          fontWeight="bold"
+          color="primary.dark"
+          align="left"
+          sx={{ flex: 1 }}
+        >
           Gestión de Tanques
         </Typography>
         <Button
@@ -104,15 +119,95 @@ const TanquesList = () => {
         </Button>
       </Box>
 
-      <TableContainer component={Paper} elevation={3} sx={{ borderRadius: 3 }}>
-        <Table>
+      <TableContainer
+        component={Paper}
+        elevation={3}
+        sx={{
+          borderRadius: 3,
+          maxHeight: "calc(100vh - 200px)", // Ajusta según tu layout
+          overflow: "auto",
+        }}
+      >
+        <Table stickyHeader>
           <TableHead>
+            <TableRow sx={{ backgroundColor: "#e0e0e0" }}>
+              <TableCell
+                align="center"
+                colSpan={2}
+                sx={{
+                  borderRight: "2px solid #bdbdbd",
+                  position: "sticky",
+                  top: 0,
+                  backgroundColor: "#e0e0e0",
+                  zIndex: 1,
+                }}
+              >
+                <strong>Información</strong>
+              </TableCell>
+              <TableCell
+                align="center"
+                colSpan={2}
+                sx={{
+                  borderRight: "2px solid #bdbdbd",
+                  position: "sticky",
+                  top: 0,
+                  backgroundColor: "#e0e0e0",
+                  zIndex: 1,
+                }}
+              >
+                <strong>Factores</strong>
+              </TableCell>
+              <TableCell
+                align="center"
+                colSpan={2}
+                sx={{
+                  position: "sticky",
+                  top: 0,
+                  backgroundColor: "#e0e0e0",
+                  zIndex: 1,
+                }}
+              >
+                <strong>Volumen</strong>
+              </TableCell>
+              <TableCell
+                align="center"
+                rowSpan={2}
+                sx={{
+                  borderLeft: "2px solid #bdbdbd",
+                  position: "sticky",
+                  top: 0,
+                  backgroundColor: "#e0e0e0",
+                  zIndex: 1,
+                }}
+              >
+                <strong>Acciones</strong>
+              </TableCell>
+            </TableRow>
+
             <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-              <TableCell><strong>Nombre</strong></TableCell>
-              <TableCell><strong>Disposición</strong></TableCell>
-              <TableCell><strong>Factor</strong></TableCell>
-              <TableCell><strong>Volumen Total</strong></TableCell>
-              <TableCell align="center"><strong>Acciones</strong></TableCell>
+              {[
+                "Nombre del Tanque",
+                "Disposición [Uso Actual]",
+                "Factor [L/m]",
+                "Factor [L/cm]",
+                "Volumen Total [L]",
+                "Volumen Total [m³]",
+              ].map((text, index) => (
+                <TableCell
+                  align="center"
+                  key={index}
+                  sx={{
+                    position: "sticky",
+                    top: 40,
+                    backgroundColor: "#f5f5f5",
+                    zIndex: 1,
+                    borderRight:
+                      index === 1 || index === 3 ? "2px solid #e0e0e0" : "none",
+                  }}
+                >
+                  <strong>{text}</strong>
+                </TableCell>
+              ))}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -126,19 +221,34 @@ const TanquesList = () => {
                 }}
               >
                 <TableCell
+                  align="center"
                   onDoubleClick={() => {
                     setTanqueSeleccionadoVisual(t.NombreTanque);
                     setVisualModalOpen(true);
                   }}
-                  sx={{ cursor: "pointer", userSelect: "none" }}
+                  sx={{
+                    cursor: "pointer",
+                    userSelect: "none",
+                    color: "#1976d2", // Azul tipo link
+                    fontWeight: 600,
+                    textDecoration: "underline",
+                    "&:hover": {
+                      color: "#004ba0", // más oscuro al pasar el mouse
+                      textDecoration: "underline",
+                    },
+                  }}
                 >
-                  {t.NombreTanque}
+                  TK-{t.NombreTanque}
                 </TableCell>
-                <TableCell>{t.Disposicion}</TableCell>
-                <TableCell>{t.Factor}</TableCell>
-                <TableCell>
+                <TableCell align="center">{t.Disposicion}</TableCell>
+                <TableCell align="center">{t.Factor}</TableCell>
+                <TableCell align="center">{t.Factor / 100}</TableCell>
+                <TableCell align="center">
+                  {t.VolumenTotal ? Number(t.VolumenTotal) + " " + "L" : "N/A"}
+                </TableCell>
+                <TableCell align="center">
                   {t.VolumenTotal
-                    ? Number(t.VolumenTotal).toLocaleString("es-CO") + " L"
+                    ? Number(t.VolumenTotal / 1000).toFixed(2) + " " + "m³"
                     : "N/A"}
                 </TableCell>
                 <TableCell align="center">
@@ -147,6 +257,7 @@ const TanquesList = () => {
                       color="primary"
                       onClick={() => {
                         setSelectedTanque(t);
+                        setOperacionEjecutada("update");
                         setModalOpen(true);
                       }}
                     >

@@ -136,36 +136,37 @@ const TanqueVisualModal = ({ open, onClose, nombreTanque }) => {
 
             {/* Tarjeta con dimensiones */}
             {dimensiones && (
-  <Box
-    sx={{
-      position: "absolute",
-      bottom: 10,
-      right: -100,
-      backgroundColor: "rgba(255, 255, 255, 0.85)",
-      borderRadius: 2,
-      padding: "8px 12px",
-      boxShadow: 3,
-      zIndex: 1,
-    }}
-  >
-    <Typography variant="body2">
-      <strong>Material:</strong> {dimensiones.material}
-    </Typography>
-    <Typography variant="body2">
-      <strong>Altura:</strong> {dimensiones.altura}
-    </Typography>
-    <Typography variant="body2">
-      <strong>Diámetro:</strong> {dimensiones.diametro}
-    </Typography>
-    <Typography variant="body2">
-      <strong>Volumen:</strong> {dimensiones.volumen}
-    </Typography>
-  </Box>
-)}
+              <Box
+                sx={{
+                  position: "absolute",
+                  bottom: 10,
+                  right: -100,
+                  backgroundColor: "rgba(255, 255, 255, 0.85)",
+                  borderRadius: 2,
+                  padding: "8px 12px",
+                  boxShadow: 3,
+                  zIndex: 1,
+                }}
+              >
+                <Typography variant="body2">
+                  <strong>Material:</strong> {dimensiones.material}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Altura:</strong> {dimensiones.altura}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Diámetro:</strong> {dimensiones.diametro}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Volumen:</strong> {dimensiones.volumen}
+                </Typography>
+              </Box>
+            )}
           </Box>
         ) : (
           <Typography variant="body1" color="text.secondary">
-            No se encontró una imagen para el tanque <strong>{nombreTanque}</strong>.
+            No se encontró una imagen para el tanque{" "}
+            <strong>{nombreTanque}</strong>.
           </Typography>
         )}
       </DialogContent>

@@ -50,6 +50,8 @@ import CubaDeFermentacion from '../TanquesVistaNiveles/CubasDeFermentacion';
 import TanquesUnidadCien from '../TanquesVistaNiveles/Unidad100';
 import UnidadOchoCientosAlmacenamiento from '../TanquesVistaNiveles/Unidad800'
 import Unidad400Component from '../TanquesVistaNiveles/Unidad400.jsx';
+//empelados
+import EmpleadosManager from '../EmpleadosManager/EmpleadosAmbiocomList.jsx';
 //Modulo DB
 import ConsultasHttpDb from '../DB_Consultas_View/ConsultasHttpDb.jsx';
 //Utils
@@ -58,7 +60,7 @@ import { validarSesion } from '../../utils/configuraciones/validarSesion.js';
 //importacion de iconos
 import {
     tanqueIcon, factoryIcon, despachoIcon, despachoSalidaIcon, despachoRecepcionIcon, laboratoryIcon, inventoryIcon, rulerIcon, oilTankIcon, coalInventoryIcon,
-    ptapIcon, GraphIcon, BarGraphIcon, BarGraphComparativeIcon, robotAssistanceIcon, bitacoraIcon, StopWatchIcon, PdfIcon, DatabaseAdministratorIcon
+    ptapIcon, GraphIcon, BarGraphIcon, BarGraphComparativeIcon, robotAssistanceIcon, bitacoraIcon, StopWatchIcon, PdfIcon, DatabaseAdministratorIcon, workerIcon
 } from '../../utils/icons/SvgIcons.js'
 
 import SGMRC from '../SGMRC';
@@ -115,6 +117,7 @@ const menuItems = [
     },
     { text: 'Laboratorio', icon: <img src={laboratoryIcon} alt="laboratorio" style={{ width: 25, height: 25 }} />, key: 'Laboratorio' },
     { text: 'Planta de Aguas', icon: <img src={ptapIcon} alt="plantadeaguas" style={{ width: 25, height: 25 }} />, key: 'plantadeaguas' },
+    { text: 'Registro Trabajadores', icon: <img src={workerIcon} alt="empleadosambiocom" style={{ width: 25, height: 25 }} />, key: 'empleadosambiocom' },
     { text: 'DB Aministrator', icon: <img src={DatabaseAdministratorIcon} alt="basededatos" style={{ width: 25, height: 25 }} />, key: 'basededatos' },
     { text: 'Assistance', icon: <img src={robotAssistanceIcon} alt="robotassistance" style={{ width: 25, height: 25 }} />, key: 'robotassistance' },
 ];
@@ -168,6 +171,7 @@ export default function MedicalSchedulerApp() {
             case 'basededatos': return <ConsultasHttpDb />;
             case 'robotassistance': return <ChatBox />;
             case 'tanquescrud': return <TanquesList />;
+            case 'empleadosambiocom': return <EmpleadosManager />;
             default: return null;
         }
     };
