@@ -12,6 +12,7 @@ import PanelHoras from './components/PanelHoras'
 import IngresoPrivado from './components/IngresoPrivado'
 import ComponentePrincipalSlidebar from './components/PaginaPrincipal/ComponentePrincipalSlideBar'
 import { Typography } from '@mui/material';
+import CargarMasivaTanquesDiariosExcel from './utils/Functions/CargaMasivaNivelesTanques/CargaMasivaNivelesTanquesJornaleros';
 
 
 function App() {
@@ -28,7 +29,8 @@ function App() {
         <Route path="/colors" element = {<CodificacionDeColoresComponent/>}/>
         <Route path="/mesescerrados" element = {<MesesCerrados/>}/>
         <Route path="/seguimientotanquesjornaleros" element = {<SeguimientoTKJornaleros/>}/>
-        <Route path="/cargamasivatanquesjornaleros" element = {<UploadExcelTanquesDiariosMasivo/>}/>
+        {/* <Route path="/cargamasivatanquesjornaleros" element = {<UploadExcelTanquesDiariosMasivo/>}/> */}
+        <Route path="/cargamasivatanquesjornaleros" element = {<CargarMasivaTanquesDiariosExcel/>}/>
         <Route path="/bitacoradeturnosproduccion" element = {<BitacoraComponentProduccion/>}/>
        </Routes>
       </BrowserRouter>

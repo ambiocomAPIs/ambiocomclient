@@ -1,63 +1,60 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { Box, Typography, Modal, TextField, Button, IconButton, Tooltip, CircularProgress} from '@mui/material';
-
+import { 
+  Box, Typography, Modal, TextField, Button, IconButton, Tooltip, 
+  CircularProgress, Grid, Divider
+} from '@mui/material';
 import Swal from 'sweetalert2';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
+import SortByAlphaIcon from '@mui/icons-material/SortByAlpha';
+
 const styleModal = {
   position: 'absolute',
   top: '50%',
   left: '50%',
   transform: 'translate(-50%, -50%)',
-  width: 450,
+  width: '80vw',
+  maxWidth: '1200px',
   maxHeight: '90vh',
-  overflowY: 'auto',
   bgcolor: 'background.paper',
-  borderRadius: '8px',
+  borderRadius: '16px',
   boxShadow: 24,
-  p: 4,
+  display: 'flex',
+  flexDirection: 'column',
 };
 
 const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
-
-  // LOADING PARA evitar doble peticion
   const [loadingButton, setLoadingButton] = React.useState(false);
-  // No mover de posicion, la posicion es clave para el funcionamiento, debe estar por encima de los estados
   const LOCAL_STORAGE_KEY = 'nivelesTanquesJornalerosDraft';
-
-  const draft = (() => {
-    try {
-      return JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || {};
-    } catch (e) {
-      console.error("Error al parsear localStorage:", e);
-      return {};
-    }
-  })();
-
+  
   const [tanquesData, setTanquesData] = useState([]);
   const [inputs, setInputs] = useState({});
   const [responsable, setResponsable] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [fecha, setFecha] = useState('');
-  const [eliminados, setEliminados] = useState(0);
-  // trae los usurios del sesio storage
   const [usuario, setUsuario] = useState(null);
 
-  // guarda cada qe cambien los inputs
+  const [ordenAsc, setOrdenAsc] = useState(true); // A-Z por defecto
+
+  // Recuperar datos de usuario de sesión
+  useEffect(() => {
+    const storedUser = sessionStorage.getItem("usuario");
+    if (storedUser) {
+      try { setUsuario(JSON.parse(storedUser)); }
+      catch (e) { console.error("Error al parsear usuario:", e); }
+    }
+  }, []);
+
+  // Guardar borrador en localStorage
   useEffect(() => {
     const hayDatos = Object.keys(inputs).length > 0 || responsable || observaciones || fecha;
-  
     if (hayDatos) {
-      const draftData = {
-        inputs,
-        responsable,
-        observaciones,
-        fecha,
-      };
+      const draftData = { inputs, responsable, observaciones, fecha };
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(draftData));
     }
   }, [inputs, responsable, observaciones, fecha]);
 
+  // Recuperar borrador al abrir modal
   useEffect(() => {
     if (open) {
       const draft = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -75,292 +72,230 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
     }
   }, [open]);
 
-  const handleCancelar = () => {
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
-    onClose();
-  };
-
-  useEffect(() => {
-   const storedUser = sessionStorage.getItem("usuario");
-    if (storedUser) {
-     try {
-      setUsuario(JSON.parse(storedUser));
-     } catch (e) {
-       console.error("Error al parsear usuario:", e);
-     }
-   }
-  }, []);
-
+  // Traer datos de tanques
   useEffect(() => {
     axios
-      .get('https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros')
-      .then((res) => {
-        setTanquesData(res.data);
-      })
-      .catch((err) => {
-        console.error('Error al obtener tanques:', err);
-      });
+      .get('https://ambiocomserver.onrender.com/api/tanques')
+      .then((res) => setTanquesData(res.data))
+      .catch((err) => console.error('Error al obtener tanques:', err));
   }, []);
 
   const handleInputChange = (name, value) => {
-    setInputs((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
+    setInputs((prev) => ({ ...prev, [name]: value }));
   };
-
-  const handleSubmit = () => {
-    setLoadingButton(true)
-    //const hoy = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD ojo toma en otra zona horaria
-    const hoy = new Date().toLocaleDateString('en-CA'); // Formato YYYY-MM-DD
-    const datosAEnviar = tanquesUnicos.map((tanque) => ({
-      NombreTanque: tanque.NombreTanque,
-      NivelTanque: Number(inputs[tanque.NombreTanque]) || 0,
-      Responsable: responsable,
-      Observaciones: observaciones,
-      FechaRegistro: fecha,
-    }));
-
-    if(fecha == "" || fecha == null || fecha == undefined)
-     {
-      onClose()
-      Swal.fire({
-        title: 'Fecha Incorrecta',
-        text: 'Por Favor Selecciona Una Fecha Valida',
-        icon: "question",
-        confirmButtonText: 'Aceptar',
-      })
-     }else{
-      axios
-      .post(
-         'https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros',datosAEnviar
-      )
-      .then((res) => {
-        setLoadingButton(true)
-        localStorage.removeItem(LOCAL_STORAGE_KEY);
-        onClose();
-        Swal.fire({
-          title: '¡Éxito!',
-          text: 'Los datos se han subido correctamente.',
-          icon: 'success',
-          confirmButtonText: 'Aceptar',
-        }).then(() => {
-          window.location.reload();
-        });
-      })
-      .catch((err) => {
-        console.error('Error al enviar los datos:', err);
-        setLoadingButton(false)
-        onClose();
-        // Alerta de error con SweetAlert
-        Swal.fire({
-          title: '¡Error!',
-          text: `error al subir los datos: ${err.response.data.error}`,
-          icon: 'error',
-          confirmButtonText: 'Aceptar',
-        });
-      });
-     }
-  };
-
-  const handleEliminarPorFecha = async () => {
-    setEliminados(0);
-  
-    if (!fecha) {
-      onClose();
-      Swal.fire({
-        title: 'No se ha asociado una Fecha',
-        text: 'Por favor asocie una fecha a la operación',
-        icon: 'error',
-        confirmButtonText: 'Aceptar',
-      });
-      return;
-    }
-    onClose();
-    const confirmacion = await Swal.fire(
-      {
-      title: '¿Estás seguro?',
-      text: `¿Deseas eliminar los datos del día ${fecha}? Esta acción no se puede deshacer.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Sí, continuar',
-      cancelButtonText: 'Cancelar',
-    });
-  
-    if (!confirmacion.isConfirmed) {
-      return;
-    }
-  
-    const clavePrompt = await Swal.fire({
-      title: 'Confirmación requerida',
-      text: 'Por favor ingresa la clave para continuar:',
-      input: 'password',
-      inputPlaceholder: 'Clave de autorización',
-      inputAttributes: {
-        autocapitalize: 'off',
-        autocorrect: 'off'
-      },
-      showCancelButton: true,
-      confirmButtonText: 'Eliminar',
-      cancelButtonText: 'Cancelar',
-      inputValidator: (value) => {
-        if (!value) return 'Debes ingresar una clave.';
-        return null;
-      }
-    });
-  
-    const claveIngresada = clavePrompt.value;
-    // Validar clave
-    const CLAVE_AUTORIZADA = 'admin123'; 
-    if (claveIngresada !== CLAVE_AUTORIZADA) {
-      onClose();
-      Swal.fire({
-        title: 'Clave incorrecta',
-        text: 'La clave que ingresaste no es válida.',
-        icon: 'error',
-        confirmButtonText: 'Aceptar',
-      });
-      return;
-    }
-    try {
-      const response = await axios.delete('https://ambiocomserver.onrender.com/api/tanquesjornaleros/eliminarporfecha', {
-        data: { FechaRegistro: fecha },
-      });
-  
-      onClose();
-      Swal.fire({
-        title: 'Datos eliminados',
-        text: `Los datos del ${fecha} se han eliminado correctamente.`,
-        icon: 'success',
-        confirmButtonText: 'Aceptar',
-      });
-      window.location.reload();
-    } catch (err) {
-      console.error(err);
-      onClose();
-      Swal.fire({
-        title: 'Error al eliminar los registros',
-        text: err.response?.data?.message || 'Ocurrió un error al eliminar los registros.',
-        icon: 'error',
-        confirmButtonText: 'Aceptar',
-      });
-    }
-  };
-
-  // no filtra por orden, solo que sean unicos
-  // const tanquesUnicos = Array.from(
-  //   new Map(tanquesData.map((t) => [t.NombreTanque, t])).values()
-  // );
-
-  const tanquesUnicos = Array.from(
-    new Map(tanquesData.map((t) => [t.NombreTanque, t])).values()
-  ).sort((a, b) => {
-    const numA = parseFloat(a.NombreTanque);
-    const numB = parseFloat(b.NombreTanque);
-  
-    if (!isNaN(numA) && !isNaN(numB)) {
-      return numA - numB;
-    }
-  
-    return b.NombreTanque.localeCompare(a.NombreTanque);
-  });
-  
 
   const handleChangeFecha = (e) => {
     setFecha(e.target.value);
-    setLoadingButton(false)
-    console.log("fecha seleccionada:", e.target.value);
-    
+    setLoadingButton(false);
   };
+
+  const handleSubmit = async () => {
+    if (!fecha) {
+      Swal.fire("Error", "Debe seleccionar una fecha antes de reportar.", "error");
+      return;
+    }
+
+    setLoadingButton(true);
+
+    try {
+      const payload = {
+        fecha,
+        responsable,
+        observaciones,
+        registros: Object.keys(inputs).map((nombreTanque) => ({
+          NombreTanque: nombreTanque,
+          Nivel: inputs[nombreTanque] || 0,
+        })),
+        usuario: usuario?.nombre || "Desconocido",
+      };
+
+      await axios.post("https://ambiocomserver.onrender.com/api/reportesTanquesJornaleros", payload);
+
+      Swal.fire("Éxito", "Reporte guardado correctamente.", "success");
+      localStorage.removeItem(LOCAL_STORAGE_KEY); // limpiar borrador
+      setInputs({});
+      setResponsable("");
+      setObservaciones("");
+      setFecha("");
+      onClose();
+    } catch (err) {
+      console.error("Error al guardar reporte:", err);
+      Swal.fire("Error", "No se pudo guardar el reporte.", "error");
+    } finally {
+      setLoadingButton(false);
+    }
+  };
+
+  const handleEliminarPorFecha = async () => {
+    if (!fecha) {
+      Swal.fire("Error", "Debe seleccionar una fecha para eliminar registros.", "error");
+      return;
+    }
+
+    const confirm = await Swal.fire({
+      title: "¿Eliminar registros?",
+      text: `Se eliminarán los registros del ${fecha}. Esta acción no se puede deshacer.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (confirm.isConfirmed) {
+      try {
+        await axios.delete(`https://ambiocomserver.onrender.com/api/reportesTanquesJornaleros/${fecha}`);
+        Swal.fire("Eliminado", "Los registros fueron eliminados.", "success");
+      } catch (err) {
+        console.error("Error al eliminar registros:", err);
+        Swal.fire("Error", "No se pudo eliminar el registro.", "error");
+      }
+    }
+  };
+
+  // ===== ORDEN BASE A-Z (siempre) + de-duplicado =====
+  const tanquesOrdenadosAZ = useMemo(() => {
+    const unicos = Array.from(
+      new Map(
+        tanquesData
+          .filter(t => t?.NombreTanque && String(t.NombreTanque).trim() !== '')
+          .map(t => [String(t.NombreTanque).trim(), t])
+      ).values()
+    );
+
+    // Orden natural A-Z (ignora mayúsculas/acentos y respeta números en el nombre)
+    return unicos.sort((a, b) =>
+      String(a.NombreTanque).localeCompare(
+        String(b.NombreTanque),
+        'es',
+        { numeric: true, sensitivity: 'base' }
+      )
+    );
+  }, [tanquesData]);
+
+  // Lista final según toggle (A-Z por defecto; Z-A si se invierte)
+  const listaParaMostrar = ordenAsc ? tanquesOrdenadosAZ : [...tanquesOrdenadosAZ].reverse();
 
   return (
     <Modal open={open} onClose={onClose}>
       <Box sx={styleModal}>
-        <Typography variant="h5" mb={3} textAlign="center" color="blue">
-          MEDIDAS DE LOS TANQUES
-        </Typography>
-        {tanquesData.length === 0 ? (
-          <Typography>No hay datos de tanques disponibles.</Typography>
-        ) : (
-          tanquesUnicos.map((tanque, index) => (
-            <Box key={index} sx={{ mb: 0 }}>
+        {/* Header con botón ordenar */}
+        <Box sx={{ px: 3, pt: 2, display: "flex", justifyContent: "space-between", alignItems:"center" }}>
+          <Typography variant="h5" textAlign="center" fontWeight="bold" color="primary">
+            Reporte de Niveles de Tanques
+          </Typography>
+
+          <Tooltip title={ordenAsc ? "Ordenar Z-A" : "Ordenar A-Z"}>
+            <IconButton color="primary" onClick={() => setOrdenAsc(!ordenAsc)}>
+              <SortByAlphaIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        {/* Contenido scrollable */}
+        <Box sx={{ flex: 1, overflowY: "auto", px: 3, pb: 2 }}>
+          {listaParaMostrar.length === 0 ? (
+            <Typography color="text.secondary">No hay datos de tanques disponibles.</Typography>
+          ) : (
+            <Grid container spacing={2} sx={{mt:"1px"}}>
+              {listaParaMostrar.map((tanque) => (
+                <Grid item xs={12} sm={6} md={4} key={tanque.NombreTanque} >
+                  <TextField
+                    label={'Tanque ' + tanque.NombreTanque}
+                    type="number"
+                    fullWidth
+                    size="small"
+                    value={inputs[tanque.NombreTanque] || ''}
+                    onChange={(e) =>
+                      handleInputChange(tanque.NombreTanque, e.target.value)
+                    }
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          )}
+
+          <Divider sx={{ my: 3 }} />
+
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={3}>
               <TextField
-                label={'TK-' + tanque.NombreTanque}
-                type="number"
+                label="Responsable"
                 fullWidth
-                value={inputs[tanque.NombreTanque] || ''}
-                onChange={(e) =>
-                  handleInputChange(tanque.NombreTanque, e.target.value)
-                }
-                sx={{ mb: 2 }}
+                size="small"
+                value={responsable}
+                onChange={(e) => setResponsable(e.target.value)}
               />
-            </Box>
-          ))
-        )}
+            </Grid>
 
-        <TextField
-          label="Responsable"
-          fullWidth
-          value={responsable}
-          onChange={(e) => setResponsable(e.target.value)}
-          sx={{ mb: 2 }}
-        />
+            <Grid item xs={12} sm={9}>
+              <TextField
+                label="Observaciones"
+                fullWidth
+                size="small"
+                value={observaciones}
+                onChange={(e) => setObservaciones(e.target.value)}
+              />
+            </Grid>
+          </Grid>
+        </Box>
 
-        <TextField
-          label="Observaciones"
-          fullWidth
-          value={observaciones}
-          onChange={(e) => setObservaciones(e.target.value)}
-          sx={{ mb: 2 }}
-        />
-
-        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        {/* Footer fijo */}
+        <Divider />
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems:"center", 
+            px: 3, py: 2, 
+            bgcolor: "grey.50", 
+            borderBottomLeftRadius: "16px",
+            borderBottomRightRadius: "16px"
+          }}
+        >
           <Button variant="outlined" color="secondary" onClick={onClose}>
             Cancelar
           </Button>
-          <input 
-           type="date" 
-           value={fecha} 
-           onChange={handleChangeFecha} 
-           max={new Date().toLocaleDateString('en-CA')}  // maximo hoy
-           style={{
-            padding: '10px 12px',
-            fontSize: '16px',
-            borderRadius: '6px',
-            border: '1px solid #ccc',
-            backgroundColor: '#fff',
-            color: '#333',
-            boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.1)',
-            outline: 'none',
-            transition: 'border-color 0.2s ease-in-out',
-           }}
-           onFocus={(e) => (e.target.style.borderColor = '#007bff')}
-           onBlur={(e) => (e.target.style.borderColor = '#ccc')}
-          />
-          <Button 
-            variant="contained" 
-            disabled={loadingButton} 
-            color="primary" 
-            onClick={handleSubmit}  
-            endIcon={
-              loadingButton ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                <></>
-              )
-            }
+
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <input 
+              type="date" 
+              value={fecha} 
+              onChange={handleChangeFecha} 
+              max={new Date().toLocaleDateString('en-CA')}  
+              style={{
+                padding: '8px 12px',
+                fontSize: '14px',
+                borderRadius: '8px',
+                border: '1px solid #ccc',
+                backgroundColor: '#fff',
+                color: '#333',
+              }}
+            />
+
+            <Button 
+              variant="contained" 
+              disabled={loadingButton} 
+              color="primary" 
+              onClick={handleSubmit}  
+              endIcon={loadingButton ? <CircularProgress size={20} color="inherit" /> : null}
             >
-            Reportar
-          </Button>
-          <Tooltip title="Eliminar Registro" enterDelay={100}>
-          <IconButton color="error" onClick={handleEliminarPorFecha} 
-             disabled={!['developer','gerente'].includes(usuario?.rol)}
-          >
-            <DeleteForeverIcon />
-          </IconButton>
-          </Tooltip>
+              Reportar
+            </Button>
+
+            <Tooltip title="Eliminar Registro" enterDelay={100}>
+              <span>
+                <IconButton 
+                  color="error" 
+                  onClick={handleEliminarPorFecha} 
+                  disabled={!['developer','gerente'].includes(usuario?.rol)}
+                >
+                  <DeleteForeverIcon />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Box>
         </Box>
       </Box>
     </Modal>
