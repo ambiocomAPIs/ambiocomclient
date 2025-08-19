@@ -4,12 +4,13 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Button, Typography, Box, Paper, IconButton } from "@mui/material";
 import { Upload, Save, ArrowBack } from "@mui/icons-material";
+
 import Swal from "sweetalert2";
+import { LinearProgress } from "@mui/material"; // importa LinearProgress arriba
 
 export default function UploadExcelPage() {
-  
   const navigate = useNavigate();
-  
+
   const [excelData, setExcelData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -199,19 +200,47 @@ export default function UploadExcelPage() {
                 ))}
               </tbody>
             </table>
+            {/* ✅ Texto centrado mientras carga */}
+            {loading && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  backgroundColor: "rgba(51, 147, 177, 0.9)",
+                  color: "white",
+                  p: 2,
+                  borderRadius: 2,
+                  boxShadow: 3,
+                  textAlign: "center",
+                }}
+              >
+                <span>Procesando y almacenando en la Base de Datos...</span>
+              </Box>
+            )}
           </div>
 
           {/* 🚀 Botón para enviar al backend */}
-          <Button
-            variant="contained"
-            color="success"
-            startIcon={<Save />}
-            sx={{ mt: 2 }}
-            onClick={handleSendToBackend}
-            disabled={loading}
-          >
-            {loading ? "Enviando..." : "Guardar en servidor"}
-          </Button>
+          <Box sx={{ mt: 2 }}>
+            <Button
+              variant="contained"
+              color="success"
+              startIcon={<Save />}
+              sx={{ mt: 2 }}
+              onClick={handleSendToBackend}
+              disabled={loading}
+            >
+              {loading ? "Enviando..." : "Guardar en servidor"}
+            </Button>
+            {/* ✅ Barra de carga horizontal */}
+            {loading && (
+              <LinearProgress
+                sx={{ mt: 1, height: 6, borderRadius: 3 }} // opcional: altura y bordes redondeados
+                color="success"
+              />
+            )}
+          </Box>
         </Paper>
       )}
     </Box>
