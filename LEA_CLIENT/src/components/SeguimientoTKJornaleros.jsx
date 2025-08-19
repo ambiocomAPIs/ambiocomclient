@@ -19,6 +19,8 @@ import {
   MenuItem,
 } from "@mui/material";
 
+import { AddCircleOutline } from "@mui/icons-material";
+
 import SpeedDialComponent from "../utils/speedDial/SpeedDial";
 import ExcelStyleFooter from "../utils/ExcelStyleFooter";
 import ReportarNivelesTanquesJornaleros from "../utils/modals/ReportarNivelesTanquesJornaleros";
@@ -256,7 +258,11 @@ function SeguimientoTKJornaleros() {
           InputLabelProps={{
             shrink: true,
           }}
-          sx={{ width: "12%", marginLeft: "0px", backgroundColor:"whitesmoke" }}
+          sx={{
+            width: "12%",
+            marginLeft: "0px",
+            backgroundColor: "whitesmoke",
+          }}
         />
 
         <TextField
@@ -265,15 +271,30 @@ function SeguimientoTKJornaleros() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           size="small"
-          sx={{ width: "12%", marginLeft: "10px", backgroundColor:"whitesmoke" }}
+          sx={{
+            width: "12%",
+            marginLeft: "10px",
+            backgroundColor: "whitesmoke",
+          }}
         />
 
         <Typography
           variant="h4"
-          sx={{ textAlign: "center", flexGrow: 1, marginLeft: "-550px" }}
+          sx={{ textAlign: "center", flexGrow: 1, marginLeft: "-180px" }}
         >
           Niveles de Tanques Jornaleros
         </Typography>
+
+        {/* Botón carga masiva */}
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddCircleOutline />}
+          onClick={() => navigate("/cargamasivatanquesjornaleros")}
+          sx={{ ml: 2 }}
+        >
+          Carga Masiva de Datos
+        </Button>
       </Box>
 
       <Stack spacing={2}>

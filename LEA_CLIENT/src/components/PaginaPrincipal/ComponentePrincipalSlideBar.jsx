@@ -24,16 +24,6 @@ import {
     ExpandLess,
     ExpandMore,
     Menu as MenuIcon,
-    PersonAdd as PersonAddIcon,
-    EventAvailable as EventAvailableIcon,
-    CalendarToday as CalendarTodayIcon,
-    History as HistoryIcon,
-    AssignmentTurnedIn as AssignmentTurnedInIcon,
-    Inventory2 as Inventory2Icon,
-    Group as GroupIcon,
-    ListAlt as ListAltIcon,
-    DateRange as DateRangeIcon,
-    Image as ImageIcon,
 } from '@mui/icons-material';
 
 //Modulo Produccion
@@ -56,73 +46,27 @@ import EmpleadosManager from '../EmpleadosManager/EmpleadosAmbiocomList.jsx';
 import ConsultasHttpDb from '../DB_Consultas_View/ConsultasHttpDb.jsx';
 //Utils
 import { validarSesion } from '../../utils/configuraciones/validarSesion.js';
-
+//modulo inventario
+import SGMRC from '../SGMRC';
 //importacion de iconos
 import {
     tanqueIcon, factoryIcon, despachoIcon, despachoSalidaIcon, despachoRecepcionIcon, laboratoryIcon, inventoryIcon, rulerIcon, oilTankIcon, coalInventoryIcon,
     ptapIcon, GraphIcon, BarGraphIcon, BarGraphComparativeIcon, robotAssistanceIcon, bitacoraIcon, StopWatchIcon, PdfIcon, DatabaseAdministratorIcon, workerIcon
 } from '../../utils/icons/SvgIcons.js'
 
-import SGMRC from '../SGMRC';
+// importacion contexto de tanques
+import { useTanques } from "../../utils/Context/TanquesContext.jsx";
+import { useNivelesDiariosTanques } from '../../utils/Context/NivelesDiariosTanquesContext.jsx';
 
 const drawerWidth = 280;
 
-const menuItems = [
-    {
-        text: 'Produccion',
-        key: 'produccion',
-        icon: <img src={factoryIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
-        subItems: [
-            { text: 'Inventario de insumos', subKey: 'Inventariodeinsumos', icon: <img src={inventoryIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
-            { text: 'Tanques Jornaleros', subKey: 'Tanquesjornaleros', icon: <img src={rulerIcon} alt="tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
-            { text: 'Bitacora Supervisores', subKey: 'bitacoradeturnosupervisores', icon: <img src={bitacoraIcon} alt="bitacoradeturnosupervisores" style={{ width: 25, height: 25 }} /> },
-            { text: 'Inventario Combust', subKey: 'inventariodecarbonymadera', icon: <img src={coalInventoryIcon} alt="Tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
-            { text: 'Horas Extras', subKey: 'horasextrassupervisores', icon: <img src={StopWatchIcon} alt="horasextrassupervisores" style={{ width: 25, height: 25 }} /> },
-            { text: 'CRUD Tanques', subKey: 'tanquescrud', icon: <img src={tanqueIcon} alt="tanquescrud" style={{ width: 25, height: 25 }} /> },
-        ],
-    },
-    {
-        text: 'Logistica',
-        key: 'logistica',
-        icon: <img src={despachoIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
-        subItems: [
-            { text: 'Despachos', subKey: 'Inventariodeinsumos', icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
-            { text: 'Recepcion', subKey: 'Tanquesjornaleros', icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
-        ],
-    },
-    {
-        text: 'Tanques',
-        key: 'tanquesniveles',
-        icon: <img src={tanqueIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
-        subItems: [
-            { text: 'UNIDAD 100', subKey: 'nivelesunidadtrecien', icon: <img src={oilTankIcon} alt="nivelesunidadtrecien" style={{ width: 25, height: 25 }} /> },
-            { text: 'UNIDAD 300', subKey: 'nivelesunidadtrecientos', icon: <img src={oilTankIcon} alt="nivelesunidadtrecientos" style={{ width: 25, height: 25 }} /> },
-            { text: 'UNIDAD 450', subKey: 'nivelesunidadcuatrocientos', icon: <img src={oilTankIcon} alt="nivelesunidadcuatrocientos" style={{ width: 25, height: 25 }} /> },
-            { text: 'UNIDAD 800', subKey: 'nivelesunidadochocientos', icon: <img src={oilTankIcon} alt="nivelesunidadochocientos" style={{ width: 25, height: 25 }} /> },
-            { text: 'Cuba Fermentac', subKey: 'cubadefermentacion', icon: <img src={oilTankIcon} alt="cubadefermentacion" style={{ width: 25, height: 25 }} /> },
-        ],
-    },
-    {
-        text: 'Data Analisis',
-        key: 'dataanalisis',
-        icon: <img src={GraphIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
-        subItems: [
-            { text: 'Insumos/mes', subKey: 'nivelesunidadcien', icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
-            { text: 'Isumos/L[OH]', subKey: 'nivelesunidadcien', icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
-            { text: 'Comparativo', subKey: 'comparativoIsumos/L[OH]', icon: <img src={BarGraphComparativeIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
-            { text: 'Agua/L[OH]', subKey: 'nivelesunidadtrecientos', icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
-            { text: 'Carbon/L[OH]', subKey: 'nivelesunidadcuatrocientos', icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
-            { text: 'Madera/L[OH]', subKey: 'nivelesunidadochocientos', icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
-        ],
-    },
-    { text: 'Laboratorio', icon: <img src={laboratoryIcon} alt="laboratorio" style={{ width: 25, height: 25 }} />, key: 'Laboratorio' },
-    { text: 'Planta de Aguas', icon: <img src={ptapIcon} alt="plantadeaguas" style={{ width: 25, height: 25 }} />, key: 'plantadeaguas' },
-    { text: 'Registro Trabajadores', icon: <img src={workerIcon} alt="empleadosambiocom" style={{ width: 25, height: 25 }} />, key: 'empleadosambiocom' },
-    { text: 'DB Aministrator', icon: <img src={DatabaseAdministratorIcon} alt="basededatos" style={{ width: 25, height: 25 }} />, key: 'basededatos' },
-    { text: 'Assistance', icon: <img src={robotAssistanceIcon} alt="robotassistance" style={{ width: 25, height: 25 }} />, key: 'robotassistance' },
-];
+export default function EmpresarialPrincipalSchedulerApp() {
 
-export default function MedicalSchedulerApp() {
+    // ------  definicion de los contextos  ----------
+    const { tanques, loading, setTanques } = useTanques(); 
+    const { nivelesTanques, nivelesTanquesLoading, setNivelesTanques } = useNivelesDiariosTanques();
+    // -----------------------------------------------
+    
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -156,21 +100,76 @@ export default function MedicalSchedulerApp() {
         }
     };
 
+    const menuItems = [
+        {
+            text: 'Produccion',
+            key: 'produccion',
+            icon: <img src={factoryIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
+            subItems: [
+                { text: 'Inventario de insumos', subKey: 'Inventariodeinsumos', icon: <img src={inventoryIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Tanques Jornaleros', subKey: 'Tanquesjornaleros', icon: <img src={rulerIcon} alt="tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
+                { text: 'Bitacora Supervisores', subKey: 'bitacoradeturnosupervisores', icon: <img src={bitacoraIcon} alt="bitacoradeturnosupervisores" style={{ width: 25, height: 25 }} /> },
+                { text: 'Inventario Combust', subKey: 'inventariodecarbonymadera', icon: <img src={coalInventoryIcon} alt="Tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
+                { text: 'Horas Extras', subKey: 'horasextrassupervisores', icon: <img src={StopWatchIcon} alt="horasextrassupervisores" style={{ width: 25, height: 25 }} /> },
+                { text: 'CRUD Tanques', subKey: 'tanquescrud', icon: <img src={tanqueIcon} alt="tanquescrud" style={{ width: 25, height: 25 }} /> },
+            ],
+        },
+        {
+            text: 'Logistica',
+            key: 'logistica',
+            icon: <img src={despachoIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
+            subItems: [
+                { text: 'Despachos', subKey: 'Inventariodeinsumos', icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Recepcion', subKey: 'Tanquesjornaleros', icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+            ],
+        },
+        {
+            text: 'Tanques',
+            key: 'tanquesniveles',
+            icon: <img src={tanqueIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
+            subItems: [
+                { text: 'UNIDAD 100', subKey: 'nivelesunidadcien', icon: <img src={oilTankIcon} alt="nivelesunidadtrecien" style={{ width: 25, height: 25 }} />  },
+                { text: 'UNIDAD 300', subKey: 'nivelesunidadtrecientos', icon: <img src={oilTankIcon} alt="nivelesunidadtrecientos" style={{ width: 25, height: 25 }} /> },
+                { text: 'UNIDAD 450', subKey: 'nivelesunidadcuatrocientos', icon: <img src={oilTankIcon} alt="nivelesunidadcuatrocientos" style={{ width: 25, height: 25 }} /> },
+                { text: 'UNIDAD 800', subKey: 'nivelesunidadochocientos', icon: <img src={oilTankIcon} alt="nivelesunidadochocientos" style={{ width: 25, height: 25 }} /> },
+                { text: 'Cuba Fermentac', subKey: 'cubadefermentacion', icon: <img src={oilTankIcon} alt="cubadefermentacion" style={{ width: 25, height: 25 }} /> },
+            ],
+        },
+        {
+            text: 'Data Analisis',
+            key: 'dataanalisis',
+            icon: <img src={GraphIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
+            subItems: [
+                { text: 'Insumos/mes', subKey: 'nivelesunidadcien', icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
+                { text: 'Isumos/L[OH]', subKey: 'nivelesunidadcien', icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
+                { text: 'Comparativo', subKey: 'comparativoIsumos/L[OH]', icon: <img src={BarGraphComparativeIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
+                { text: 'Agua/L[OH]', subKey: 'nivelesunidadtrecientos', icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
+                { text: 'Carbon/L[OH]', subKey: 'nivelesunidadcuatrocientos', icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
+                { text: 'Madera/L[OH]', subKey: 'nivelesunidadochocientos', icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
+            ],
+        },
+        { text: 'Laboratorio', icon: <img src={laboratoryIcon} alt="laboratorio" style={{ width: 25, height: 25 }} />, key: 'Laboratorio' },
+        { text: 'Planta de Aguas', icon: <img src={ptapIcon} alt="plantadeaguas" style={{ width: 25, height: 25 }} />, key: 'plantadeaguas' },
+        { text: 'Registro Trabajadores', icon: <img src={workerIcon} alt="empleadosambiocom" style={{ width: 25, height: 25 }} />, key: 'empleadosambiocom' },
+        { text: 'DB Aministrator', icon: <img src={DatabaseAdministratorIcon} alt="basededatos" style={{ width: 25, height: 25 }} />, key: 'basededatos' },
+        { text: 'Assistance', icon: <img src={robotAssistanceIcon} alt="robotassistance" style={{ width: 25, height: 25 }} />, key: 'robotassistance' },
+    ];    
+
     const renderContent = () => {
         switch (selectedMenu) {
             case 'Tanquesjornaleros': return <SeguimientoTKJornaleros />;
             case 'Inventariodeinsumos': return <SGMRC />;
-            case 'nivelesunidadtrecien': return <TanquesUnidadCien />;
-            case 'nivelesunidadtrecientos': return <TanquesUnidadTreCientos />;
-            case 'nivelesunidadcuatrocientos': return <Unidad400Component />;
-            case 'nivelesunidadochocientos': return <UnidadOchoCientosAlmacenamiento />;
-            case 'cubadefermentacion': return <CubaDeFermentacion />;
+            case 'nivelesunidadcien': return <TanquesUnidadCien tanquesContext={tanques} NivelesTanquesContext ={nivelesTanques}/>;
+            case 'nivelesunidadtrecientos': return <TanquesUnidadTreCientos tanquesContext={tanques} NivelesTanquesContext ={nivelesTanques}/>;
+            case 'nivelesunidadcuatrocientos': return <Unidad400Component tanquesContext={tanques} NivelesTanquesContext ={nivelesTanques}/>;
+            case 'nivelesunidadochocientos': return <UnidadOchoCientosAlmacenamiento tanquesContext={tanques} NivelesTanquesContext ={nivelesTanques}/>;
+            case 'cubadefermentacion': return <CubaDeFermentacion tanquesContext={tanques} NivelesTanquesContext ={nivelesTanques}/>;
             case 'bitacoradeturnosupervisores': return <BitacoraDeSupervisores />;
             case 'horasextrassupervisores': return <PanelHoras />;
             case 'inventariodecarbonymadera': return <InventarioCarbonMadera />;
             case 'basededatos': return <ConsultasHttpDb />;
             case 'robotassistance': return <ChatBox />;
-            case 'tanquescrud': return <TanquesList />;
+            case 'tanquescrud': return <TanquesList tanquesContext={tanques}/>;
             case 'empleadosambiocom': return <EmpleadosManager />;
             default: return null;
         }

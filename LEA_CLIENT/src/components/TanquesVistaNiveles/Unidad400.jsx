@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Box, Typography } from "@mui/material";
 
 import RenderizarGraficoDiarioPorTanque from "../../utils/modals/RenderizarGraficoDiarioPorTanque";
@@ -15,6 +15,7 @@ const RenderTanque = ({
   diposicion,
   index,
   onDoubleClick,
+  volumenTotal,
 }) => (
   <Box
     onDoubleClick={() => onDoubleClick(nombre)}
@@ -26,6 +27,7 @@ const RenderTanque = ({
     width={ancho}
     justifyContent="flex-end"
   >
+    {console.log("nivel:", nivel)}
     {/* Indicador vertical */}
     <Box
       sx={{
@@ -104,17 +106,19 @@ const RenderTanque = ({
     >
       <Box
         sx={{
-          height: `${nivel}%`,
+          height: `${((nivel * factor) / volumenTotal) * 100}%`,
           width: "100%",
-          backgroundColor: nivel > 50 ? "blue" : "orange",
+          backgroundColor: nivel > Number(volumenTotal) / 2 ? "blue" : "orange",
           transition: "height 0.5s ease",
         }}
       />
     </Box>
 
     {/* Factor volumétrico */}
-    <Typography variant="h6">F: {factor.toLocaleString()}</Typography>
-    <Typography variant="h6">VT: {factor.toLocaleString()}</Typography>
+    <Typography variant="h6">
+      V total: {volumenTotal.toLocaleString()}
+    </Typography>
+    <Typography variant="h6">Factor: {factor.toLocaleString()} L/m</Typography>
 
     {/* Imagen */}
     <img
@@ -129,7 +133,7 @@ const RenderTanque = ({
     />
 
     {/* Litros y altura */}
-    <div style={{ marginTop: 8 }}>{(nivel * 1000).toLocaleString()} L</div>
+    <div style={{ marginTop: 8 }}>{(nivel * factor).toLocaleString()} L</div>
     <div style={{ marginTop: 5 }}>{nivel} cm</div>
 
     {/* Nombre del tanque */}
@@ -233,43 +237,64 @@ const RenderTanque = ({
   </Box>
 );
 
-const Unidad400Component = () => {
+const Unidad400Component = ({ tanquesContext, NivelesTanquesContext }) => {
   const [modalOpenGraficaTanque, setModalOpenGraficaTanque] = useState(false);
   const [tanqueSeleccionado, setTanqueSeleccionado] = useState(null);
-  const [tanques, setTanques] = useState([
-    {
-      nombre: "TK805",
-      diposicion: "Materia Prima",
-      nivel: 70,
-      imagen: "/TanquesAlmacenamiento/tanqueachatado.png",
-      ancho: 400,
-    },
-    {
-      nombre: "TK806",
-      diposicion: "Materia Prima",
-      nivel: 40,
-      imagen: "/TanquesAlmacenamiento/tanqueachatado.png",
-      ancho: 400,
-    },
-    {
-      nombre: "TK807",
-      diposicion: "Materia Prima",
-      nivel: 40,
-      imagen: "/TanquesAlmacenamiento/tanqueachatado.png",
-      ancho: 400,
-    },
-    {
-      nombre: "TK808",
-      diposicion: "Materia Prima",
-      nivel: 40,
-      imagen: "/TanquesAlmacenamiento/tanqueachatado.png",
-      ancho: 400,
-    },
-  ]);
+  const [tanques, setTanques] = useState([]);
+  //guardaremos el último registro en la DB de cada tanque 102A / 102B
+  const [tanquesNivelesFiltered, setTanquesNivelesFiltered] = useState([]);
+  //Captura la fecha del ultimo registro
+  const [ultimoRegistroGlobal, setUltimoRegistroGlobal] = useState(null);
+
+  useEffect(() => {
+    if (tanquesContext?.length > 0 && NivelesTanquesContext?.length > 0) {
+      const ordenExacto = [
+        "405",
+        "401A",
+        "401B",
+        "402A",
+        "402B",
+        "403A",
+        "403B",
+        "404",
+      ];
+      const tanquesFiltrados = tanquesContext
+        .filter((tanque) => ordenExacto.includes(tanque.NombreTanque)) // solo los de la lista
+        .sort((a, b) => {
+          return (
+            ordenExacto.indexOf(a.NombreTanque) -
+            ordenExacto.indexOf(b.NombreTanque)
+          );
+        });
+
+      setTanques(tanquesFiltrados);
+      //Buscar en NivelesTanquesContext el último registro por cada tanque fijo
+      const tanquesUltimos = tanquesFiltrados
+        .map((tanque) => {
+          const registrosPorTanque = NivelesTanquesContext.filter(
+            (nivel) => nivel.NombreTanque === tanque.NombreTanque
+          );
+
+          if (registrosPorTanque.length === 0) return null;
+
+          const ultimo = registrosPorTanque.reduce((prev, curr) => {
+            const fechaPrev = new Date(prev.FechaRegistro);
+            const fechaCurr = new Date(curr.FechaRegistro);
+            return fechaCurr > fechaPrev ? curr : prev;
+          });
+
+          setUltimoRegistroGlobal(ultimo.FechaRegistro);
+
+          return ultimo;
+        })
+        .filter(Boolean); // eliminar nulls
+
+      //Guardar en el estado los niveles filtrados
+      setTanquesNivelesFiltered(tanquesUltimos);
+    }
+  }, [tanquesContext, NivelesTanquesContext]);
 
   const handleDobleClickTanque = (nombreTanque) => {
-    console.log("nombre tanque que llega:", nombreTanque);
-
     setTanqueSeleccionado(nombreTanque);
     setModalOpenGraficaTanque(true);
   };
@@ -279,6 +304,12 @@ const Unidad400Component = () => {
     nuevosTanques[index].diposicion = nuevoNombre;
     setTanques(nuevosTanques);
   };
+
+  console.log(
+    "nivel mostrado:",
+    tanquesNivelesFiltered.find((t) => t.NombreTanque === "405")?.NivelTanque ||
+      0
+  );
 
   return (
     <Box display="flex" flexDirection="column" alignItems="center" mt={10}>
@@ -299,92 +330,69 @@ const Unidad400Component = () => {
       {/* Tanques alineados abajo */}
       <Box
         display="flex"
-        gap="30px"
+        gap="14px"
         justifyContent="center"
         alignItems="flex-end"
         mt={26}
       >
-        <RenderTanque
-          nombre="405"
-          diposicion="FDE"
-          nivel={70}
-          imagen="/TanquesAlmacenamiento/tanqueFDE.png"
-          ancho={250}
-          factor={285071.42}
-          index={0}
-          onDoubleClick={handleDobleClickTanque}
-        />
-        <RenderTanque
-          nombre="401A"
-          diposicion="Tafias"
-          nivel={60}
-          imagen="/TanquesAlmacenamiento/tanquejornalerotafias.png"
-          ancho={210}
-          factor={193000.5}
-          index={1}
-          onDoubleClick={handleDobleClickTanque}
-        />
-        <RenderTanque
-          nombre="401B"
-          diposicion="Tafias"
-          nivel={60}
-          imagen="/TanquesAlmacenamiento/tanquejornalerotafias.png"
-          ancho={210}
-          factor={193000.5}
-          index={2}
-          onDoubleClick={handleDobleClickTanque}
-        />
-        <RenderTanque
-          nombre="402A"
-          diposicion="Extra Neutro"
-          nivel={60}
-          imagen="/TanquesAlmacenamiento/tanque403best.png"
-          ancho={280}
-          factor={193000.5}
-          index={3}
-          onDoubleClick={handleDobleClickTanque}
-        />
-        <RenderTanque
-          nombre="402B"
-          diposicion="Extra Neutro"
-          nivel={60}
-          imagen="/TanquesAlmacenamiento/tanque403best.png"
-          ancho={280}
-          factor={193000.5}
-          index={4}
-          onDoubleClick={handleDobleClickTanque}
-        />
-        <RenderTanque
-          nombre="403A"
-          diposicion="A.Indsutrial"
-          nivel={60}
-          imagen="/TanquesAlmacenamiento/jornaleroindustrial.png"
-          ancho={220}
-          factor={193000.5}
-          index={5}
-          onDoubleClick={handleDobleClickTanque}
-        />
-        <RenderTanque
-          nombre="403B"
-          diposicion="A. Indsutrial"
-          nivel={60}
-          imagen="/TanquesAlmacenamiento/jornaleroindustrial.png"
-          ancho={220}
-          factor={193000.5}
-          index={6}
-          onDoubleClick={handleDobleClickTanque}
-        />
-        <RenderTanque
-          nombre="404"
-          diposicion="Fusel"
-          nivel={72}
-          imagen="/TanquesAlmacenamiento/jornalerofusel.png"
-          ancho={150}
-          factor={193000.5}
-          index={7}
-          onDoubleClick={handleDobleClickTanque}
-        />
+        {tanques.length > 0 &&
+          tanques.map((tanque, index) => (
+            <RenderTanque
+              key={tanque.NombreTanque}
+              nombre={tanque.NombreTanque}
+              diposicion={tanque.Disposicion}
+              nivel={
+                tanquesNivelesFiltered.find(
+                  (t) => t.NombreTanque === tanque.NombreTanque
+                )?.NivelTanque ?? 0
+              }
+              imagen={
+                tanque.NombreTanque === "405"
+                  ? "/TanquesAlmacenamiento/tanqueFDE.png"
+                  : tanque.NombreTanque.includes("401")
+                  ? "/TanquesAlmacenamiento/tanquejornalerotafias.png"
+                  : tanque.NombreTanque.includes("402")
+                  ? "/TanquesAlmacenamiento/tanque403best.png"
+                  : tanque.NombreTanque.includes("403")
+                  ? "/TanquesAlmacenamiento/jornaleroindustrial.png"
+                  : "/TanquesAlmacenamiento/jornalerofusel.png"
+              }
+              ancho={
+                tanque.NombreTanque === "405"
+                  ? 250
+                  : tanque.NombreTanque.includes("401")
+                  ? 210
+                  : tanque.NombreTanque.includes("402")
+                  ? 280
+                  : tanque.NombreTanque.includes("403")
+                  ? 220
+                  : 150
+              }
+              factor={tanque.Factor}
+              volumenTotal={tanque.VolumenTotal}
+              index={index}
+              onDoubleClick={handleDobleClickTanque}
+            />
+          ))}
       </Box>
+      {/* footer ultima fecha registro */}
+      <Typography
+        variant="body2"
+        sx={{
+          position: "absolute",
+          bottom: 15,
+          left: "50%",
+          transform: "translateX(-50%)",
+          fontSize: "1.1rem",
+          fontWeight: 500,
+        }}
+      >
+        <span style={{ fontWeight: "bold", color: "blue" }}>
+          Último Registro:
+        </span>{" "}
+        {ultimoRegistroGlobal}
+      </Typography>
+
       {/* Modal de gráfico */}
       <RenderizarGraficoDiarioPorTanque
         modalIsOpen={modalOpenGraficaTanque}

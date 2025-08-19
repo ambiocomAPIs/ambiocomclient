@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -14,37 +14,48 @@ import {
   Tooltip,
   TextField,
 } from "@mui/material";
-import { Edit, Delete, AddCircleOutline, SortByAlpha } from "@mui/icons-material";
+
+import {
+  Edit,
+  Delete,
+  AddCircleOutline,
+  SortByAlpha,
+} from "@mui/icons-material";
 import { Autocomplete } from "@mui/material";
 import axios from "axios";
 import Swal from "sweetalert2";
 import TanquesModal from "../utils/modals/Tanques/TanquesModal";
 import TanqueVisualModal from "../utils/modals/Tanques/TanqueVisualModal";
 
-const TanquesList = () => {
+const TanquesList = ({ tanquesContext }) => {
   const [tanques, setTanques] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTanque, setSelectedTanque] = useState(null);
   const [visualModalOpen, setVisualModalOpen] = useState(false);
   const [tanqueSeleccionadoVisual, setTanqueSeleccionadoVisual] = useState("");
   const [operacionEjecutada, setOperacionEjecutada] = useState("");
-
-  // 🔹 Nuevo estado para filtro y orden
+  // estado para filtro y orden
   const [search, setSearch] = useState("");
   const [ordenAsc, setOrdenAsc] = useState(true);
 
-  const fetchTanques = async () => {
-    try {
-      const res = await axios.get("https://ambiocomserver.onrender.com/api/tanques");
-      setTanques(res.data);
-    } catch (error) {
-      Swal.fire("Error", "No se pudieron cargar los tanques", "error");
-    }
-  };
-
   useEffect(() => {
-    fetchTanques();
-  }, []);
+    if (tanquesContext && tanquesContext.length > 0) {
+      setTanques(tanquesContext);
+    }
+  }, [tanquesContext]);
+
+  // const fetchTanques = async () => {
+  //   try {
+  //     const res = await axios.get("https://ambiocomserver.onrender.com/api/tanques");
+  //     setTanques(res.data);
+  //   } catch (error) {
+  //     Swal.fire("Error", "No se pudieron cargar los tanques", "error");
+  //   }
+  // };
+
+  // useEffect(() => {
+  //   fetchTanques();
+  // }, []);
 
   const handleCreate = () => {
     setSelectedTanque(null);
@@ -57,12 +68,17 @@ const TanquesList = () => {
 
       if (data._id && operacionEjecutada === "update") {
         await axios.put(`https://ambiocomserver.onrender.com/api/tanques/${data._id}`, data);
+        // Actualiza inmediatamente los estados
+        const nuevosTanques = tanques.map((t) =>
+          t._id === data._id ? data : t
+        );
+        setTanques(nuevosTanques);
+        // setTanquesContext(nuevosTanques); // 🔹 actualiza también el context
         Swal.fire("Actualizado", "Tanque actualizado correctamente", "success");
       } else {
         await axios.post("https://ambiocomserver.onrender.com/api/tanques", dataLimpia);
         Swal.fire("Creado", "Tanque registrado correctamente", "success");
       }
-      fetchTanques();
     } catch (error) {
       if (error.response?.status === 400) {
         Swal.fire("Error", error.response.data.error, "error");
@@ -99,9 +115,7 @@ const TanquesList = () => {
 
   // 🔹 Filtro + Ordenamiento
   const tanquesFiltrados = tanques
-    .filter((t) =>
-      t.NombreTanque.toLowerCase().includes(search.toLowerCase())
-    )
+    .filter((t) => t.NombreTanque.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) =>
       ordenAsc
         ? a.NombreTanque.localeCompare(b.NombreTanque, "es", { numeric: true })
@@ -111,7 +125,13 @@ const TanquesList = () => {
   return (
     <Box p={4}>
       {/* Header con título + acciones */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} mt={5}>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={3}
+        mt={5}
+      >
         <Typography variant="h4" fontWeight="bold" color="primary.dark">
           Gestión de Tanques
         </Typography>
@@ -133,7 +153,7 @@ const TanquesList = () => {
           renderInput={(params) => (
             <TextField {...params} label="Buscar Tanque" variant="outlined" />
           )}
-          sx={{ flex: 1 }}
+          sx={{ width: 300 }}
         />
         <Tooltip title={`Ordenar ${ordenAsc ? "Z → A" : "A → Z"}`}>
           <IconButton
@@ -152,17 +172,25 @@ const TanquesList = () => {
         elevation={3}
         sx={{
           borderRadius: 3,
-          maxHeight: "calc(100vh - 200px)",
+          maxHeight: "calc(70vh - 0px)",
           overflow: "auto",
         }}
       >
         <Table stickyHeader>
           <TableHead>
             <TableRow sx={{ backgroundColor: "#e0e0e0" }}>
-              <TableCell align="center" colSpan={2}><strong>Información</strong></TableCell>
-              <TableCell align="center" colSpan={2}><strong>Factores</strong></TableCell>
-              <TableCell align="center" colSpan={2}><strong>Volumen</strong></TableCell>
-              <TableCell align="center" rowSpan={2}><strong>Acciones</strong></TableCell>
+              <TableCell align="center" colSpan={2}>
+                <strong>Información</strong>
+              </TableCell>
+              <TableCell align="center" colSpan={2}>
+                <strong>Factores</strong>
+              </TableCell>
+              <TableCell align="center" colSpan={2}>
+                <strong>Volumen</strong>
+              </TableCell>
+              <TableCell align="center" rowSpan={2}>
+                <strong>Acciones</strong>
+              </TableCell>
             </TableRow>
             <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
               {[
@@ -173,7 +201,9 @@ const TanquesList = () => {
                 "Volumen Total [L]",
                 "Volumen Total [m³]",
               ].map((text, i) => (
-                <TableCell align="center" key={i}><strong>{text}</strong></TableCell>
+                <TableCell align="center" key={i}>
+                  <strong>{text}</strong>
+                </TableCell>
               ))}
             </TableRow>
           </TableHead>
@@ -200,9 +230,13 @@ const TanquesList = () => {
                 <TableCell align="center">{t.Disposicion}</TableCell>
                 <TableCell align="center">{t.Factor}</TableCell>
                 <TableCell align="center">{t.Factor / 100}</TableCell>
-                <TableCell align="center">{t.VolumenTotal ? `${t.VolumenTotal} L` : "N/A"}</TableCell>
                 <TableCell align="center">
-                  {t.VolumenTotal ? `${(t.VolumenTotal / 1000).toFixed(2)} m³` : "N/A"}
+                  {t.VolumenTotal ? `${t.VolumenTotal} L` : "N/A"}
+                </TableCell>
+                <TableCell align="center">
+                  {t.VolumenTotal
+                    ? `${(t.VolumenTotal / 1000).toFixed(2)} m³`
+                    : "N/A"}
                 </TableCell>
                 <TableCell align="center">
                   <Tooltip title="Editar">
@@ -218,7 +252,10 @@ const TanquesList = () => {
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Eliminar">
-                    <IconButton color="error" onClick={() => handleDelete(t._id)}>
+                    <IconButton
+                      color="error"
+                      onClick={() => handleDelete(t._id)}
+                    >
                       <Delete />
                     </IconButton>
                   </Tooltip>

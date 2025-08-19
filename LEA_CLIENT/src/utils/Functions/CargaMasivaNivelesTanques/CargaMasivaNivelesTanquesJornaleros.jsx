@@ -1,36 +1,34 @@
 import React, { useState } from "react";
 import * as XLSX from "xlsx";
 import axios from "axios";
-import {
-  Button,
-  Typography,
-  Box,
-  Paper,
-  Snackbar,
-  Alert,
-} from "@mui/material";
-import { Upload, Save } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
+import { Button, Typography, Box, Paper, IconButton } from "@mui/material";
+import { Upload, Save, ArrowBack } from "@mui/icons-material";
+import Swal from "sweetalert2";
 
 export default function UploadExcelPage() {
+  
+  const navigate = useNavigate();
+  
   const [excelData, setExcelData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
-
-  // 📌 estado para Snackbar
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
-
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
 
   // 📂 Leer Excel
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    // ✅ Validar nombre exacto del archivo
+    if (file.name !== "plantilla_carga_masiva_niveles_tanques.xlsx") {
+      Swal.fire({
+        icon: "error",
+        title: "Archivo inválido",
+        text: "El archivo ha sido rechazado ya que no es un archivo válido",
+      });
+      e.target.value = "";
+      return;
+    }
 
     setSelectedFile(file);
 
@@ -49,10 +47,10 @@ export default function UploadExcelPage() {
   // 🚀 Enviar al backend
   const handleSendToBackend = async () => {
     if (!selectedFile) {
-      setSnackbar({
-        open: true,
-        message: "Por favor sube un archivo Excel antes de enviar",
-        severity: "warning",
+      Swal.fire({
+        icon: "warning",
+        title: "Archivo requerido",
+        text: "Por favor sube un archivo Excel antes de enviar",
       });
       return;
     }
@@ -71,17 +69,17 @@ export default function UploadExcelPage() {
       );
 
       console.log("✅ Envío exitoso:", response.data);
-      setSnackbar({
-        open: true,
-        message: "Archivo enviado y procesado correctamente",
-        severity: "success",
+      Swal.fire({
+        icon: "success",
+        title: "Archivo enviado",
+        text: "Archivo enviado y procesado correctamente",
       });
     } catch (error) {
       console.error("❌ Error al enviar:", error);
-      setSnackbar({
-        open: true,
-        message: "Error al enviar el archivo",
-        severity: "error",
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Error al enviar el archivo",
       });
     } finally {
       setLoading(false);
@@ -95,10 +93,54 @@ export default function UploadExcelPage() {
 
   return (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h5" gutterBottom>
-        Carga Masiva de Niveles de Tanques (Excel)
-      </Typography>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2,
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+          <IconButton
+            color="primary"
+            onClick={() => navigate("/principal")}
+            sx={{ mr: 1 }}
+          >
+            <ArrowBack />
+          </IconButton>
+          <Typography variant="h6">Volver</Typography>
+        </Box>
 
+        <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}>
+          <Typography
+            variant="h5"
+            gutterBottom
+            sx={{ m: 0, textAlign: "center", ml: 20 }}
+          >
+            Carga Masiva de Niveles de Tanques (Excel)
+          </Typography>
+        </Box>
+
+        {/* 🚀 Botón descargar plantilla arriba derecha */}
+        <Button
+          variant="outlined"
+          color="secondary"
+          startIcon={<Save />}
+          onClick={() => {
+            const link = document.createElement("a");
+            link.href = `public/Files/plantilla_carga_masiva_niveles_tanques.xlsx`;
+            link.download = "plantilla_carga_masiva_niveles_tanques.xlsx";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }}
+        >
+          Descargar Plantilla
+        </Button>
+      </Box>
+
+      {/* 📂 Subir Excel */}
       <Button
         variant="contained"
         component="label"
@@ -172,22 +214,6 @@ export default function UploadExcelPage() {
           </Button>
         </Paper>
       )}
-
-      {/* 📌 Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 }

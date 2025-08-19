@@ -21,9 +21,7 @@ const PaperComponent = (props) => {
   );
 };
 
-const TanquesModal = ({ open, onClose, onSubmit, initialData }) => {
-  console.log("initialData:",initialData);
-  
+const TanquesModal = ({ open, onClose, onSubmit, initialData }) => {  
   const [formData, setFormData] = useState({
     NombreTanque: "",
     Disposicion: "",
