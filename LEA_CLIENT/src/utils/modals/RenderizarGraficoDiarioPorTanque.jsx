@@ -995,6 +995,19 @@ function withScaling(basePlugin) {
                 nombreTanque: nombreTanque,
                 datasetsPluggins: datasetsPluggins,
                 factorTanque: factorTanque,
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    suggestedMax: (() => {
+                      // calcula el máximo valor del dataset seleccionado
+                      const dataset = chartData.datasets.find(d => d.label === nombreTanque);
+                      if (!dataset) return undefined;
+            
+                      const maxVal = Math.max(...dataset.data.filter(v => v !== null));
+                      return Math.ceil(maxVal * 1.1); // 10% extra arriba
+                    })(),
+                  },
+                },
               }}
               plugins={[pluginsMap[pluginActivo]]}
               // width={1800}

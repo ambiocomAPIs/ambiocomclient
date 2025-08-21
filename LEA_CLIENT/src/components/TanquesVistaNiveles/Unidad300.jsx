@@ -11,6 +11,8 @@ const TanquesUnidadTreCientos = ({ tanquesContext, NivelesTanquesContext }) => {
   const [tanquesNivelesFiltered, setTanquesNivelesFiltered] = useState([]);
   //Captura la fecha del ultimo registro
   const [ultimoRegistroGlobal, setUltimoRegistroGlobal] = useState(null);
+  //Captura el factor para enviar al modal rendergrafica
+  const [factorSeleccionado, setFactorSeleccionado] = useState(null);
 
   useEffect(() => {
     if (tanquesContext?.length > 0 && NivelesTanquesContext?.length > 0) {
@@ -59,11 +61,18 @@ const TanquesUnidadTreCientos = ({ tanquesContext, NivelesTanquesContext }) => {
     }
   }, [tanquesContext, NivelesTanquesContext]);
 
-  const handleDobleClickTanque = (nombreTanque) => {
-    setTanqueSeleccionado(nombreTanque);
-    setModalOpenGraficaTanque(true);
-  };
 
+  const handleDobleClickTanque = (nombreTanque) => {
+    const tanque = tanques.find((t) => t.NombreTanque === nombreTanque);
+    // setTanqueSeleccionado(nombreTanque);
+    // setModalOpenGraficaTanque(true);
+    if (tanque) {
+      setTanqueSeleccionado(nombreTanque);
+      setFactorSeleccionado(tanque.Factor);
+      setModalOpenGraficaTanque(true);
+    }
+  };
+  
   const handleNombreChange = (index, nuevoNombre) => {
     const nuevosTanques = [...tanques];
     nuevosTanques[index].diposicion = nuevoNombre;
@@ -245,6 +254,7 @@ const TanquesUnidadTreCientos = ({ tanquesContext, NivelesTanquesContext }) => {
         onClose={() => setModalOpenGraficaTanque(false)}
         // nombreTanque={tanqueSeleccionado}
         nombreTanque={tanqueSeleccionado}
+        factorTanque={factorSeleccionado}
       />
     </div>
   );

@@ -29,6 +29,8 @@ const TanquesTK801AB = ({ tanquesContext, NivelesTanquesContext }) => {
   const [tanquesNivelesFiltered, setTanquesNivelesFiltered] = useState([]);
   //Captura la fecha del ultimo registro
   const [ultimoRegistroGlobal, setUltimoRegistroGlobal] = useState(null);
+  //Captura el factor para enviar al modal rendergrafica
+  const [factorSeleccionado, setFactorSeleccionado] = useState(null);
 
   useEffect(() => {
     if (tanquesContext?.length > 0 && NivelesTanquesContext?.length > 0) {
@@ -70,9 +72,16 @@ const TanquesTK801AB = ({ tanquesContext, NivelesTanquesContext }) => {
       setTanquesNivelesFiltered(tanquesUltimos);
     }
   }, [tanquesContext, NivelesTanquesContext]);
+
   const handleDobleClickTanque = (nombreTanque) => {
-    setTanqueSeleccionado(nombreTanque);
-    setModalOpenGraficaTanque(true);
+    const tanque = tanques.find((t) => t.NombreTanque === nombreTanque);
+    // setTanqueSeleccionado(nombreTanque);
+    // setModalOpenGraficaTanque(true);
+    if (tanque) {
+      setTanqueSeleccionado(nombreTanque);
+      setFactorSeleccionado(tanque.Factor);
+      setModalOpenGraficaTanque(true);
+    }
   };
 
   const handleNombreChange = (index, nuevoNombre) => {
@@ -237,6 +246,7 @@ const TanquesTK801AB = ({ tanquesContext, NivelesTanquesContext }) => {
         modalIsOpen={modalOpenGraficaTanque}
         onClose={() => setModalOpenGraficaTanque(false)}
         nombreTanque={tanqueSeleccionado}
+        factorTanque={factorSeleccionado}
       />
     </Box>
   );
