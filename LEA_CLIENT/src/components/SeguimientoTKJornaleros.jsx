@@ -41,7 +41,7 @@ const styleModal = {
   p: 4,
 };
 
-function SeguimientoTKJornaleros() {
+function SeguimientoTKJornaleros({NivelesTanquesContext}) {
   const [tipoMovimiento, setTipoMovimiento] = useState("");
   const [tanqueOrigen, setTanqueOrigen] = useState("");
   const [tanqueDestino, setTanqueDestino] = useState("");
@@ -113,19 +113,26 @@ function SeguimientoTKJornaleros() {
     setFechaFiltro(fechaFormateada); // Almacena la fecha formateada en el estado
   }, []);
 
-  useEffect(() => {
-    axios
-      .get(
-        "https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros"
-      )
-      .then((res) => {
-        setTanques(res.data);
-        setFilteredTanques(res.data);
-      })
-      .catch((err) => {
-        console.error("Error al obtener tanques:", err);
-      });
-  }, []);
+   useEffect(() => {
+    if (NivelesTanquesContext.length > 0) {
+      setTanques(NivelesTanquesContext);
+      setFilteredTanques(NivelesTanquesContext);
+    }
+  }, [NivelesTanquesContext]);
+
+  // useEffect(() => {
+  //   axios
+  //     .get(
+  //       "https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros"
+  //     )
+  //     .then((res) => {
+  //       setTanques(res.data);
+  //       setFilteredTanques(res.data);
+  //     })
+  //     .catch((err) => {
+  //       console.error("Error al obtener tanques:", err);
+  //     });
+  // }, []);
 
   useEffect(() => {
     // Filtrar los tanques por fecha
@@ -513,6 +520,7 @@ function SeguimientoTKJornaleros() {
       <GraficoNivelesTanquesPorDiaModal
         modalIsOpen={modalOpenModalGraficoNivelesModalIsOpen}
         onClose={closeModalGraficoNivelesModalIsOpen}
+        NivelesTanquesContext={NivelesTanquesContext}
       />
 
       <ExcelStyleFooter

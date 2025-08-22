@@ -9,6 +9,9 @@ export const NivelesDiariosTanquesProvider = ({ children }) => {
   const [nivelesTanques, setNivelesTanques] = useState([]);
   const [nivelesTanquesLoading, setNivelesTanquesLoading] = useState(true);
 
+  console.log("se esta ejecutando el contexto");
+  
+
   const fetchNivelesTanques = async () => {
     try {
       const res = await axios.get(

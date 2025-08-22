@@ -19,7 +19,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip,
 
 Modal.setAppElement('#root');
 
-const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
+const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose, NivelesTanquesContext }) => {
   const [registros, setRegistros] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -34,8 +34,8 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
 
   const chartRef = useRef(null);
 
- useEffect(() => {
-   const storedUser = sessionStorage.getItem("usuario");
+  useEffect(() => {
+    const storedUser = sessionStorage.getItem("usuario");
     if (storedUser) {
       try {
         setUsuario(JSON.parse(storedUser));
@@ -43,30 +43,37 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
         console.error("Error al parsear usuario:", e);
       }
     }
-    }, []);
+  }, []);
 
   useEffect(() => {
-    if (modalIsOpen) {
-      setIsLoading(true);
-      axios
-        .get('https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros')
-        .then((response) => {
-          if (Array.isArray(response.data)) {
-            setRegistros(response.data);
-          } else {
-            console.error('Respuesta inesperada del backend');
-          }
-          setIsLoading(false);
-        })
-        .catch((err) => {
-          console.error('Error al cargar los datos:', err);
-          setError('No se pudieron cargar los datos');
-          setIsLoading(false);
-        });
-    } else {
-      setRegistros([]);
+    if (NivelesTanquesContext.length > 0) {
+      setRegistros(NivelesTanquesContext);
+      // setFilteredTanques(NivelesTanquesContext);
     }
-  }, [modalIsOpen, selectedMonth]);
+  }, [NivelesTanquesContext]);
+
+  // useEffect(() => {
+  //   if (modalIsOpen) {
+  //     setIsLoading(true);
+  //     axios
+  //       .get('https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros')
+  //       .then((response) => {
+  //         if (Array.isArray(response.data)) {
+  //           setRegistros(response.data);
+  //         } else {
+  //           console.error('Respuesta inesperada del backend');
+  //         }
+  //         setIsLoading(false);
+  //       })
+  //       .catch((err) => {
+  //         console.error('Error al cargar los datos:', err);
+  //         setError('No se pudieron cargar los datos');
+  //         setIsLoading(false);
+  //       });
+  //   } else {
+  //     setRegistros([]);
+  //   }
+  // }, [modalIsOpen, selectedMonth]);
 
   const getDaysInMonth = (year, month) => {
     const date = new Date(year, month - 1, 1);
@@ -168,16 +175,16 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
     doc.save('niveles_tanques_dia.pdf');
   };
 
-    const toggleAll = () => {
-      const chart = chartRef.current;
-      if (chart) {
-        chart.data.datasets.forEach(dataset => {
-          dataset.hidden = !datasetsHidden;
-        });
-        chart.update();
-        setDatasetsHidden(!datasetsHidden);
-      }
-    };
+  const toggleAll = () => {
+    const chart = chartRef.current;
+    if (chart) {
+      chart.data.datasets.forEach(dataset => {
+        dataset.hidden = !datasetsHidden;
+      });
+      chart.update();
+      setDatasetsHidden(!datasetsHidden);
+    }
+  };
 
   return (
     <Modal
@@ -205,12 +212,12 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-      <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-       <h2 style={{ margin: 0 }}>
-         Niveles de Tanques - {selectedMonth}
-       </h2>
-      </div>        
-      <button
+        <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+          <h2 style={{ margin: 0 }}>
+            Niveles de Tanques - {selectedMonth}
+          </h2>
+        </div>
+        <button
           onClick={onClose}
           style={{
             padding: '8px 16px',
@@ -238,66 +245,66 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
           }}
         />
       </div>
-<div style={{ 
-  display: 'flex', 
-  justifyContent: 'space-between', 
-  alignItems: 'center', 
-  gap: '10px', 
-  marginBottom: '20px' 
-}}>
-  
-  {/* Botones Ocultar/Mostrar a la izquierda */}
-  <div>
-  <button  
-  style={{
-    padding: '8px 16px',
-    backgroundColor: !['gerente','supervisor','developer'].includes(usuario?.rol) ? 'gray' : '#0288d1',
-    color: 'white',
-    border: 'none',
-    borderRadius: '5px',
-    cursor: 'pointer',
-    marginLeft: '60px'
-  }}
-  onClick={toggleAll}
->
-  {datasetsHidden ? '👁️ Mostrar todas' : '👁️ Ocultar todas'}
-</button>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: '10px',
+        marginBottom: '20px'
+      }}>
 
-  </div>
+        {/* Botones Ocultar/Mostrar a la izquierda */}
+        <div>
+          <button
+            style={{
+              padding: '8px 16px',
+              backgroundColor: !['gerente', 'supervisor', 'developer'].includes(usuario?.rol) ? 'gray' : '#0288d1',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              marginLeft: '60px'
+            }}
+            onClick={toggleAll}
+          >
+            {datasetsHidden ? '👁️ Mostrar todas' : '👁️ Ocultar todas'}
+          </button>
 
-  {/* Botones Exportar a la derecha */}
-  <div>
-    <button
-      onClick={exportToCSV}
-      disabled={!['gerente','supervisor','developer'].includes(usuario?.rol)} 
-      style={{
-        padding: '8px 16px',
-        backgroundColor: !['gerente','supervisor','developer'].includes(usuario?.rol) ? 'gray':'#5ccb28',
-        color: 'white',
-        border: 'none',
-        borderRadius: '5px',
-        cursor: 'pointer',
-        marginRight: '5px'
-      }}
-    >
-      Exportar CSV
-    </button>
-    <button
-      onClick={exportToPDF}
-      disabled={!['gerente','supervisor','developer'].includes(usuario?.rol)} 
-      style={{
-        padding: '8px 16px',
-        backgroundColor: !['gerente','supervisor','developer'].includes(usuario?.rol) ? 'gray':'#f07d38',
-        color: 'white',
-        border: 'none',
-        borderRadius: '5px',
-        cursor: 'pointer',
-      }}
-    >
-      Exportar PDF
-    </button>
-  </div>
-</div>
+        </div>
+
+        {/* Botones Exportar a la derecha */}
+        <div>
+          <button
+            onClick={exportToCSV}
+            disabled={!['gerente', 'supervisor', 'developer'].includes(usuario?.rol)}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: !['gerente', 'supervisor', 'developer'].includes(usuario?.rol) ? 'gray' : '#5ccb28',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              marginRight: '5px'
+            }}
+          >
+            Exportar CSV
+          </button>
+          <button
+            onClick={exportToPDF}
+            disabled={!['gerente', 'supervisor', 'developer'].includes(usuario?.rol)}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: !['gerente', 'supervisor', 'developer'].includes(usuario?.rol) ? 'gray' : '#f07d38',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer',
+            }}
+          >
+            Exportar PDF
+          </button>
+        </div>
+      </div>
 
       {isLoading ? (
         <p>Cargando datos...</p>
@@ -306,15 +313,15 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose }) => {
       ) : chartData && chartData.labels.length > 0 ? (
         <>
           <div style={{ height: '600px', marginBottom: '30px', width: '88vw' }}>
-            <Line 
-            data={chartData} 
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-            }}
-            // width={1800}
-            // height={600}
-            ref={chartRef} 
+            <Line
+              data={chartData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+              }}
+              // width={1800}
+              // height={600}
+              ref={chartRef}
             />
           </div>
           <div style={{ marginTop: '20px', maxHeight: '300px', overflowY: 'auto' }}>

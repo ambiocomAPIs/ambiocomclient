@@ -34,6 +34,8 @@ import ChatBox from '../IA/ChatBox';
 import BitacoraDeSupervisores from '../Bitacora/BitacoraComponentesProduccion'
 import PanelHoras from '../PanelHoras';
 import InventarioCarbonMadera from '../InventarioCarbonMadera';
+// Modulo de graficos y analisis
+import GraficoNivelesTanquesPorDiaPageComponente from '../TanquesVistaNiveles/GraficaNivelesDiariosPorMes/GraficaNivelesDiarioTanquesJornalerosComponente.jsx';
 //Modulo Tanques
 import TanquesUnidadTreCientos from '../TanquesVistaNiveles/Unidad300';
 import CubaDeFermentacion from '../TanquesVistaNiveles/CubasDeFermentacion';
@@ -51,7 +53,8 @@ import SGMRC from '../SGMRC';
 //importacion de iconos
 import {
     tanqueIcon, factoryIcon, despachoIcon, despachoSalidaIcon, despachoRecepcionIcon, laboratoryIcon, inventoryIcon, rulerIcon, oilTankIcon, coalInventoryIcon,
-    ptapIcon, GraphIcon, BarGraphIcon, BarGraphComparativeIcon, robotAssistanceIcon, bitacoraIcon, StopWatchIcon, PdfIcon, DatabaseAdministratorIcon, workerIcon
+    ptapIcon, GraphIcon, BarGraphIcon, BarGraphComparativeIcon, robotAssistanceIcon, bitacoraIcon, StopWatchIcon, PdfIcon, DatabaseAdministratorIcon, workerIcon,
+    TankGraphIcon, CounterIcon
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -63,10 +66,10 @@ const drawerWidth = 280;
 export default function EmpresarialPrincipalSchedulerApp() {
 
     // ------  definicion de los contextos  ----------
-    const { tanques, loading, setTanques } = useTanques(); 
+    const { tanques, loading, setTanques } = useTanques();
     const { nivelesTanques, nivelesTanquesLoading, setNivelesTanques } = useNivelesDiariosTanques();
     // -----------------------------------------------
-    
+
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -77,12 +80,12 @@ export default function EmpresarialPrincipalSchedulerApp() {
 
     const navigate = useNavigate();
 
-    
-  useEffect(() => {
-    if (!validarSesion()) {
-      navigate("/");
-    }
-  }, []);
+
+    useEffect(() => {
+        if (!validarSesion()) {
+            navigate("/");
+        }
+    }, []);
 
     const handleDrawerToggle = () => {
         if (isMobile) {
@@ -119,6 +122,8 @@ export default function EmpresarialPrincipalSchedulerApp() {
             key: 'logistica',
             icon: <img src={despachoIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
             subItems: [
+                { text: 'Niveles Tanques', subKey: 'Tanquesjornaleros', icon: <img src={rulerIcon} alt="tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
+                { text: 'Grafica Niveles Tanques Jornaleros', subKey: 'nivelestanquesjornalerospagina', icon: <img src={TankGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
                 { text: 'Despachos', subKey: 'Inventariodeinsumos', icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Recepcion', subKey: 'Tanquesjornaleros', icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
             ],
@@ -128,7 +133,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             key: 'tanquesniveles',
             icon: <img src={tanqueIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
             subItems: [
-                { text: 'UNIDAD 100', subKey: 'nivelesunidadcien', icon: <img src={oilTankIcon} alt="nivelesunidadtrecien" style={{ width: 25, height: 25 }} />  },
+                { text: 'UNIDAD 100', subKey: 'nivelesunidadcien', icon: <img src={oilTankIcon} alt="nivelesunidadtrecien" style={{ width: 25, height: 25 }} /> },
                 { text: 'UNIDAD 300', subKey: 'nivelesunidadtrecientos', icon: <img src={oilTankIcon} alt="nivelesunidadtrecientos" style={{ width: 25, height: 25 }} /> },
                 { text: 'UNIDAD 450', subKey: 'nivelesunidadcuatrocientos', icon: <img src={oilTankIcon} alt="nivelesunidadcuatrocientos" style={{ width: 25, height: 25 }} /> },
                 { text: 'UNIDAD 800', subKey: 'nivelesunidadochocientos', icon: <img src={oilTankIcon} alt="nivelesunidadochocientos" style={{ width: 25, height: 25 }} /> },
@@ -140,6 +145,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             key: 'dataanalisis',
             icon: <img src={GraphIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
             subItems: [
+                { text: 'Grafica Niveles Tanques Jornaleros', subKey: 'nivelestanquesjornalerospagina', icon: <img src={TankGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
                 { text: 'Insumos/mes', subKey: 'nivelesunidadcien', icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
                 { text: 'Isumos/L[OH]', subKey: 'nivelesunidadcien', icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
                 { text: 'Comparativo', subKey: 'comparativoIsumos/L[OH]', icon: <img src={BarGraphComparativeIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
@@ -149,28 +155,33 @@ export default function EmpresarialPrincipalSchedulerApp() {
             ],
         },
         { text: 'Laboratorio', icon: <img src={laboratoryIcon} alt="laboratorio" style={{ width: 25, height: 25 }} />, key: 'Laboratorio' },
-        { text: 'Planta de Aguas', icon: <img src={ptapIcon} alt="plantadeaguas" style={{ width: 25, height: 25 }} />, key: 'plantadeaguas' },
+        {
+            text: 'Planta de Aguas', icon: <img src={ptapIcon} alt="plantadeaguas" style={{ width: 25, height: 25 }} />, key: 'plantadeaguas', subItems: [
+                { text: 'Medidores', subKey: 'registrodemedidores', icon: <img src={CounterIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+            ],
+        },
         { text: 'Registro Trabajadores', icon: <img src={workerIcon} alt="empleadosambiocom" style={{ width: 25, height: 25 }} />, key: 'empleadosambiocom' },
         { text: 'DB Aministrator', icon: <img src={DatabaseAdministratorIcon} alt="basededatos" style={{ width: 25, height: 25 }} />, key: 'basededatos' },
         { text: 'Assistance', icon: <img src={robotAssistanceIcon} alt="robotassistance" style={{ width: 25, height: 25 }} />, key: 'robotassistance' },
-    ];    
+    ];
 
     const renderContent = () => {
         switch (selectedMenu) {
-            case 'Tanquesjornaleros': return <SeguimientoTKJornaleros />;
+            case 'Tanquesjornaleros': return <SeguimientoTKJornaleros NivelesTanquesContext={nivelesTanques} />;
             case 'Inventariodeinsumos': return <SGMRC />;
-            case 'nivelesunidadcien': return <TanquesUnidadCien tanquesContext={tanques} NivelesTanquesContext ={nivelesTanques}/>;
-            case 'nivelesunidadtrecientos': return <TanquesUnidadTreCientos tanquesContext={tanques} NivelesTanquesContext ={nivelesTanques}/>;
-            case 'nivelesunidadcuatrocientos': return <Unidad400Component tanquesContext={tanques} NivelesTanquesContext ={nivelesTanques}/>;
-            case 'nivelesunidadochocientos': return <UnidadOchoCientosAlmacenamiento tanquesContext={tanques} NivelesTanquesContext ={nivelesTanques}/>;
-            case 'cubadefermentacion': return <CubaDeFermentacion tanquesContext={tanques} NivelesTanquesContext ={nivelesTanques}/>;
+            case 'nivelesunidadcien': return <TanquesUnidadCien tanquesContext={tanques} NivelesTanquesContext={nivelesTanques} />;
+            case 'nivelesunidadtrecientos': return <TanquesUnidadTreCientos tanquesContext={tanques} NivelesTanquesContext={nivelesTanques} />;
+            case 'nivelesunidadcuatrocientos': return <Unidad400Component tanquesContext={tanques} NivelesTanquesContext={nivelesTanques} />;
+            case 'nivelesunidadochocientos': return <UnidadOchoCientosAlmacenamiento tanquesContext={tanques} NivelesTanquesContext={nivelesTanques} />;
+            case 'cubadefermentacion': return <CubaDeFermentacion tanquesContext={tanques} NivelesTanquesContext={nivelesTanques} />;
             case 'bitacoradeturnosupervisores': return <BitacoraDeSupervisores />;
             case 'horasextrassupervisores': return <PanelHoras />;
             case 'inventariodecarbonymadera': return <InventarioCarbonMadera />;
             case 'basededatos': return <ConsultasHttpDb />;
             case 'robotassistance': return <ChatBox />;
-            case 'tanquescrud': return <TanquesList tanquesContext={tanques}/>;
+            case 'tanquescrud': return <TanquesList tanquesContext={tanques} />;
             case 'empleadosambiocom': return <EmpleadosManager />;
+            case 'nivelestanquesjornalerospagina': return <GraficoNivelesTanquesPorDiaPageComponente NivelesTanquesContext={nivelesTanques} />;
             default: return null;
         }
     };
