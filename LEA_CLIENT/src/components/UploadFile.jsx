@@ -77,8 +77,7 @@ https://ambiocomserver.onrender.com/api/pdfs/${rowId}`);
                 replaceFormData.append('pdf', file);
                 replaceFormData.append('rowId', rowId);
 
-                const replaceResponse = await axios.post('
-https://ambiocomserver.onrender.com/api/pdfs/update', replaceFormData, {
+                const replaceResponse = await axios.post('https://ambiocomserver.onrender.com/api/pdfs/update', replaceFormData, {
                     headers: {
                         'Content-Type': 'multipart/form-data',
                     },
@@ -113,8 +112,7 @@ https://ambiocomserver.onrender.com/api/pdfs/update', replaceFormData, {
     } catch (error) {
         if (error.response && error.response.status === 404) {
             // Si no existe un PDF asociado, hacemos la carga normalmente
-            const uploadResponse = await axios.post('
-https://ambiocomserver.onrender.com/api/pdfs/upload', formData, {
+            const uploadResponse = await axios.post('https://ambiocomserver.onrender.com/api/pdfs/upload', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },

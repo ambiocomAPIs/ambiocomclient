@@ -1,22 +1,14 @@
 import React, { useState, useMemo } from 'react';
 
 const endpoints = {
-  'Tabla De Colores': '
-https://ambiocomserver.onrender.com/api/tableColors/dataColors',
-  'Cierre de Mes': '
-https://ambiocomserver.onrender.com/api/cierreMes/data',
-  'Horas Extras': '
-https://ambiocomserver.onrender.com/api/usuarios/obtenerUsuarioHorasExtras',
-  'Niveles Tanques Jornaleros': '
-https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros',
-  'SGMRC Data': '
-https://ambiocomserver.onrender.com/api/table/data',
-  'bitacora Supervisores': '
-https://ambiocomserver.onrender.com/api/notasbitacora',
-  'Movimientos Insumos': '
-https://ambiocomserver.onrender.com/api/registro/movimientos',
-  'Operaciones de Tanques': '
-https://ambiocomserver.onrender.com/api/reportar/veroperacionesdetanques',
+  'Tabla De Colores': 'https://ambiocomserver.onrender.com/api/tableColors/dataColors',
+  'Cierre de Mes': 'https://ambiocomserver.onrender.com/api/cierreMes/data',
+  'Horas Extras': 'https://ambiocomserver.onrender.com/api/usuarios/obtenerUsuarioHorasExtras',
+  'Niveles Tanques Jornaleros': 'https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros',
+  'SGMRC Data': 'https://ambiocomserver.onrender.com/api/table/data',
+  'bitacora Supervisores': 'https://ambiocomserver.onrender.com/api/notasbitacora',
+  'Movimientos Insumos': 'https://ambiocomserver.onrender.com/api/registro/movimientos',
+  'Operaciones de Tanques': 'https://ambiocomserver.onrender.com/api/reportar/veroperacionesdetanques',
 };
 
 const colors = [

@@ -28,8 +28,7 @@ export default function ChatBox() {
     setLoading(true);
 
     try {
-      const res = await fetch('
-https://ambiocomserver.onrender.com/api/gemini/message', {
+      const res = await fetch('https://ambiocomserver.onrender.com/api/gemini/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: input }),

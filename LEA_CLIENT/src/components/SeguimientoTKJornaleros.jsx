@@ -202,8 +202,7 @@ https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesj
     };
 
     axios
-      .post("
-https://ambiocomserver.onrender.com/api/reportar/operacionesdetanques", data)
+      .post("https://ambiocomserver.onrender.com/api/reportar/operacionesdetanques", data)
       .then((response) => {
         console.log("Movimiento registrado:", response.data);
         setSnackbarOpen(true);

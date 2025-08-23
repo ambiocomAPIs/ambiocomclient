@@ -22,8 +22,7 @@ const GraficoGastoMensualPorMes = ({ modalIsOpen, closeModal }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('
-https://ambiocomserver.onrender.com/api/cierremes/data');
+        const response = await axios.get('https://ambiocomserver.onrender.com/api/cierremes/data');
         const rawData = response.data;
 
         const procesado = rawData.map(item => {

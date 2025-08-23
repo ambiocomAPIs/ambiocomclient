@@ -67,8 +67,7 @@ const CodificacionDeColoresComponent = React.memo(() => {
 
   useEffect(() => {
     // Realizar la solicitud GET a la API
-    axios.get('
-https://ambiocomserver.onrender.com/api/tableColors/dataColors')
+    axios.get('https://ambiocomserver.onrender.com/api/tableColors/dataColors')
       .then(response => {
         setDataColors(response.data);
         setLoading(false);
@@ -105,8 +104,7 @@ https://ambiocomserver.onrender.com/api/tableColors/dataColors')
     
       try {
         const response = await axios.put(
-          '
-https://ambiocomserver.onrender.com/api/tableColors/dataColorsreplaceall',
+          'https://ambiocomserver.onrender.com/api/tableColors/dataColorsreplaceall',
           [editedRow]
         );
     
@@ -139,8 +137,7 @@ https://ambiocomserver.onrender.com/api/tableColors/dataColorsreplaceall',
       Color: '----',
       Accion: '----'
     };
-    axios.post('
-https://ambiocomserver.onrender.com/api/tableColors/dataColors', newFile)
+    axios.post('https://ambiocomserver.onrender.com/api/tableColors/dataColors', newFile)
       .then(response => {        
         // Una vez agregada la fila en la base de datos, agregarla al estado local para que se muestre
         setDataColors(prevData => [response.data, ...prevData]);
@@ -171,12 +168,10 @@ const deleteRowData = (rowId) => {
     // Si el usuario confirma la eliminación
     if (result.isConfirmed) {
       // Realizamos la eliminación de la fila
-      axios.delete(`
-https://ambiocomserver.onrender.com/api/tableColors/dataColors/${rowId}`)
+      axios.delete(`https://ambiocomserver.onrender.com/api/tableColors/dataColors/${rowId}`)
         .then(() => {
           // Si la eliminación es exitosa, obtenemos los datos actualizados
-          axios.get('
-https://ambiocomserver.onrender.com/api/tableColors/dataColors')
+          axios.get('https://ambiocomserver.onrender.com/api/tableColors/dataColors')
             .then(updatedDataResponse => {
               setDataColors(updatedDataResponse.data); // Actualizamos el estado con los nuevos datos
               setSnackbarMessage('Datos eliminados correctamente');

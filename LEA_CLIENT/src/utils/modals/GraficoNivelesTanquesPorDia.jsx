@@ -56,8 +56,7 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose, NivelesTanques
   //   if (modalIsOpen) {
   //     setIsLoading(true);
   //     axios
-  //       .get('
-https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros')
+  //       .get('https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros')
   //       .then((response) => {
   //         if (Array.isArray(response.data)) {
   //           setRegistros(response.data);
