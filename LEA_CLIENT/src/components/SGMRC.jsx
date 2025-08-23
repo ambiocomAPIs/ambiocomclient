@@ -105,8 +105,7 @@ const SGMRC = React.memo(() => {
   const verificarImagen = async (id) => {
     if (!id) return false;
     try {
-      const res = await fetch(`
-https://ambiocomserver.onrender.com/imagenes/${id}.jpg`, { method: 'HEAD' });
+      const res = await fetch(`https://ambiocomserver.onrender.com/imagenes/${id}.jpg`, { method: 'HEAD' });
       console.log(`verificarImagen para ${id}: `, res.ok);
       return res.ok;
     } catch {
@@ -198,8 +197,7 @@ https://ambiocomserver.onrender.com/imagenes/${id}.jpg`, { method: 'HEAD' });
 
     const fetchPdf = async (rowId) => {
       try {
-          const response = await axios.get(`
-https://ambiocomserver.onrender.com/api/pdfs/${rowId}`, {
+          const response = await axios.get(`https://ambiocomserver.onrender.com/api/pdfs/${rowId}`, {
               responseType: 'blob',  // Especifica que esperas un blob (archivo binario)
           });
   
@@ -237,8 +235,7 @@ https://ambiocomserver.onrender.com/api/pdfs/${rowId}`, {
   const DownloadPdf = async (rowId) => {
     try {
         // Realiza la solicitud para obtener el archivo PDF
-        const response = await axios.get(`
-https://ambiocomserver.onrender.com/api/pdfs/download/${rowId}`);
+        const response = await axios.get(`https://ambiocomserver.onrender.com/api/pdfs/download/${rowId}`);
         // Extraer el nombre del archivo desde los datos JSON
         const { filename, data } = response.data;
 
@@ -295,8 +292,7 @@ const DeletePdf = async (rowId) => {
     });
     // Verifica si el usuario confirmó la acción
     if (result.isConfirmed) {
-      const response = await axios.delete(`
-https://ambiocomserver.onrender.com/api/pdfs/${rowId}`);
+      const response = await axios.delete(`https://ambiocomserver.onrender.com/api/pdfs/${rowId}`);
       // Notificación de éxito
       Swal.fire({
         icon: 'success',
@@ -332,8 +328,7 @@ const NotificarAlerta = async (params) => {
 
     // Verifica si el usuario confirmó la acción
     if (result.isConfirmed) {
-      const response = await axios.get(`
-https://ambiocomserver.onrender.com/api/email/notificar-producto/${params._id}`);
+      const response = await axios.get(`https://ambiocomserver.onrender.com/api/email/notificar-producto/${params._id}`);
 
       // Notificación de éxito
       Swal.fire({
@@ -681,16 +676,14 @@ const clickColumFixed = (columnClicked) => {
       
       try {
         // Verificar si la imagen ya existe
-        const exists = await fetch(`
-https://ambiocomserver.onrender.com/imagenes/${id}.jpg`, { method: 'HEAD' })
+        const exists = await fetch(`https://ambiocomserver.onrender.com/imagenes/${id}.jpg`, { method: 'HEAD' })
           .then(res => res.ok)
           .catch(() => false);
     
         if (exists) {
           return Swal.fire({
             title: 'Imagen Cargada',
-            imageUrl: `
-https://ambiocomserver.onrender.com/imagenes/${id}.jpg`,
+            imageUrl: `https://ambiocomserver.onrender.com/imagenes/${id}.jpg`,
             imageWidth: 400,
             imageHeight: 350,
             imageAlt: 'Imagen del elemento',
@@ -721,8 +714,7 @@ https://ambiocomserver.onrender.com/imagenes/${id}.jpg`,
           allowOutsideClick: false
         });
     
-        const response = await fetch(`
-https://ambiocomserver.onrender.com/upload/${id}`, {
+        const response = await fetch(`https://ambiocomserver.onrender.com/upload/${id}`, {
           method: 'POST',
           body: formData
         });

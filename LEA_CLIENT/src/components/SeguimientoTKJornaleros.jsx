@@ -123,8 +123,7 @@ function SeguimientoTKJornaleros({NivelesTanquesContext}) {
   // useEffect(() => {
   //   axios
   //     .get(
-  //       "
-https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros"
+  //       "https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros"
   //     )
   //     .then((res) => {
   //       setTanques(res.data);

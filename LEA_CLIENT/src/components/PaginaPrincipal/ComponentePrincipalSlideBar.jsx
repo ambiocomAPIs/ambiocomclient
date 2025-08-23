@@ -26,6 +26,8 @@ import {
     Menu as MenuIcon,
 } from '@mui/icons-material';
 
+//Pagina Inicio
+import InicioApp from '../pagina_Inicio/InicioApp.jsx';
 //Modulo Produccion
 import SeguimientoTKJornaleros from '../SeguimientoTKJornaleros';
 import TanquesList from '../TanquesList.jsx'
@@ -73,12 +75,28 @@ export default function EmpresarialPrincipalSchedulerApp() {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-    const [selectedMenu, setSelectedMenu] = useState('Inventariodeinsumos');
+    const [selectedMenu, setSelectedMenu] = useState(null);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [openSubmenus, setOpenSubmenus] = useState({});
 
     const navigate = useNavigate();
+    // Cargar menú guardado o por defecto
+    useEffect(() => {
+        const savedMenu = localStorage.getItem("selectedMenu");
+        if (savedMenu) {
+            setSelectedMenu(savedMenu);
+        } else {
+            setSelectedMenu('paginadeinicio');
+        }
+    }, []);
+
+    // Guardar en localStorage sólo si selectedMenu tiene valor válido
+    useEffect(() => {
+        if (selectedMenu) {
+            localStorage.setItem("selectedMenu", selectedMenu);
+        }
+    }, [selectedMenu]);
 
 
     useEffect(() => {
@@ -104,6 +122,11 @@ export default function EmpresarialPrincipalSchedulerApp() {
     };
 
     const menuItems = [
+        {
+            text: 'Inicio',
+            key: 'paginadeinicio',
+            icon: <img src={"/logo_ambiocom.png"} alt="inicio" style={{ width: 35, height: 35 }} />,
+        },
         {
             text: 'Produccion',
             key: 'produccion',
@@ -167,6 +190,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
 
     const renderContent = () => {
         switch (selectedMenu) {
+            case 'paginadeinicio': return <InicioApp />;
             case 'Tanquesjornaleros': return <SeguimientoTKJornaleros NivelesTanquesContext={nivelesTanques} />;
             case 'Inventariodeinsumos': return <SGMRC />;
             case 'nivelesunidadcien': return <TanquesUnidadCien tanquesContext={tanques} NivelesTanquesContext={nivelesTanques} />;

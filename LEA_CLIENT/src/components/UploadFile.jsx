@@ -57,8 +57,7 @@ const FileUpload = ({ uploadrowId }) => {
 
     try {
         // Verificar si ya existe un PDF con este rowId
-        const checkResponse = await axios.get(`
-https://ambiocomserver.onrender.com/api/pdfs/${rowId}`);
+        const checkResponse = await axios.get(`https://ambiocomserver.onrender.com/api/pdfs/${rowId}`);
         
         // Si ya existe un PDF, preguntamos si desea reemplazarlo
         if (checkResponse.status === 200) {

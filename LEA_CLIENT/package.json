@@ -25,6 +25,7 @@
     "chartjs-plugin-datalabels": "^2.2.0",
     "date-fns": "^4.1.0",
     "exceljs": "^4.4.0",
+    "framer-motion": "^12.23.12",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
     "node-cron": "^3.0.3",

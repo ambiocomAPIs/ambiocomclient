@@ -104,8 +104,7 @@ const TanquesList = ({ tanquesContext }) => {
 
     if (confirm.isConfirmed) {
       try {
-        await axios.delete(`
-https://ambiocomserver.onrender.com/api/tanques/${id}`);
+        await axios.delete(`https://ambiocomserver.onrender.com/api/tanques/${id}`);
         Swal.fire("Eliminado", "Tanque eliminado correctamente", "success");
         fetchTanques();
       } catch (error) {

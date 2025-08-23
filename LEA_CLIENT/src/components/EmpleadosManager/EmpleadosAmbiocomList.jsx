@@ -133,8 +133,7 @@ function EmpleadosManager() {
 
     if (confirmar.isConfirmed) {
       try {
-        await axios.delete(`
-https://ambiocomserver.onrender.com/api/empleadosambiocom/${id}`);
+        await axios.delete(`https://ambiocomserver.onrender.com/api/empleadosambiocom/${id}`);
         fetchEmpleados();
         Swal.fire('Eliminado', 'Empleado eliminado exitosamente', 'success');
       } catch (error) {
@@ -145,13 +144,16 @@ https://ambiocomserver.onrender.com/api/empleadosambiocom/${id}`);
   };
 
   return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', padding: 2, mt: 6 }}>
+<Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', padding: 2, mt: 6 }}>
       <Button variant="contained" sx={{ mb: 1, alignSelf: 'flex-start' }} onClick={handleOpen}>Nuevo Empleado</Button>
-      <TableContainer component={Paper} sx={{
-        mt: 2, flexGrow: 1,
-        overflowY: 'auto',
-        maxHeight: '100%',
-      }}>
+ <TableContainer
+    component={Paper}
+    sx={{
+      flexGrow: 1,
+      overflowY: 'auto',  // scroll vertical en la tabla si sobrepasa
+      maxHeight: 'calc(100vh - 160px)', // ajustar según el alto del header y botón
+    }}
+      >
         <Table>
           <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
             <TableRow>
@@ -184,8 +186,8 @@ https://ambiocomserver.onrender.com/api/empleadosambiocom/${id}`);
                         onMouseEnter={(e) => {
                           const preview = document.createElement('div');
                           preview.style.position = 'absolute';
-                          preview.style.top = '50px';
-                          preview.style.left = '50%';
+                          preview.style.top = '-80px';
+                          preview.style.left = '110px';
                           preview.style.transform = 'translateX(-50%)';
                           preview.style.border = '1px solid #ccc';
                           preview.style.padding = '4px';

@@ -83,8 +83,7 @@ function NoteBoard({ supervisor, turno, fecha }) {
     
     try {
       // Hacer PATCH al backend para toggle de completed
-      const response = await axios.patch(`
-https://ambiocomserver.onrender.com/api/notasbitacora/${noteId}/toggle`);
+      const response = await axios.patch(`https://ambiocomserver.onrender.com/api/notasbitacora/${noteId}/toggle`);
   
       if (response.status === 200) {
         const updatedNote = response.data;
