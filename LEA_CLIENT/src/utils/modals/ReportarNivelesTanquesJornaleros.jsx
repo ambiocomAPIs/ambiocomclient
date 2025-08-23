@@ -87,7 +87,8 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
   // Traer datos de tanques
   useEffect(() => {
     axios
-      .get("https://ambiocomserver.onrender.com/api/tanques")
+      .get("
+https://ambiocomserver.onrender.com/api/tanques")
       .then((res) => setTanquesData(res.data))
       .catch((err) => console.error("Error al obtener tanques:", err));
   }, []);
@@ -124,12 +125,17 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
           NivelTanque: valor === undefined || valor === "" ? 0 : Number(valor),
           Responsable: responsable,
           Observaciones: observaciones,
+          Factor: tanque.Factor,
+          Disposicion: tanque.Disposicion,
           FechaRegistro: fecha,
         };
       });
 
+      console.log("payload:", payload);
+      
       await axios.post(
-        "https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros",
+        "
+https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros",
         payload
       );
 
@@ -171,7 +177,8 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
     if (confirm.isConfirmed) {
       try {
         await axios.delete(
-          "https://ambiocomserver.onrender.com/api/tanquesjornaleros/eliminarporfecha",
+          "
+https://ambiocomserver.onrender.com/api/tanquesjornaleros/eliminarporfecha",
           { data: { FechaRegistro: fecha } } // 👈 enviar fecha en el body
         );
         Swal.fire("Eliminado", "Los registros fueron eliminados.", "success");

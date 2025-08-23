@@ -37,7 +37,8 @@ const ModalFilterData = ({ isOpen, onClose, data, module }) => {
   // Función para obtener el PDF
   const fetchPdf = async (rowId) => {
     try {
-      const response = await axios.get(`https://ambiocomserver.onrender.com/api/pdfs/${rowId}`, {
+      const response = await axios.get(`
+https://ambiocomserver.onrender.com/api/pdfs/${rowId}`, {
         responseType: 'blob', // Especifica que esperas un blob (archivo binario)
       });
       
@@ -116,9 +117,11 @@ const ModalFilterData = ({ isOpen, onClose, data, module }) => {
   
       if (result.isConfirmed) {
         // Realizamos la eliminación del item
-        console.log("url para eliminar:",`https://ambiocomserver.onrender.com/api/${UrlRequest}/${rowId}`);
+        console.log("url para eliminar:",`
+https://ambiocomserver.onrender.com/api/${UrlRequest}/${rowId}`);
         
-        axios.delete(`https://ambiocomserver.onrender.com/api/${UrlRequest}/${rowId}`)
+        axios.delete(`
+https://ambiocomserver.onrender.com/api/${UrlRequest}/${rowId}`)
           .then(() => {
             // Actualizamos los datos filtrados eliminando el item de la lista
             setFilteredData((prevData) => prevData.filter(item => item._id !== rowId));

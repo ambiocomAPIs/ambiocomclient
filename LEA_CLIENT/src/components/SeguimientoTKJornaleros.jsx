@@ -123,7 +123,8 @@ function SeguimientoTKJornaleros({NivelesTanquesContext}) {
   // useEffect(() => {
   //   axios
   //     .get(
-  //       "https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros"
+  //       "
+https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros"
   //     )
   //     .then((res) => {
   //       setTanques(res.data);
@@ -201,7 +202,8 @@ function SeguimientoTKJornaleros({NivelesTanquesContext}) {
     };
 
     axios
-      .post("https://ambiocomserver.onrender.com/api/reportar/operacionesdetanques", data)
+      .post("
+https://ambiocomserver.onrender.com/api/reportar/operacionesdetanques", data)
       .then((response) => {
         console.log("Movimiento registrado:", response.data);
         setSnackbarOpen(true);

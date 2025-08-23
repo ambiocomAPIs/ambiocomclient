@@ -18,7 +18,8 @@ function NoteBoard({ supervisor, turno, fecha }) {
   useEffect(() => {
     const fetchNotes = async () => {
       try {
-        const res = await axios.get("https://ambiocomserver.onrender.com/api/notasbitacora");
+        const res = await axios.get("
+https://ambiocomserver.onrender.com/api/notasbitacora");
         const grouped = sections.reduce((acc, s) => {
           acc[s.key] = res.data.filter((n) => n.module === s.key);
           return acc;
@@ -38,7 +39,8 @@ function NoteBoard({ supervisor, turno, fecha }) {
 
     const sendNote = async () => {
       try {
-        const response = await axios.post("https://ambiocomserver.onrender.com/api/notasbitacora", noteToCreate);
+        const response = await axios.post("
+https://ambiocomserver.onrender.com/api/notasbitacora", noteToCreate);
         const sectionKey = noteToCreate.module;
 
         setNotes((prev) => ({
@@ -83,7 +85,8 @@ function NoteBoard({ supervisor, turno, fecha }) {
     
     try {
       // Hacer PATCH al backend para toggle de completed
-      const response = await axios.patch(`https://ambiocomserver.onrender.com/api/notasbitacora/${noteId}/toggle`);
+      const response = await axios.patch(`
+https://ambiocomserver.onrender.com/api/notasbitacora/${noteId}/toggle`);
   
       if (response.status === 200) {
         const updatedNote = response.data;

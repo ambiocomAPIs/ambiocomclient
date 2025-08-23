@@ -46,7 +46,8 @@ const TanquesList = ({ tanquesContext }) => {
 
   // const fetchTanques = async () => {
   //   try {
-  //     const res = await axios.get("https://ambiocomserver.onrender.com/api/tanques");
+  //     const res = await axios.get("
+https://ambiocomserver.onrender.com/api/tanques");
   //     setTanques(res.data);
   //   } catch (error) {
   //     Swal.fire("Error", "No se pudieron cargar los tanques", "error");
@@ -67,7 +68,8 @@ const TanquesList = ({ tanquesContext }) => {
       const { _id, ...dataLimpia } = data;
 
       if (data._id && operacionEjecutada === "update") {
-        await axios.put(`https://ambiocomserver.onrender.com/api/tanques/${data._id}`, data);
+        await axios.put(`
+https://ambiocomserver.onrender.com/api/tanques/${data._id}`, data);
         // Actualiza inmediatamente los estados
         const nuevosTanques = tanques.map((t) =>
           t._id === data._id ? data : t
@@ -76,7 +78,8 @@ const TanquesList = ({ tanquesContext }) => {
         // setTanquesContext(nuevosTanques); // 🔹 actualiza también el context
         Swal.fire("Actualizado", "Tanque actualizado correctamente", "success");
       } else {
-        await axios.post("https://ambiocomserver.onrender.com/api/tanques", dataLimpia);
+        await axios.post("
+https://ambiocomserver.onrender.com/api/tanques", dataLimpia);
         Swal.fire("Creado", "Tanque registrado correctamente", "success");
       }
     } catch (error) {
@@ -104,7 +107,8 @@ const TanquesList = ({ tanquesContext }) => {
 
     if (confirm.isConfirmed) {
       try {
-        await axios.delete(`https://ambiocomserver.onrender.com/api/tanques/${id}`);
+        await axios.delete(`
+https://ambiocomserver.onrender.com/api/tanques/${id}`);
         Swal.fire("Eliminado", "Tanque eliminado correctamente", "success");
         fetchTanques();
       } catch (error) {

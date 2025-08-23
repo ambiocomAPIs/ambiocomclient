@@ -37,7 +37,8 @@ function EmpleadosManager() {
 
   const fetchEmpleados = async () => {
     try {
-      const { data } = await axios.get('https://ambiocomserver.onrender.com/api/empleadosambiocom');
+      const { data } = await axios.get('
+https://ambiocomserver.onrender.com/api/empleadosambiocom');
       setEmpleados(data);
     } catch (error) {
       console.error('Error al cargar empleados:', error);
@@ -101,10 +102,12 @@ function EmpleadosManager() {
   const guardarEmpleado = async () => {
     try {
       if (modoEdicion) {
-        await axios.put(`https://ambiocomserver.onrender.com/api/empleadosambiocom/${empleadoActual._id}`, empleadoActual);
+        await axios.put(`
+https://ambiocomserver.onrender.com/api/empleadosambiocom/${empleadoActual._id}`, empleadoActual);
         Swal.fire('Actualizado', 'Empleado actualizado correctamente', 'success');
       } else {
-        await axios.post('https://ambiocomserver.onrender.com/api/empleadosambiocom', empleadoActual);
+        await axios.post('
+https://ambiocomserver.onrender.com/api/empleadosambiocom', empleadoActual);
         Swal.fire('Registrado', 'Empleado registrado correctamente', 'success');
       }
       fetchEmpleados();
@@ -133,7 +136,8 @@ function EmpleadosManager() {
 
     if (confirmar.isConfirmed) {
       try {
-        await axios.delete(`https://ambiocomserver.onrender.com/api/empleadosambiocom/${id}`);
+        await axios.delete(`
+https://ambiocomserver.onrender.com/api/empleadosambiocom/${id}`);
         fetchEmpleados();
         Swal.fire('Eliminado', 'Empleado eliminado exitosamente', 'success');
       } catch (error) {

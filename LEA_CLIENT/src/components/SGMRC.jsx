@@ -105,7 +105,8 @@ const SGMRC = React.memo(() => {
   const verificarImagen = async (id) => {
     if (!id) return false;
     try {
-      const res = await fetch(`https://ambiocomserver.onrender.com/imagenes/${id}.jpg`, { method: 'HEAD' });
+      const res = await fetch(`
+https://ambiocomserver.onrender.com/imagenes/${id}.jpg`, { method: 'HEAD' });
       console.log(`verificarImagen para ${id}: `, res.ok);
       return res.ok;
     } catch {
@@ -174,7 +175,8 @@ const SGMRC = React.memo(() => {
 
   useEffect(() => {
     // Realizar la solicitud GET a la API
-    axios.get('https://ambiocomserver.onrender.com/api/table/data')
+    axios.get('
+https://ambiocomserver.onrender.com/api/table/data')
       .then(response => {
         setData(response.data);
         setLoading(false);
@@ -197,7 +199,8 @@ const SGMRC = React.memo(() => {
 
     const fetchPdf = async (rowId) => {
       try {
-          const response = await axios.get(`https://ambiocomserver.onrender.com/api/pdfs/${rowId}`, {
+          const response = await axios.get(`
+https://ambiocomserver.onrender.com/api/pdfs/${rowId}`, {
               responseType: 'blob',  // Especifica que esperas un blob (archivo binario)
           });
   
@@ -235,7 +238,8 @@ const SGMRC = React.memo(() => {
   const DownloadPdf = async (rowId) => {
     try {
         // Realiza la solicitud para obtener el archivo PDF
-        const response = await axios.get(`https://ambiocomserver.onrender.com/api/pdfs/download/${rowId}`);
+        const response = await axios.get(`
+https://ambiocomserver.onrender.com/api/pdfs/download/${rowId}`);
         // Extraer el nombre del archivo desde los datos JSON
         const { filename, data } = response.data;
 
@@ -292,7 +296,8 @@ const DeletePdf = async (rowId) => {
     });
     // Verifica si el usuario confirmó la acción
     if (result.isConfirmed) {
-      const response = await axios.delete(`https://ambiocomserver.onrender.com/api/pdfs/${rowId}`);
+      const response = await axios.delete(`
+https://ambiocomserver.onrender.com/api/pdfs/${rowId}`);
       // Notificación de éxito
       Swal.fire({
         icon: 'success',
@@ -328,7 +333,8 @@ const NotificarAlerta = async (params) => {
 
     // Verifica si el usuario confirmó la acción
     if (result.isConfirmed) {
-      const response = await axios.get(`https://ambiocomserver.onrender.com/api/email/notificar-producto/${params._id}`);
+      const response = await axios.get(`
+https://ambiocomserver.onrender.com/api/email/notificar-producto/${params._id}`);
 
       // Notificación de éxito
       Swal.fire({
@@ -371,7 +377,8 @@ const NotificarAlerta = async (params) => {
     //newData[editingCell.row[editingCell.column][editingCell.column]] = tempValue;
     try {
       // Usar `newData` para enviar los datos modificados al servidor
-      const response = await axios.post('https://ambiocomserver.onrender.com/api/table/datareplaceall', newData);  
+      const response = await axios.post('
+https://ambiocomserver.onrender.com/api/table/datareplaceall', newData);  
       // Si la solicitud es exitosa
       if (response.status === 200) {
         setSnackbarMessage('Datos actualizados correctamente');
@@ -417,7 +424,8 @@ const NotificarAlerta = async (params) => {
       estado: '----',  // Agregado para el nuevo modelo
     }
 
-    axios.post('https://ambiocomserver.onrender.com/api/table/data', newFile)
+    axios.post('
+https://ambiocomserver.onrender.com/api/table/data', newFile)
     .then(response => {
       // Una vez agregada la fila en la base de datos, agregarla al estado local para que se muestre
       setData(prevData => [response.data, ...prevData]);
@@ -449,10 +457,12 @@ const deleteRowData = (rowId) => {
     // Si el usuario confirma la eliminación
     if (result.isConfirmed) {
       // Realizamos la eliminación de la fila
-      axios.delete(`https://ambiocomserver.onrender.com/api/table/data/${rowId}`)
+      axios.delete(`
+https://ambiocomserver.onrender.com/api/table/data/${rowId}`)
         .then(() => {
           // Si la eliminación es exitosa, obtenemos los datos actualizados
-          axios.get('https://ambiocomserver.onrender.com/api/table/data')
+          axios.get('
+https://ambiocomserver.onrender.com/api/table/data')
             .then(updatedDataResponse => {
               setData(updatedDataResponse.data); // Actualizamos el estado con los nuevos datos
               setSnackbarMessage('Datos eliminados correctamente');
@@ -617,7 +627,8 @@ const clickColumFixed = (columnClicked) => {
 
   // funcion llamada para realizar el cierre de mes
   const guardarCierreMes = async (cierreData) => {
-    const response = await fetch('https://ambiocomserver.onrender.com/api/cierreMes/data', {
+    const response = await fetch('
+https://ambiocomserver.onrender.com/api/cierreMes/data', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -636,7 +647,8 @@ const clickColumFixed = (columnClicked) => {
     const DescargarManual = async () => {
       try {
         // Solicitar el archivo con la respuesta como 'blob'
-        const response = await axios.get('https://ambiocomserver.onrender.com/api/download/downloadmanual', {
+        const response = await axios.get('
+https://ambiocomserver.onrender.com/api/download/downloadmanual', {
           responseType: 'blob',  // Especificamos que la respuesta es un archivo binario
         });
     
@@ -676,14 +688,16 @@ const clickColumFixed = (columnClicked) => {
       
       try {
         // Verificar si la imagen ya existe
-        const exists = await fetch(`https://ambiocomserver.onrender.com/imagenes/${id}.jpg`, { method: 'HEAD' })
+        const exists = await fetch(`
+https://ambiocomserver.onrender.com/imagenes/${id}.jpg`, { method: 'HEAD' })
           .then(res => res.ok)
           .catch(() => false);
     
         if (exists) {
           return Swal.fire({
             title: 'Imagen Cargada',
-            imageUrl: `https://ambiocomserver.onrender.com/imagenes/${id}.jpg`,
+            imageUrl: `
+https://ambiocomserver.onrender.com/imagenes/${id}.jpg`,
             imageWidth: 400,
             imageHeight: 350,
             imageAlt: 'Imagen del elemento',
@@ -714,7 +728,8 @@ const clickColumFixed = (columnClicked) => {
           allowOutsideClick: false
         });
     
-        const response = await fetch(`https://ambiocomserver.onrender.com/upload/${id}`, {
+        const response = await fetch(`
+https://ambiocomserver.onrender.com/upload/${id}`, {
           method: 'POST',
           body: formData
         });

@@ -28,7 +28,8 @@ const PanelHoras = () => {
     try {
       setLoading(true);
       // Supongamos que tu API recibe mes y anio como query params para filtrar
-      const response = await axios.get('https://ambiocomserver.onrender.com/api/usuarios/obtenerUsuarioHorasExtras', {
+      const response = await axios.get('
+https://ambiocomserver.onrender.com/api/usuarios/obtenerUsuarioHorasExtras', {
         params: { mes, anio }
       });
       setUsuarios(response.data); // Asumes que la API te devuelve el array filtrado
@@ -219,7 +220,8 @@ const PanelHoras = () => {
     };
   
     try {
-      const response = await axios.post('https://ambiocomserver.onrender.com/api/usuarios/crearUsuarioHorasExtras', nuevoUsuario);
+      const response = await axios.post('
+https://ambiocomserver.onrender.com/api/usuarios/crearUsuarioHorasExtras', nuevoUsuario);
         setUsuarios(prev => [...prev, response.data]);
         fetchDatos();
       Swal.fire('Usuario agregado', `${formValues.nombre} ha sido agregado exitosamente.`, 'success');
