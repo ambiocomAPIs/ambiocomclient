@@ -62,16 +62,17 @@ import {
 // importacion contexto de tanques
 import { useTanques } from "../../utils/Context/TanquesContext.jsx";
 import { useNivelesDiariosTanques } from '../../utils/Context/NivelesDiariosTanquesContext.jsx';
+import {useEmpleados} from '../../utils/Context/EmpleadosContext.jsx'
 
 const drawerWidth = 280;
 
 export default function EmpresarialPrincipalSchedulerApp() {
-
+    
     // ------  definicion de los contextos  ----------
     const { tanques, loading, setTanques } = useTanques();
     const { nivelesTanques, nivelesTanquesLoading, setNivelesTanques } = useNivelesDiariosTanques();
+    const { empleadosActivos, loadingEmpleados } = useEmpleados();
     // -----------------------------------------------
-
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -123,7 +124,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
 
     const menuItems = [
         {
-            text: 'Inicio',
+            text: 'Inicio Ambiocom',
             key: 'paginadeinicio',
             icon: <img src={"/logo_ambiocom.png"} alt="inicio" style={{ width: 35, height: 35 }} />,
         },
@@ -198,7 +199,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'nivelesunidadcuatrocientos': return <Unidad400Component tanquesContext={tanques} NivelesTanquesContext={nivelesTanques} />;
             case 'nivelesunidadochocientos': return <UnidadOchoCientosAlmacenamiento tanquesContext={tanques} NivelesTanquesContext={nivelesTanques} />;
             case 'cubadefermentacion': return <CubaDeFermentacion tanquesContext={tanques} NivelesTanquesContext={nivelesTanques} />;
-            case 'bitacoradeturnosupervisores': return <BitacoraDeSupervisores />;
+            case 'bitacoradeturnosupervisores': return <BitacoraDeSupervisores trabajadoresRegistradosContext={empleadosActivos}/>;
             case 'horasextrassupervisores': return <PanelHoras />;
             case 'inventariodecarbonymadera': return <InventarioCarbonMadera />;
             case 'basededatos': return <ConsultasHttpDb />;

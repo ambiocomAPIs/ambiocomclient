@@ -3,7 +3,7 @@ import HeaderForm from "./HeaderForm";
 import NoteBoard from "./NoteBoard";
 import { Container, Typography, Box } from "@mui/material";
 
-function BitacoraComponentProduccion() {
+function BitacoraComponentProduccion({trabajadoresRegistradosContext}) {  
   const [headerData, setHeaderData] = useState({
     fecha: "",
     turno: "",
@@ -23,9 +23,7 @@ function BitacoraComponentProduccion() {
     REGISTROS: [],
   });
 
-  const clearFieldsExceptFechaTurno = () => {
-    console.log("ejecutandose para limpiar data ?");
-    
+  const clearFieldsExceptFechaTurno = () => {    
     setHeaderData(prev => ({
       ...prev,
       supervisor: "",
@@ -72,7 +70,12 @@ function BitacoraComponentProduccion() {
       <Typography variant="h4" gutterBottom sx={{ pl: 2, mt:6}} style={{ textAlign: "center"}}>
         Bitácora de Turnos Diarios Supervisores
       </Typography>
-      <HeaderForm data={headerData} onChange={handleHeaderChange} clearFieldsExceptFechaTurno={clearFieldsExceptFechaTurno} />
+      <HeaderForm 
+       data={headerData} 
+       onChange={handleHeaderChange} 
+       clearFieldsExceptFechaTurno={clearFieldsExceptFechaTurno} 
+       trabajadoresRegistradosContext={trabajadoresRegistradosContext}
+       />
       <NoteBoard 
       notes={notes} 
       onAddNote={addNote} 
