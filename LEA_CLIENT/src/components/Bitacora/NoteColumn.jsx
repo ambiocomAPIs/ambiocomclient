@@ -1,3 +1,5 @@
+import { useState } from "react";
+import axios from "axios"
 import {
   Card,
   CardContent,
@@ -13,48 +15,26 @@ import {
   DialogActions,
   Button,
 } from "@mui/material";
+
 import AddIcon from "@mui/icons-material/Add";
-import { useState } from "react";
+import { Snackbar, Alert } from "@mui/material";
+import { CircularProgress, LinearProgress } from "@mui/material";
+
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
+
+//Diccionario definido y detallado
+import DiccionarioUnidadDefault from "./DiccionarioUnidadDefaults";
 
 // Todas las unidades
 const unidadKeys = [
   "U100", "U200", "U300", "U350", "U400", "U450",
   "U500", "U550", "U600", "U650", "U700",
-  "U800", "U900", "U950",
+  "U800", "U900", "U950", "TRASLADO", "RECIRCULACION"
 ];
 
-// Mensajes por defecto
-const unidadDefaults = {
-  U100: "Sin Texto predefinido",
-  U200: "Sin Texto predefinido.",
-  U300: "Alimentando Tk ✳️✳️✳️ a un flujo de ✳️✳️✳️✳️ L/h  nivel: ✳️✳️ m. Bomba P30✳️ Operando",
-  U350: "Bomba 3✳️✳️ A/B operando",
-  U400: "Alimentando del TK ✳️✳️✳️  a ✳️✳️ L/h nivel: ✳️✳️ m. \n\n \tC403=          C404=           C405=           CB=           CA=          . \n\n ➡️ EXTRANEUTRO:   TK402 AB=  m.\n ➡️ INDUSTRIAL=        TK403AB=  m",
-  U450: "TK402AB llenando, nivel= ✳️✳️ m  || Bomba MP41✳️ operando || TK402AB Recirculando, nivel= ✳️✳️ m || TK402AB Trasladando, nivel antes del traslado= xx m ",
-  U500: `
- 🔸Presión:  Psi
- 🔸Domo: %
- 🔸Desaireador:  %
- 🔸THogar:  °C
- 🔸Tvapor:  °C
- 🔸 Flujo vapor:  lb/h
- 🔸 Tolva principal:  Toneladas
- 🔸 Compuertas:
-      ➡️ #1 - 100
-      ➡️ #2 - 100
-      ➡️ #3 - 50
-      ➡️ #4 - 0
- 🔸 Lavador de gases: Fuera de línea \n`,
-  U550: "Verificación de presión.",
-  U600: "Cambio de filtros.",
-  U650: "Revisión de sensores.",
-  U700: "Análisis de fallas previas.",
-  U800: "Limpieza de sistema.",
-  U900: "Verificar niveles.",
-  U950: "Prueba de rendimiento.",
-};
-
-function NoteColumn({ title, notes = [], onAdd, onToggle, date }) {
+function NoteColumn({ title, notes = [], onAdd, onToggle, date, onRefresh }) {
   const [input, setInput] = useState("");
   const [modalUnidad, setModalUnidad] = useState(null);
   const [modalText, setModalText] = useState("");
@@ -62,6 +42,9 @@ function NoteColumn({ title, notes = [], onAdd, onToggle, date }) {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteError, setDeleteError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [deletingNoteId, setDeletingNoteId] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
   const today = new Date().toISOString().split("T")[0];
   const effectiveDate = date || today;
@@ -92,7 +75,7 @@ function NoteColumn({ title, notes = [], onAdd, onToggle, date }) {
 
     if (unidadKeys.includes(trimmed)) {
       setModalUnidad(trimmed);
-      setModalText(unidadDefaults[trimmed] || ""); // cargar mensaje predeterminado
+      setModalText(DiccionarioUnidadDefault[trimmed] || ""); // cargar mensaje predeterminado
     } else {
       onAdd(trimmed);
     }
@@ -109,34 +92,35 @@ function NoteColumn({ title, notes = [], onAdd, onToggle, date }) {
   };
 
   const handleDeleteNote = async () => {
+    if (!deleteTarget) return;
+
+    setDeletingNoteId(true);
+
     try {
-      const res = await fetch(`https://ambiocomserver.onrender.com/api/notasbitacora/bitacora/${deleteTarget._id || deleteTarget.id}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ password: deletePassword }),
-      });
+      setDeletingNoteId(deleteTarget._id); // nota a eliminar y aplicar el loading
+      await axios.delete(
+        `https://ambiocomserver.onrender.com/api/notasbitacora/bitacora/${deleteTarget._id}`,
+        {
+          headers: { Authorization: `Bearer ${deletePassword}` }
+        }
+      );
 
-      if (!res.ok) {
-        const error = await res.json();
-        setDeleteError(error.message || "Error al eliminar");
-        return;
-      }
-
-      // Notifica que debe recargarse la lista
-      if (typeof onAdd === "function") {
-        onAdd("__deleted__");
-      }
+      setSnackbar({ open: true, message: "Nota eliminada con éxito", severity: "success" });
 
       setDeleteTarget(null);
       setDeletePassword("");
       setDeleteError("");
+      setDeletingNoteId(null);
+      if (typeof onRefresh === "function") {
+        onRefresh();
+      }
     } catch (error) {
       console.error("❌ Error al eliminar nota:", error);
-      setDeleteError("Error en la solicitud.");
-    }
-  };
+      setDeleteError(error.response?.data?.message || "Error en la solicitud.");
+      setSnackbar({ open: true, message: "Error al eliminar la nota", severity: "error" });
+    } finally {
+      setDeletingNoteId(null);    }
+    };
 
   return (
     <Card
@@ -195,7 +179,7 @@ function NoteColumn({ title, notes = [], onAdd, onToggle, date }) {
                   />
                 </Box>
 
-                <Box sx={{ position: "absolute", top: 4, left: 4 }}>
+                <Box sx={{ position: "absolute", bottom: 4, right: 5 }}>
                   <IconButton
                     size="small"
                     onClick={(e) => {
@@ -205,7 +189,7 @@ function NoteColumn({ title, notes = [], onAdd, onToggle, date }) {
                       setDeleteError("");
                     }}
                   >
-                    🗑️
+                    ❌
                   </IconButton>
                 </Box>
 
@@ -223,6 +207,10 @@ function NoteColumn({ title, notes = [], onAdd, onToggle, date }) {
                     <strong>Fecha:</strong> {formatDate(note.createdAt)}
                   </Typography>
                 </CardContent>
+                {/* Linea loading para nota */}
+                {deletingNoteId === (note._id || note.id) && (
+                  <LinearProgress color="error" sx={{ position: "absolute", bottom: 0, left: 0, right: 0 }} />
+                )}
               </Card>
             );
           })}
@@ -287,24 +275,40 @@ function NoteColumn({ title, notes = [], onAdd, onToggle, date }) {
         </DialogActions>
       </Dialog>
 
-      {/* Modal para eliminar nota */}
-      <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
-        <DialogTitle>Eliminar nota</DialogTitle>
-        <DialogContent>
-          <Typography>Ingrese contraseña para confirmar:</Typography>
+      {/* Modal para ver modal de eliminar nota */}
+      <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <WarningAmberIcon color="warning" />
+          Confirmar eliminación
+        </DialogTitle>
+
+        <DialogContent dividers>
+          <Typography variant="body2" mb={2}>
+            ¿Estás seguro que deseas eliminar esta nota? Esta acción no se puede deshacer.
+          </Typography>
+
           <TextField
             fullWidth
-            type="password"
+            type={showPassword ? "text" : "password"}
+            label="Contraseña"
             value={deletePassword}
             onChange={(e) => setDeletePassword(e.target.value)}
-            autoFocus
+            InputProps={{
+              endAdornment: (
+                <IconButton onClick={() => setShowPassword((prev) => !prev)} edge="end">
+                  {showPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              ),
+            }}
           />
+
           {deleteError && (
-            <Typography color="error" mt={1}>
+            <Typography color="error" mt={2}>
               {deleteError}
             </Typography>
           )}
         </DialogContent>
+
         <DialogActions>
           <Button onClick={() => setDeleteTarget(null)}>Cancelar</Button>
           <Button variant="contained" color="error" onClick={handleDeleteNote}>
@@ -312,6 +316,23 @@ function NoteColumn({ title, notes = [], onAdd, onToggle, date }) {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Akerta con snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Card>
   );
 }

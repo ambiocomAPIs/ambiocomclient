@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
+
 import {
   Grid,
   TextField,
@@ -12,7 +14,8 @@ import {
   Box,
   Autocomplete
 } from "@mui/material";
-import axios from "axios";
+
+import Tooltip from "@mui/material/Tooltip";
 
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -49,11 +52,11 @@ function HeaderForm({ data, onChange, clearFieldsExceptFechaTurno, trabajadoresR
   }, [data.fecha]);
 
   const turnos = [
-    { value: "TurnoMañana(6am-2pm)", label: "Turno Mañana (6 am - 2 pm)" },
-    { value: "TurnoTarde(2pm-10pm)", label: "Turno Tarde (2 pm - 10 pm)" },
-    { value: "TurnoNoche(10pm-6am)", label: "Turno Noche (10 pm - 6 am)" },
-    { value: "Turno12Horas(6am-6pm)", label: "Turno 12Horas (6 am - 6 pm)" },
-    { value: "Turno12Horas(6pm-6am)", label: "Turno 12Horas (6 pm - 6 am)" },
+    { value: "TurnoMañana(6am-2pm)", label: "Turno Mañana (6:00 - 14:00)" },
+    { value: "TurnoTarde(2pm-10pm)", label: "Turno Tarde (14:00 - 22:00)" },
+    { value: "TurnoNoche(10pm-6am)", label: "Turno Noche (22:00  - 06:00)" },
+    { value: "Turno12Horas(6am-6pm)", label: "Turno 12Horas (06:00 - 18:00)" },
+    { value: "Turno12Horas(6pm-6am)", label: "Turno 12Horas (18:00 - 06:00)" },
   ];
 
   const fields = [

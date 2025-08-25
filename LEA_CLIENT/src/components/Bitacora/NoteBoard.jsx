@@ -80,14 +80,14 @@ function NoteBoard({ supervisor, turno, fecha }) {
       console.error("Error: noteId no válido");
       return;
     }
-    
+
     try {
       // Hacer PATCH al backend para toggle de completed
       const response = await axios.patch(`https://ambiocomserver.onrender.com/api/notasbitacora/${noteId}/toggle`);
-  
+
       if (response.status === 200) {
         const updatedNote = response.data;
-  
+
         // Actualizar estado local con el resultado actualizado del backend
         setNotes((prev) => ({
           ...prev,
@@ -100,19 +100,25 @@ function NoteBoard({ supervisor, turno, fecha }) {
       }
     } catch (error) {
       console.error("Error al actualizar estado completado:", error);
-      // Aquí puedes mostrar alerta o feedback al usuario si quieres
     }
   };
 
-  // // Toggle para marcar nota completada o no
-  // const handleToggleComplete = (sectionKey, noteId) => {
-  //   setNotes((prev) => ({
-  //     ...prev,
-  //     [sectionKey]: prev[sectionKey].map((note) =>
-  //       note.id === noteId ? { ...note, completed: !note.completed } : note
-  //     ),
-  //   }));
-  // };
+  const fetchNotes = async () => {
+    try {
+      const res = await axios.get("https://ambiocomserver.onrender.com/api/notasbitacora");
+      const grouped = sections.reduce((acc, s) => {
+        acc[s.key] = res.data.filter((n) => n.module === s.key);
+        return acc;
+      }, {});
+      setNotes(grouped);
+    } catch (error) {
+      console.error("Error al cargar notas:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotes();
+  }, []);
 
   return (
     <Grid container spacing={2} style={{ marginTop: 16 }}>
@@ -124,6 +130,7 @@ function NoteBoard({ supervisor, turno, fecha }) {
             onAdd={(text) => handleAddNote(section.key, text)}
             onToggle={(id) => handleToggleComplete(section.key, id)}
             date={fecha}  // <---- Aquí se pasa la fecha para filtrar
+            onRefresh={fetchNotes} // para refrescar las notas cada que se elimine una
           />
         </Grid>
       ))}
