@@ -6,9 +6,10 @@ const endpoints = {
   'Horas Extras': 'https://ambiocomserver.onrender.com/api/usuarios/obtenerUsuarioHorasExtras',
   'Niveles Tanques Jornaleros': 'https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros',
   'SGMRC Data': 'https://ambiocomserver.onrender.com/api/table/data',
-  'bitacora Supervisores': 'https://ambiocomserver.onrender.com/api/notasbitacora',
+  'bitacora Supervisores': 'https://ambiocomserver.onrender.com/api/bitacora/getbyfechayturno',
   'Movimientos Insumos': 'https://ambiocomserver.onrender.com/api/registro/movimientos',
   'Operaciones de Tanques': 'https://ambiocomserver.onrender.com/api/reportar/veroperacionesdetanques',
+  'notas bitacora': 'https://ambiocomserver.onrender.com/api/notasbitacora',
 };
 
 const colors = [

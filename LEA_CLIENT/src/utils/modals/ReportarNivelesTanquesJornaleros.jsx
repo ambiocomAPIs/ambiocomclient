@@ -124,10 +124,14 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
           NivelTanque: valor === undefined || valor === "" ? 0 : Number(valor),
           Responsable: responsable,
           Observaciones: observaciones,
+          Factor: tanque.Factor,
+          Disposicion: tanque.Disposicion,
           FechaRegistro: fecha,
         };
       });
 
+      console.log("payload:", payload);
+      
       await axios.post(
         "https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros",
         payload

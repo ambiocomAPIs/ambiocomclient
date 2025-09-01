@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 //* contextos
 import { TanquesProvider } from "./utils/Context/TanquesContext";
 import { NivelesDiariosTanquesProvider } from "./utils/Context/NivelesDiariosTanquesContext";
+import { EmpleadosProvider } from "./utils/Context/EmpleadosContext";
 //* Terminan los contextos
 
 import SGMRC from "./components/SGMRC";
@@ -23,7 +24,9 @@ export const CombinedProviders = ({ children }) => {
   return (
     <TanquesProvider>
       <NivelesDiariosTanquesProvider>
+      <EmpleadosProvider>
         {children}
+      </EmpleadosProvider>
       </NivelesDiariosTanquesProvider>
     </TanquesProvider>
   );
