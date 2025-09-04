@@ -8,10 +8,12 @@ import Tooltip from "@mui/material/Tooltip";
 import InfoIcon from "@mui/icons-material/Info";
 import CloseIcon from "@mui/icons-material/Close";
 
-import { DictionaryIcon } from "../../utils/icons/SvgIcons"
+import { DictionaryIcon, BiderectionalCloudIcon } from "../../utils/icons/SvgIcons"
 
 //Diccionario definido y detallado
 import DiccionarioUnidadDefault from "./DiccionarioUnidadDefaults";
+//importamos funcion de exportacion de pdf y subida al drive de la bitacora
+import { exportarBitacoraPDF } from "../../utils/Functions/ExportarBitacoraDeTurnos/ExportarYsubirDriveBitacoraDeTurno";
 
 function BitacoraComponentProduccion({ trabajadoresRegistradosContext }) {
   const [headerData, setHeaderData] = useState({
@@ -26,6 +28,7 @@ function BitacoraComponentProduccion({ trabajadoresRegistradosContext }) {
     analista2: "",
   });
 
+  // 👇 ahora el estado de las notas vive en el padre
   const [notes, setNotes] = useState({
     PENDIENTES: [],
     NOVEDADES: [],
@@ -92,6 +95,38 @@ function BitacoraComponentProduccion({ trabajadoresRegistradosContext }) {
         }}
       />
 
+      {/* Botón exportar bitacora y subir */}
+      <Tooltip title="Diccionario">
+        <IconButton
+          color="secondary"
+          size="small"
+          onClick={() => exportarBitacoraPDF(headerData, notes)}
+          disableRipple
+          disableFocusRipple
+          sx={{
+            position: "absolute",
+            mt: 6,
+            right: 80,
+            outline: "none",
+            boxShadow: "none",
+            backgroundColor: "transparent",
+            "&:focus": {
+              outline: "none",
+              boxShadow: "none",
+            },
+            "&:hover": {
+              backgroundColor: "transparent",
+            },
+          }}
+        >
+          <img
+            src={BiderectionalCloudIcon}
+            alt="cloudanddownloadicon"
+            style={{ width: 35, height: 35 }}
+          />
+        </IconButton>
+      </Tooltip>
+
       {/* Botón Diccionario */}
       <Tooltip title="Diccionario">
         <IconButton
@@ -135,8 +170,9 @@ function BitacoraComponentProduccion({ trabajadoresRegistradosContext }) {
         trabajadoresRegistradosContext={trabajadoresRegistradosContext}
       />
       <NoteBoard
-        notes={notes}
-        onAddNote={addNote}
+        notes={notes}              // 👈 ahora recibe las notas del padre
+        setNotes={setNotes}        // 👈 y puede actualizarlas
+        onAddNote={addNote}        // 👈 si quieres seguir usando tu addNote local
         supervisor={headerData.supervisor}
         turno={headerData.turno}
         fecha={headerData.fecha}
