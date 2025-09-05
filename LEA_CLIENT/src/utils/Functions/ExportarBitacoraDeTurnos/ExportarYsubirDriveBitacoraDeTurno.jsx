@@ -1,29 +1,20 @@
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { registerDejaVuFont } from "../../../assets/fonts/DejaVuSans.js"; 
+// 🔹 Importa la función que registra la fuente en el doc
 
-// 🔹 Diccionario de reemplazo de iconos → texto plano
-const iconMap = {
-  "✅": "[OK]",
-  "⚠️": "[ALERTA]",
-  "🔥": "[FUEGO]",
-  "⏳": "[ESPERA]",
-  "❌": "[ERROR]",
-  "ℹ️": "[INFO]",
-};
-
-// Función que limpia los textos reemplazando los iconos
-function sanitizeText(text) {
-  if (!text) return "";
-  let clean = text;
-  Object.keys(iconMap).forEach((icon) => {
-    clean = clean.replaceAll(icon, iconMap[icon]);
-  });
-  return clean;
-}
+const turnosShorted = [
+  { value: "TurnoMañana(6:00-14:00)", short: "T1-0614" },
+  { value: "TurnoTarde(14:00-22:00)", short: "T2-1422" },
+  { value: "TurnoNoche(22:00-06:00)", short: "T3-2206" },
+  { value: "TurnoAdministrativo(07:30-17:30)", short: "TA-07:17" },
+  { value: "Turno12Horas(06:00-18:00)", short: "T12-0618" },
+  { value: "Turno12Horas(18:00-06:00)", short: "T12-1806" },
+];
 
 // 🔹 Función para dibujar un rectángulo con gradiente
 function drawGradientRect(doc, x, y, width, height, startColor, endColor) {
-  const steps = 100; // entre más alto → más suave el gradiente
+  const steps = 100;
   const [r1, g1, b1] = startColor;
   const [r2, g2, b2] = endColor;
 
@@ -38,17 +29,22 @@ function drawGradientRect(doc, x, y, width, height, startColor, endColor) {
   }
 }
 
-// Función que recibe headerData, notes y el logo (base64 o path público)
 export async function exportarBitacoraPDF(headerData, notes) {
-  const doc = new jsPDF();
+  const doc = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
+
+  // 🔹 Registrar DejaVuSans en el documento
+  registerDejaVuFont(doc);
+
+  // 🔹 Encabezados en Times
+  doc.setFont("times", "normal");
 
   // 🔹 Cargar logo desde /public
-  const logoUrl = "/ambiocom.png";
+  const logoUrl = "/logoambiocomconfondo.png";
   const logoBase64 = await toBase64(logoUrl);
   doc.addImage(logoBase64, "PNG", 9, 7, 60, 15);
 
   // 🔹 Fondo con gradiente para el título
-  drawGradientRect(doc, 0, 28, 210, 12, [41, 128, 185], [46, 204, 113]); // azul → verde
+  drawGradientRect(doc, 0, 28, 210, 12, [41, 128, 185], [46, 204, 113]);
   doc.setFontSize(14);
   doc.setTextColor(255, 255, 255);
   doc.text("BITÁCORA DE TURNOS - SUPERVISORES", 105, 36, { align: "center" });
@@ -67,8 +63,8 @@ export async function exportarBitacoraPDF(headerData, notes) {
   doc.text(`Operario de calderas: ${headerData.op_caldera || ""}`, 20, 74);
   doc.text(`Auxiliar de calderas: ${headerData.aux_caldera || ""}`, 20, 82);
   doc.text(`Operario de Aguas: ${headerData.op_aguas || ""}`, 20, 90);
-  doc.text(`Analista de Labotarorio 1: ${headerData.analista1 || ""}`, 20, 98);
-  doc.text(`Analista de Labotarorio 2: ${headerData.analista2 || ""}`, 20, 106);
+  doc.text(`Analista de Laboratorio 1: ${headerData.analista1 || ""}`, 20, 98);
+  doc.text(`Analista de Laboratorio 2: ${headerData.analista2 || ""}`, 20, 106);
 
   // 🔹 Renderizar notas por sección
   let startY = 120;
@@ -77,29 +73,32 @@ export async function exportarBitacoraPDF(headerData, notes) {
     const sectionNotes = notes[section];
     if (!sectionNotes || sectionNotes.length === 0) return;
 
-    // Título de sección
+    // Título de sección en Times
+    doc.setFont("times", "normal");
     doc.setFontSize(13);
     doc.setTextColor(41, 128, 185);
     doc.text(section, 14, startY);
 
-    // Construir filas con hora corta y texto limpio
+    // Contenido de las notas en DejaVuSans
+    doc.setFont("DejaVuSans", "normal");
+
     const rows = sectionNotes.map((n) => {
       const hora = new Date(n.createdAt).toLocaleTimeString("es-CO", {
         hour: "2-digit",
         minute: "2-digit",
+        hour12: false,
       });
-      return [hora, sanitizeText(n.text)];
+      return [hora, n.text];
     });
 
-    // Renderizar tabla
     autoTable(doc, {
       startY: startY + 4,
       head: [["Hora", "Descripción"]],
       body: rows,
       theme: "grid",
-      styles: { fontSize: 10, cellPadding: 3 },
+      styles: { font: "DejaVuSans", fontSize: 10, cellPadding: 3 },
       headStyles: { fillColor: [41, 128, 185], textColor: 255, halign: "center" },
-      bodyStyles: { fillColor: [245, 245, 245] }, // zebra claro
+      bodyStyles: { fillColor: [245, 245, 245] },
       alternateRowStyles: { fillColor: [255, 255, 255] },
       columnStyles: {
         0: { cellWidth: 25, halign: "center" },
@@ -108,17 +107,16 @@ export async function exportarBitacoraPDF(headerData, notes) {
       margin: { left: 14, right: 14 },
     });
 
-    // Calcular posición para la siguiente sección
     startY = doc.lastAutoTable.finalY + 12;
 
-    // Si nos quedamos sin espacio, saltamos de página
     if (startY > 260) {
       doc.addPage();
       startY = 20;
     }
   });
 
-  // Pie de página
+  // Pie de página en Times
+  doc.setFont("times", "normal");
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -127,9 +125,12 @@ export async function exportarBitacoraPDF(headerData, notes) {
     doc.text(`Página ${i} de ${pageCount}`, 105, 290, { align: "center" });
     doc.text("Ambiocom SAS © 2025", 105, 296, { align: "center" });
   }
+  const turnoNameExported =
+  turnosShorted.find((t) => t.value === headerData.turno)?.short || "T0000";
 
-  // Descargar PDF
-  doc.save(`bitacora_${headerData.fecha || "sin_fecha"}.pdf`);
+  console.log(turnoNameExported);
+
+  doc.save(`bitacora_${headerData.fecha || "sin_fecha"}_${turnoNameExported || "sin_turno"}.pdf`);
 }
 
 // 🔹 Helper: convertir imagen a base64

@@ -1,18 +1,30 @@
 import { useState } from "react";
 import HeaderForm from "./HeaderForm";
 import NoteBoard from "./NoteBoard";
-import { Container, Typography, Box, Drawer, List, ListItem, ListItemButton, ListItemText, Dialog, DialogTitle, DialogContent, DialogActions, Button } from "@mui/material";
+import {
+  Container,
+  Typography,
+  Box,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Snackbar,
+  Alert
+} from "@mui/material";
 
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
-import InfoIcon from "@mui/icons-material/Info";
 import CloseIcon from "@mui/icons-material/Close";
 
-import { DictionaryIcon, BiderectionalCloudIcon } from "../../utils/icons/SvgIcons"
-
-//Diccionario definido y detallado
+import { DictionaryIcon, BiderectionalCloudIcon } from "../../utils/icons/SvgIcons";
 import DiccionarioUnidadDefault from "./DiccionarioUnidadDefaults";
-//importamos funcion de exportacion de pdf y subida al drive de la bitacora
 import { exportarBitacoraPDF } from "../../utils/Functions/ExportarBitacoraDeTurnos/ExportarYsubirDriveBitacoraDeTurno";
 
 function BitacoraComponentProduccion({ trabajadoresRegistradosContext }) {
@@ -28,7 +40,6 @@ function BitacoraComponentProduccion({ trabajadoresRegistradosContext }) {
     analista2: "",
   });
 
-  // 👇 ahora el estado de las notas vive en el padre
   const [notes, setNotes] = useState({
     PENDIENTES: [],
     NOVEDADES: [],
@@ -52,6 +63,17 @@ function BitacoraComponentProduccion({ trabajadoresRegistradosContext }) {
   const [openDiccionario, setOpenDiccionario] = useState(false);
   const [selectedUnidad, setSelectedUnidad] = useState(null);
 
+  // --- Snackbar ---
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "warning",
+  });
+
+  const handleSnackbarClose = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
+
   const toggleDiccionario = (open) => () => {
     setOpenDiccionario(open);
   };
@@ -65,7 +87,7 @@ function BitacoraComponentProduccion({ trabajadoresRegistradosContext }) {
       id: Date.now(),
       text: noteText,
       createdAt: new Date().toLocaleString(),
-      consumo: "hola pao"
+      consumo: ""
     };
     setNotes(prev => ({
       ...prev,
@@ -81,6 +103,21 @@ function BitacoraComponentProduccion({ trabajadoresRegistradosContext }) {
     setSelectedUnidad(null);
   };
 
+  // ✅ Validar antes de exportar
+  const handleExportar = () => {
+    if (!headerData.fecha || !headerData.turno) {
+      setSnackbar({
+        open: true,
+        message: "⚠️ Por favor seleccione la fecha y el turno antes de descargar la bitácora.",
+        severity: "warning",
+      });
+      return;
+    }
+
+    // Si está validado, descargar PDF
+    exportarBitacoraPDF(headerData, notes);
+  };
+
   return (
     <Box sx={{ width: "99%", py: 3, minHeight: "95vh", marginRight: "10px", marginLeft: "10px" }}>
       <img
@@ -88,7 +125,7 @@ function BitacoraComponentProduccion({ trabajadoresRegistradosContext }) {
         alt="Logo"
         style={{
           position: "absolute",
-          top: "9%",
+          top: "80px",
           left: "1%",
           width: 250,
           height: 60,
@@ -96,11 +133,11 @@ function BitacoraComponentProduccion({ trabajadoresRegistradosContext }) {
       />
 
       {/* Botón exportar bitacora y subir */}
-      <Tooltip title="Diccionario">
+      <Tooltip title="Guardar Bitacora">
         <IconButton
           color="secondary"
           size="small"
-          onClick={() => exportarBitacoraPDF(headerData, notes)}
+          onClick={handleExportar}
           disableRipple
           disableFocusRipple
           sx={{
@@ -110,13 +147,8 @@ function BitacoraComponentProduccion({ trabajadoresRegistradosContext }) {
             outline: "none",
             boxShadow: "none",
             backgroundColor: "transparent",
-            "&:focus": {
-              outline: "none",
-              boxShadow: "none",
-            },
-            "&:hover": {
-              backgroundColor: "transparent",
-            },
+            "&:focus": { outline: "none", boxShadow: "none" },
+            "&:hover": { backgroundColor: "transparent" },
           }}
         >
           <img
@@ -142,51 +174,37 @@ function BitacoraComponentProduccion({ trabajadoresRegistradosContext }) {
             outline: "none",
             boxShadow: "none",
             backgroundColor: "transparent",
-            "&:focus": {
-              outline: "none",
-              boxShadow: "none",
-            },
-            "&:hover": {
-              backgroundColor: "transparent",
-            },
+            "&:focus": { outline: "none", boxShadow: "none" },
+            "&:hover": { backgroundColor: "transparent" },
           }}
         >
-          <img
-            src={DictionaryIcon}
-            alt="DictionaryIcon"
-            style={{ width: 35, height: 35 }}
-          />
+          <img src={DictionaryIcon} alt="DictionaryIcon" style={{ width: 35, height: 35 }} />
         </IconButton>
-
       </Tooltip>
 
       <Typography variant="h4" gutterBottom sx={{ pl: 2, mt: 6 }} style={{ textAlign: "center" }}>
         Bitácora de Turnos Diarios Supervisores
       </Typography>
+
       <HeaderForm
         data={headerData}
         onChange={handleHeaderChange}
         clearFieldsExceptFechaTurno={clearFieldsExceptFechaTurno}
         trabajadoresRegistradosContext={trabajadoresRegistradosContext}
       />
+
       <NoteBoard
-        notes={notes}              // 👈 ahora recibe las notas del padre
-        setNotes={setNotes}        // 👈 y puede actualizarlas
-        onAddNote={addNote}        // 👈 si quieres seguir usando tu addNote local
+        notes={notes}
+        setNotes={setNotes}
+        onAddNote={addNote}
         supervisor={headerData.supervisor}
         turno={headerData.turno}
         fecha={headerData.fecha}
       />
 
-      {/* Este es el Drawer del diccionario */}
       {/* Drawer Diccionario */}
-      <Drawer
-        anchor="right"
-        open={openDiccionario}
-        onClose={() => setOpenDiccionario(false)} // <-- corregido aquí
-      >
+      <Drawer anchor="right" open={openDiccionario} onClose={() => setOpenDiccionario(false)}>
         <Box sx={{ width: 200, position: "relative" }}>
-          {/* Botón cerrar */}
           <IconButton
             onClick={() => setOpenDiccionario(false)}
             sx={{ position: "absolute", top: 8, right: 8 }}
@@ -211,7 +229,7 @@ function BitacoraComponentProduccion({ trabajadoresRegistradosContext }) {
         </Box>
       </Drawer>
 
-      {/* Modal para previsualizar el diccionario y el texto */}
+      {/* Modal Diccionario */}
       <Dialog
         open={!!selectedUnidad}
         onClose={handleCloseModal}
@@ -219,7 +237,7 @@ function BitacoraComponentProduccion({ trabajadoresRegistradosContext }) {
         maxWidth="sm"
         PaperProps={{
           sx: {
-            maxHeight: "80vh",    // límite máximo de alto
+            maxHeight: "80vh",
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
@@ -232,20 +250,28 @@ function BitacoraComponentProduccion({ trabajadoresRegistradosContext }) {
           dividers
           sx={{
             overflowY: "auto",
-            maxHeight: "60vh", // espacio para que no pase de la pantalla
+            maxHeight: "60vh",
             whiteSpace: "pre-line",
           }}
         >
-          <Typography>
-            {DiccionarioUnidadDefault[selectedUnidad]}
-          </Typography>
+          <Typography>{DiccionarioUnidadDefault[selectedUnidad]}</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseModal}>Cerrar</Button>
         </DialogActions>
       </Dialog>
 
-
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: "100%" }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

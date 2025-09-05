@@ -358,7 +358,7 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
         </Button>
       </DialogActions>
       <Grid container justifyContent="center" style={{ padding: '10px' }}>
-        <img src="/ambiocom.png" alt="Logo" style={{ maxHeight: '50px' }} />
+        <img src="/logoambiocomconfondo.png" alt="Logo" style={{ maxHeight: '50px' }} />
       </Grid>
     </Dialog>
   );
