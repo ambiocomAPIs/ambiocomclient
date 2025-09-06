@@ -49,6 +49,15 @@ const unidadKeys = [
   "AGUAS",
 ];
 
+const turnos = [
+  { value: "TurnoMañana(6:00-14:00)", priority: 1 },
+  { value: "TurnoTarde(14:00-22:00)", priority: 2 },
+  { value: "TurnoNoche(22:00-06:00)", priority: 3 },
+  { value: "TurnoAdministrativo(07:30-17:30)", priority: 4 },
+  { value: "Turno12Horas(06:00-18:00)", priority: 5 },
+  { value: "Turno12Horas(18:00-06:00)", priority: 6 },
+];
+
 function NoteColumn({
   title,
   notes = [],
@@ -100,46 +109,83 @@ function NoteColumn({
   //   return note.date === effectiveDate || (isToday && !note.completed);
   // });
 
-  const filtered = notes.filter((note) => {
-    const normalizeDate = (d) => {
-      if (!d) return "";
-      return new Date(d).toISOString().split("T")[0]; // fecha en formato YYYY-MM-DD
-    };
+  const getPriority = (turnoValue) => {
+  const t = turnos.find(t => t.value === turnoValue);
+  return t ? t.priority : Infinity; // Infinity = si no lo encuentra, no se muestra
+ };
 
-    const noteDate = normalizeDate(note.date);
-    const currentDate = normalizeDate(effectiveDate);
+ const filtered = notes.filter((note) => {
+  const normalizeDate = (d) => {
+    if (!d) return "";
+    return new Date(d).toISOString().split("T")[0];
+  };
 
-    const noteTurno = (note.turno || "").trim();
-    const currentTurno = (turno || "").trim();
-    const noteCompleted = !!note.completed;
+  const noteDate = normalizeDate(note.date);
+  const currentDate = normalizeDate(effectiveDate);
 
-    // --- Caso 1: misma fecha y mismo turno ---
-    if (noteDate === currentDate && noteTurno === currentTurno) {
-      return true; // siempre visible
-    }
+  const noteTurno = (note.turno || "").trim();
+  const currentTurno = (turno || "").trim();
+  const noteCompleted = !!note.completed;
 
-    // --- Caso 2: misma fecha pero turno distinto ---
-    if (noteDate === currentDate && noteTurno !== currentTurno) {
-      return !noteCompleted; // pendiente -> se muestra, completada -> no
-    }
+  const notePriority = getPriority(noteTurno);
+  const currentPriority = getPriority(currentTurno);
 
-    // --- Caso 3: fechas anteriores ---
-    if (noteDate < currentDate) {
-      return !noteCompleted; // pendiente -> se muestra, completada -> no
-    }
+  // --- Caso 1: misma fecha y mismo turno ---
+  if (noteDate === currentDate && noteTurno === currentTurno) {
+    return true; // siempre mostrar, aunque esté completada
+  }
 
-    // --- Caso 4: fechas futuras ---
-    return false;
-  });
+  // --- Caso 2: misma fecha pero turno posterior ---
+  if (noteDate === currentDate && notePriority < currentPriority) {
+    return !noteCompleted; // solo si no está completada
+  }
+
+  // --- Caso 3: días posteriores ---
+  if (noteDate < currentDate) {
+    return !noteCompleted; // arrastrar si está pendiente
+  }
+
+  // --- Caso 4: turnos futuros del mismo día o días futuros ---
+  return false;
+});
+
+  // const filtered = notes.filter((note) => {
+  //   const normalizeDate = (d) => {
+  //     if (!d) return "";
+  //     return new Date(d).toISOString().split("T")[0]; // fecha en formato YYYY-MM-DD
+  //   };
+
+  //   const noteDate = normalizeDate(note.date);
+  //   const currentDate = normalizeDate(effectiveDate);
+
+  //   const noteTurno = (note.turno || "").trim();
+  //   const currentTurno = (turno || "").trim();
+  //   const noteCompleted = !!note.completed;
+
+  //   // --- Caso 1: misma fecha y mismo turno ---
+  //   if (noteDate === currentDate && noteTurno === currentTurno) {
+  //     return true; // siempre visible
+  //   }
+
+  //   // --- Caso 2: misma fecha pero turno distinto ---
+  //   if (noteDate === currentDate && noteTurno !== currentTurno ) {
+  //     return !noteCompleted; // pendiente -> se muestra, completada -> no
+  //   }
+
+  //   // --- Caso 3: fechas anteriores ---
+  //   if (noteDate < currentDate) {
+  //     return !noteCompleted; // pendiente -> se muestra, completada -> no
+  //   }
+
+  //   // --- Caso 4: fechas futuras ---
+  //   return false;
+  // });
 
   // Función para guardar cambios de nota editada
   const handleSaveEdit = async () => {
     if (!readModal) return;
     const updatedText = editText.trim();
-    if (!updatedText) return;
-
-    console.log("trecto editado:", updatedText);
-    
+    if (!updatedText) return;    
     try {
       await axios.patch(
         `https://ambiocomserver.onrender.com/api/notasbitacora/bitacora/editarnota/${readModal._id}`,

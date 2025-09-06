@@ -1444,7 +1444,7 @@ const clickColumFixed = (columnClicked) => {
 
     {/* Snackbar para mostrar mensajes */}
     <Snackbar
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
         open={snackbarOpen}
         autoHideDuration={3000} // Se cierra automáticamente después de 3 segundos
         onClose={handleSnackbarClose}

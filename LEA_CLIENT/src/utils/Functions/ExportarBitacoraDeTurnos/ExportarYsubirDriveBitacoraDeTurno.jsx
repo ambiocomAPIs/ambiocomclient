@@ -4,12 +4,12 @@ import { registerDejaVuFont } from "../../../assets/fonts/DejaVuSans.js";
 // 🔹 Importa la función que registra la fuente en el doc
 
 const turnosShorted = [
-  { value: "TurnoMañana(6:00-14:00)", short: "T1-0614" },
-  { value: "TurnoTarde(14:00-22:00)", short: "T2-1422" },
-  { value: "TurnoNoche(22:00-06:00)", short: "T3-2206" },
-  { value: "TurnoAdministrativo(07:30-17:30)", short: "TA-07:17" },
-  { value: "Turno12Horas(06:00-18:00)", short: "T12-0618" },
-  { value: "Turno12Horas(18:00-06:00)", short: "T12-1806" },
+  { value: "TurnoMañana(6:00-14:00)", short: "T1-0614", priority: 1 },
+  { value: "TurnoTarde(14:00-22:00)", short: "T2-1422", priority: 2 },
+  { value: "TurnoNoche(22:00-06:00)", short: "T3-2206", priority: 3 },
+  { value: "TurnoAdministrativo(07:30-17:30)", short: "TA-07:17", priority: 4 },
+  { value: "Turno12Horas(06:00-18:00)", short: "T12-0618", priority: 5 },
+  { value: "Turno12Horas(18:00-06:00)", short: "T12-1806", priority: 6 },
 ];
 
 // 🔹 Función para dibujar un rectángulo con gradiente
@@ -28,6 +28,18 @@ function drawGradientRect(doc, x, y, width, height, startColor, endColor) {
     doc.rect(x + (width / steps) * i, y, width / steps + 1, height, "F");
   }
 }
+
+// 🔹 Helper para normalizar fecha
+const normalizeDate = (d) => {
+  if (!d) return "";
+  return new Date(d).toISOString().split("T")[0];
+};
+
+// 🔹 Helper para prioridad
+const getPriority = (turnoValue) => {
+  const t = turnosShorted.find((t) => t.value === turnoValue);
+  return t ? t.priority : Infinity;
+};
 
 export async function exportarBitacoraPDF(headerData, notes) {
   const doc = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
@@ -66,12 +78,41 @@ export async function exportarBitacoraPDF(headerData, notes) {
   doc.text(`Analista de Laboratorio 1: ${headerData.analista1 || ""}`, 20, 98);
   doc.text(`Analista de Laboratorio 2: ${headerData.analista2 || ""}`, 20, 106);
 
+  // 🔹 Variables de contexto para el filtro
+  const currentDate = normalizeDate(headerData.fecha);
+  const currentTurno = (headerData.turno || "").trim();
+  const currentPriority = getPriority(currentTurno);
+
   // 🔹 Renderizar notas por sección
   let startY = 120;
 
   Object.keys(notes).forEach((section) => {
-    const sectionNotes = notes[section];
-    if (!sectionNotes || sectionNotes.length === 0) return;
+    const sectionNotes = (notes[section] || []).filter((note) => {
+      const noteDate = normalizeDate(note.date);
+      const noteTurno = (note.turno || "").trim();
+      const notePriority = getPriority(noteTurno);
+      const noteCompleted = !!note.completed;
+
+      // --- Caso 1: misma fecha y mismo turno ---
+      if (noteDate === currentDate && noteTurno === currentTurno) {
+        return true;
+      }
+
+      // --- Caso 2: misma fecha pero turno posterior ---
+      if (noteDate === currentDate && notePriority < currentPriority) {
+        return !noteCompleted;
+      }
+
+      // --- Caso 3: días anteriores ---
+      if (noteDate < currentDate) {
+        return !noteCompleted;
+      }
+
+      // --- Caso 4: turnos futuros o fechas futuras ---
+      return false;
+    });
+
+    if (!sectionNotes.length) return;
 
     // Título de sección en Times
     doc.setFont("times", "normal");
@@ -125,10 +166,9 @@ export async function exportarBitacoraPDF(headerData, notes) {
     doc.text(`Página ${i} de ${pageCount}`, 105, 290, { align: "center" });
     doc.text("Ambiocom SAS © 2025", 105, 296, { align: "center" });
   }
-  const turnoNameExported =
-  turnosShorted.find((t) => t.value === headerData.turno)?.short || "T0000";
 
-  console.log(turnoNameExported);
+  const turnoNameExported =
+    turnosShorted.find((t) => t.value === headerData.turno)?.short || "T0000";
 
   doc.save(`bitacora_${headerData.fecha || "sin_fecha"}_${turnoNameExported || "sin_turno"}.pdf`);
 }
