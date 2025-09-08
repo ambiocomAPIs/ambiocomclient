@@ -14,6 +14,7 @@ import {
   AccordionDetails,
   Snackbar,
   Alert,
+  Autocomplete,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
@@ -35,7 +36,7 @@ import { Download, PictureAsPdf } from "@mui/icons-material";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-const Comparativomensualinsumosquimicos  = () => {
+const Comparativomensualinsumosquimicos = () => {
   const chartRef = useRef(null);
 
   const [produccionActual, setProduccionActual] = useState("");
@@ -58,6 +59,9 @@ const Comparativomensualinsumosquimicos  = () => {
   const [consumoCalderaComp, setConsumoCalderaComp] = useState(0);
   const [consumoAguasComp, setConsumoAguasComp] = useState(0);
   const [consumoTorreComp, setConsumoTorreComp] = useState(0);
+  //graficas guardadas
+  const [graficasGuardadas, setGraficasGuardadas] = useState([]);
+  const [graficaSeleccionada, setGraficaSeleccionada] = useState(null);
 
   const handleCloseSnackbar = () => {
     setOpenSnackbar(false);
@@ -74,6 +78,45 @@ const Comparativomensualinsumosquimicos  = () => {
     };
     fetchConsumo();
   }, []);
+
+  // 1. Cargar todas las gráficas al inicio
+  useEffect(() => {
+    const fetchGraficas = async () => {
+      try {
+        const res = await axios.get(
+          "https://ambiocomserver.onrender.com/api/graficainsumoskgoh/listar"
+        );
+        setGraficasGuardadas(res.data);
+      } catch (err) {
+        console.error("❌ Error al traer gráficas:", err);
+      }
+    };
+    fetchGraficas();
+  }, []);
+
+  // 2. Cuando el usuario selecciona una gráfica, actualizamos los estados
+  const handleSelectGrafica = (event, value) => {
+    if (!value) return;
+
+    setGraficaSeleccionada(value);
+
+    // Cargar estados con los valores de la gráfica seleccionada
+    setProduccionActual(value.produccionActual);
+    setProduccionAnterior(value.produccionAnterior);
+    setMesDeCierre(value.mesDeCierre);
+    setMesComparar(value.mesComparar);
+    setTituloGrafico(value.tituloGrafico);
+    setSerieActual(value.serieActual);
+    setSerieAnterior(value.serieAnterior);
+
+    // Cargar consumos
+    setConsumoCaldera(value.consumoCaldera);
+    setConsumoAguas(value.consumoAguas);
+    setConsumoTorre(value.consumoTorre);
+    setConsumoCalderaComp(value.consumoCalderaComp);
+    setConsumoAguasComp(value.consumoAguasComp);
+    setConsumoTorreComp(value.consumoTorreComp);
+  };
 
   // Calcular sumatorias mes seleccionado
   useEffect(() => {
@@ -140,6 +183,13 @@ const Comparativomensualinsumosquimicos  = () => {
         serieActual,
         serieAnterior,
         fechaRegistro: fechaRegistro,
+        // 👇 enviar sumatorias
+        consumoCaldera,
+        consumoAguas,
+        consumoTorre,
+        consumoCalderaComp,
+        consumoAguasComp,
+        consumoTorreComp,
       });
 
       // ✅ Si todo salió bien, mostramos confirmación
@@ -199,7 +249,30 @@ const Comparativomensualinsumosquimicos  = () => {
       {/* Ingresar Datos Producción */}
       <Accordion defaultExpanded>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="h6">Ingresar Datos de Producción</Typography>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={{ mb: 3, width: "99%" }}
+          >
+            <Typography variant="h6">Ingresar Datos de Producción</Typography>
+
+            <Box sx={{ width: 500, mt: 1 }}>
+              <Autocomplete
+                options={graficasGuardadas}
+                getOptionLabel={(option) => option.tituloGrafico}
+                onChange={handleSelectGrafica}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Visualiza gráficas guardadas"
+                    size="small"
+                    fullWidth
+                  />
+                )}
+              />
+            </Box>
+          </Box>
         </AccordionSummary>
         <AccordionDetails>
           <Card sx={{ mb: 4, p: 2 }}>
@@ -494,11 +567,23 @@ const Comparativomensualinsumosquimicos  = () => {
                     formatter={(value) => Number(value).toPrecision(6)}
                     labelFormatter={(label) => `Área: ${label}`}
                   />
-                  <Legend verticalAlign="top" />
+                  <Legend
+                    verticalAlign="top"
+                    wrapperStyle={{
+                      display: "flex",
+                      justifyContent: "center",
+                      marginTop: -10,
+                      marginLeft: 50,
+                    }}
+                    formatter={(value) => (
+                      <span style={{ margin: "0 40px" }}>{value}</span> // 👈 separación lateral
+                    )}
+                  />
                   <Bar dataKey={serieActual} fill="#8884d8" name={serieActual}>
                     <LabelList
                       dataKey={serieActual}
                       position="top"
+                      dy={-10}
                       formatter={(value) => {
                         if (value === 0) return "0";
                         return value >= 0.01
@@ -515,6 +600,7 @@ const Comparativomensualinsumosquimicos  = () => {
                     <LabelList
                       dataKey={serieAnterior}
                       position="top"
+                      dy={-10}
                       formatter={(value) => {
                         if (value === 0) return "0";
                         return value >= 0.01
@@ -549,4 +635,4 @@ const Comparativomensualinsumosquimicos  = () => {
   );
 };
 
-export default Comparativomensualinsumosquimicos ;
+export default Comparativomensualinsumosquimicos;
