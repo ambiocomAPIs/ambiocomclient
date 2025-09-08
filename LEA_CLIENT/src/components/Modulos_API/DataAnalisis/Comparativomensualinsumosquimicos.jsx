@@ -35,7 +35,7 @@ import { Download, PictureAsPdf } from "@mui/icons-material";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-const ComparativoMensualInsumosQuimicos = () => {
+const Comparativomensualinsumosquimicos  = () => {
   const chartRef = useRef(null);
 
   const [produccionActual, setProduccionActual] = useState("");
@@ -365,62 +365,61 @@ const ComparativoMensualInsumosQuimicos = () => {
       {/* Gráfico */}
       <Card sx={{ p: 2, position: "relative" }}>
         <CardContent>
-{/* 👉 Contenedor de botones flotantes con Glassmorphism */}
-<Box
-  sx={{
-    position: "absolute",
-    top: 25,
-    right: 30,
-    display: "flex",
-    gap: 1.5,
-  }}
->
-  <Button
-    variant="contained"
-    size="small"
-    startIcon={<Download />}
-    onClick={handleDownloadImage}
-    sx={{
-      bgcolor: "rgba(255, 255, 255, 0.6)",   // 👈 más claro
-      color: "#858181",    
-      borderRadius: "10px",
-      boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-      textTransform: "none",
-      fontSize: "0.75rem",
-      backdropFilter: "blur(6px)",
-      border: "1px solid rgba(255, 255, 255, 0.3)",
-      "&:hover": {
-        bgcolor: "rgba(255,255,255,0.35)",
-        color: "black",
-      },
-    }}
-  >
-    Imagen
-  </Button>
-  <Button
-    variant="contained"
-    size="small"
-    startIcon={<PictureAsPdf />}
-    onClick={handleDownloadPDF}
-    sx={{
-      bgcolor: "rgba(255, 255, 255, 0.6)",   // 👈 más claro
-      color: "#858181",   
-      borderRadius: "10px",
-      boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-      textTransform: "none",
-      fontSize: "0.75rem",
-      backdropFilter: "blur(6px)",
-      border: "1px solid rgba(255, 255, 255, 0.3)",
-      "&:hover": {
-        bgcolor: "rgba(255,255,255,0.35)",
-        color: "black",
-      },
-    }}
-  >
-    PDF
-  </Button>
-</Box>
-
+          {/* 👉 Contenedor de botones flotantes con Glassmorphism */}
+          <Box
+            sx={{
+              position: "absolute",
+              top: 25,
+              right: 30,
+              display: "flex",
+              gap: 1.5,
+            }}
+          >
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<Download />}
+              onClick={handleDownloadImage}
+              sx={{
+                bgcolor: "rgba(255, 255, 255, 0.6)", // 👈 más claro
+                color: "#858181",
+                borderRadius: "10px",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                textTransform: "none",
+                fontSize: "0.75rem",
+                backdropFilter: "blur(6px)",
+                border: "1px solid rgba(255, 255, 255, 0.3)",
+                "&:hover": {
+                  bgcolor: "rgba(255,255,255,0.35)",
+                  color: "black",
+                },
+              }}
+            >
+              Imagen
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<PictureAsPdf />}
+              onClick={handleDownloadPDF}
+              sx={{
+                bgcolor: "rgba(255, 255, 255, 0.6)", // 👈 más claro
+                color: "#858181",
+                borderRadius: "10px",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                textTransform: "none",
+                fontSize: "0.75rem",
+                backdropFilter: "blur(6px)",
+                border: "1px solid rgba(255, 255, 255, 0.3)",
+                "&:hover": {
+                  bgcolor: "rgba(255,255,255,0.35)",
+                  color: "black",
+                },
+              }}
+            >
+              PDF
+            </Button>
+          </Box>
 
           {/* 👉 Contenido que se exporta */}
           <Box ref={chartRef} sx={{ width: "100%", bgcolor: "white", p: 2 }}>
@@ -550,4 +549,4 @@ const ComparativoMensualInsumosQuimicos = () => {
   );
 };
 
-export default ComparativoMensualInsumosQuimicos;
+export default Comparativomensualinsumosquimicos ;
