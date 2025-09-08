@@ -38,6 +38,7 @@ import PanelHoras from '../PanelHoras';
 import InventarioCarbonMadera from '../InventarioCarbonMadera';
 // Modulo de graficos y analisis
 import GraficoNivelesTanquesPorDiaPageComponente from '../TanquesVistaNiveles/GraficaNivelesDiariosPorMes/GraficaNivelesDiarioTanquesJornalerosComponente.jsx';
+import Comparativomensualinsumosquimicos from '../Modulos_API/DataAnalisis/comparativomensualinsumosquimicos.jsx';
 //Modulo Tanques
 import TanquesUnidadTreCientos from '../TanquesVistaNiveles/Unidad300';
 import CubaDeFermentacion from '../TanquesVistaNiveles/CubasDeFermentacion';
@@ -170,8 +171,9 @@ export default function EmpresarialPrincipalSchedulerApp() {
             icon: <img src={GraphIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
             subItems: [
                 { text: 'Grafica Niveles Tanques Jornaleros', subKey: 'nivelestanquesjornalerospagina', icon: <img src={TankGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
+                { text: 'Isumos Kg/L [OH]', subKey: 'comparativomensualinsumosquimicoscomponent', icon: <img src={BarGraphComparativeIcon} alt="comparativomensualinsumosquimicoscomponent" style={{ width: 25, height: 25 }} /> },
+                { text: 'Isumos $/L [OH]', subKey: 'comparativomensualinsumosquimicoscomponent', icon: <img src={BarGraphIcon} alt="comparativomensualinsumosquimicoscomponent" style={{ width: 25, height: 25 }} /> },
                 { text: 'Insumos/mes', subKey: 'nivelesunidadcien', icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
-                { text: 'Isumos/L[OH]', subKey: 'nivelesunidadcien', icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
                 { text: 'Comparativo', subKey: 'comparativoIsumos/L[OH]', icon: <img src={BarGraphComparativeIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
                 { text: 'Agua/L[OH]', subKey: 'nivelesunidadtrecientos', icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
                 { text: 'Carbon/L[OH]', subKey: 'nivelesunidadcuatrocientos', icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
@@ -207,6 +209,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'tanquescrud': return <TanquesList tanquesContext={tanques} />;
             case 'empleadosambiocom': return <EmpleadosManager />;
             case 'nivelestanquesjornalerospagina': return <GraficoNivelesTanquesPorDiaPageComponente NivelesTanquesContext={nivelesTanques} />;
+            case 'comparativomensualinsumosquimicoscomponent': return <Comparativomensualinsumosquimicos />;
             default: return null;
         }
     };

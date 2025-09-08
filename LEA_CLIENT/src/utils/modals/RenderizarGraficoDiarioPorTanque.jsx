@@ -1040,7 +1040,9 @@ function withScaling(basePlugin) {
                 </tr>
               </thead>
               <tbody>
-                {rawData.map((row, index) => (
+                {rawData
+                 .filter((row) => row.Tanque === nombreTanque)
+                .map((row, index) => (
                   <tr key={index}>
                     <td style={{ padding: "8px", border: "1px solid #eee" }}>
                       {row.Tanque}
