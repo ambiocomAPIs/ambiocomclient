@@ -36,14 +36,14 @@ import { Download, PictureAsPdf } from "@mui/icons-material";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-const Comparativomensualinsumosquimicos = () => {
+const Comparativomensualinsumosquimicoscostolitro = () => {
   const chartRef = useRef(null);
 
   const [produccionActual, setProduccionActual] = useState("");
   const [produccionAnterior, setProduccionAnterior] = useState("");
   const [mesDeCierre, setMesDeCierre] = useState("");
   const [mesComparar, setMesComparar] = useState("");
-  const [tituloGrafico, setTituloGrafico] = useState("Gráfico Comparativo Kg/L OH");
+  const [tituloGrafico, setTituloGrafico] = useState("Gráfico Comparativo $/L OH");
   const [serieActual, setSerieActual] = useState("Nombre Serie Actual");
   const [serieAnterior, setSerieAnterior] = useState("Nombre Serie Anterior");
   const [consumo, setConsumo] = useState([]);
@@ -84,7 +84,7 @@ const Comparativomensualinsumosquimicos = () => {
     const fetchGraficas = async () => {
       try {
         const res = await axios.get(
-          "https://ambiocomserver.onrender.com/api/graficainsumosoh/listarkilosporoh"
+          "https://ambiocomserver.onrender.com/api/graficainsumosoh/listarprecioporoh"
         );
         setGraficasGuardadas(res.data);
       } catch (err) {
@@ -127,17 +127,17 @@ const Comparativomensualinsumosquimicos = () => {
       setConsumoCaldera(
         dataMes
           .filter((i) => i.area.toLowerCase() === "caldera")
-          .reduce((a, i) => a + (i.ConsumoMensual || 0), 0)
+          .reduce((a, i) => a + (i.GastoMensual || 0), 0)
       );
       setConsumoAguas(
         dataMes
           .filter((i) => i.area.toLowerCase() === "aguas")
-          .reduce((a, i) => a + (i.ConsumoMensual || 0), 0)
+          .reduce((a, i) => a + (i.GastoMensual || 0), 0)
       );
       setConsumoTorre(
         dataMes
           .filter((i) => i.area.toLowerCase() === "torre de enfriamiento")
-          .reduce((a, i) => a + (i.ConsumoMensual || 0), 0)
+          .reduce((a, i) => a + (i.GastoMensual || 0), 0)
       );
     }
   }, [mesDeCierre, consumo]);
@@ -151,17 +151,17 @@ const Comparativomensualinsumosquimicos = () => {
       setConsumoCalderaComp(
         dataMes
           .filter((i) => i.area.toLowerCase() === "caldera")
-          .reduce((a, i) => a + (i.ConsumoMensual || 0), 0)
+          .reduce((a, i) => a + (i.GastoMensual || 0), 0)
       );
       setConsumoAguasComp(
         dataMes
           .filter((i) => i.area.toLowerCase() === "aguas")
-          .reduce((a, i) => a + (i.ConsumoMensual || 0), 0)
+          .reduce((a, i) => a + (i.GastoMensual || 0), 0)
       );
       setConsumoTorreComp(
         dataMes
           .filter((i) => i.area.toLowerCase() === "torre de enfriamiento")
-          .reduce((a, i) => a + (i.ConsumoMensual || 0), 0)
+          .reduce((a, i) => a + (i.GastoMensual || 0), 0)
       );
     }
   }, [mesComparar, consumo]);
@@ -174,7 +174,7 @@ const Comparativomensualinsumosquimicos = () => {
         timeZone: "America/Bogota",
       });
       // 👇 Aquí mandamos los datos al backend con axios
-      await axios.post("https://ambiocomserver.onrender.com/api/graficainsumosoh/guardarkilosporoh", {
+      await axios.post("https://ambiocomserver.onrender.com/api/graficainsumosoh/guardarprecioporoh", {
         produccionActual,
         produccionAnterior,
         mesDeCierre,
@@ -243,7 +243,7 @@ const Comparativomensualinsumosquimicos = () => {
         mb={4}
         mt={5}
       >
-        Comparativo Mensual de Insumos Químicos Kg/L
+        Comparativo Mensual de Insumos Químicos $/L
       </Typography>
 
       {/* Ingresar Datos Producción */}
@@ -278,7 +278,8 @@ const Comparativomensualinsumosquimicos = () => {
           <Card sx={{ mb: 4, p: 2 }}>
             <CardContent>
               <Grid container spacing={2}>
-              <Grid item xs={12} md={3}>
+
+                <Grid item xs={12} md={3}>
                   <TextField
                     label="Producción Anterior"
                     type="number"
@@ -296,7 +297,6 @@ const Comparativomensualinsumosquimicos = () => {
                     fullWidth
                   />
                 </Grid>
-
                 <Grid item xs={12} md={3}>
                   <TextField
                     select
@@ -327,7 +327,7 @@ const Comparativomensualinsumosquimicos = () => {
                     ))}
                   </TextField>
                 </Grid>
- 
+
                 <Grid item xs={12} md={4}>
                   <TextField
                     label="Título del Gráfico"
@@ -352,6 +352,7 @@ const Comparativomensualinsumosquimicos = () => {
                     fullWidth
                   />
                 </Grid>
+
               </Grid>
               <Box textAlign="center" mt={3}>
                 <Button
@@ -386,18 +387,18 @@ const Comparativomensualinsumosquimicos = () => {
                   <Grid container spacing={2}>
                     <Grid item xs={12}>
                       <Typography>
-                        <Whatshot color="error" /> Caldera: {consumoCaldera} <strong style={{color: "green"}}>Kg</strong>
+                        <Whatshot color="error" /> Caldera: {consumoCaldera}  <strong style={{color: "green"}}>$COP</strong>
                       </Typography>
                     </Grid>
                     <Grid item xs={12}>
                       <Typography>
-                        <Opacity color="primary" /> Aguas: {consumoAguas} <strong style={{color: "green"}}>Kg</strong>
+                        <Opacity color="primary" /> Aguas: {consumoAguas}  <strong style={{color: "green"}}>$COP</strong>
                       </Typography>
                     </Grid>
                     <Grid item xs={12}>
                       <Typography>
                         <AcUnit color="info" /> Torre de Enfriamiento:{" "}
-                        {consumoTorre} <strong style={{color: "green"}}>Kg</strong>
+                        {consumoTorre}  <strong style={{color: "green"}}>$COP</strong>
                       </Typography>
                     </Grid>
                   </Grid>
@@ -415,18 +416,18 @@ const Comparativomensualinsumosquimicos = () => {
                   <Grid container spacing={2}>
                     <Grid item xs={12}>
                       <Typography>
-                        <Whatshot color="error" /> Caldera: {consumoCalderaComp} <strong style={{color: "green"}}>Kg</strong>
+                        <Whatshot color="error" /> Caldera: {consumoCalderaComp}   <strong style={{color: "green"}}>$COP</strong>
                       </Typography>
                     </Grid>
                     <Grid item xs={12}>
                       <Typography>
-                        <Opacity color="primary" /> Aguas: {consumoAguasComp} <strong style={{color: "green"}}>Kg</strong>
+                        <Opacity color="primary" /> Aguas: {consumoAguasComp}   <strong style={{color: "green"}}>$COP</strong>
                       </Typography>
                     </Grid>
                     <Grid item xs={12}>
                       <Typography>
-                        <AcUnit color="info" /> Torre de Enfriamiento:{" "}
-                        {consumoTorreComp} <strong style={{color: "green"}}>Kg</strong>
+                        <AcUnit color="info" /> Torre de Enfriamiento:{" "} 
+                        {consumoTorreComp}  <strong style={{color: "green"}}>$COP</strong>
                       </Typography>
                     </Grid>
                   </Grid>
@@ -556,9 +557,9 @@ const Comparativomensualinsumosquimicos = () => {
                       position="insideBottom"
                     />
                   </XAxis>
-                  <YAxis tickFormatter={(value) => `${Number(value).toFixed(6)} Kg`}>
+                  <YAxis tickFormatter={(value) => `${Number(value).toFixed(4)} $`}>
                     <Label
-                      value="Consumo Kg de Insumo por Litro de OH"
+                      value="Consumo $ de Insumo por Litro de OH"
                       angle={-90}
                       offset={75}
                       position="insideLeft"
@@ -566,7 +567,7 @@ const Comparativomensualinsumosquimicos = () => {
                     />
                   </YAxis>
                   <Tooltip
-                    formatter={(value) => `${Number(value).toPrecision(6)} Kg`}
+                    formatter={(value) => `${Number(value).toPrecision(6)} $`}
                     labelFormatter={(label) => `Área: ${label}`}
                   />
                   <Legend
@@ -637,4 +638,4 @@ const Comparativomensualinsumosquimicos = () => {
   );
 };
 
-export default Comparativomensualinsumosquimicos;
+export default Comparativomensualinsumosquimicoscostolitro;

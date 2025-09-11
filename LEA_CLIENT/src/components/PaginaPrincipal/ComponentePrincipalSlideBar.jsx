@@ -39,6 +39,7 @@ import InventarioCarbonMadera from '../InventarioCarbonMadera';
 // Modulo de graficos y analisis
 import GraficoNivelesTanquesPorDiaPageComponente from '../TanquesVistaNiveles/GraficaNivelesDiariosPorMes/GraficaNivelesDiarioTanquesJornalerosComponente.jsx';
 import Comparativomensualinsumosquimicos from '../Modulos_API/DataAnalisis/Comparativomensualinsumosquimicos.jsx';
+import Comparativomensualinsumosquimicoscostolitro from '../Modulos_API/DataAnalisis/Comparativomensualinsumosquimicoscostolitro.jsx';
 //Modulo Tanques
 import TanquesUnidadTreCientos from '../TanquesVistaNiveles/Unidad300';
 import CubaDeFermentacion from '../TanquesVistaNiveles/CubasDeFermentacion';
@@ -57,7 +58,7 @@ import SGMRC from '../SGMRC';
 import {
     tanqueIcon, factoryIcon, despachoIcon, despachoSalidaIcon, despachoRecepcionIcon, laboratoryIcon, inventoryIcon, rulerIcon, oilTankIcon, coalInventoryIcon,
     ptapIcon, GraphIcon, BarGraphIcon, BarGraphComparativeIcon, robotAssistanceIcon, bitacoraIcon, StopWatchIcon, PdfIcon, DatabaseAdministratorIcon, workerIcon,
-    TankGraphIcon, CounterIcon
+    TankGraphIcon, CounterIcon, MoneyGraphIcon
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -172,7 +173,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             subItems: [
                 { text: 'Grafica Niveles Tanques Jornaleros', subKey: 'nivelestanquesjornalerospagina', icon: <img src={TankGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
                 { text: 'Isumos Kg/L [OH]', subKey: 'comparativomensualinsumosquimicoscomponent', icon: <img src={BarGraphComparativeIcon} alt="comparativomensualinsumosquimicoscomponent" style={{ width: 25, height: 25 }} /> },
-                { text: 'Isumos $/L [OH]', subKey: 'comparativomensualinsumosquimicoscomponent', icon: <img src={BarGraphIcon} alt="comparativomensualinsumosquimicoscomponent" style={{ width: 25, height: 25 }} /> },
+                { text: 'Isumos $/L [OH]', subKey: 'Comparativomensualinsumosquimicoscostolitro', icon: <img src={MoneyGraphIcon} alt="Comparativomensualinsumosquimicoscostolitro" style={{ width: 25, height: 25 }} /> },
                 { text: 'Insumos/mes', subKey: 'nivelesunidadcien', icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
                 { text: 'Comparativo', subKey: 'comparativoIsumos/L[OH]', icon: <img src={BarGraphComparativeIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
                 { text: 'Agua/L[OH]', subKey: 'nivelesunidadtrecientos', icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
@@ -210,6 +211,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'empleadosambiocom': return <EmpleadosManager />;
             case 'nivelestanquesjornalerospagina': return <GraficoNivelesTanquesPorDiaPageComponente NivelesTanquesContext={nivelesTanques} />;
             case 'comparativomensualinsumosquimicoscomponent': return <Comparativomensualinsumosquimicos />;
+            case 'Comparativomensualinsumosquimicoscostolitro': return <Comparativomensualinsumosquimicoscostolitro />;
             default: return null;
         }
     };
