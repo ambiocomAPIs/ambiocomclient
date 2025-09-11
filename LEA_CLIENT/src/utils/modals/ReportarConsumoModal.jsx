@@ -111,9 +111,12 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
     let cantidadReportadaMovimiento = cantidad;
     let cantidadParaBaseDeDatos = cantidad;
     let costoMensual = 0;
-
+    console.log("tipoOperacion:", tipoOperacion);
+    
     // Validar tipo de operación
-    if (tipoOperacion === 'Consumo de Material') {
+    if (tipoOperacion === 'Consumo de Material' || tipoOperacion === 'Consumo de Insumo') {
+      console.log("ingreso aqui");
+      
       // Validación de consumo de material
       if (cantidad > inventarioActual) {
         alert('No puedes consumir más del inventario disponible.');
@@ -156,7 +159,7 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
     try {
       // 1. Registrar movimiento
       await axios.post('https://ambiocomserver.onrender.com/api/registro/movimientos', {
-        TipoOperación: tipoOperacion,
+        TipoOperacion: tipoOperacion,
         Producto: formData.Producto,
         Lote: formData.Lote,
         Inventario: nuevoInventario,
@@ -179,6 +182,7 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
       // 2. Actualizar base de datos
       await axios.post('https://ambiocomserver.onrender.com/api/table/data/reportar-operacion', {
         ...formData,
+        TipoOperacion: tipoOperacion, 
         ConsumoAReportar: cantidadParaBaseDeDatos,
         Inventario: nuevoInventario
       });
@@ -354,7 +358,7 @@ export default function ReportarConsumoModal({ open, onClose, onSubmit, data = [
         </Button>
       </DialogActions>
       <Grid container justifyContent="center" style={{ padding: '10px' }}>
-        <img src="/ambiocom.png" alt="Logo" style={{ maxHeight: '50px' }} />
+        <img src="/logoambiocomconfondo.png" alt="Logo" style={{ maxHeight: '50px' }} />
       </Grid>
     </Dialog>
   );

@@ -131,7 +131,7 @@ export default function UploadExcelPage() {
           onClick={() => {
             const link = document.createElement("a");
             link.href = `/Files/plantilla_carga_masiva_niveles_tanques.xlsx`;
-            link.download = "plantilla_carga_masiva_niveles_tanques.xlsx";
+            link.download = "plantilla_carga_masiva_niveles_tanques_1.xlsx";
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Grid } from "@mui/material";
+import { Grid, Snackbar, Alert } from "@mui/material";
 import axios from "axios";
 import NoteColumn from "./NoteColumn";
 
@@ -10,25 +10,34 @@ const sections = [
   { key: "REGISTROS", title: "Listado de Registros" },
 ];
 
-function NoteBoard({ supervisor, turno, fecha }) {
-  const [notes, setNotes] = useState({});
+function NoteBoard({ supervisor, turno, fecha, notes, setNotes }) {
   const [noteToCreate, setNoteToCreate] = useState(null);
 
-  // Cargar notas existentes
-  useEffect(() => {
-    const fetchNotes = async () => {
-      try {
-        const res = await axios.get("https://ambiocomserver.onrender.com/api/notasbitacora");
-        const grouped = sections.reduce((acc, s) => {
-          acc[s.key] = res.data.filter((n) => n.module === s.key);
-          return acc;
-        }, {});
-        setNotes(grouped);
-      } catch (error) {
-        console.error("Error al cargar notas:", error);
-      }
+    // 🔔 Snackbar
+    const [snackbar, setSnackbar] = useState({
+      open: false,
+      message: "",
+    });
+
+    const handleSnackbarClose = () => {
+      setSnackbar({ open: false, message: "" });
     };
 
+  // Cargar notas existentes desde la API
+  const fetchNotes = async () => {
+    try {
+      const res = await axios.get("https://ambiocomserver.onrender.com/api/notasbitacora");
+      const grouped = sections.reduce((acc, s) => {
+        acc[s.key] = res.data.filter((n) => n.module === s.key);
+        return acc;
+      }, {});      
+      setNotes(grouped); // 👈 ahora actualiza el padre
+    } catch (error) {
+      console.error("Error al cargar notas:", error);
+    }
+  };
+
+  useEffect(() => {
     fetchNotes();
   }, []);
 
@@ -38,7 +47,10 @@ function NoteBoard({ supervisor, turno, fecha }) {
 
     const sendNote = async () => {
       try {
-        const response = await axios.post("https://ambiocomserver.onrender.com/api/notasbitacora", noteToCreate);
+        const response = await axios.post(
+          "https://ambiocomserver.onrender.com/api/notasbitacora",
+          noteToCreate
+        );
         const sectionKey = noteToCreate.module;
 
         setNotes((prev) => ({
@@ -53,42 +65,45 @@ function NoteBoard({ supervisor, turno, fecha }) {
     };
 
     sendNote();
-  }, [noteToCreate]);
+  }, [noteToCreate, setNotes]);
 
   // Manejo al crear nueva nota
   const handleAddNote = (sectionKey, text) => {
     if (!supervisor || !turno || !fecha) {
-      alert("Debes completar fecha, turno y supervisor antes de agregar una nota.");
+      setSnackbar({
+        open: true,
+        message: "Debes completar fecha, turno y supervisor antes de agregar una nota. ⚠️",
+      });
       return;
     }
 
     const newNote = {
       text,
-      date: fecha,  // Aquí asignas la fecha desde el padre
+      date: fecha,
       turno,
       supervisor,
       module: sectionKey,
       completed: false,
     };
 
-    setNoteToCreate(newNote); // esto dispara el useEffect para guardar
+    setNoteToCreate(newNote); // dispara el useEffect
   };
 
+  // Toggle completado de nota
   const handleToggleComplete = async (sectionKey, noteId) => {
-
     if (!noteId) {
       console.error("Error: noteId no válido");
       return;
     }
 
     try {
-      // Hacer PATCH al backend para toggle de completed
-      const response = await axios.patch(`https://ambiocomserver.onrender.com/api/notasbitacora/${noteId}/toggle`);
+      const response = await axios.patch(
+        `https://ambiocomserver.onrender.com/api/notasbitacora/${noteId}/toggle`
+      );
 
       if (response.status === 200) {
         const updatedNote = response.data;
 
-        // Actualizar estado local con el resultado actualizado del backend
         setNotes((prev) => ({
           ...prev,
           [sectionKey]: prev[sectionKey].map((note) =>
@@ -103,24 +118,8 @@ function NoteBoard({ supervisor, turno, fecha }) {
     }
   };
 
-  const fetchNotes = async () => {
-    try {
-      const res = await axios.get("https://ambiocomserver.onrender.com/api/notasbitacora");
-      const grouped = sections.reduce((acc, s) => {
-        acc[s.key] = res.data.filter((n) => n.module === s.key);
-        return acc;
-      }, {});
-      setNotes(grouped);
-    } catch (error) {
-      console.error("Error al cargar notas:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchNotes();
-  }, []);
-
   return (
+  <>
     <Grid container spacing={2} style={{ marginTop: 16 }}>
       {sections.map((section) => (
         <Grid item xs={12} md={3} key={section.key}>
@@ -129,12 +128,34 @@ function NoteBoard({ supervisor, turno, fecha }) {
             notes={notes[section.key] || []}
             onAdd={(text) => handleAddNote(section.key, text)}
             onToggle={(id) => handleToggleComplete(section.key, id)}
-            date={fecha}  // <---- Aquí se pasa la fecha para filtrar
-            onRefresh={fetchNotes} // para refrescar las notas cada que se elimine una
+            date={fecha}
+            turno={turno}  
+            onRefresh={fetchNotes}
           />
         </Grid>
       ))}
     </Grid>
+     {/* Snackbar morado */}
+     <Snackbar
+     open={snackbar.open}
+     autoHideDuration={4000}
+     onClose={handleSnackbarClose}
+     anchorOrigin={{ vertical: "top", horizontal: "center" }}
+   >
+     <Alert
+       onClose={handleSnackbarClose}
+       severity="info"
+       sx={{
+         width: "100%",
+         backgroundColor: "#EAD1FF", // Morado
+         color: "dark gray",
+         fontWeight: "bold",
+       }}
+     >
+       {snackbar.message}
+     </Alert>
+   </Snackbar>
+   </>
   );
 }
 

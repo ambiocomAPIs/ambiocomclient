@@ -52,12 +52,13 @@ function HeaderForm({ data, onChange, clearFieldsExceptFechaTurno, trabajadoresR
   }, [data.fecha]);
 
   const turnos = [
-    { value: "TurnoMañana(6am-2pm)", label: "Turno Mañana (6:00 - 14:00)" },
-    { value: "TurnoTarde(2pm-10pm)", label: "Turno Tarde (14:00 - 22:00)" },
-    { value: "TurnoNoche(10pm-6am)", label: "Turno Noche (22:00  - 06:00)" },
-    { value: "Turno12Horas(6am-6pm)", label: "Turno 12Horas (06:00 - 18:00)" },
-    { value: "Turno12Horas(6pm-6am)", label: "Turno 12Horas (18:00 - 06:00)" },
-  ];
+    { value: "TurnoMañana(6:00-14:00)", label: "Turno Mañana (6:00 - 14:00)", priority: 1 },
+    { value: "TurnoTarde(14:00-22:00)", label: "Turno Tarde (14:00 - 22:00)", priority: 2 },
+    { value: "TurnoNoche(22:00-06:00)", label: "Turno Noche (22:00 - 06:00)", priority: 3 },
+    { value: "TurnoAdministrativo(07:30-17:30)", label: "Turno Administrativo (07:30 - 17:30)", priority: 4 },
+    { value: "Turno12Horas(06:00-18:00)", label: "Turno 12Horas (06:00 - 18:00)", priority: 5 },
+    { value: "Turno12Horas(18:00-06:00)", label: "Turno 12Horas (18:00 - 06:00)", priority: 6 },
+  ];  
 
   const fields = [
     { label: "Fecha", key: "fecha", type: "date" },
@@ -74,11 +75,9 @@ function HeaderForm({ data, onChange, clearFieldsExceptFechaTurno, trabajadoresR
   useEffect(() => {
     const fetchExistingData = async () => {
       if (!data.fecha || !data.turno) {
-        console.log("No se busca porque falta fecha o turno", data.fecha, data.turno);
         return;
       }
 
-      console.log("Buscando datos existentes para:", data.fecha, data.turno);
       setIsLoading(true);
 
       try {
