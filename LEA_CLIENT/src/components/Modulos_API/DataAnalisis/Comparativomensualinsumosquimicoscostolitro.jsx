@@ -4,7 +4,6 @@ import {
   Grid,
   TextField,
   Button,
-  MenuItem,
   Typography,
   Divider,
   Card,
@@ -15,6 +14,8 @@ import {
   Snackbar,
   Alert,
   Autocomplete,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
@@ -31,19 +32,29 @@ import {
 } from "recharts";
 import axios from "axios";
 import { Add, Whatshot, Opacity, AcUnit } from "@mui/icons-material";
-import { Download, PictureAsPdf } from "@mui/icons-material";
+import {
+  Download,
+  PictureAsPdf,
+  CheckBoxOutlineBlank,
+  CheckBox,
+} from "@mui/icons-material";
 
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+
+const icon = <CheckBoxOutlineBlank fontSize="small" />;
+const checkedIcon = <CheckBox fontSize="small" />;
 
 const Comparativomensualinsumosquimicoscostolitro = () => {
   const chartRef = useRef(null);
 
   const [produccionActual, setProduccionActual] = useState("");
   const [produccionAnterior, setProduccionAnterior] = useState("");
-  const [mesDeCierre, setMesDeCierre] = useState("");
-  const [mesComparar, setMesComparar] = useState("");
-  const [tituloGrafico, setTituloGrafico] = useState("Gráfico Comparativo $/L OH");
+  const [mesDeCierre, setMesDeCierre] = useState([]); // ahora array
+  const [mesComparar, setMesComparar] = useState([]); // ahora array
+  const [tituloGrafico, setTituloGrafico] = useState(
+    "Gráfico Comparativo $/L OH"
+  );
   const [serieActual, setSerieActual] = useState("Nombre Serie Actual");
   const [serieAnterior, setSerieAnterior] = useState("Nombre Serie Anterior");
   const [consumo, setConsumo] = useState([]);
@@ -62,6 +73,8 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
   //graficas guardadas
   const [graficasGuardadas, setGraficasGuardadas] = useState([]);
   const [graficaSeleccionada, setGraficaSeleccionada] = useState(null);
+  //check apra mostrar en la grafica los valores de produccion
+  const [mostrarProduccion, setMostrarProduccion] = useState(false);
 
   const handleCloseSnackbar = () => {
     setOpenSnackbar(false);
@@ -100,16 +113,21 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
 
     setGraficaSeleccionada(value);
 
-    // Cargar estados con los valores de la gráfica seleccionada
     setProduccionActual(value.produccionActual);
     setProduccionAnterior(value.produccionAnterior);
-    setMesDeCierre(value.mesDeCierre);
-    setMesComparar(value.mesComparar);
+
+    // 👇 ajustar a arrays si es string
+    setMesDeCierre(
+      Array.isArray(value.mesDeCierre) ? value.mesDeCierre : [value.mesDeCierre]
+    );
+    setMesComparar(
+      Array.isArray(value.mesComparar) ? value.mesComparar : [value.mesComparar]
+    );
+
     setTituloGrafico(value.tituloGrafico);
     setSerieActual(value.serieActual);
     setSerieAnterior(value.serieAnterior);
 
-    // Cargar consumos
     setConsumoCaldera(value.consumoCaldera);
     setConsumoAguas(value.consumoAguas);
     setConsumoTorre(value.consumoTorre);
@@ -118,52 +136,56 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
     setConsumoTorreComp(value.consumoTorreComp);
   };
 
-  // Calcular sumatorias mes seleccionado
+  // Calcular sumatorias meses seleccionados (Actual)
   useEffect(() => {
-    if (!mesDeCierre) return;
-    const mesSeleccionado = consumo.find((c) => c.MesDeCierre === mesDeCierre);
-    if (mesSeleccionado?.dataMes) {
-      const dataMes = mesSeleccionado.dataMes;
-      setConsumoCaldera(
-        dataMes
+    if (!mesDeCierre || mesDeCierre.length === 0) return;
+    let cal = 0,
+      agu = 0,
+      tor = 0;
+    mesDeCierre.forEach((mes) => {
+      const mesSeleccionado = consumo.find((c) => c.MesDeCierre === mes);
+      if (mesSeleccionado?.dataMes) {
+        const dataMes = mesSeleccionado.dataMes;
+        cal += dataMes
           .filter((i) => i.area.toLowerCase() === "caldera")
-          .reduce((a, i) => a + (i.GastoMensual || 0), 0)
-      );
-      setConsumoAguas(
-        dataMes
+          .reduce((a, i) => a + (i.GastoMensual || 0), 0);
+        agu += dataMes
           .filter((i) => i.area.toLowerCase() === "aguas")
-          .reduce((a, i) => a + (i.GastoMensual || 0), 0)
-      );
-      setConsumoTorre(
-        dataMes
+          .reduce((a, i) => a + (i.GastoMensual || 0), 0);
+        tor += dataMes
           .filter((i) => i.area.toLowerCase() === "torre de enfriamiento")
-          .reduce((a, i) => a + (i.GastoMensual || 0), 0)
-      );
-    }
+          .reduce((a, i) => a + (i.GastoMensual || 0), 0);
+      }
+    });
+    setConsumoCaldera(cal);
+    setConsumoAguas(agu);
+    setConsumoTorre(tor);
   }, [mesDeCierre, consumo]);
 
-  // Calcular sumatorias mes comparar
+  // Calcular sumatorias meses seleccionados (Comparar)
   useEffect(() => {
-    if (!mesComparar) return;
-    const mesSeleccionado = consumo.find((c) => c.MesDeCierre === mesComparar);
-    if (mesSeleccionado?.dataMes) {
-      const dataMes = mesSeleccionado.dataMes;
-      setConsumoCalderaComp(
-        dataMes
+    if (!mesComparar || mesComparar.length === 0) return;
+    let cal = 0,
+      agu = 0,
+      tor = 0;
+    mesComparar.forEach((mes) => {
+      const mesSeleccionado = consumo.find((c) => c.MesDeCierre === mes);
+      if (mesSeleccionado?.dataMes) {
+        const dataMes = mesSeleccionado.dataMes;
+        cal += dataMes
           .filter((i) => i.area.toLowerCase() === "caldera")
-          .reduce((a, i) => a + (i.GastoMensual || 0), 0)
-      );
-      setConsumoAguasComp(
-        dataMes
+          .reduce((a, i) => a + (i.GastoMensual || 0), 0);
+        agu += dataMes
           .filter((i) => i.area.toLowerCase() === "aguas")
-          .reduce((a, i) => a + (i.GastoMensual || 0), 0)
-      );
-      setConsumoTorreComp(
-        dataMes
+          .reduce((a, i) => a + (i.GastoMensual || 0), 0);
+        tor += dataMes
           .filter((i) => i.area.toLowerCase() === "torre de enfriamiento")
-          .reduce((a, i) => a + (i.GastoMensual || 0), 0)
-      );
-    }
+          .reduce((a, i) => a + (i.GastoMensual || 0), 0);
+      }
+    });
+    setConsumoCalderaComp(cal);
+    setConsumoAguasComp(agu);
+    setConsumoTorreComp(tor);
   }, [mesComparar, consumo]);
 
   // Guardar datos
@@ -173,31 +195,29 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
       const fechaRegistro = hoy.toLocaleDateString("sv-SE", {
         timeZone: "America/Bogota",
       });
-      // 👇 Aquí mandamos los datos al backend con axios
-      await axios.post("https://ambiocomserver.onrender.com/api/graficainsumosoh/guardarprecioporoh", {
-        produccionActual,
-        produccionAnterior,
-        mesDeCierre,
-        mesComparar,
-        tituloGrafico,
-        serieActual,
-        serieAnterior,
-        fechaRegistro: fechaRegistro,
-        // 👇 enviar sumatorias
-        consumoCaldera,
-        consumoAguas,
-        consumoTorre,
-        consumoCalderaComp,
-        consumoAguasComp,
-        consumoTorreComp,
-      });
-
-      // ✅ Si todo salió bien, mostramos confirmación
+      await axios.post(
+        "https://ambiocomserver.onrender.com/api/graficainsumosoh/guardarprecioporoh",
+        {
+          produccionActual,
+          produccionAnterior,
+          mesDeCierre,
+          mesComparar,
+          tituloGrafico,
+          serieActual,
+          serieAnterior,
+          fechaRegistro,
+          consumoCaldera,
+          consumoAguas,
+          consumoTorre,
+          consumoCalderaComp,
+          consumoAguasComp,
+          consumoTorreComp,
+        }
+      );
       setSnackbarMsg("✅ Datos guardados correctamente");
       setSnackbarSeverity("success");
       setOpenSnackbar(true);
     } catch (error) {
-      // console.error("❌ Error al guardar:", error);
       setSnackbarMsg("❌ Error al guardar los datos");
       setSnackbarSeverity("error");
       setOpenSnackbar(true);
@@ -207,9 +227,8 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
   // Descargar como Imagen
   const handleDownloadImage = async () => {
     if (!chartRef.current) return;
-    const canvas = await html2canvas(chartRef.current, { scale: 3 }); // scale 3 = alta calidad
+    const canvas = await html2canvas(chartRef.current, { scale: 3 });
     const dataUrl = canvas.toDataURL("image/png", 1.0);
-
     const link = document.createElement("a");
     link.href = dataUrl;
     link.download = `${tituloGrafico}.png`;
@@ -221,16 +240,11 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
     if (!chartRef.current) return;
     const canvas = await html2canvas(chartRef.current, { scale: 3 });
     const imgData = canvas.toDataURL("image/png", 1.0);
-
-    const pdf = new jsPDF("landscape", "mm", "a4"); // horizontal
+    const pdf = new jsPDF("landscape", "mm", "a4");
     const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-
     const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pageWidth;
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-    pdf.addImage(imgData, "PNG", 0, 20, pdfWidth, pdfHeight);
+    const pdfHeight = (imgProps.height * pageWidth) / imgProps.width;
+    pdf.addImage(imgData, "PNG", 0, 20, pageWidth, pdfHeight);
     pdf.save(`${tituloGrafico}.pdf`);
   };
 
@@ -256,7 +270,6 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
             sx={{ mb: 3, width: "99%" }}
           >
             <Typography variant="h6">Ingresar Datos de Producción</Typography>
-
             <Box sx={{ width: 500, mt: 1 }}>
               <Autocomplete
                 options={graficasGuardadas}
@@ -278,7 +291,6 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
           <Card sx={{ mb: 4, p: 2 }}>
             <CardContent>
               <Grid container spacing={2}>
-
                 <Grid item xs={12} md={3}>
                   <TextField
                     label="Producción Anterior"
@@ -297,37 +309,62 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
                     fullWidth
                   />
                 </Grid>
+                {/* 👉 Mes Comparar con check */}
                 <Grid item xs={12} md={3}>
-                  <TextField
-                    select
-                    label="Mes anterior o a Comparar"
+                  <Autocomplete
+                    multiple
+                    options={consumo.map((c) => c.MesDeCierre)}
+                    disableCloseOnSelect
                     value={mesComparar}
-                    onChange={(e) => setMesComparar(e.target.value)}
-                    fullWidth
-                  >
-                    {consumo.map((c) => (
-                      <MenuItem key={c._id} value={c.MesDeCierre}>
-                        {c.MesDeCierre}
-                      </MenuItem>
-                    ))}
-                  </TextField>
+                    onChange={(e, val) => setMesComparar(val)}
+                    renderOption={(props, option, { selected }) => (
+                      <li {...props}>
+                        <Checkbox
+                          icon={icon}
+                          checkedIcon={checkedIcon}
+                          style={{ marginRight: 8 }}
+                          checked={selected}
+                        />
+                        {option}
+                      </li>
+                    )}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Mes anterior o a Comparar"
+                        fullWidth
+                      />
+                    )}
+                  />
                 </Grid>
+                {/* 👉 Mes Actual con check */}
                 <Grid item xs={12} md={3}>
-                  <TextField
-                    select
-                    label="Mes de Actual  o cierre"
+                  <Autocomplete
+                    multiple
+                    options={consumo.map((c) => c.MesDeCierre)}
+                    disableCloseOnSelect
                     value={mesDeCierre}
-                    onChange={(e) => setMesDeCierre(e.target.value)}
-                    fullWidth
-                  >
-                    {consumo.map((c) => (
-                      <MenuItem key={c._id} value={c.MesDeCierre}>
-                        {c.MesDeCierre}
-                      </MenuItem>
-                    ))}
-                  </TextField>
+                    onChange={(e, val) => setMesDeCierre(val)}
+                    renderOption={(props, option, { selected }) => (
+                      <li {...props}>
+                        <Checkbox
+                          icon={icon}
+                          checkedIcon={checkedIcon}
+                          style={{ marginRight: 8 }}
+                          checked={selected}
+                        />
+                        {option}
+                      </li>
+                    )}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Mes de Actual o Cierre"
+                        fullWidth
+                      />
+                    )}
+                  />
                 </Grid>
-
                 <Grid item xs={12} md={4}>
                   <TextField
                     label="Título del Gráfico"
@@ -352,7 +389,6 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
                     fullWidth
                   />
                 </Grid>
-
               </Grid>
               <Box textAlign="center" mt={3}>
                 <Button
@@ -381,56 +417,45 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
-                    Consumos Mes Seleccionado
+                    Consumos Mes Anterior Comparar
                   </Typography>
                   <Divider sx={{ my: 2 }} />
-                  <Grid container spacing={2}>
-                    <Grid item xs={12}>
-                      <Typography>
-                        <Whatshot color="error" /> Caldera: {consumoCaldera}  <strong style={{color: "green"}}>$COP</strong>
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Typography>
-                        <Opacity color="primary" /> Aguas: {consumoAguas}  <strong style={{color: "green"}}>$COP</strong>
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Typography>
-                        <AcUnit color="info" /> Torre de Enfriamiento:{" "}
-                        {consumoTorre}  <strong style={{color: "green"}}>$COP</strong>
-                      </Typography>
-                    </Grid>
-                  </Grid>
+                  <Typography>
+                    <Whatshot color="error" /> Caldera: {consumoCalderaComp}{" "}
+                    <strong style={{ color: "green" }}>$COP</strong>
+                  </Typography>
+                  <Typography>
+                    <Opacity color="primary" /> Aguas: {consumoAguasComp}{" "}
+                    <strong style={{ color: "green" }}>$COP</strong>
+                  </Typography>
+                  <Typography>
+                    <AcUnit color="info" /> Torre de Enfriamiento:{" "}
+                    {consumoTorreComp}{" "}
+                    <strong style={{ color: "green" }}>$COP</strong>
+                  </Typography>
                 </CardContent>
               </Card>
             </Grid>
-
             <Grid item xs={12} md={6}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
-                    Consumos Mes Comparar
+                    Consumos Mes Actual Seleccionado
                   </Typography>
                   <Divider sx={{ my: 2 }} />
-                  <Grid container spacing={2}>
-                    <Grid item xs={12}>
-                      <Typography>
-                        <Whatshot color="error" /> Caldera: {consumoCalderaComp}   <strong style={{color: "green"}}>$COP</strong>
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Typography>
-                        <Opacity color="primary" /> Aguas: {consumoAguasComp}   <strong style={{color: "green"}}>$COP</strong>
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Typography>
-                        <AcUnit color="info" /> Torre de Enfriamiento:{" "} 
-                        {consumoTorreComp}  <strong style={{color: "green"}}>$COP</strong>
-                      </Typography>
-                    </Grid>
-                  </Grid>
+                  <Typography>
+                    <Whatshot color="error" /> Caldera: {consumoCaldera}{" "}
+                    <strong style={{ color: "green" }}>$COP</strong>
+                  </Typography>
+                  <Typography>
+                    <Opacity color="primary" /> Aguas: {consumoAguas}{" "}
+                    <strong style={{ color: "green" }}>$COP</strong>
+                  </Typography>
+                  <Typography>
+                    <AcUnit color="info" /> Torre de Enfriamiento:{" "}
+                    {consumoTorre}{" "}
+                    <strong style={{ color: "green" }}>$COP</strong>
+                  </Typography>
                 </CardContent>
               </Card>
             </Grid>
@@ -441,7 +466,6 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
       {/* Gráfico */}
       <Card sx={{ p: 2, position: "relative" }}>
         <CardContent>
-          {/* 👉 Contenedor de botones flotantes con Glassmorphism */}
           <Box
             sx={{
               position: "absolute",
@@ -457,7 +481,7 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
               startIcon={<Download />}
               onClick={handleDownloadImage}
               sx={{
-                bgcolor: "rgba(255, 255, 255, 0.6)", // 👈 más claro
+                bgcolor: "rgba(255, 255, 255, 0.6)",
                 color: "#858181",
                 borderRadius: "10px",
                 boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
@@ -479,7 +503,7 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
               startIcon={<PictureAsPdf />}
               onClick={handleDownloadPDF}
               sx={{
-                bgcolor: "rgba(255, 255, 255, 0.6)", // 👈 más claro
+                bgcolor: "rgba(255, 255, 255, 0.6)",
                 color: "#858181",
                 borderRadius: "10px",
                 boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
@@ -496,25 +520,55 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
               PDF
             </Button>
           </Box>
+          {/* Check box   para visualizar produccion */}
+          <Box
+            sx={{
+              position: "absolute",
+              top: 25,
+              right: "auto",
+              left: 50,
+              display: "flex",
+              gap: 1.5,
+              zIndex: 9999, // para que no quede oculto
 
-          {/* 👉 Contenido que se exporta */}
+            }}
+          >
+          <Grid item xs={12} md={3}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={mostrarProduccion}
+                    onChange={(e) => setMostrarProduccion(e.target.checked)}
+                  />
+                }
+                label="Mostrar datos de producción"
+              />
+            </Grid>
+            </Box>
+
           <Box ref={chartRef} sx={{ width: "100%", bgcolor: "white", p: 2 }}>
-            {/* ✅ Título centrado */}
             <Typography
               variant="h5"
               align="center"
               gutterBottom
-              sx={{
-                fontFamily: "'Roboto Slab', serif", // puedes usar otra fuente pro
-                fontWeight: 600,
-              }}
+              sx={{ fontFamily: "'Roboto Slab', serif", fontWeight: 600 }}
             >
               {tituloGrafico}
             </Typography>
-
+            {/* Mostrar Producción si está activo */}
+            {mostrarProduccion && (
+              <Typography
+                align="center"
+                variant="subtitle1"
+                gutterBottom
+                sx={{ color: "gray", fontWeight: 500 }}
+              >
+                Producción Anterior:{" "} {Number(produccionAnterior).toLocaleString()} L 
+                |
+                Producción Actual: {Number(produccionActual).toLocaleString()} L
+              </Typography>
+            )}
             <Divider sx={{ mb: 2 }} />
-
-            {/* 📊 Gráfico */}
             <Box sx={{ width: "100%", height: "60vh" }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
@@ -557,7 +611,9 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
                       position="insideBottom"
                     />
                   </XAxis>
-                  <YAxis tickFormatter={(value) => `${Number(value).toFixed(4)} $`}>
+                  <YAxis
+                    tickFormatter={(value) => `${Number(value).toFixed(2)} $`}
+                  >
                     <Label
                       value="Consumo $ de Insumo por Litro de OH"
                       angle={-90}
@@ -567,7 +623,7 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
                     />
                   </YAxis>
                   <Tooltip
-                    formatter={(value) => `${Number(value).toPrecision(6)} $`}
+                    formatter={(value) => `${Number(value).toPrecision(2)} $`}
                     labelFormatter={(label) => `Área: ${label}`}
                   />
                   <Legend
@@ -575,24 +631,22 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
                     wrapperStyle={{
                       display: "flex",
                       justifyContent: "center",
-                      marginTop: -10,
+                      marginTop: -18,
                       marginLeft: 50,
                     }}
-                    formatter={(value) => (
-                      <span style={{ margin: "0 40px" }}>{value}</span> // 👈 separación lateral
-                    )}
                   />
                   <Bar dataKey={serieActual} fill="#8884d8" name={serieActual}>
                     <LabelList
                       dataKey={serieActual}
                       position="top"
                       dy={-10}
-                      formatter={(value) => {
-                        if (value === 0) return "0";
-                        return value >= 0.01
+                      formatter={(value) =>
+                        value === 0
+                          ? "0"
+                          : value >= 0.01
                           ? value.toFixed(2)
-                          : value.toPrecision(6);
-                      }}
+                          : value.toPrecision(2)
+                      }
                     />
                   </Bar>
                   <Bar
@@ -604,12 +658,13 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
                       dataKey={serieAnterior}
                       position="top"
                       dy={-10}
-                      formatter={(value) => {
-                        if (value === 0) return "0";
-                        return value >= 0.01
+                      formatter={(value) =>
+                        value === 0
+                          ? "0"
+                          : value >= 0.01
                           ? value.toFixed(2)
-                          : value.toPrecision(6);
-                      }}
+                          : value.toPrecision(2)
+                      }
                     />
                   </Bar>
                 </BarChart>

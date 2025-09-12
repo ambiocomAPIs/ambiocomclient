@@ -1273,7 +1273,7 @@ const clickColumFixed = (columnClicked) => {
           let BlockedColumns
           // columnas que no quiero que se puedan editar
           if (['administrativo'].includes(usuario?.rol)) { // todas menos 19 y 20 inventario critico y SAP
-            BlockedColumns = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,21, 22, 23, 24,25];
+            BlockedColumns = [2,4,5,13,14,15,16,17,21, 22, 23, 24,25];
           } else if(['laboratorio','logistica'].includes(usuario?.rol)){ // todas.
             BlockedColumns = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21, 22, 23, 24,25];
           }

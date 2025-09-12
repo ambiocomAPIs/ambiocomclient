@@ -102,7 +102,7 @@ export default function SpeedDialComponent({
             } else if (action.name === 'Descargar Manual') {
               DownloadManual();
             } else if (action.name === 'Movimientos') {
-              VerMovimientos();
+              VerMovimientos(usuario);
             } else if (action.name === 'Cierre de Mes') {
               CierreMes();
             }else if (action.name === 'MovimientosTanquesJornaleros') {
@@ -116,8 +116,8 @@ export default function SpeedDialComponent({
           }}
           FabProps={{
             disabled:
-              (action.name === 'Nueva Fila' && !['developer','gerente','supervisor'].includes(usuario?.rol)) ||
-              (action.name === 'Reportar Consumo' && !['developer','gerente','supervisor','laboratorio','administrativo'].includes(usuario?.rol)) ||
+              (action.name === 'Nueva Fila' && !['developer','gerente','supervisor', 'administrativo'].includes(usuario?.rol)) ||
+              (action.name === 'Reportar Consumo' && !['developer','gerente','supervisor','laboratorio'].includes(usuario?.rol)) ||
               (action.name === 'Reportar Ingreso' && !['developer','gerente','supervisor','laboratorio','administrativo'].includes(usuario?.rol)) ||
               (action.name === 'Export Excel' && !['developer','gerente','supervisor', 'administrativo'].includes(usuario?.rol)) ||
               (action.name === 'Movimientos' && !['developer','gerente','supervisor', 'administrativo','laboratorio'].includes(usuario?.rol)) ||

@@ -15,6 +15,9 @@ import {
   Snackbar,
   Alert,
   Autocomplete,
+  Checkbox,
+  ListItemText,
+    FormControlLabel,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
@@ -41,9 +44,12 @@ const Comparativomensualinsumosquimicos = () => {
 
   const [produccionActual, setProduccionActual] = useState("");
   const [produccionAnterior, setProduccionAnterior] = useState("");
-  const [mesDeCierre, setMesDeCierre] = useState("");
-  const [mesComparar, setMesComparar] = useState("");
-  const [tituloGrafico, setTituloGrafico] = useState("Gráfico Comparativo Kg/L OH");
+  // ahora arrays para poder seleccionar uno o varios meses
+  const [mesDeCierre, setMesDeCierre] = useState([]);
+  const [mesComparar, setMesComparar] = useState([]);
+  const [tituloGrafico, setTituloGrafico] = useState(
+    "Gráfico Comparativo Kg/L OH"
+  );
   const [serieActual, setSerieActual] = useState("Nombre Serie Actual");
   const [serieAnterior, setSerieAnterior] = useState("Nombre Serie Anterior");
   const [consumo, setConsumo] = useState([]);
@@ -62,6 +68,8 @@ const Comparativomensualinsumosquimicos = () => {
   //graficas guardadas
   const [graficasGuardadas, setGraficasGuardadas] = useState([]);
   const [graficaSeleccionada, setGraficaSeleccionada] = useState(null);
+  //check apra mostrar en la grafica los valores de produccion
+  const [mostrarProduccion, setMostrarProduccion] = useState(false);
 
   const handleCloseSnackbar = () => {
     setOpenSnackbar(false);
@@ -71,7 +79,7 @@ const Comparativomensualinsumosquimicos = () => {
     const fetchConsumo = async () => {
       try {
         const res = await axios.get("https://ambiocomserver.onrender.com/api/cierreMes/data");
-        setConsumo(res.data);
+        setConsumo(res.data || []);
       } catch (err) {
         console.error("Error al traer consumo:", err);
       }
@@ -86,7 +94,7 @@ const Comparativomensualinsumosquimicos = () => {
         const res = await axios.get(
           "https://ambiocomserver.onrender.com/api/graficainsumosoh/listarkilosporoh"
         );
-        setGraficasGuardadas(res.data);
+        setGraficasGuardadas(res.data || []);
       } catch (err) {
         console.error("❌ Error al traer gráficas:", err);
       }
@@ -100,70 +108,117 @@ const Comparativomensualinsumosquimicos = () => {
 
     setGraficaSeleccionada(value);
 
-    // Cargar estados con los valores de la gráfica seleccionada
+    // mantener compatibilidad si value.mesDeCierre/mesComparar vienen como string o array
     setProduccionActual(value.produccionActual);
     setProduccionAnterior(value.produccionAnterior);
-    setMesDeCierre(value.mesDeCierre);
-    setMesComparar(value.mesComparar);
+    setMesDeCierre(
+      Array.isArray(value.mesDeCierre)
+        ? value.mesDeCierre
+        : value.mesDeCierre
+        ? [value.mesDeCierre]
+        : []
+    );
+    setMesComparar(
+      Array.isArray(value.mesComparar)
+        ? value.mesComparar
+        : value.mesComparar
+        ? [value.mesComparar]
+        : []
+    );
     setTituloGrafico(value.tituloGrafico);
     setSerieActual(value.serieActual);
     setSerieAnterior(value.serieAnterior);
 
-    // Cargar consumos
-    setConsumoCaldera(value.consumoCaldera);
-    setConsumoAguas(value.consumoAguas);
-    setConsumoTorre(value.consumoTorre);
-    setConsumoCalderaComp(value.consumoCalderaComp);
-    setConsumoAguasComp(value.consumoAguasComp);
-    setConsumoTorreComp(value.consumoTorreComp);
+    // Cargar consumos (si vienen guardados)
+    setConsumoCaldera(value.consumoCaldera ?? 0);
+    setConsumoAguas(value.consumoAguas ?? 0);
+    setConsumoTorre(value.consumoTorre ?? 0);
+    setConsumoCalderaComp(value.consumoCalderaComp ?? 0);
+    setConsumoAguasComp(value.consumoAguasComp ?? 0);
+    setConsumoTorreComp(value.consumoTorreComp ?? 0);
   };
 
-  // Calcular sumatorias mes seleccionado
+  // Calcular sumatorias meses seleccionados (Mes de Cierre) — acumula todos los meses seleccionados por área
   useEffect(() => {
-    if (!mesDeCierre) return;
-    const mesSeleccionado = consumo.find((c) => c.MesDeCierre === mesDeCierre);
-    if (mesSeleccionado?.dataMes) {
-      const dataMes = mesSeleccionado.dataMes;
-      setConsumoCaldera(
-        dataMes
-          .filter((i) => i.area.toLowerCase() === "caldera")
-          .reduce((a, i) => a + (i.ConsumoMensual || 0), 0)
-      );
-      setConsumoAguas(
-        dataMes
-          .filter((i) => i.area.toLowerCase() === "aguas")
-          .reduce((a, i) => a + (i.ConsumoMensual || 0), 0)
-      );
-      setConsumoTorre(
-        dataMes
-          .filter((i) => i.area.toLowerCase() === "torre de enfriamiento")
-          .reduce((a, i) => a + (i.ConsumoMensual || 0), 0)
-      );
+    // si no hay selección, reset a 0
+    if (
+      !mesDeCierre ||
+      (Array.isArray(mesDeCierre) && mesDeCierre.length === 0)
+    ) {
+      setConsumoCaldera(0);
+      setConsumoAguas(0);
+      setConsumoTorre(0);
+      return;
     }
+
+    const meses = Array.isArray(mesDeCierre) ? mesDeCierre : [mesDeCierre];
+
+    let totalCaldera = 0;
+    let totalAguas = 0;
+    let totalTorre = 0;
+
+    meses.forEach((mes) => {
+      const mesSeleccionado = consumo.find((c) => c.MesDeCierre === mes);
+      if (mesSeleccionado?.dataMes) {
+        const dataMes = mesSeleccionado.dataMes;
+        totalCaldera += dataMes
+          .filter((i) => i.area && i.area.toLowerCase() === "caldera")
+          .reduce((a, i) => a + (i.ConsumoMensual || 0), 0);
+        totalAguas += dataMes
+          .filter((i) => i.area && i.area.toLowerCase() === "aguas")
+          .reduce((a, i) => a + (i.ConsumoMensual || 0), 0);
+        totalTorre += dataMes
+          .filter(
+            (i) => i.area && i.area.toLowerCase() === "torre de enfriamiento"
+          )
+          .reduce((a, i) => a + (i.ConsumoMensual || 0), 0);
+      }
+    });
+
+    setConsumoCaldera(totalCaldera);
+    setConsumoAguas(totalAguas);
+    setConsumoTorre(totalTorre);
   }, [mesDeCierre, consumo]);
 
-  // Calcular sumatorias mes comparar
+  // Calcular sumatorias meses seleccionados (Mes Comparar) — acumula todos los meses seleccionados por área
   useEffect(() => {
-    if (!mesComparar) return;
-    const mesSeleccionado = consumo.find((c) => c.MesDeCierre === mesComparar);
-    if (mesSeleccionado?.dataMes) {
-      const dataMes = mesSeleccionado.dataMes;
-      setConsumoCalderaComp(
-        dataMes
-          .filter((i) => i.area.toLowerCase() === "caldera")
-          .reduce((a, i) => a + (i.ConsumoMensual || 0), 0)
-      );
-      setConsumoAguasComp(
-        dataMes
-          .filter((i) => i.area.toLowerCase() === "aguas")
-          .reduce((a, i) => a + (i.ConsumoMensual || 0), 0)
-      );
-      setConsumoTorreComp(
-        dataMes
-          .filter((i) => i.area.toLowerCase() === "torre de enfriamiento")
-          .reduce((a, i) => a + (i.ConsumoMensual || 0), 0)
-      );
+    if (
+      !mesComparar ||
+      (Array.isArray(mesComparar) && mesComparar.length === 0)
+    ) {
+      setConsumoCalderaComp(0);
+      setConsumoAguasComp(0);
+      setConsumoTorreComp(0);
+      return;
     }
+
+    const meses = Array.isArray(mesComparar) ? mesComparar : [mesComparar];
+
+    let totalCaldera = 0;
+    let totalAguas = 0;
+    let totalTorre = 0;
+
+    meses.forEach((mes) => {
+      const mesSeleccionado = consumo.find((c) => c.MesDeCierre === mes);
+      if (mesSeleccionado?.dataMes) {
+        const dataMes = mesSeleccionado.dataMes;
+        totalCaldera += dataMes
+          .filter((i) => i.area && i.area.toLowerCase() === "caldera")
+          .reduce((a, i) => a + (i.ConsumoMensual || 0), 0);
+        totalAguas += dataMes
+          .filter((i) => i.area && i.area.toLowerCase() === "aguas")
+          .reduce((a, i) => a + (i.ConsumoMensual || 0), 0);
+        totalTorre += dataMes
+          .filter(
+            (i) => i.area && i.area.toLowerCase() === "torre de enfriamiento"
+          )
+          .reduce((a, i) => a + (i.ConsumoMensual || 0), 0);
+      }
+    });
+
+    setConsumoCalderaComp(totalCaldera);
+    setConsumoAguasComp(totalAguas);
+    setConsumoTorreComp(totalTorre);
   }, [mesComparar, consumo]);
 
   // Guardar datos
@@ -174,23 +229,26 @@ const Comparativomensualinsumosquimicos = () => {
         timeZone: "America/Bogota",
       });
       // 👇 Aquí mandamos los datos al backend con axios
-      await axios.post("https://ambiocomserver.onrender.com/api/graficainsumosoh/guardarkilosporoh", {
-        produccionActual,
-        produccionAnterior,
-        mesDeCierre,
-        mesComparar,
-        tituloGrafico,
-        serieActual,
-        serieAnterior,
-        fechaRegistro: fechaRegistro,
-        // 👇 enviar sumatorias
-        consumoCaldera,
-        consumoAguas,
-        consumoTorre,
-        consumoCalderaComp,
-        consumoAguasComp,
-        consumoTorreComp,
-      });
+      await axios.post(
+        "https://ambiocomserver.onrender.com/api/graficainsumosoh/guardarkilosporoh",
+        {
+          produccionActual,
+          produccionAnterior,
+          mesDeCierre,
+          mesComparar,
+          tituloGrafico,
+          serieActual,
+          serieAnterior,
+          fechaRegistro: fechaRegistro,
+          // 👇 enviar sumatorias
+          consumoCaldera,
+          consumoAguas,
+          consumoTorre,
+          consumoCalderaComp,
+          consumoAguasComp,
+          consumoTorreComp,
+        }
+      );
 
       // ✅ Si todo salió bien, mostramos confirmación
       setSnackbarMsg("✅ Datos guardados correctamente");
@@ -278,10 +336,10 @@ const Comparativomensualinsumosquimicos = () => {
           <Card sx={{ mb: 4, p: 2 }}>
             <CardContent>
               <Grid container spacing={2}>
-              <Grid item xs={12} md={3}>
+                <Grid item xs={12} md={3}>
                   <TextField
                     label="Producción Anterior"
-                    type="number"
+                    type="Number"
                     value={produccionAnterior}
                     onChange={(e) => setProduccionAnterior(e.target.value)}
                     fullWidth
@@ -290,16 +348,24 @@ const Comparativomensualinsumosquimicos = () => {
                 <Grid item xs={12} md={3}>
                   <TextField
                     label="Producción Actual"
-                    type="number"
+                    type="Number"
                     value={produccionActual}
                     onChange={(e) => setProduccionActual(e.target.value)}
                     fullWidth
                   />
                 </Grid>
 
+                {/* Mes Comparar - multi select con checkboxes */}
                 <Grid item xs={12} md={3}>
                   <TextField
                     select
+                    SelectProps={{
+                      multiple: true,
+                      renderValue: (selected) =>
+                        Array.isArray(selected)
+                          ? selected.join(", ")
+                          : selected,
+                    }}
                     label="Mes anterior o a Comparar"
                     value={mesComparar}
                     onChange={(e) => setMesComparar(e.target.value)}
@@ -307,14 +373,26 @@ const Comparativomensualinsumosquimicos = () => {
                   >
                     {consumo.map((c) => (
                       <MenuItem key={c._id} value={c.MesDeCierre}>
-                        {c.MesDeCierre}
+                        <Checkbox
+                          checked={mesComparar.indexOf(c.MesDeCierre) > -1}
+                        />
+                        <ListItemText primary={c.MesDeCierre} />
                       </MenuItem>
                     ))}
                   </TextField>
                 </Grid>
+
+                {/* Mes Actual - multi select con checkboxes */}
                 <Grid item xs={12} md={3}>
                   <TextField
                     select
+                    SelectProps={{
+                      multiple: true,
+                      renderValue: (selected) =>
+                        Array.isArray(selected)
+                          ? selected.join(", ")
+                          : selected,
+                    }}
                     label="Mes de Actual  o cierre"
                     value={mesDeCierre}
                     onChange={(e) => setMesDeCierre(e.target.value)}
@@ -322,12 +400,15 @@ const Comparativomensualinsumosquimicos = () => {
                   >
                     {consumo.map((c) => (
                       <MenuItem key={c._id} value={c.MesDeCierre}>
-                        {c.MesDeCierre}
+                        <Checkbox
+                          checked={mesDeCierre.indexOf(c.MesDeCierre) > -1}
+                        />
+                        <ListItemText primary={c.MesDeCierre} />
                       </MenuItem>
                     ))}
                   </TextField>
                 </Grid>
- 
+
                 <Grid item xs={12} md={4}>
                   <TextField
                     label="Título del Gráfico"
@@ -380,53 +461,58 @@ const Comparativomensualinsumosquimicos = () => {
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
-                    Consumos Mes Seleccionado
+                    Consumos Mes(es) Anteriores (Acumulado)
                   </Typography>
                   <Divider sx={{ my: 2 }} />
                   <Grid container spacing={2}>
                     <Grid item xs={12}>
                       <Typography>
-                        <Whatshot color="error" /> Caldera: {consumoCaldera} <strong style={{color: "green"}}>Kg</strong>
+                        <Whatshot color="error" /> Caldera: {consumoCalderaComp}{" "}
+                        <strong style={{ color: "green" }}>Kg</strong>
                       </Typography>
                     </Grid>
                     <Grid item xs={12}>
                       <Typography>
-                        <Opacity color="primary" /> Aguas: {consumoAguas} <strong style={{color: "green"}}>Kg</strong>
+                        <Opacity color="primary" /> Aguas: {consumoAguasComp}{" "}
+                        <strong style={{ color: "green" }}>Kg</strong>
                       </Typography>
                     </Grid>
                     <Grid item xs={12}>
                       <Typography>
                         <AcUnit color="info" /> Torre de Enfriamiento:{" "}
-                        {consumoTorre} <strong style={{color: "green"}}>Kg</strong>
+                        {consumoTorreComp}{" "}
+                        <strong style={{ color: "green" }}>Kg</strong>
                       </Typography>
                     </Grid>
                   </Grid>
                 </CardContent>
               </Card>
             </Grid>
-
             <Grid item xs={12} md={6}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
-                    Consumos Mes Comparar
+                    Consumos Mes(es) Actual Seleccionados
                   </Typography>
                   <Divider sx={{ my: 2 }} />
                   <Grid container spacing={2}>
                     <Grid item xs={12}>
                       <Typography>
-                        <Whatshot color="error" /> Caldera: {consumoCalderaComp} <strong style={{color: "green"}}>Kg</strong>
+                        <Whatshot color="error" /> Caldera: {consumoCaldera}{" "}
+                        <strong style={{ color: "green" }}>Kg</strong>
                       </Typography>
                     </Grid>
                     <Grid item xs={12}>
                       <Typography>
-                        <Opacity color="primary" /> Aguas: {consumoAguasComp} <strong style={{color: "green"}}>Kg</strong>
+                        <Opacity color="primary" /> Aguas: {consumoAguas}{" "}
+                        <strong style={{ color: "green" }}>Kg</strong>
                       </Typography>
                     </Grid>
                     <Grid item xs={12}>
                       <Typography>
                         <AcUnit color="info" /> Torre de Enfriamiento:{" "}
-                        {consumoTorreComp} <strong style={{color: "green"}}>Kg</strong>
+                        {consumoTorre}{" "}
+                        <strong style={{ color: "green" }}>Kg</strong>
                       </Typography>
                     </Grid>
                   </Grid>
@@ -440,7 +526,7 @@ const Comparativomensualinsumosquimicos = () => {
       {/* Gráfico */}
       <Card sx={{ p: 2, position: "relative" }}>
         <CardContent>
-          {/* 👉 Contenedor de botones flotantes con Glassmorphism */}
+          {/* 👉 Botones flotantes */}
           <Box
             sx={{
               position: "absolute",
@@ -456,7 +542,7 @@ const Comparativomensualinsumosquimicos = () => {
               startIcon={<Download />}
               onClick={handleDownloadImage}
               sx={{
-                bgcolor: "rgba(255, 255, 255, 0.6)", // 👈 más claro
+                bgcolor: "rgba(255, 255, 255, 0.6)",
                 color: "#858181",
                 borderRadius: "10px",
                 boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
@@ -478,7 +564,7 @@ const Comparativomensualinsumosquimicos = () => {
               startIcon={<PictureAsPdf />}
               onClick={handleDownloadPDF}
               sx={{
-                bgcolor: "rgba(255, 255, 255, 0.6)", // 👈 más claro
+                bgcolor: "rgba(255, 255, 255, 0.6)",
                 color: "#858181",
                 borderRadius: "10px",
                 boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
@@ -495,8 +581,32 @@ const Comparativomensualinsumosquimicos = () => {
               PDF
             </Button>
           </Box>
+          {/* Check box   para visualizar produccion */}
+          <Box
+            sx={{
+              position: "absolute",
+              top: 25,
+              right: "auto",
+              left: 50,
+              display: "flex",
+              gap: 1.5,
+              zIndex: 9999, // para que no quede oculto
+            }}
+          >
+            <Grid item xs={12} md={3}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={mostrarProduccion}
+                    onChange={(e) => setMostrarProduccion(e.target.checked)}
+                  />
+                }
+                label="Mostrar datos de producción"
+              />
+            </Grid>
+          </Box>
 
-          {/* 👉 Contenido que se exporta */}
+          {/* 👉 Contenido exportable */}
           <Box ref={chartRef} sx={{ width: "100%", bgcolor: "white", p: 2 }}>
             {/* ✅ Título centrado */}
             <Typography
@@ -504,16 +614,29 @@ const Comparativomensualinsumosquimicos = () => {
               align="center"
               gutterBottom
               sx={{
-                fontFamily: "'Roboto Slab', serif", // puedes usar otra fuente pro
+                fontFamily: "'Roboto Slab', serif",
                 fontWeight: 600,
               }}
             >
               {tituloGrafico}
             </Typography>
+            {/* Mostrar Producción si está activo */}
+            {mostrarProduccion && (
+              <Typography
+                align="center"
+                variant="subtitle1"
+                gutterBottom
+                sx={{ color: "gray", fontWeight: 500 }}
+              >
+                Producción Anterior:{" "}
+                {Number(produccionAnterior).toLocaleString()} L | Producción
+                Actual: {Number(produccionActual).toLocaleString()} L
+              </Typography>
+            )}
 
             <Divider sx={{ mb: 2 }} />
 
-            {/* 📊 Gráfico */}
+            {/* 📊 Gráfico (mismo cálculo de siempre: consumo / producción si existe) */}
             <Box sx={{ width: "100%", height: "60vh" }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
@@ -556,7 +679,9 @@ const Comparativomensualinsumosquimicos = () => {
                       position="insideBottom"
                     />
                   </XAxis>
-                  <YAxis tickFormatter={(value) => `${Number(value).toFixed(6)} Kg`}>
+                  <YAxis
+                    tickFormatter={(value) => `${Number(value).toFixed(6)} Kg`}
+                  >
                     <Label
                       value="Consumo Kg de Insumo por Litro de OH"
                       angle={-90}
@@ -574,11 +699,11 @@ const Comparativomensualinsumosquimicos = () => {
                     wrapperStyle={{
                       display: "flex",
                       justifyContent: "center",
-                      marginTop: -10,
+                      marginTop: -18,
                       marginLeft: 50,
                     }}
                     formatter={(value) => (
-                      <span style={{ margin: "0 40px" }}>{value}</span> // 👈 separación lateral
+                      <span style={{ margin: "0 40px" }}>{value}</span>
                     )}
                   />
                   <Bar dataKey={serieActual} fill="#8884d8" name={serieActual}>

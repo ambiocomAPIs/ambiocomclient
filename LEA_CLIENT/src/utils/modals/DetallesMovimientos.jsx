@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
+import { Snackbar, Alert } from "@mui/material";
 import {
   Dialog,
   DialogActions,
@@ -23,7 +24,7 @@ import { format, parseISO, isValid } from "date-fns";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import ExcelIcon from "../../../public/excelIcon.png";
 
-const ModalFilterMovimientos = ({ open, onClose }) => {
+const ModalFilterMovimientos = ({ open, onClose, usuario }) => {
   const [selectedVariable, setSelectedVariable] = useState("");
   const [filterValue, setFilterValue] = useState("");
   const [filteredData, setFilteredData] = useState([]);
@@ -39,6 +40,15 @@ const ModalFilterMovimientos = ({ open, onClose }) => {
   const [editableArea, setEditableArea] = useState("");
   const [editableOpciones, setEditableOpciones] = useState("");
   const [openModal, setOpenModal] = useState(false);
+
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+
+
+  const showErrorMessage = (message) => {
+    setSnackbarMessage(message);
+    setOpenSnackbar(true);
+  };
 
   const fetchData = async () => {
     try {
@@ -122,8 +132,18 @@ const ModalFilterMovimientos = ({ open, onClose }) => {
     }
 
     if (editableOpciones) {
-      filtered = filtered.filter(
-        (item) => item.tipoOperacion == editableOpciones
+      // Definir las equivalencias entre opciones visibles y claves reales
+      const equivalencias = {
+        "Consumo Material": ["Consumo Material", "Consumo de Insumo"],
+        "Ingreso Material": ["Ingreso Material", "Ingreso Insumo"],
+      };
+
+      // Buscar las claves según lo que se seleccionó
+      const clavesFiltrar = equivalencias[editableOpciones] || [editableOpciones];
+
+      // Filtrar si coincide con alguna de las claves
+      filtered = filtered.filter((item) =>
+        clavesFiltrar.includes(item.tipoOperacion)
       );
     }
 
@@ -625,10 +645,23 @@ const ModalFilterMovimientos = ({ open, onClose }) => {
                     <Button
                       variant="contained"
                       color="error"
-                      onClick={() => handleDeleteMovimiento(item._id)}
+                      onClick={() => {
+                        if (
+                          !["developer"].includes(
+                            usuario?.rol
+                          )
+                        ) {
+                          showErrorMessage(
+                            "Usted no tiene permisos para realizar esta acción. Consulte con el desarrollador."
+                          );
+                          return;
+                        }
+                        handleDeleteMovimiento(item._id);
+                      }}
                     >
                       Eliminar
                     </Button>
+
                   </div>
                 </div>
               );
@@ -667,6 +700,22 @@ const ModalFilterMovimientos = ({ open, onClose }) => {
           Ver toda la data
         </Button>
       </DialogActions>
+
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={4000}
+        onClose={() => setOpenSnackbar(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setOpenSnackbar(false)}
+          severity="error"
+          sx={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
+
     </Dialog>
   );
 };
