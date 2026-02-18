@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Box, Typography } from "@mui/material";
 
-import RenderizarGraficoDiarioPorTanque from "../../../utils/modals/RenderizarGraficoDiarioPorTanque";
+import RenderizarGraficoDiarioPorTanque from "../../SeguimientoTanquesJornaleros/utils_seguimientoTanquesJornaleros/modals_seguimientoTanquesJornaleros/RenderizarGraficoDiarioPorTanque";
 
 const contenedorAltura = 460;
 

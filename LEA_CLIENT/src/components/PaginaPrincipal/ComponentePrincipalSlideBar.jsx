@@ -28,10 +28,11 @@ import {
 
 //Pagina Inicio
 import InicioApp from '../pagina_Inicio/InicioApp.jsx';
+//Modulo de informes
+import InformeAlcoholes from '../Modulo_Informes/InformeAlcoholes.jsx';
 //Modulo Produccion
-import SeguimientoTKJornaleros from '../SeguimientoTKJornaleros';
+import SeguimientoTKJornaleros from '../SeguimientoTanquesJornaleros/SeguimientoTKJornaleros.jsx';
 import TanquesList from '../TanquesList.jsx'
-import ExcelStyleFooter from '../../utils/ExcelStyleFooter';
 import ChatBox from '../IA/ChatBox';
 import BitacoraDeSupervisores from '../Bitacora/BitacoraComponentesProduccion'
 import PanelHoras from '../PanelHoras';
@@ -46,19 +47,27 @@ import CubaDeFermentacion from '../TanquesVistaNiveles/CubasDeFermentacion';
 import TanquesUnidadCien from '../TanquesVistaNiveles/Unidad100';
 import UnidadOchoCientosAlmacenamiento from '../TanquesVistaNiveles/Unidad800'
 import Unidad400Component from '../TanquesVistaNiveles/Unidad400.jsx';
+//MODULO LOGISTICA
+import TablaRegistroCarbonMadera from '../Ingreso_MaderaCarbon/TablaRegistroIngresosCarbonMadera.jsx';
+import RecepcionAlcoholesLogisticaModels from '../Modulo_Logistica/RecepcionAlcoholes/RecepcionAlcoholesLogistica.jsx';
+import DespachoAlcoholesLogistica from '../Modulo_Logistica/DespachosAlcoholes/DespachoAlcoholesLogistica.jsx'
 //empelados
 import EmpleadosManager from '../EmpleadosManager/EmpleadosAmbiocomList.jsx';
+//Medidores
+import TablaMedicionesAgua from '../PTAP/TablaMedicionesAgua.jsx';
+//energia
+import TablaMedicionesDiariaEnergia from '../Energia_CON/TablaMedicionesEnergia.jsx'
 //Modulo DB
 import ConsultasHttpDb from '../DB_Consultas_View/ConsultasHttpDb.jsx';
-//Utils
-import { validarSesion } from '../../utils/configuraciones/validarSesion.js';
 //modulo inventario
-import SGMRC from '../SGMRC';
+import SGMRC from '../Insumos_Modulo/SGMRC.jsx';
+//pagina mantenimiento de modulo y desarrollo
+import ModuloEnMantenimiento from '../PaginaMantenimientoYDesarrollo/PaginaMantenimientoYDesarrollo.jsx';
 //importacion de iconos
 import {
     tanqueIcon, factoryIcon, despachoIcon, despachoSalidaIcon, despachoRecepcionIcon, laboratoryIcon, inventoryIcon, rulerIcon, oilTankIcon, coalInventoryIcon,
     ptapIcon, GraphIcon, BarGraphIcon, BarGraphComparativeIcon, robotAssistanceIcon, bitacoraIcon, StopWatchIcon, PdfIcon, DatabaseAdministratorIcon, workerIcon,
-    TankGraphIcon, CounterIcon, MoneyGraphIcon
+    TankGraphIcon, CounterIcon, MoneyGraphIcon, EnergyIcon, EnergyDataIcon, InOutMaderaCarbonIcon, InformeIcon, TankWithLiquidIcon, ReportIcon
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -101,13 +110,6 @@ export default function EmpresarialPrincipalSchedulerApp() {
         }
     }, [selectedMenu]);
 
-
-    useEffect(() => {
-        if (!validarSesion()) {
-            navigate("/");
-        }
-    }, []);
-
     const handleDrawerToggle = () => {
         if (isMobile) {
             setMobileOpen(!mobileOpen);
@@ -131,6 +133,15 @@ export default function EmpresarialPrincipalSchedulerApp() {
             icon: <img src={"/logo_ambiocom.png"} alt="inicio" style={{ width: 35, height: 35 }} />,
         },
         {
+            text: 'Informes',
+            key: 'Informes',
+            icon: <img src={InformeIcon} alt="Informes" style={{ width: 25, height: 25 }} />,
+            subItems: [
+                { text: 'Inventario OH', subKey: 'Inventariodeoh', icon: <img src={ReportIcon} alt="Inventariodeoh" style={{ width: 25, height: 25 }} /> },
+                { text: 'CarbonYmadera', subKey: 'modulomantenimiento', icon: <img src={ReportIcon} alt="InventariodeCarbonYmadera" style={{ width: 25, height: 25 }} /> },
+            ],
+        },
+        {
             text: 'Produccion',
             key: 'produccion',
             icon: <img src={factoryIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
@@ -150,8 +161,9 @@ export default function EmpresarialPrincipalSchedulerApp() {
             subItems: [
                 { text: 'Niveles Tanques', subKey: 'Tanquesjornaleros', icon: <img src={rulerIcon} alt="tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
                 { text: 'Grafica Niveles Tanques Jornaleros', subKey: 'nivelestanquesjornalerospagina', icon: <img src={TankGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
-                { text: 'Despachos', subKey: 'Inventariodeinsumos', icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
-                { text: 'Recepcion', subKey: 'Tanquesjornaleros', icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Despachos', subKey: 'despachoalcoholeslogistica', icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Recepción', subKey: 'recepcionalcoholeslogistica', icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Ingresos_M-C', subKey: 'moduloingresosmaderacarbon', icon: <img src={InOutMaderaCarbonIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
             ],
         },
         {
@@ -184,7 +196,12 @@ export default function EmpresarialPrincipalSchedulerApp() {
         { text: 'Laboratorio', icon: <img src={laboratoryIcon} alt="laboratorio" style={{ width: 25, height: 25 }} />, key: 'Laboratorio' },
         {
             text: 'Planta de Aguas', icon: <img src={ptapIcon} alt="plantadeaguas" style={{ width: 25, height: 25 }} />, key: 'plantadeaguas', subItems: [
-                { text: 'Medidores', subKey: 'registrodemedidores', icon: <img src={CounterIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Medidores', subKey: 'registrodemedidores', icon: <img src={CounterIcon} alt="Medidores" style={{ width: 25, height: 25 }} /> },
+            ],
+        },
+        {
+            text: 'Energia', icon: <img src={EnergyIcon} alt="Energia" style={{ width: 25, height: 25 }} />, key: 'Energia', subItems: [
+                { text: 'Energia CON', subKey: 'energiaambiocom', icon: <img src={EnergyDataIcon} alt="Energia" style={{ width: 25, height: 25 }} /> },
             ],
         },
         { text: 'Registro Trabajadores', icon: <img src={workerIcon} alt="empleadosambiocom" style={{ width: 25, height: 25 }} />, key: 'empleadosambiocom' },
@@ -212,6 +229,16 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'nivelestanquesjornalerospagina': return <GraficoNivelesTanquesPorDiaPageComponente NivelesTanquesContext={nivelesTanques} />;
             case 'comparativomensualinsumosquimicoscomponent': return <Comparativomensualinsumosquimicos />;
             case 'Comparativomensualinsumosquimicoscostolitro': return <Comparativomensualinsumosquimicoscostolitro />;
+            case 'registrodemedidores': return <TablaMedicionesAgua />;
+            case 'energiaambiocom': return <TablaMedicionesDiariaEnergia />;
+            case 'moduloingresosmaderacarbon': return <TablaRegistroCarbonMadera />;
+            //informes
+            case 'Inventariodeoh': return <InformeAlcoholes />;
+            //logistica
+            case 'recepcionalcoholeslogistica': return <RecepcionAlcoholesLogisticaModels />;
+            case 'despachoalcoholeslogistica': return <DespachoAlcoholesLogistica />;
+            //pagina mantenimiento
+            case 'modulomantenimiento': return <ModuloEnMantenimiento />;
             default: return null;
         }
     };

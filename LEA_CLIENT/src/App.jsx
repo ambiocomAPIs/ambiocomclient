@@ -7,18 +7,17 @@ import { NivelesDiariosTanquesProvider } from "./utils/Context/NivelesDiariosTan
 import { EmpleadosProvider } from "./utils/Context/EmpleadosContext";
 //* Terminan los contextos
 
-import SGMRC from "./components/SGMRC";
-import MesesCerrados from "./components/MesesCerrados";
-import UploadFile from "./components/UploadFile";
-import SeguimientoTKJornaleros from "./components/SeguimientoTKJornaleros";
-import CodificacionDeColoresComponent from "./components/CodificacionDeColores";
+import SGMRC from "./components/Insumos_Modulo/SGMRC";
+import MesesCerrados from "./components/Insumos_Modulo/MesesCerrados";
+import UploadFile from "./components/Insumos_Modulo/Utils_Insumos/page/UploadFile";
+import SeguimientoTKJornaleros from "./components/SeguimientoTanquesJornaleros/SeguimientoTKJornaleros";
+import CodificacionDeColoresComponent from "./components/CodificacionColores/CodificacionDeColores";
 import BitacoraComponentProduccion from "./components/Bitacora/BitacoraComponentesProduccion";
 import PanelHoras from "./components/PanelHoras";
-import IngresoPrivado from "./components/IngresoPrivado";
+import LoginPrivateAccess from "../src/Login/LoginPrivateAccess";
 import ComponentePrincipalSlidebar from "./components/PaginaPrincipal/ComponentePrincipalSlideBar";
 import { Typography } from "@mui/material";
 import CargarMasivaTanquesDiariosExcel from "./utils/Functions/CargaMasivaNivelesTanques/CargaMasivaNivelesTanquesJornaleros";
-
 
 export const CombinedProviders = ({ children }) => {
   return (
@@ -40,7 +39,7 @@ function App() {
         <CombinedProviders>
 
           <Routes>
-            <Route path="/" element={<IngresoPrivado />} />
+            <Route path="/" element={<LoginPrivateAccess />} />
 
             <Route
               path="/principal"
