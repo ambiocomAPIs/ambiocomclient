@@ -376,16 +376,16 @@ export default function TablaDespachosLogistica() {
     });
   }, [busquedaGlobal, medicionesOrdenadas]);
 
-  /* ================= CALCULAR ACUMULADO ================= */
-  const calcularAcumulado = (columna) => {
-    if (!columna.totalizable) return "";
+  // /* ================= CALCULAR ACUMULADO ================= */
+  // const calcularAcumulado = (columna) => {
+  //   if (!columna.totalizable) return "";
 
-    return medicionesFiltradas.reduce((total, m) => {
-      const valor = m.lecturas?.[columna.key];
-      const num = Number(valor);
-      return total + (Number.isNaN(num) ? 0 : num);
-    }, 0);
-  };
+  //   return medicionesFiltradas.reduce((total, m) => {
+  //     const valor = m.lecturas?.[columna.key];
+  //     const num = Number(valor);
+  //     return total + (Number.isNaN(num) ? 0 : num);
+  //   }, 0);
+  // };
   /* ================= CALCULAR ACUMULADO por columna mapa ================= */
 
   const acumuladosPorColumna = useMemo(() => {
@@ -1332,7 +1332,7 @@ export default function TablaDespachosLogistica() {
 
             {/* ================= ACUMULADO ================= */}
             <TableRow>
-              <TableCell colSpan={1}>
+              <TableCell colSpan={2}>
                 <b>Acumulado Total</b>
               </TableCell>
               {columnas
