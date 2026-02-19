@@ -65,6 +65,9 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import IngresoDataDespachoModal from "../utils_Logistica/IngresoDataDespachoModal.jsx";
 import ChartBuilder from "../utils_Logistica/ChartBuilder";
 
+// Contexto usuario por roles
+import { useAuth } from "../../../utils/Context/AuthContext/AuthContext.jsx";
+
 /* ================= ENDPOINTS ================= */
 const API_DESPACHOS = "https://ambiocomserver.onrender.com/api/despacho-alcoholes";
 const API_COLUMNAS = "https://ambiocomserver.onrender.com/api/columna-despacho-alcoholes";
@@ -73,6 +76,8 @@ export default function TablaDespachosLogistica() {
   //refs del componente
   const tablaRef = useRef(null);
   const excelUploadRef = useRef(null);
+  //use del contexto
+  const { rol, loadingAuth } = useAuth();
   /* ================= STATE ================= */
   const [columnas, setColumnas] = useState([]);
   const [mediciones, setMediciones] = useState([]);
@@ -199,6 +204,19 @@ export default function TablaDespachosLogistica() {
       el.removeEventListener("wheel", onWheel);
     };
   }, [modoInteligenteScroll]);
+
+  //Verifica acceso al rol
+  const canAccess = (roles) => {
+    if (loadingAuth) return true;
+    if (!roles) return true;
+    if (roles.includes("*")) return true;
+
+    const currentRole = (rol || "").toLowerCase().trim();
+    const allowedRoles = roles.map(r => (r || "").toLowerCase().trim());
+    return allowedRoles.includes(currentRole);
+  };
+
+  const puedeEliminar = canAccess(["gerenciaA","gerenciaG","gerenciaOP", "developer", "liderlogistica"]);
 
   // Detectar click derecho para copiar tabla tipo SAP
   const handleContextMenu = (e) => {
@@ -1153,6 +1171,14 @@ export default function TablaDespachosLogistica() {
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
+              <TableCell align="center" sx={{
+                position: "sticky",
+                left: 0,
+                zIndex: 6,
+                backgroundColor: "#fff",
+                borderRight: "1px solid rgba(224,224,224,1)",
+                minWidth: 110,
+              }}>Acciones</TableCell>
               <TableCell
                 align="center"
                 sx={{
@@ -1216,7 +1242,6 @@ export default function TablaDespachosLogistica() {
               >
                 Responsable
               </TableCell>
-              <TableCell align="center">Acciones</TableCell>
             </TableRow>
           </TableHead>
           <TableBody
@@ -1246,6 +1271,38 @@ export default function TablaDespachosLogistica() {
                     transition: "background-color 0.3s ease",
                   }}
                 >
+                  <TableCell align="center" sx={{
+                    position: "sticky",
+                    left: 0,
+                    zIndex: 4,
+                    backgroundColor: porcentajeFaltante > 0 ? colorFila : "#fff",
+                    borderRight: "1px solid rgba(224,224,224,1)",
+                    minWidth: 110,
+                  }}>
+                    <Tooltip title={"Editar Fila"}>
+                      <IconButton
+                        onClick={() => {
+                          setEditId(row._id);
+                          setForm({
+                            ...row,
+                            fecha: row.fecha || "",
+                          });
+                          setOpenEditar(true);
+                        }}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title={puedeEliminar ? "Eliminar" : "No tienes permisos"}>
+                      <IconButton
+                        disabled={!puedeEliminar}
+                        sx={{ color: "#5E5E5E" }}
+                        onClick={() => eliminarMedicion(row._id)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
                   <TableCell align="center">{row.fecha}</TableCell>
 
                   {columnas
@@ -1269,28 +1326,6 @@ export default function TablaDespachosLogistica() {
 
                   <TableCell align="center">{row.observaciones}</TableCell>
                   <TableCell align="center">{row.responsable}</TableCell>
-
-                  <TableCell align="center">
-                    <IconButton
-                      onClick={() => {
-                        setEditId(row._id);
-                        setForm({
-                          ...row,
-                          fecha: row.fecha || "",
-                        });
-                        setOpenEditar(true);
-                      }}
-                    >
-                      <EditIcon />
-                    </IconButton>
-
-                    <IconButton
-                      color="error"
-                      onClick={() => eliminarMedicion(row._id)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
                 </TableRow>
               );
             })}

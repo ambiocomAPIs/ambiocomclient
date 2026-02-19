@@ -74,7 +74,7 @@ const saveFormDraft = (key, data) => {
 const clearFormDraft = (key) => {
   try {
     localStorage.removeItem(key);
-  } catch {}
+  } catch { }
 };
 
 const normalizeOption = (opt) => {
@@ -156,7 +156,7 @@ const FORMULAS = {
   volumen_contador_gravimetrico: (L) =>
     round(
       toNum(L.peso_neto_contador_ambiocom) /
-        toNum(L.densidadlab_alcohol_tanque),
+      toNum(L.densidadlab_alcohol_tanque),
       3
     ),
 
@@ -185,7 +185,7 @@ const FORMULAS = {
   variacion_peso: (L) =>
     round(
       toNum(L.peso_neto_bascula_ambiocom) -
-        toNum(L.peso_neto_contador_ambiocom),
+      toNum(L.peso_neto_contador_ambiocom),
       3
     ),
 
@@ -208,7 +208,7 @@ const FORMULAS = {
   dif_v_netodif_v_desp_bascula_ambiocom: (L) =>
     round(
       toNum(L.volumen_neto_diferencia) -
-        toNum(L.volumen_despacho_bascula_ambiocom),
+      toNum(L.volumen_despacho_bascula_ambiocom),
       3
     ),
 
@@ -253,9 +253,8 @@ const IngresoDataDespachoModal = ({
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
 
-  const formCacheKey = `${FORM_CACHE_PREFIX}${
-    form?.id ?? form?.id_despacho ?? "nuevo"
-  }`;
+  const formCacheKey = `${FORM_CACHE_PREFIX}${form?.id ?? form?.id_despacho ?? "nuevo"
+    }`;
 
   const handleChangeLectura = (key, value) => {
     setForm((prev) => ({
@@ -306,13 +305,13 @@ const IngresoDataDespachoModal = ({
   // ✅ 1) cuando abre, cargar cache inmediatamente + refrescar si se puede
   useEffect(() => {
     if (!open) return;
-  
+
     const conductores = loadCache("conductores");
     const clientes = loadCache("clientes");
     const transportadoras = loadCache("transportadoras");
-  
+
     setCatalogos({ conductores, clientes, transportadoras });
-  
+
     if (!isEdit) {
       const draft = loadFormDraft(formCacheKey);
       if (draft) {
@@ -326,9 +325,9 @@ const IngresoDataDespachoModal = ({
         }));
       }
     }
-  
+
     refreshCatalogos();
-  }, [open]);  
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -388,7 +387,11 @@ const IngresoDataDespachoModal = ({
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={(event, reason) => {
+        // Evita cerrar por click fuera o por ESC
+        if (reason === "backdropClick" || reason === "escapeKeyDown") return;
+        onClose();
+      }}
       fullWidth
       sx={{
         "& .MuiDialog-paper": {
@@ -415,36 +418,36 @@ const IngresoDataDespachoModal = ({
               <Grid item xs={12} md={2} key={c.key}>
                 {esSelect ? (
                   <Autocomplete
-  freeSolo
-  forcePopupIcon={true}   // 👈 esto obliga a mostrar la flecha
-  options={items}
-  getOptionLabel={(option) =>
-    typeof option === "string" ? option : option.label
-  }
-  value={
-    items.find((opt) => opt.value === form.lecturas?.[c.key]) ||
-    form.lecturas?.[c.key] ||
-    ""
-  }
-  onChange={(event, newValue) => {
-    if (typeof newValue === "string") {
-      handleChangeLectura(c.key, newValue);
-    } else {
-      handleChangeLectura(c.key, newValue?.value || "");
-    }
-  }}
-  onInputChange={(event, newInputValue) => {
-    handleChangeLectura(c.key, newInputValue);
-  }}
-  renderInput={(params) => (
-    <TextField
-      {...params}
-      label={c.nombre}
-      fullWidth
-      disabled={isDisabled}
-    />
-  )}
-/>
+                    freeSolo
+                    forcePopupIcon={true}   // 👈 esto obliga a mostrar la flecha
+                    options={items}
+                    getOptionLabel={(option) =>
+                      typeof option === "string" ? option : option.label
+                    }
+                    value={
+                      items.find((opt) => opt.value === form.lecturas?.[c.key]) ||
+                      form.lecturas?.[c.key] ||
+                      ""
+                    }
+                    onChange={(event, newValue) => {
+                      if (typeof newValue === "string") {
+                        handleChangeLectura(c.key, newValue);
+                      } else {
+                        handleChangeLectura(c.key, newValue?.value || "");
+                      }
+                    }}
+                    onInputChange={(event, newInputValue) => {
+                      handleChangeLectura(c.key, newInputValue);
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label={c.nombre}
+                        fullWidth
+                        disabled={isDisabled}
+                      />
+                    )}
+                  />
 
                 ) : (
                   <TextField
@@ -502,9 +505,9 @@ const IngresoDataDespachoModal = ({
       <DialogActions>
         <Button onClick={onClose}>Cancelar</Button>
         <Button
+          disabled={isEdit}
           variant="contained"
           color="warning"
-          disabled={isEdit} // solo permite limpiar en creación, no edición
           onClick={() => {
             clearFormDraft(formCacheKey);
             setForm((prev) => ({
