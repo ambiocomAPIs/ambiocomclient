@@ -504,6 +504,7 @@ const IngresoDataDespachoModal = ({
         <Button
           variant="contained"
           color="warning"
+          disabled={isEdit} // solo permite limpiar en creación, no edición
           onClick={() => {
             clearFormDraft(formCacheKey);
             setForm((prev) => ({
