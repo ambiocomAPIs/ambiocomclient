@@ -62,7 +62,6 @@ import ExcelUploadButton from "../utils_Logistica/ExcelUploadButton";
 import DownloadIcon from "@mui/icons-material/Download";
 import ExcelDownloadButton from "../utils_Logistica/ExcelDownloadButton";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
-
 import IngresoDataDespachoModal from "../utils_Logistica/IngresoDataDespachoModal.jsx";
 import ChartBuilder from "../utils_Logistica/ChartBuilder";
 
@@ -465,6 +464,49 @@ export default function TablaDespachosLogistica() {
 
     return arr;
   }, [filtroActivo, mediciones]);
+
+  // calcula el % de data faltante en una fila según las columnas visibles (para mostrar fondo rojo degradado)
+  const calcularPorcentajeFaltante = (row) => {
+    const columnasActivas = columnas.filter((c) =>
+      columnasVisibles.includes(c.key)
+    );
+
+    if (columnasActivas.length === 0) return 0;
+
+    let faltantes = 0;
+
+    columnasActivas.forEach((c) => {
+      const valor = row.lecturas?.[c.key];
+
+      if (
+        valor === undefined ||
+        valor === null ||
+        valor === "" ||
+        valor.toString().trim() === ""
+      ) {
+        faltantes++;
+      }
+    });
+
+    return faltantes / columnasActivas.length; // retorna valor entre 0 y 1
+  };
+
+  // función para generar color dinámico según el % de datos faltantes en la fila (más rojo cuanto más falte)
+  const obtenerColorFila = (porcentaje) => {
+    if (porcentaje === 0) return "inherit";
+    // Escalonado por rangos
+    if (porcentaje >= 0.8) {
+      return "rgba(255, 0, 0, 0.75)"; // rojo intenso
+    }
+    if (porcentaje >= 0.5) {
+      return "rgba(255, 0, 0, 0.45)"; // rojo medio
+    }
+    if (porcentaje >= 0.3) {
+      return "rgba(255, 0, 0, 0.25)"; // rojo leve
+    }
+
+    return "rgba(238, 173, 173, 0.71)"; // menos de 30% (muy suave)
+  };
 
   /* ================= RENDER ================= */
   return (
@@ -1191,44 +1233,68 @@ export default function TablaDespachosLogistica() {
               },
             }}
           >
-            {medicionesFiltradas.map((row, i) => (
-              <TableRow key={row._id}>
-                <TableCell align="center">{row.fecha}</TableCell>
-                {columnas
-                  .filter((c) => columnasVisibles.includes(c.key))
-                  .map((c) => (
-                    <TableCell
-                      key={c.key}
-                      align="center"
-                      sx={{ whiteSpace: "nowrap", width: "1%" }}
+            {medicionesFiltradas.map((row) => {
+              const porcentajeFaltante = calcularPorcentajeFaltante(row);
+              const colorFila = obtenerColorFila(porcentajeFaltante);
+
+              return (
+                <TableRow
+                  key={row._id}
+                  sx={{
+                    backgroundColor:
+                      porcentajeFaltante > 0 ? colorFila : "inherit",
+                    transition: "background-color 0.3s ease",
+                  }}
+                >
+                  <TableCell align="center">{row.fecha}</TableCell>
+
+                  {columnas
+                    .filter((c) => columnasVisibles.includes(c.key))
+                    .map((c) => {
+                      const valor = row.lecturas?.[c.key] ?? "";
+
+                      return (
+                        <TableCell
+                          key={c.key}
+                          align="center"
+                          sx={{
+                            whiteSpace: "nowrap",
+                            width: "1%",
+                          }}
+                        >
+                          {valor}
+                        </TableCell>
+                      );
+                    })}
+
+                  <TableCell align="center">{row.observaciones}</TableCell>
+                  <TableCell align="center">{row.responsable}</TableCell>
+
+                  <TableCell align="center">
+                    <IconButton
+                      onClick={() => {
+                        setEditId(row._id);
+                        setForm({
+                          ...row,
+                          fecha: row.fecha || "",
+                        });
+                        setOpenEditar(true);
+                      }}
                     >
-                      {row.lecturas[c.key] ?? ""}
-                    </TableCell>
-                  ))}
-                <TableCell align="center">{row.observaciones}</TableCell>
-                <TableCell align="center">{row.responsable}</TableCell>
-                <TableCell align="center">
-                  <IconButton
-                    onClick={() => {
-                      setEditId(row._id);
-                      setForm({
-                        ...row,
-                        fecha: row.fecha || "",
-                      });
-                      setOpenEditar(true);
-                    }}
-                  >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    color="error"
-                    onClick={() => eliminarMedicion(row._id)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
+                      <EditIcon />
+                    </IconButton>
+
+                    <IconButton
+                      color="error"
+                      onClick={() => eliminarMedicion(row._id)}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+
             {/* ================= ACUMULADO ================= */}
             <TableRow>
               <TableCell colSpan={1}>
@@ -1299,6 +1365,7 @@ export default function TablaDespachosLogistica() {
       </SpeedDial>
 
       {/* ================= MODAL Recepcion ================= */}
+
       <IngresoDataDespachoModal
         open={openFila || openEditar}
         onClose={() => {
@@ -1307,9 +1374,14 @@ export default function TablaDespachosLogistica() {
         }}
         onSave={handleGuardar}
         columnas={columnas}
+        isEdit={openEditar}
         form={form}
         setForm={setForm}
-        isEdit={openEditar}
+        fetchConductores={() => api.get("/conductores").then((r) => r.data)}
+        fetchClientes={() => api.get("/clientes").then((r) => r.data)}
+        fetchTransportadoras={() =>
+          api.get("/transportadoras").then((r) => r.data)
+        }
       />
 
       {/* ================= MODAL COLUMNA ================= */}
