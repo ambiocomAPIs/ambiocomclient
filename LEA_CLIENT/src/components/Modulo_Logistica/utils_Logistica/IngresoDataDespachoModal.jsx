@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import axios from "axios";
 import {
   Dialog,
   DialogTitle,
@@ -26,20 +27,40 @@ const columnasBloqueadas = [
   "diferencia_recibo_cliente_vnetofacturado",
 ];
 
-const SELECT_KEYS = ["nombre_conductor", "cliente", "transportadora"];
+const SELECT_KEYS = ["nombre_conductor", "cliente", "transportadora", "producto"];
 const CACHE_PREFIX = "despacho_catalogo_";
 const FORM_CACHE_PREFIX = "despacho_form_draft_";
 
-const loadCache = (key) => {
+const loadCacheMeta = (key) => {
   try {
     const raw = localStorage.getItem(`${CACHE_PREFIX}${key}`);
-    if (!raw) return [];
+    if (!raw) return { data: [], updatedAt: 0 };
+
     const parsed = JSON.parse(raw);
-    // soporta {data, updatedAt} o array directo
-    return Array.isArray(parsed) ? parsed : parsed?.data ?? [];
+
+    if (Array.isArray(parsed)) return { data: parsed, updatedAt: 0 };
+
+    return {
+      data: Array.isArray(parsed?.data) ? parsed.data : [],
+      updatedAt: parsed?.updatedAt ?? 0,
+      etag: parsed?.etag ?? null,
+    };
   } catch {
-    return [];
+    return { data: [], updatedAt: 0 };
   }
+};
+
+const saveCacheMeta = (key, payload) => {
+  try {
+    localStorage.setItem(`${CACHE_PREFIX}${key}`, JSON.stringify(payload));
+  } catch (e) {
+    console.warn("No se pudo guardar cache", key, e);
+  }
+};
+
+const isStale = (updatedAt, minutes = 60) => {
+  if (!updatedAt) return true;
+  return Date.now() - updatedAt > minutes * 60 * 1000;
 };
 
 const saveCache = (key, data) => {
@@ -78,8 +99,6 @@ const clearFormDraft = (key) => {
 };
 
 const normalizeOption = (opt) => {
-  // Ajusta aquí si tu backend trae otra forma
-  // soporta: {id,nombre} | {value,label} | string
   if (opt == null) return { value: "", label: "" };
   if (typeof opt === "string" || typeof opt === "number")
     return { value: String(opt), label: String(opt) };
@@ -247,6 +266,7 @@ const IngresoDataDespachoModal = ({
     conductores: [],
     clientes: [],
     transportadoras: [],
+    productos: [],
   });
 
   const [isOnline, setIsOnline] = useState(
@@ -270,6 +290,7 @@ const IngresoDataDespachoModal = ({
     if (key === "nombre_conductor") return catalogos.conductores;
     if (key === "cliente") return catalogos.clientes;
     if (key === "transportadora") return catalogos.transportadoras;
+    if (key === "producto") return catalogos.productos;
     return [];
   };
 
@@ -292,7 +313,12 @@ const IngresoDataDespachoModal = ({
       const clientes = (clientesRaw ?? []).map(normalizeOption);
       const transportadoras = (transportadorasRaw ?? []).map(normalizeOption);
 
-      setCatalogos({ conductores, clientes, transportadoras });
+      setCatalogos((prev) => ({
+        ...prev,
+        conductores,
+        clientes,
+        transportadoras,
+      }));
 
       saveCache("conductores", conductores);
       saveCache("clientes", clientes);
@@ -302,15 +328,42 @@ const IngresoDataDespachoModal = ({
     }
   };
 
+  const PRODUCTOS_URL = "https://ambiocomserver.onrender.com/api/alcoholesdespacho";
+
+  const mapProductosToOptions = (arr) =>
+    (arr ?? []).map((p) => ({
+      value: String(p?.tipoProducto ?? ""),
+      label: String(p?.tipoProducto ?? ""),
+    }));
+
+  const refreshProductosTTL = async () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) return;
+
+    const cached = loadCacheMeta("productos");
+    if (!isStale(cached.updatedAt, 60) && cached.data.length) return;
+
+    try {
+      const res = await axios.get(PRODUCTOS_URL);
+      const raw = Array.isArray(res.data) ? res.data : res.data?.data ?? [];
+      const productos = mapProductosToOptions(raw);
+
+      setCatalogos((prev) => ({ ...prev, productos }));
+      saveCacheMeta("productos", { data: productos, updatedAt: Date.now() });
+    } catch (e) {
+      console.warn("No pude refrescar productos, usando cache", e);
+    }
+  };
+
   // ✅ 1) cuando abre, cargar cache inmediatamente + refrescar si se puede
   useEffect(() => {
     if (!open) return;
 
-    const conductores = loadCache("conductores");
-    const clientes = loadCache("clientes");
-    const transportadoras = loadCache("transportadoras");
+    const conductores = loadCacheMeta("conductores").data;
+    const clientes = loadCacheMeta("clientes").data;
+    const transportadoras = loadCacheMeta("transportadoras").data;
+    const productos = loadCacheMeta("productos").data;
 
-    setCatalogos({ conductores, clientes, transportadoras });
+    setCatalogos({ conductores, clientes, transportadoras, productos });
 
     if (!isEdit) {
       const draft = loadFormDraft(formCacheKey);
@@ -327,6 +380,7 @@ const IngresoDataDespachoModal = ({
     }
 
     refreshCatalogos();
+    refreshProductosTTL();
   }, [open]);
 
   useEffect(() => {
@@ -345,6 +399,7 @@ const IngresoDataDespachoModal = ({
     const onOnline = () => {
       setIsOnline(true);
       if (open) refreshCatalogos();
+      if (open) refreshProductosTTL();
     };
     const onOffline = () => setIsOnline(false);
 
@@ -419,10 +474,10 @@ const IngresoDataDespachoModal = ({
                 {esSelect ? (
                   <Autocomplete
                     freeSolo
-                    forcePopupIcon={true}   // 👈 esto obliga a mostrar la flecha
+                    forcePopupIcon={true} // 👈 esto obliga a mostrar la flecha
                     options={items}
                     getOptionLabel={(option) =>
-                      typeof option === "string" ? option : option.label
+                      typeof option === "string" ? option : (option.label ?? option.value ?? "")
                     }
                     value={
                       items.find((opt) => opt.value === form.lecturas?.[c.key]) ||
@@ -448,7 +503,6 @@ const IngresoDataDespachoModal = ({
                       />
                     )}
                   />
-
                 ) : (
                   <TextField
                     fullWidth
@@ -472,9 +526,7 @@ const IngresoDataDespachoModal = ({
               fullWidth
               label="Observaciones"
               value={form.observaciones || ""}
-              onChange={(e) =>
-                setForm({ ...form, observaciones: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, observaciones: e.target.value })}
             />
           </Grid>
 
@@ -483,9 +535,7 @@ const IngresoDataDespachoModal = ({
               fullWidth
               label="Responsable"
               value={form.responsable || ""}
-              onChange={(e) =>
-                setForm({ ...form, responsable: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, responsable: e.target.value })}
             />
           </Grid>
 

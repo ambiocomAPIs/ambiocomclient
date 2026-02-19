@@ -60,6 +60,7 @@ import RecepcionAlcoholesLogisticaModels from '../Modulo_Logistica/RecepcionAlco
 import DespachoAlcoholesLogistica from '../Modulo_Logistica/DespachosAlcoholes/DespachoAlcoholesLogistica.jsx'
 import ConductoresPage from '../Modulo_Logistica/ConductoresDB/ConductoresPage.jsx';
 import TransportadorasPage from "../Modulo_Logistica/Transportadoras/TransportadorasPage.jsx"
+import ProductosDespacho from "../Modulo_Logistica/Productos/ProductosDespacho.jsx"
 //empelados
 import EmpleadosManager from '../EmpleadosManager/EmpleadosAmbiocomList.jsx';
 //Medidores
@@ -77,7 +78,7 @@ import {
     tanqueIcon, factoryIcon, despachoIcon, despachoSalidaIcon, despachoRecepcionIcon, laboratoryIcon, inventoryIcon, rulerIcon, oilTankIcon, coalInventoryIcon,
     ptapIcon, GraphIcon, BarGraphIcon, BarGraphComparativeIcon, robotAssistanceIcon, bitacoraIcon, StopWatchIcon, PdfIcon, DatabaseAdministratorIcon, workerIcon,
     TankGraphIcon, CounterIcon, MoneyGraphIcon, EnergyIcon, EnergyDataIcon, InOutMaderaCarbonIcon, InformeIcon, TankWithLiquidIcon, ReportIcon,
-    Driver, ClientIcon, TruckCompany
+    Driver, ClientIcon, TruckCompany, ProductDespacho
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -199,6 +200,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'Grafica Niveles Tanques Jornaleros', subKey: 'nivelestanquesjornalerospagina', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2"], icon: <img src={TankGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
                 { text: 'Despachos', subKey: 'despachoalcoholeslogistica', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1"], icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Recepción', subKey: 'recepcionalcoholeslogistica', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1"], icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Productos', subKey: 'productosdespacho', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1"], icon: <img src={ProductDespacho} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Conductores', subKey: 'conductoresdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1"], icon: <img src={Driver} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Clientes', subKey: 'ClientesDB', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1"], icon: <img src={ClientIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Transportadora', subKey: 'transportadorasdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1"], icon: <img src={TruckCompany} alt="Despacho" style={{ width: 25, height: 25 }} /> },
@@ -342,6 +344,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'despachoalcoholeslogistica': return <DespachoAlcoholesLogistica />;
             case 'conductoresdb': return <ConductoresPage />;
             case 'transportadorasdb': return <TransportadorasPage />;
+            case 'productosdespacho': return <ProductosDespacho />;
             //pagina mantenimiento
             case 'modulomantenimiento': return <ModuloEnMantenimiento />;
             default: return null;
