@@ -212,11 +212,17 @@ export default function TablaDespachosLogistica() {
     if (roles.includes("*")) return true;
 
     const currentRole = (rol || "").toLowerCase().trim();
-    const allowedRoles = roles.map(r => (r || "").toLowerCase().trim());
+    const allowedRoles = roles.map((r) => (r || "").toLowerCase().trim());
     return allowedRoles.includes(currentRole);
   };
 
-  const puedeEliminar = canAccess(["gerenciaA","gerenciaG","gerenciaOP", "developer", "liderlogistica"]);
+  const puedeEliminar = canAccess([
+    "gerenciaA",
+    "gerenciaG",
+    "gerenciaOP",
+    "developer",
+    "liderlogistica",
+  ]);
 
   // Detectar click derecho para copiar tabla tipo SAP
   const handleContextMenu = (e) => {
@@ -376,16 +382,16 @@ export default function TablaDespachosLogistica() {
     });
   }, [busquedaGlobal, medicionesOrdenadas]);
 
-  /* ================= CALCULAR ACUMULADO ================= */
-  const calcularAcumulado = (columna) => {
-    if (!columna.totalizable) return "";
+  // /* ================= CALCULAR ACUMULADO ================= */
+  // const calcularAcumulado = (columna) => {
+  //   if (!columna.totalizable) return "";
 
-    return medicionesFiltradas.reduce((total, m) => {
-      const valor = m.lecturas?.[columna.key];
-      const num = Number(valor);
-      return total + (Number.isNaN(num) ? 0 : num);
-    }, 0);
-  };
+  //   return medicionesFiltradas.reduce((total, m) => {
+  //     const valor = m.lecturas?.[columna.key];
+  //     const num = Number(valor);
+  //     return total + (Number.isNaN(num) ? 0 : num);
+  //   }, 0);
+  // };
   /* ================= CALCULAR ACUMULADO por columna mapa ================= */
 
   const acumuladosPorColumna = useMemo(() => {
@@ -607,28 +613,6 @@ export default function TablaDespachosLogistica() {
               borderTopRightRadius: 4,
             }}
           >
-            <Divider orientation="vertical" flexItem />
-            <Tooltip title={"Ver Demo"}>
-              <IconButton
-                size="small"
-                onClick={() => setModoInteligenteScroll((p) => !p)}
-                sx={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 1,
-                  backgroundColor: "white",
-                  border: "1px solid rgba(0,0,0,0.12)",
-                  "&:focus": { outline: "none", boxShadow: "none" },
-                  "&:hover": {
-                    backgroundColor: modoInteligenteScroll
-                      ? "#c6ccd3"
-                      : "#eef1f5",
-                  },
-                }}
-              >
-                <YouTubeIcon sx={{ color: "red", fontSize: "1.9rem" }} />
-              </IconButton>
-            </Tooltip>
             <Divider orientation="vertical" flexItem />
             <Tooltip title={"Generar Informe"}>
               <IconButton
@@ -981,6 +965,28 @@ export default function TablaDespachosLogistica() {
               borderBottomRightRadius: 4,
             }}
           >
+            <Divider orientation="vertical" flexItem />
+            <Tooltip title={"Ver Demo"}>
+              <IconButton
+                size="small"
+                onClick={() => setModoInteligenteScroll((p) => !p)}
+                sx={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 1,
+                  backgroundColor: "white",
+                  border: "1px solid rgba(0,0,0,0.12)",
+                  "&:focus": { outline: "none", boxShadow: "none" },
+                  "&:hover": {
+                    backgroundColor: modoInteligenteScroll
+                      ? "#c6ccd3"
+                      : "#eef1f5",
+                  },
+                }}
+              >
+                <YouTubeIcon sx={{ color: "red", fontSize: "1.9rem" }} />
+              </IconButton>
+            </Tooltip>
             {/* BUSQUEDA AVANZADA RENDER DE INPUT AQUI */}
             {busquedaActiva && (
               <>
@@ -1171,14 +1177,19 @@ export default function TablaDespachosLogistica() {
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell align="center" sx={{
-                position: "sticky",
-                left: 0,
-                zIndex: 6,
-                backgroundColor: "#fff",
-                borderRight: "1px solid rgba(224,224,224,1)",
-                minWidth: 110,
-              }}>Acciones</TableCell>
+              <TableCell
+                align="center"
+                sx={{
+                  position: "sticky",
+                  left: 0,
+                  zIndex: 6,
+                  backgroundColor: "#fff",
+                  borderRight: "1px solid rgba(224,224,224,1)",
+                  minWidth: 110,
+                }}
+              >
+                Acciones
+              </TableCell>
               <TableCell
                 align="center"
                 sx={{
@@ -1271,14 +1282,18 @@ export default function TablaDespachosLogistica() {
                     transition: "background-color 0.3s ease",
                   }}
                 >
-                  <TableCell align="center" sx={{
-                    position: "sticky",
-                    left: 0,
-                    zIndex: 4,
-                    backgroundColor: porcentajeFaltante > 0 ? colorFila : "#fff",
-                    borderRight: "1px solid rgba(224,224,224,1)",
-                    minWidth: 110,
-                  }}>
+                  <TableCell
+                    align="center"
+                    sx={{
+                      position: "sticky",
+                      left: 0,
+                      zIndex: 4,
+                      backgroundColor:
+                        porcentajeFaltante > 0 ? colorFila : "#fff",
+                      borderRight: "1px solid rgba(224,224,224,1)",
+                      minWidth: 110,
+                    }}
+                  >
                     <Tooltip title={"Editar Fila"}>
                       <IconButton
                         onClick={() => {
@@ -1293,7 +1308,9 @@ export default function TablaDespachosLogistica() {
                         <EditIcon />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title={puedeEliminar ? "Eliminar" : "No tienes permisos"}>
+                    <Tooltip
+                      title={puedeEliminar ? "Eliminar" : "No tienes permisos"}
+                    >
                       <IconButton
                         disabled={!puedeEliminar}
                         sx={{ color: "#5E5E5E" }}
@@ -1332,7 +1349,7 @@ export default function TablaDespachosLogistica() {
 
             {/* ================= ACUMULADO ================= */}
             <TableRow>
-              <TableCell colSpan={1}>
+              <TableCell colSpan={2}>
                 <b>Acumulado Total</b>
               </TableCell>
               {columnas
