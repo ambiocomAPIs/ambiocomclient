@@ -8,13 +8,20 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
 
+
   const me = async () => {
     try {
       const { data } = await axios.get("https://ambiocomserver.onrender.com/api/auth/me", { withCredentials: true });
       // console.log("ME RESPONSE:", data);
       setUser(data.user); // {id,email,rol}
-    } catch (err) {
-      console.log("ME ERROR:", err?.response?.status, err?.response?.data || err?.message);
+    }
+    catch (err) {
+      console.log("ME ERROR:", err?.response?.status);
+      if (err?.response?.status === 401) {
+        console.log("Token Expirado");
+        // Token expirado → enviar a la página principal
+        window.location.href = "/";
+      }
       setUser(null);
     } finally {
       setLoadingAuth(false);
