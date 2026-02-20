@@ -94,7 +94,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
     const { tanques, loading, setTanques } = useTanques();
     const { nivelesTanques, nivelesTanquesLoading, setNivelesTanques } = useNivelesDiariosTanques();
     const { empleadosActivos, loadingEmpleados } = useEmpleados();
-    const { rol, loadingAuth, logout, user } = useAuth();
+    const { rol, loadingAuth, logout, user, refreshMe } = useAuth();
     // -----------------------------------------------
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -107,6 +107,22 @@ export default function EmpresarialPrincipalSchedulerApp() {
     const [dbInfo, setDbInfo] = useState("");
 
     const navigate = useNavigate();
+
+    useEffect(() => {
+        refreshMe();
+    }, []);
+
+    // recarga la pagina al iniciar
+    //     useEffect(() => {
+    //   const key = "reloaded_principal_once";
+    //   const already = sessionStorage.getItem(key);
+
+    //   if (!already) {
+    //     sessionStorage.setItem(key, "1");
+    //     window.location.reload();
+    //   }
+    // }, []);
+    
     // watch para ver en que DB estoy trabajando
     useEffect(() => {
         axios.get("https://ambiocomserver.onrender.com/api/meta").then(res => {
