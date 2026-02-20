@@ -37,7 +37,8 @@ export function AuthProvider({ children }) {
           }).then(async () => {
             try {
               await axios.post("https://ambiocomserver.onrender.com/api/auth/logout", {}, { withCredentials: true });
-            } catch (e) {}
+              window.location.replace("/")
+            } catch (e) { }
             // window.location.replace("/");
           });
         }
