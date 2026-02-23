@@ -22,6 +22,7 @@ import {
   Chip,
   Switch,
   FormControlLabel,
+  MenuItem,
 } from "@mui/material";
 
 import EditIcon from "@mui/icons-material/Edit";
@@ -33,11 +34,22 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 const API_COLUMNAS = "https://ambiocomserver.onrender.com/api/columna-despacho-alcoholes";
 const API_AUTH_VERIFY = "https://ambiocomserver.onrender.com/api/auth/verify-columns";
 
+//roles del select
+const ROLES = [
+  "developer",
+  "liderlogistica",
+  "auxiliarlogistica1",
+  "auxiliarlogistica2",
+  "torrecontrollogistica",
+  "gerente",
+];
+
 const initialForm = {
   nombre: "",
   key: "",
   unidad: "",
   totalizable: false,
+  rolesDigitables: ["developer"],
 };
 
 export default function GestionColumnasDespacho() {
@@ -150,8 +162,7 @@ export default function GestionColumnasDespacho() {
     setEditingId(null);
   };
 
-  // Tu backend hace: key = key.toLowerCase().trim()
-  // aquí lo dejamos igual + limpiamos espacios internos
+  // Backend: key = key.toLowerCase().trim()
   const normalizarKey = (v) =>
     (v || "")
       .trim()
@@ -164,14 +175,20 @@ export default function GestionColumnasDespacho() {
     if (!qq) return columnas;
 
     return columnas.filter((c) => {
+      const roles = Array.isArray(c.rolesDigitables)
+        ? c.rolesDigitables.join(" ")
+        : "developer";
+
       const haystack = [
         c.nombre,
         c.key,
         c.unidad,
         c.totalizable ? "totalizable" : "no totalizable",
+        roles,
       ]
         .join(" ")
         .toLowerCase();
+
       return haystack.includes(qq);
     });
   }, [columnas, q]);
@@ -188,25 +205,29 @@ export default function GestionColumnasDespacho() {
       Swal.fire("Falta información", "La key es obligatoria", "warning");
       return;
     }
+    if (!Array.isArray(form.rolesDigitables) || form.rolesDigitables.length === 0) {
+      Swal.fire("Falta información", "Asigna al menos un rol", "warning");
+      return;
+    }
 
-    // Payload según tu controller (crearColumnaAlcohol / editarColumnaAlcohol)
     const payload = {
       nombre: form.nombre.trim(),
       key: normalizarKey(form.key),
       unidad: (form.unidad || "").trim(),
       totalizable: Boolean(form.totalizable),
+      rolesDigitables: form.rolesDigitables.map((r) =>
+        String(r).toLowerCase().trim()
+      ),
     };
 
     try {
       setLoading(true);
 
       if (editingId) {
-        // PUT /:id
-        await axios.put(`${API_COLUMNAS}/${editingId}`, payload);
+        await axios.put(`${API_COLUMNAS}/${editingId}`, payload); // PUT /:id
         Swal.fire("Actualizado", "La columna se actualizó correctamente", "success");
       } else {
-        // POST /
-        await axios.post(API_COLUMNAS, payload);
+        await axios.post(API_COLUMNAS, payload); // POST /
         Swal.fire("Creada", "La columna se creó correctamente", "success");
       }
 
@@ -214,8 +235,7 @@ export default function GestionColumnasDespacho() {
       await fetchColumnas();
     } catch (e) {
       console.error(e);
-      const msg =
-        e?.response?.data?.message || "No se pudo guardar la columna";
+      const msg = e?.response?.data?.message || "No se pudo guardar la columna";
       Swal.fire("Error", msg, "error");
     } finally {
       setLoading(false);
@@ -229,6 +249,9 @@ export default function GestionColumnasDespacho() {
       key: col.key ?? "",
       unidad: col.unidad ?? "",
       totalizable: Boolean(col.totalizable),
+      rolesDigitables: Array.isArray(col.rolesDigitables)
+        ? col.rolesDigitables
+        : ["developer"],
     });
   };
 
@@ -250,15 +273,13 @@ export default function GestionColumnasDespacho() {
 
     try {
       setLoading(true);
-      // DELETE /:id -> desactivarColumnaAlcohol (soft delete)
-      await axios.delete(`${API_COLUMNAS}/${col._id}`);
+      await axios.delete(`${API_COLUMNAS}/${col._id}`); // DELETE /:id (soft delete)
       Swal.fire("OK", "Columna desactivada", "success");
       await fetchColumnas();
       if (editingId === col._id) resetForm();
     } catch (e) {
       console.error(e);
-      const msg =
-        e?.response?.data?.message || "No se pudo desactivar la columna";
+      const msg = e?.response?.data?.message || "No se pudo desactivar la columna";
       Swal.fire("Error", msg, "error");
     } finally {
       setLoading(false);
@@ -397,6 +418,35 @@ export default function GestionColumnasDespacho() {
               />
             </Grid>
 
+            {/* ✅ NUEVO: Roles digitables */}
+            <Grid item xs={12} md={4}>
+              <TextField
+                select
+                fullWidth
+                label="Roles que pueden digitar"
+                value={form.rolesDigitables}
+                SelectProps={{
+                  multiple: true,
+                  renderValue: (selected) =>
+                    selected?.length ? selected.join(", ") : "—",
+                }}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setForm((p) => ({
+                    ...p,
+                    rolesDigitables: Array.isArray(value) ? value : [],
+                  }));
+                }}
+                helperText="Selecciona 1 o más roles"
+              >
+                {ROLES.map((r) => (
+                  <MenuItem key={r} value={r}>
+                    {r}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+
             <Grid item xs={12}>
               <Box display="flex" gap={2} flexWrap="wrap">
                 <Button
@@ -426,6 +476,7 @@ export default function GestionColumnasDespacho() {
                   <TableCell><b>Key</b></TableCell>
                   <TableCell><b>Unidad</b></TableCell>
                   <TableCell><b>Totalizable</b></TableCell>
+                  <TableCell><b>Roles</b></TableCell>
                   <TableCell align="center"><b>Acciones</b></TableCell>
                 </TableRow>
               </TableHead>
@@ -433,47 +484,75 @@ export default function GestionColumnasDespacho() {
               <TableBody>
                 {columnasFiltradas.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} align="center">
+                    <TableCell colSpan={6} align="center">
                       {loading ? "Cargando..." : "No hay columnas"}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  columnasFiltradas.map((c) => (
-                    <TableRow key={c._id} hover selected={editingId === c._id}>
-                      <TableCell>{c.nombre}</TableCell>
-                      <TableCell>
-                        <Chip size="small" label={c.key} />
-                      </TableCell>
-                      <TableCell>{c.unidad || "—"}</TableCell>
-                      <TableCell>
-                        {c.totalizable ? (
-                          <Chip size="small" label="Sí" />
-                        ) : (
-                          <Chip size="small" label="No" variant="outlined" />
-                        )}
-                      </TableCell>
+                  columnasFiltradas.map((c) => {
+                    const roles = Array.isArray(c.rolesDigitables)
+                      ? c.rolesDigitables
+                      : ["developer"];
 
-                      <TableCell align="center">
-                        <Tooltip title="Editar">
-                          <IconButton color="primary" onClick={() => handleEdit(c)}>
-                            <EditIcon />
-                          </IconButton>
-                        </Tooltip>
+                    return (
+                      <TableRow key={c._id} hover selected={editingId === c._id}>
+                        <TableCell>{c.nombre}</TableCell>
 
-                        <Tooltip title="Desactivar">
-                          <IconButton color="error" onClick={() => handleDelete(c)}>
-                            <DeleteIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                        <TableCell>
+                          <Chip size="small" label={c.key} />
+                        </TableCell>
+
+                        <TableCell>{c.unidad || "—"}</TableCell>
+
+                        <TableCell>
+                          {c.totalizable ? (
+                            <Chip size="small" label="Sí" />
+                          ) : (
+                            <Chip size="small" label="No" variant="outlined" />
+                          )}
+                        </TableCell>
+
+                        {/* ✅ roles */}
+                        <TableCell>
+                          {roles.map((r) => (
+                            <Chip
+                              key={`${c._id}-${r}`}
+                              size="small"
+                              label={r}
+                              variant="outlined"
+                              sx={{ mr: 0.5, mb: 0.5 }}
+                            />
+                          ))}
+                        </TableCell>
+
+                        <TableCell align="center">
+                          <Tooltip title="Editar">
+                            <IconButton color="primary" onClick={() => handleEdit(c)}>
+                              <EditIcon />
+                            </IconButton>
+                          </Tooltip>
+
+                          <Tooltip title="Desactivar">
+                            <IconButton color="error" onClick={() => handleDelete(c)}>
+                              <DeleteIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
           </TableContainer>
 
-          <Box mt={1} display="flex" justifyContent="space-between" flexWrap="wrap" gap={1}>
+          <Box
+            mt={1}
+            display="flex"
+            justifyContent="space-between"
+            flexWrap="wrap"
+            gap={1}
+          >
             <Typography variant="caption" sx={{ opacity: 0.7 }}>
               Total columnas: {columnas.length}
             </Typography>

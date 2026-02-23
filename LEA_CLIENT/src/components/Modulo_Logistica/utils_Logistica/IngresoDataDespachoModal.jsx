@@ -8,9 +8,11 @@ import {
   Button,
   Grid,
   TextField,
-  MenuItem,
+  Box,
+  Typography,
 } from "@mui/material";
 import Autocomplete from "@mui/material/Autocomplete";
+import { useAuth } from "../../../utils/Context/AuthContext/AuthContext";
 
 const columnasBloqueadas = [
   "volumen_contador_gravimetrico",
@@ -22,7 +24,6 @@ const columnasBloqueadas = [
   "variacion_peso",
   "variación_volumen",
   "tiempo_neto_cargue_despacho",
-  // "cantidad_recibida_cliente",
   "kilos_peso_neto",
   "diferencia_recibo_cliente_vnetofacturado",
 ];
@@ -30,6 +31,9 @@ const columnasBloqueadas = [
 const SELECT_KEYS = ["nombre_conductor", "cliente", "transportadora", "producto"];
 const CACHE_PREFIX = "despacho_catalogo_";
 const FORM_CACHE_PREFIX = "despacho_form_draft_";
+const TIME_KEYS = ["hora_llegada", "hora_salida"];
+
+// celdas que seran tipo select formato 8:00 15:30
 
 const loadCacheMeta = (key) => {
   try {
@@ -37,7 +41,6 @@ const loadCacheMeta = (key) => {
     if (!raw) return { data: [], updatedAt: 0 };
 
     const parsed = JSON.parse(raw);
-
     if (Array.isArray(parsed)) return { data: parsed, updatedAt: 0 };
 
     return {
@@ -95,7 +98,7 @@ const saveFormDraft = (key, data) => {
 const clearFormDraft = (key) => {
   try {
     localStorage.removeItem(key);
-  } catch { }
+  } catch {}
 };
 
 const normalizeOption = (opt) => {
@@ -115,38 +118,21 @@ const toNum = (v) => {
   let s = String(v).trim();
   if (!s) return 0;
 
-  // quitar espacios
   s = s.replace(/\s/g, "");
-
   const hasComma = s.includes(",");
   const hasDot = s.includes(".");
 
   if (hasComma && hasDot) {
-    // el último símbolo es el decimal
-    if (s.lastIndexOf(",") > s.lastIndexOf(".")) {
-      // 1.234,56  → decimal es coma
+    if (s.lastIndexOf(",") > s.lastIndexOf("."))
       s = s.replace(/\./g, "").replace(",", ".");
-    } else {
-      // 1,234.56  → decimal es punto
-      s = s.replace(/,/g, "");
-    }
+    else s = s.replace(/,/g, "");
   } else if (hasComma) {
-    // solo coma → decidir si es decimal o miles
     const parts = s.split(",");
-    if (parts[1]?.length === 3) {
-      // probablemente miles → 1,234
-      s = parts.join("");
-    } else {
-      // decimal → 123,45
-      s = s.replace(",", ".");
-    }
+    if (parts[1]?.length === 3) s = parts.join("");
+    else s = s.replace(",", ".");
   } else if (hasDot) {
     const parts = s.split(".");
-    if (parts[1]?.length === 3) {
-      // miles → 1.234
-      s = parts.join("");
-    }
-    // si no, se asume decimal
+    if (parts[1]?.length === 3) s = parts.join("");
   }
 
   const n = Number(s);
@@ -171,19 +157,28 @@ const parseHHMMToMinutes = (hhmm) => {
 
 const safeStr = (v) => (v == null ? "" : String(v));
 
+const pad2 = (n) => String(n).padStart(2, "0");
+
+const buildTimeOptions = (stepMinutes = 15) => {
+  const out = [];
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += stepMinutes) {
+      out.push(`${h}:${pad2(m)}`);
+    }
+  }
+  return out;
+};
+
 const FORMULAS = {
   volumen_contador_gravimetrico: (L) =>
     round(
       toNum(L.peso_neto_contador_ambiocom) /
-      toNum(L.densidadlab_alcohol_tanque),
+        toNum(L.densidadlab_alcohol_tanque),
       3
     ),
 
   peso_neto_contador_ambiocom: (L) =>
-    round(
-      toNum(L.final_contador_ambiocom) - toNum(L.inicio_contador_ambiocom),
-      3
-    ),
+    round(toNum(L.final_contador_ambiocom) - toNum(L.inicio_contador_ambiocom), 3),
 
   volumen_ambiocom_contador: (L) =>
     round(toNum(L.final_volumen_ambiocom) - L.inicio_volumen_ambiocom, 3),
@@ -194,8 +189,7 @@ const FORMULAS = {
     if (a == null || b == null) return "";
     const diff = b - a;
     if (diff < 0) return "";
-
-    return round(diff / 60, 1); // horas con 1 decimales
+    return round(diff / 60, 1);
   },
 
   kilos_peso_neto: (L) =>
@@ -204,12 +198,15 @@ const FORMULAS = {
   variacion_peso: (L) =>
     round(
       toNum(L.peso_neto_bascula_ambiocom) -
-      toNum(L.peso_neto_contador_ambiocom),
+        toNum(L.peso_neto_contador_ambiocom),
       3
     ),
 
   variación_volumen: (L) =>
-    round(toNum(L.volumen_ambiocom_contador) - toNum(L.volumen_despachar), 3),
+    round(
+      toNum(L.volumen_ambiocom_contador) - toNum(L.volumen_despachar),
+      3
+    ),
 
   dif_kilos_neto: (L) =>
     round(toNum(L.variacion_peso) - toNum(L.kilos_peso_neto), 3),
@@ -217,7 +214,6 @@ const FORMULAS = {
   diferencia_recibo_cliente_vnetofacturado: (L) =>
     round(toNum(L.cantidad_recibida_cliente) - toNum(L.volumen_despachar), 3),
 
-  //aun no
   diferencia_recibo_cliente: (L) =>
     round(
       toNum(L.cantidad_recibida_cliente_real) - toNum(L.cantidad_facturada),
@@ -227,14 +223,9 @@ const FORMULAS = {
   dif_v_netodif_v_desp_bascula_ambiocom: (L) =>
     round(
       toNum(L.volumen_neto_diferencia) -
-      toNum(L.volumen_despacho_bascula_ambiocom),
+        toNum(L.volumen_despacho_bascula_ambiocom),
       3
     ),
-
-  // cantidad_recibida_cliente: (L) => {
-  //   const v = L.cantidad_recibida_cliente_real ?? L.cantidad_recibida_cliente;
-  //   return v == null ? "" : v;
-  // },
 };
 
 const recalcBloqueadas = (lecturas) => {
@@ -242,8 +233,7 @@ const recalcBloqueadas = (lecturas) => {
   for (const key of columnasBloqueadas) {
     const fn = FORMULAS[key];
     if (!fn) continue;
-    const computed = fn(next);
-    next[key] = computed;
+    next[key] = fn(next);
   }
   return next;
 };
@@ -256,12 +246,15 @@ const IngresoDataDespachoModal = ({
   form,
   setForm,
   isEdit = false,
-
-  // ✅ Pásalas cuando conectes backend (pueden ser undefined por ahora)
-  fetchConductores, // async () => [...]
-  fetchClientes, // async () => [...]
-  fetchTransportadoras, // async () => [...]
+  fetchConductores,
+  fetchClientes,
+  fetchTransportadoras,
 }) => {
+  // rol real desde cookie/session (AuthContext)
+  const { rol, loadingAuth, isAuth } = useAuth();
+
+  const roleNorm = String(rol || "").toLowerCase().trim();
+
   const [catalogos, setCatalogos] = useState({
     conductores: [],
     clientes: [],
@@ -273,8 +266,9 @@ const IngresoDataDespachoModal = ({
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
 
-  const formCacheKey = `${FORM_CACHE_PREFIX}${form?.id ?? form?.id_despacho ?? "nuevo"
-    }`;
+  const formCacheKey = `${FORM_CACHE_PREFIX}${form?.id ?? form?.id_despacho ?? "nuevo"}`;
+
+  const timeOptions = useMemo(() => buildTimeOptions(15), []);
 
   const handleChangeLectura = (key, value) => {
     setForm((prev) => ({
@@ -286,6 +280,18 @@ const IngresoDataDespachoModal = ({
     }));
   };
 
+  const canRoleEditColumn = (col) => {
+    // no auth / sin rol => bloquea todo
+    if (!isAuth || !roleNorm) return false;
+
+    // calculadas => siempre bloqueadas
+    if (columnasBloqueadas.includes(col.key)) return false;
+
+    // rolesDigitables viene de tu colección de columnas
+    const roles = Array.isArray(col.rolesDigitables) ? col.rolesDigitables : [];
+    return roles.map((r) => String(r).toLowerCase().trim()).includes(roleNorm);
+  };
+
   const getItems = (key) => {
     if (key === "nombre_conductor") return catalogos.conductores;
     if (key === "cliente") return catalogos.clientes;
@@ -295,19 +301,15 @@ const IngresoDataDespachoModal = ({
   };
 
   const refreshCatalogos = async () => {
-    // si no hay funciones aún, no hacemos nada
     if (!fetchConductores || !fetchClientes || !fetchTransportadoras) return;
-
-    // si no hay internet, evita el intento (igual podrías intentar y que falle)
     if (typeof navigator !== "undefined" && !navigator.onLine) return;
 
     try {
-      const [conductoresRaw, clientesRaw, transportadorasRaw] =
-        await Promise.all([
-          fetchConductores(),
-          fetchClientes(),
-          fetchTransportadoras(),
-        ]);
+      const [conductoresRaw, clientesRaw, transportadorasRaw] = await Promise.all([
+        fetchConductores(),
+        fetchClientes(),
+        fetchTransportadoras(),
+      ]);
 
       const conductores = (conductoresRaw ?? []).map(normalizeOption);
       const clientes = (clientesRaw ?? []).map(normalizeOption);
@@ -354,7 +356,6 @@ const IngresoDataDespachoModal = ({
     }
   };
 
-  // ✅ 1) cuando abre, cargar cache inmediatamente + refrescar si se puede
   useEffect(() => {
     if (!open) return;
 
@@ -381,20 +382,16 @@ const IngresoDataDespachoModal = ({
 
     refreshCatalogos();
     refreshProductosTTL();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   useEffect(() => {
     if (!open) return;
-
-    const t = setTimeout(() => {
-      saveFormDraft(formCacheKey, form);
-    }, 400);
-
+    const t = setTimeout(() => saveFormDraft(formCacheKey, form), 400);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, form, formCacheKey]);
 
-  // ✅ 2) listener online/offline para reintentar cuando vuelva el internet
   useEffect(() => {
     const onOnline = () => {
       setIsOnline(true);
@@ -429,31 +426,31 @@ const IngresoDataDespachoModal = ({
       }
       if (!changed) return prev;
 
-      return {
-        ...prev,
-        lecturas: lecturasNext,
-      };
+      return { ...prev, lecturas: lecturasNext };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, form?.lecturas]);
 
   const columnasOrdenadas = useMemo(() => columnas, [columnas]);
 
+  const sxAllowed = {
+    "& .MuiOutlinedInput-root fieldset": { borderWidth: 2, borderColor: "orange" },
+    "& .MuiOutlinedInput-root:hover fieldset": { borderColor: "orange" },
+    "& .MuiOutlinedInput-root.Mui-focused fieldset": { borderColor: "orange" },
+  };
+
+  const sxDisabled = { backgroundColor: "#f5f5f5" };
+
   return (
     <Dialog
       open={open}
       onClose={(event, reason) => {
-        // Evita cerrar por click fuera o por ESC
         if (reason === "backdropClick" || reason === "escapeKeyDown") return;
         onClose();
       }}
       fullWidth
       sx={{
-        "& .MuiDialog-paper": {
-          width: "80%",
-          maxWidth: "none",
-          margin: "auto",
-        },
+        "& .MuiDialog-paper": { width: "80%", maxWidth: "none", margin: "auto" },
       }}
     >
       <DialogTitle>
@@ -462,98 +459,156 @@ const IngresoDataDespachoModal = ({
       </DialogTitle>
 
       <DialogContent>
-        <Grid container spacing={1} mt={1}>
-          {/* 🔹 Campos dinámicos */}
-          {columnasOrdenadas.map((c) => {
-            const isDisabled = columnasBloqueadas.includes(c.key);
-            const esSelect = SELECT_KEYS.includes(c.key);
-            const items = esSelect ? getItems(c.key) : [];
+        {/* ✅ mientras el AuthContext resuelve /me */}
+        {loadingAuth ? (
+          <Box py={2}>
+            <Typography variant="body2" sx={{ opacity: 0.8 }}>
+              Cargando sesión...
+            </Typography>
+          </Box>
+        ) : (
+          <>
+            {!isAuth || !roleNorm ? (
+              <Box py={2}>
+                <Typography variant="body2" color="error">
+                  No hay sesión válida. No se puede editar.
+                </Typography>
+              </Box>
+            ) : (
+              <Box pb={1}>
+                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                  Rol logueado: <b>{roleNorm}</b>
+                </Typography>
+              </Box>
+            )}
 
-            return (
-              <Grid item xs={12} md={2} key={c.key}>
-                {esSelect ? (
-                  <Autocomplete
-                    freeSolo
-                    forcePopupIcon={true} // 👈 esto obliga a mostrar la flecha
-                    options={items}
-                    getOptionLabel={(option) =>
-                      typeof option === "string" ? option : (option.label ?? option.value ?? "")
-                    }
-                    value={
-                      items.find((opt) => opt.value === form.lecturas?.[c.key]) ||
-                      form.lecturas?.[c.key] ||
-                      ""
-                    }
-                    onChange={(event, newValue) => {
-                      if (typeof newValue === "string") {
-                        handleChangeLectura(c.key, newValue);
-                      } else {
-                        handleChangeLectura(c.key, newValue?.value || "");
-                      }
-                    }}
-                    onInputChange={(event, newInputValue) => {
-                      handleChangeLectura(c.key, newInputValue);
-                    }}
-                    renderInput={(params) => (
+            <Grid container spacing={1} mt={1}>
+              <Grid item xs={12} md={2}>
+                <TextField
+                  fullWidth
+                  type="date"
+                  label="Fecha"
+                  InputLabelProps={{ shrink: true }}
+                  value={form.fecha || ""}
+                  onChange={(e) => setForm({ ...form, fecha: e.target.value })}
+                />
+              </Grid>
+
+              {columnasOrdenadas.map((c) => {
+                const esSelect = SELECT_KEYS.includes(c.key);
+                const esHora = TIME_KEYS.includes(c.key);
+                const items = esSelect ? getItems(c.key) : [];
+
+                const allowedByRole = canRoleEditColumn(c);
+                const isDisabled = !allowedByRole;
+
+                const sxField = allowedByRole ? sxAllowed : sxDisabled;
+
+                return (
+                  <Grid item xs={12} md={2} key={c.key}>
+                    {esSelect ? (
+                      <Autocomplete
+                        freeSolo
+                        forcePopupIcon
+                        options={items}
+                        getOptionLabel={(option) =>
+                          typeof option === "string"
+                            ? option
+                            : option.label ?? option.value ?? ""
+                        }
+                        value={
+                          items.find((opt) => opt.value === form.lecturas?.[c.key]) ||
+                          form.lecturas?.[c.key] ||
+                          ""
+                        }
+                        onChange={(event, newValue) => {
+                          if (isDisabled) return;
+                          if (typeof newValue === "string")
+                            handleChangeLectura(c.key, newValue);
+                          else handleChangeLectura(c.key, newValue?.value || "");
+                        }}
+                        onInputChange={(event, newInputValue) => {
+                          if (isDisabled) return;
+                          handleChangeLectura(c.key, newInputValue);
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label={c.nombre}
+                            fullWidth
+                            disabled={isDisabled}
+                            sx={sxField}
+                          />
+                        )}
+                      />
+                    ) : esHora ? (
+                      <Autocomplete
+                        freeSolo
+                        forcePopupIcon
+                        options={timeOptions}
+                        value={form.lecturas?.[c.key] ?? ""}
+                        onChange={(event, newValue) => {
+                          if (isDisabled) return;
+                          handleChangeLectura(c.key, newValue ?? "");
+                        }}
+                        onInputChange={(event, newInputValue) => {
+                          if (isDisabled) return;
+                          handleChangeLectura(c.key, newInputValue);
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label={c.nombre}
+                            fullWidth
+                            disabled={isDisabled}
+                            sx={sxField}
+                          />
+                        )}
+                      />
+                    ) : (
                       <TextField
-                        {...params}
-                        label={c.nombre}
                         fullWidth
+                        label={c.nombre}
+                        type="text"
+                        value={form.lecturas?.[c.key] ?? ""}
+                        onChange={(e) => {
+                          if (isDisabled) return;
+                          handleChangeLectura(c.key, e.target.value);
+                        }}
                         disabled={isDisabled}
+                        sx={sxField}
                       />
                     )}
-                  />
-                ) : (
-                  <TextField
-                    fullWidth
-                    label={c.nombre}
-                    type="text"
-                    value={form.lecturas?.[c.key] ?? ""}
-                    onChange={(e) => handleChangeLectura(c.key, e.target.value)}
-                    disabled={isDisabled}
-                    sx={{
-                      backgroundColor: isDisabled ? "#f5f5f5" : "inherit",
-                    }}
-                  />
-                )}
+                  </Grid>
+                );
+              })}
+
+              {/* Campos fijos (si también deben ser por rol, dímelo y los metemos igual) */}
+              <Grid item xs={6} md={2}>
+                <TextField
+                  fullWidth
+                  label="Responsable de recibo"
+                  value={form.responsable || ""}
+                  onChange={(e) => setForm({ ...form, responsable: e.target.value })}
+                />
               </Grid>
-            );
-          })}
 
-          {/* 🔹 Campos fijos */}
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Observaciones"
-              value={form.observaciones || ""}
-              onChange={(e) => setForm({ ...form, observaciones: e.target.value })}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Responsable de recibo"
-              value={form.responsable || ""}
-              onChange={(e) => setForm({ ...form, responsable: e.target.value })}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              type="date"
-              label="Fecha"
-              InputLabelProps={{ shrink: true }}
-              value={form.fecha || ""}
-              onChange={(e) => setForm({ ...form, fecha: e.target.value })}
-            />
-          </Grid>
-        </Grid>
+              <Grid item xs={12} md={12}>
+                <TextField
+                  fullWidth
+                  label="Observaciones"
+                  value={form.observaciones || ""}
+                  onChange={(e) => setForm({ ...form, observaciones: e.target.value })}
+                />
+              </Grid>
+            </Grid>
+          </>
+        )}
       </DialogContent>
 
       <DialogActions>
         <Button onClick={onClose}>Cancelar</Button>
+
         <Button
           disabled={isEdit}
           variant="contained"
@@ -571,12 +626,14 @@ const IngresoDataDespachoModal = ({
         >
           Limpiar
         </Button>
+
         <Button
           variant="contained"
           onClick={() => {
             clearFormDraft(formCacheKey);
             onSave();
           }}
+          disabled={loadingAuth || !isAuth} // opcional: bloquear guardar sin sesión
         >
           {isEdit ? "Actualizar" : "Guardar"}
         </Button>
