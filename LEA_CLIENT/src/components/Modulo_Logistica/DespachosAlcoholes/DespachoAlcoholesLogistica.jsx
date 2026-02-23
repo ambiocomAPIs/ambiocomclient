@@ -73,8 +73,8 @@ import ChartBuilder from "../utils_Logistica/ChartBuilder";
 import { useAuth } from "../../../utils/Context/AuthContext/AuthContext.jsx";
 
 /* ================= ENDPOINTS ================= */
-const API_DESPACHOS = "https://ambiocomserver.onrender.com/api/despacho-alcoholes";
-const API_COLUMNAS = "https://ambiocomserver.onrender.com/api/columna-despacho-alcoholes";
+const API_DESPACHOS = "http://localhost:4041/api/despacho-alcoholes";
+const API_COLUMNAS = "http://localhost:4041/api/columna-despacho-alcoholes";
 
 export default function TablaDespachosLogistica() {
   //refs del componente
@@ -553,15 +553,15 @@ export default function TablaDespachosLogistica() {
 
     if (valor === "NO") {
       return commonWrapper(
-        <HowToRegIcon sx={{ color: "#39ff16" }} />,
+        <HowToRegIcon sx={{ color: "#3ed423" }} />,
         "Vehículo aprobado"
       );
     }
 
-    if (valor === "EN EVALUACION") {
+    if (valor === "EN TRANSITO") {
       return commonWrapper(
         <TimelapseIcon sx={{ color: "#ffdc16" }} />,
-        "En evaluación"
+        "En Transito"
       );
     }
 
@@ -805,7 +805,7 @@ export default function TablaDespachosLogistica() {
                 size="small"
                 onClick={() => {
                   window.open(
-                    "https://ambiocomserver.onrender.com/api/despacho-alcoholes/plantilla-excel",
+                    "http://localhost:4041/api/despacho-alcoholes/plantilla-excel",
                     "_blank"
                   );
                 }}
@@ -1459,7 +1459,7 @@ export default function TablaDespachosLogistica() {
           tooltipTitle="Descargar plantilla Excel"
           onClick={() => {
             window.open(
-              "https://ambiocomserver.onrender.com/api/recepcion-alcoholes/plantilla-excel",
+              "http://localhost:4041/api/recepcion-alcoholes/plantilla-excel",
               "_blank"
             );
           }}
@@ -1653,7 +1653,7 @@ export default function TablaDespachosLogistica() {
       {/* Boton para carga masiva*/}
       <ExcelUploadButton
         ref={excelUploadRef}
-        url="https://ambiocomserver.onrender.com/api/recepcion-alcoholes/carga-masiva"
+        url="http://localhost:4041/api/recepcion-alcoholes/carga-masiva"
         onSuccess={obtenerMediciones}
       />
     </Box>

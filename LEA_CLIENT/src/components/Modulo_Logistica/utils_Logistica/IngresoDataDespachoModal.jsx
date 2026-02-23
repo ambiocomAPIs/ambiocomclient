@@ -33,7 +33,7 @@ const CACHE_PREFIX = "despacho_catalogo_";
 const FORM_CACHE_PREFIX = "despacho_form_draft_";
 const TIME_KEYS = ["hora_llegada", "hora_salida"];
 const VEHICULO_RECHAZADO_KEY = "vehiculo_rechazado";
-const VEHICULO_RECHAZADO_OPTIONS = ["SI", "NO", "EN EVALUACION"];
+const VEHICULO_RECHAZADO_OPTIONS = ["SI", "NO", "EN TRANSITO"];
 
 // celdas que seran tipo select formato 8:00 15:30
 
@@ -336,7 +336,7 @@ const IngresoDataDespachoModal = ({
     }
   };
 
-  const PRODUCTOS_URL = "https://ambiocomserver.onrender.com/api/alcoholesdespacho";
+  const PRODUCTOS_URL = "http://localhost:4041/api/alcoholesdespacho";
 
   const mapProductosToOptions = (arr) =>
     (arr ?? []).map((p) => ({
