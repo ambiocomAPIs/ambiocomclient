@@ -61,6 +61,7 @@ import DespachoAlcoholesLogistica from '../Modulo_Logistica/DespachosAlcoholes/D
 import ConductoresPage from '../Modulo_Logistica/ConductoresDB/ConductoresPage.jsx';
 import TransportadorasPage from "../Modulo_Logistica/Transportadoras/TransportadorasPage.jsx"
 import ProductosDespacho from "../Modulo_Logistica/Productos/ProductosDespacho.jsx"
+import ColumnasDBManagement from "../Modulo_Logistica/Desarrollador_DB/ColumnasDBManagement.jsx"
 //empelados
 import EmpleadosManager from '../EmpleadosManager/EmpleadosAmbiocomList.jsx';
 //Medidores
@@ -78,7 +79,7 @@ import {
     tanqueIcon, factoryIcon, despachoIcon, despachoSalidaIcon, despachoRecepcionIcon, laboratoryIcon, inventoryIcon, rulerIcon, oilTankIcon, coalInventoryIcon,
     ptapIcon, GraphIcon, BarGraphIcon, BarGraphComparativeIcon, robotAssistanceIcon, bitacoraIcon, StopWatchIcon, PdfIcon, DatabaseAdministratorIcon, workerIcon,
     TankGraphIcon, CounterIcon, MoneyGraphIcon, EnergyIcon, EnergyDataIcon, InOutMaderaCarbonIcon, InformeIcon, TankWithLiquidIcon, ReportIcon,
-    Driver, ClientIcon, TruckCompany, ProductDespacho
+    Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -221,6 +222,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'Clientes', subKey: 'ClientesDB', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1"], icon: <img src={ClientIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Transportadora', subKey: 'transportadorasdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1"], icon: <img src={TruckCompany} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Ingresos_M-C', subKey: 'moduloingresosmaderacarbon', roles: ["admin", "developer"], icon: <img src={InOutMaderaCarbonIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'DEV_Functions', subKey: 'gestiondecolumnasdesarrollador', roles: ["developer"], icon: <img src={DevIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
             ],
         },
         {
@@ -361,6 +363,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'conductoresdb': return <ConductoresPage />;
             case 'transportadorasdb': return <TransportadorasPage />;
             case 'productosdespacho': return <ProductosDespacho />;
+            case 'gestiondecolumnasdesarrollador': return <ColumnasDBManagement />;
             //pagina mantenimiento
             case 'modulomantenimiento': return <ModuloEnMantenimiento />;
             default: return null;
@@ -570,7 +573,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             >
                 <Fade in={true} timeout={400} key={selectedMenu}>
                     <Box sx={{ p: 2 }}>
-                        {renderContent()} 
+                        {renderContent()}
                     </Box>
                 </Fade>
             </Box>

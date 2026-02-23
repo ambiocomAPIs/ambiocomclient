@@ -430,7 +430,7 @@ export default function TablaDespachosLogistica() {
         .filter((c) => columnasVisibles.includes(c.key))
         .map((c) => c.nombre),
       "Observaciones",
-      "Responsable",
+      "Responsable de recibo",
     ];
 
     const rows = medicionesOrdenadas.map((row) => {
@@ -1251,7 +1251,7 @@ export default function TablaDespachosLogistica() {
                 align="center"
                 sx={{ borderRight: "1px solid rgba(224, 224, 224, 1)" }}
               >
-                Responsable
+                Responsable de recibo
               </TableCell>
             </TableRow>
           </TableHead>

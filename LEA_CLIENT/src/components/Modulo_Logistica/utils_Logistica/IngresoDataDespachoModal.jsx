@@ -533,7 +533,7 @@ const IngresoDataDespachoModal = ({
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
-              label="Responsable"
+              label="Responsable de recibo"
               value={form.responsable || ""}
               onChange={(e) => setForm({ ...form, responsable: e.target.value })}
             />
