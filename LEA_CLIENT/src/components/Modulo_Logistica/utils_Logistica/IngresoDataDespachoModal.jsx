@@ -32,6 +32,8 @@ const SELECT_KEYS = ["nombre_conductor", "cliente", "transportadora", "producto"
 const CACHE_PREFIX = "despacho_catalogo_";
 const FORM_CACHE_PREFIX = "despacho_form_draft_";
 const TIME_KEYS = ["hora_llegada", "hora_salida"];
+const VEHICULO_RECHAZADO_KEY = "vehiculo_rechazado";
+const VEHICULO_RECHAZADO_OPTIONS = ["SI", "NO", "EN EVALUACION"];
 
 // celdas que seran tipo select formato 8:00 15:30
 
@@ -178,7 +180,10 @@ const FORMULAS = {
     ),
 
   peso_neto_contador_ambiocom: (L) =>
-    round(toNum(L.final_contador_ambiocom) - toNum(L.inicio_contador_ambiocom), 3),
+    round(
+      toNum(L.final_contador_ambiocom) - toNum(L.inicio_contador_ambiocom),
+      3
+    ),
 
   volumen_ambiocom_contador: (L) =>
     round(toNum(L.final_volumen_ambiocom) - L.inicio_volumen_ambiocom, 3),
@@ -305,11 +310,12 @@ const IngresoDataDespachoModal = ({
     if (typeof navigator !== "undefined" && !navigator.onLine) return;
 
     try {
-      const [conductoresRaw, clientesRaw, transportadorasRaw] = await Promise.all([
-        fetchConductores(),
-        fetchClientes(),
-        fetchTransportadoras(),
-      ]);
+      const [conductoresRaw, clientesRaw, transportadorasRaw] =
+        await Promise.all([
+          fetchConductores(),
+          fetchClientes(),
+          fetchTransportadoras(),
+        ]);
 
       const conductores = (conductoresRaw ?? []).map(normalizeOption);
       const clientes = (clientesRaw ?? []).map(normalizeOption);
@@ -434,7 +440,10 @@ const IngresoDataDespachoModal = ({
   const columnasOrdenadas = useMemo(() => columnas, [columnas]);
 
   const sxAllowed = {
-    "& .MuiOutlinedInput-root fieldset": { borderWidth: 2, borderColor: "orange" },
+    "& .MuiOutlinedInput-root fieldset": {
+      borderWidth: 2,
+      borderColor: "orange",
+    },
     "& .MuiOutlinedInput-root:hover fieldset": { borderColor: "orange" },
     "& .MuiOutlinedInput-root.Mui-focused fieldset": { borderColor: "orange" },
   };
@@ -450,7 +459,11 @@ const IngresoDataDespachoModal = ({
       }}
       fullWidth
       sx={{
-        "& .MuiDialog-paper": { width: "80%", maxWidth: "none", margin: "auto" },
+        "& .MuiDialog-paper": {
+          width: "80%",
+          maxWidth: "none",
+          margin: "auto",
+        },
       }}
     >
       <DialogTitle>
@@ -497,6 +510,7 @@ const IngresoDataDespachoModal = ({
               {columnasOrdenadas.map((c) => {
                 const esSelect = SELECT_KEYS.includes(c.key);
                 const esHora = TIME_KEYS.includes(c.key);
+                const esVehiculoRechazado = c.key === VEHICULO_RECHAZADO_KEY;
                 const items = esSelect ? getItems(c.key) : [];
 
                 const allowedByRole = canRoleEditColumn(c);
@@ -517,7 +531,9 @@ const IngresoDataDespachoModal = ({
                             : option.label ?? option.value ?? ""
                         }
                         value={
-                          items.find((opt) => opt.value === form.lecturas?.[c.key]) ||
+                          items.find(
+                            (opt) => opt.value === form.lecturas?.[c.key]
+                          ) ||
                           form.lecturas?.[c.key] ||
                           ""
                         }
@@ -565,6 +581,26 @@ const IngresoDataDespachoModal = ({
                           />
                         )}
                       />
+                    ) : esVehiculoRechazado ? (
+                      <Autocomplete
+                        disableClearable
+                        forcePopupIcon
+                        options={VEHICULO_RECHAZADO_OPTIONS}
+                        value={form.lecturas?.[c.key] ?? "NO"}
+                        onChange={(event, newValue) => {
+                          if (isDisabled) return;
+                          handleChangeLectura(c.key, newValue ?? "");
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label={c.nombre}
+                            fullWidth
+                            disabled={isDisabled}
+                            sx={sxField}
+                          />
+                        )}
+                      />
                     ) : (
                       <TextField
                         fullWidth
@@ -589,7 +625,9 @@ const IngresoDataDespachoModal = ({
                   fullWidth
                   label="Responsable de recibo"
                   value={form.responsable || ""}
-                  onChange={(e) => setForm({ ...form, responsable: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, responsable: e.target.value })
+                  }
                 />
               </Grid>
 
@@ -598,7 +636,9 @@ const IngresoDataDespachoModal = ({
                   fullWidth
                   label="Observaciones"
                   value={form.observaciones || ""}
-                  onChange={(e) => setForm({ ...form, observaciones: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, observaciones: e.target.value })
+                  }
                 />
               </Grid>
             </Grid>
