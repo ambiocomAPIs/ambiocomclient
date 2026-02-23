@@ -570,7 +570,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             >
                 <Fade in={true} timeout={400} key={selectedMenu}>
                     <Box sx={{ p: 2 }}>
-                        {renderContent()}
+                        {renderContent()} 
                     </Box>
                 </Fade>
             </Box>
