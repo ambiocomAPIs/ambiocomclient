@@ -73,8 +73,8 @@ import ChartBuilder from "../utils_Logistica/ChartBuilder";
 import { useAuth } from "../../../utils/Context/AuthContext/AuthContext.jsx";
 
 /* ================= ENDPOINTS ================= */
-const API_DESPACHOS = "http://localhost:4041/api/despacho-alcoholes";
-const API_COLUMNAS = "http://localhost:4041/api/columna-despacho-alcoholes";
+const API_DESPACHOS = "https://ambiocomserver.onrender.com/api/despacho-alcoholes";
+const API_COLUMNAS = "https://ambiocomserver.onrender.com/api/columna-despacho-alcoholes";
 
 export default function TablaDespachosLogistica() {
   //refs del componente
@@ -805,7 +805,7 @@ export default function TablaDespachosLogistica() {
                 size="small"
                 onClick={() => {
                   window.open(
-                    "http://localhost:4041/api/despacho-alcoholes/plantilla-excel",
+                    "https://ambiocomserver.onrender.com/api/despacho-alcoholes/plantilla-excel",
                     "_blank"
                   );
                 }}
@@ -1459,7 +1459,7 @@ export default function TablaDespachosLogistica() {
           tooltipTitle="Descargar plantilla Excel"
           onClick={() => {
             window.open(
-              "http://localhost:4041/api/recepcion-alcoholes/plantilla-excel",
+              "https://ambiocomserver.onrender.com/api/recepcion-alcoholes/plantilla-excel",
               "_blank"
             );
           }}
@@ -1653,7 +1653,7 @@ export default function TablaDespachosLogistica() {
       {/* Boton para carga masiva*/}
       <ExcelUploadButton
         ref={excelUploadRef}
-        url="http://localhost:4041/api/recepcion-alcoholes/carga-masiva"
+        url="https://ambiocomserver.onrender.com/api/recepcion-alcoholes/carga-masiva"
         onSuccess={obtenerMediciones}
       />
     </Box>
