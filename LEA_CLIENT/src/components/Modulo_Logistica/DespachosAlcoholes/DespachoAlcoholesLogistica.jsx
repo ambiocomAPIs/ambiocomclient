@@ -57,6 +57,9 @@ import SaveAsIcon from "@mui/icons-material/SaveAs";
 import SummarizeIcon from "@mui/icons-material/Summarize";
 import HistoryIcon from "@mui/icons-material/History";
 import YouTubeIcon from "@mui/icons-material/YouTube";
+import HowToRegIcon from '@mui/icons-material/HowToReg';
+import PersonRemoveAlt1Icon from '@mui/icons-material/PersonRemoveAlt1';
+import TimelapseIcon from '@mui/icons-material/Timelapse';
 
 import ExcelUploadButton from "../utils_Logistica/ExcelUploadButton";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -64,6 +67,7 @@ import ExcelDownloadButton from "../utils_Logistica/ExcelDownloadButton";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import IngresoDataDespachoModal from "../utils_Logistica/IngresoDataDespachoModal.jsx";
 import ChartBuilder from "../utils_Logistica/ChartBuilder";
+
 
 // Contexto usuario por roles
 import { useAuth } from "../../../utils/Context/AuthContext/AuthContext.jsx";
@@ -382,16 +386,6 @@ export default function TablaDespachosLogistica() {
     });
   }, [busquedaGlobal, medicionesOrdenadas]);
 
-  // /* ================= CALCULAR ACUMULADO ================= */
-  // const calcularAcumulado = (columna) => {
-  //   if (!columna.totalizable) return "";
-
-  //   return medicionesFiltradas.reduce((total, m) => {
-  //     const valor = m.lecturas?.[columna.key];
-  //     const num = Number(valor);
-  //     return total + (Number.isNaN(num) ? 0 : num);
-  //   }, 0);
-  // };
   /* ================= CALCULAR ACUMULADO por columna mapa ================= */
 
   const acumuladosPorColumna = useMemo(() => {
@@ -530,6 +524,48 @@ export default function TablaDespachosLogistica() {
     }
 
     return "rgba(238, 173, 173, 0.71)"; // menos de 30% (muy suave)
+  };
+
+  const renderIconoVehiculo = (estado) => {
+    const valor = (estado || "").toString().toUpperCase().trim();
+
+    const commonWrapper = (icon, title) => (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          width: "100%",
+        }}
+      >
+        <Tooltip title={title}>
+          {icon}
+        </Tooltip>
+      </Box>
+    );
+
+    if (valor === "SI") {
+      return commonWrapper(
+        <PersonRemoveAlt1Icon sx={{ color: "#9616ff" }} />,
+        "Vehículo rechazado"
+      );
+    }
+
+    if (valor === "NO") {
+      return commonWrapper(
+        <HowToRegIcon sx={{ color: "#39ff16" }} />,
+        "Vehículo aprobado"
+      );
+    }
+
+    if (valor === "EN EVALUACION") {
+      return commonWrapper(
+        <TimelapseIcon sx={{ color: "#ffdc16" }} />,
+        "En evaluación"
+      );
+    }
+
+    return null;
   };
 
   /* ================= RENDER ================= */
@@ -1294,31 +1330,45 @@ export default function TablaDespachosLogistica() {
                       minWidth: 110,
                     }}
                   >
-                    <Tooltip title={"Editar Fila"}>
-                      <IconButton
-                        onClick={() => {
-                          setEditId(row._id);
-                          setForm({
-                            ...row,
-                            fecha: row.fecha || "",
-                          });
-                          setOpenEditar(true);
-                        }}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip
-                      title={puedeEliminar ? "Eliminar" : "No tienes permisos"}
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        gap: 0.5, // espacio entre iconos
+                        width: "100%",
+                      }}
                     >
-                      <IconButton
-                        disabled={!puedeEliminar}
-                        sx={{ color: "#5E5E5E" }}
-                        onClick={() => eliminarMedicion(row._id)}
+                      <Tooltip title={"Editar Fila"}>
+                        <IconButton
+                          onClick={() => {
+                            setEditId(row._id);
+                            setForm({
+                              ...row,
+                              fecha: row.fecha || "",
+                            });
+                            setOpenEditar(true);
+                          }}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
+
+                      <Tooltip
+                        title={puedeEliminar ? "Eliminar" : "No tienes permisos"}
                       >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Tooltip>
+                        <IconButton
+                          disabled={!puedeEliminar}
+                          sx={{ color: "#5E5E5E" }}
+                          onClick={() => eliminarMedicion(row._id)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+
+                      {/* ICONO Vehiculo */}
+                      {renderIconoVehiculo(row.lecturas?.vehiculo_rechazado)}
+                    </Box>
                   </TableCell>
                   <TableCell align="center">{row.fecha}</TableCell>
 
