@@ -198,7 +198,7 @@ const FORMULAS = {
   },
 
   kilos_peso_neto: (L) =>
-    round(toNum(L.kilos_peso_final) - toNum(L.kilos_peso_inicial), 3),
+    round( toNum(L.kilos_peso_inicial)-toNum(L.kilos_peso_final), 3),
 
   variacion_peso: (L) =>
     round(
