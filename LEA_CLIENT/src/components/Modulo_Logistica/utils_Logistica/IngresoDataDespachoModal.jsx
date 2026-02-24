@@ -33,7 +33,7 @@ const CACHE_PREFIX = "despacho_catalogo_";
 const FORM_CACHE_PREFIX = "despacho_form_draft_";
 const TIME_KEYS = ["hora_llegada", "hora_salida"];
 const VEHICULO_RECHAZADO_KEY = "vehiculo_rechazado";
-const VEHICULO_RECHAZADO_OPTIONS = ["SI", "NO", "EN TRANSITO"];
+const VEHICULO_RECHAZADO_OPTIONS = ["SI", "NO", "EN TRANSITO", "APROBADO CON OBSERVACIONES", "EN CARGUE"];
 
 // celdas que seran tipo select formato 8:00 15:30
 
@@ -394,6 +394,29 @@ const IngresoDataDespachoModal = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  // "EN CARGUE" para vehiculo_rechazado en NUEVO
+  useEffect(() => {
+    if (!open) return;
+    if (isEdit) return;
+
+    setForm((prev) => {
+      const lecturas = prev?.lecturas ?? {};
+      const actual = lecturas?.[VEHICULO_RECHAZADO_KEY];
+
+      // Si ya tiene valor (por draft o usuario), no lo piso
+      if (actual != null && String(actual).trim() !== "") return prev;
+
+      return {
+        ...prev,
+        lecturas: {
+          ...lecturas,
+          [VEHICULO_RECHAZADO_KEY]: "EN CARGUE",
+        },
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isEdit]);
+
   // useEffect(() => {
   //   if (!open) return;
   //   const t = setTimeout(() => saveFormDraft(formCacheKey, form), 400);
@@ -712,7 +735,7 @@ const IngresoDataDespachoModal = ({
                         disableClearable
                         forcePopupIcon
                         options={VEHICULO_RECHAZADO_OPTIONS}
-                        value={form.lecturas?.[c.key] ?? "NO"}
+                        value={form.lecturas?.[c.key] ?? "EN CARGUE"}
                         onChange={(event, newValue) => {
                           if (isDisabled) return;
                           handleChangeLectura(c.key, newValue ?? "");

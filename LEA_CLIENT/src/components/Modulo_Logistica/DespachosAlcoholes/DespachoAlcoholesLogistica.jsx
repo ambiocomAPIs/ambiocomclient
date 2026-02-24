@@ -60,6 +60,8 @@ import YouTubeIcon from "@mui/icons-material/YouTube";
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import PersonRemoveAlt1Icon from '@mui/icons-material/PersonRemoveAlt1';
 import TimelapseIcon from '@mui/icons-material/Timelapse';
+import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
+import ReportIcon from '@mui/icons-material/Report';
 
 import ExcelUploadButton from "../utils_Logistica/ExcelUploadButton";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -543,25 +545,34 @@ export default function TablaDespachosLogistica() {
         </Tooltip>
       </Box>
     );
-
     if (valor === "SI") {
       return commonWrapper(
         <PersonRemoveAlt1Icon sx={{ color: "#9616ff" }} />,
         "Vehículo rechazado"
       );
     }
-
     if (valor === "NO") {
       return commonWrapper(
         <HowToRegIcon sx={{ color: "#3ed423" }} />,
         "Vehículo aprobado"
       );
     }
-
     if (valor === "EN TRANSITO") {
       return commonWrapper(
-        <TimelapseIcon sx={{ color: "#ffdc16" }} />,
+        <TimelapseIcon sx={{ color: "#ffb516" }} />,
         "En Transito"
+      );
+    }
+    if (valor === "EN CARGUE") {
+      return commonWrapper(
+        <LocalGasStationIcon sx={{ color: "#41acbd" }} />,
+        "En Cargue"
+      );
+    }
+    if (valor === "APROBADO CON OBSERVACIONES") {
+      return commonWrapper(
+        <ReportIcon sx={{ color: "#ff2d16" }} />,
+        "Aprobado con Observaciones"
       );
     }
 
@@ -1324,8 +1335,8 @@ export default function TablaDespachosLogistica() {
                       position: "sticky",
                       left: 0,
                       zIndex: 4,
-                      backgroundColor:
-                        porcentajeFaltante > 0 ? colorFila : "#fff",
+                      backgroundColor:"#dad9d9d4",
+                        // porcentajeFaltante > 0 ? colorFila : "#fff",
                       borderRight: "1px solid rgba(224,224,224,1)",
                       minWidth: 110,
                     }}
