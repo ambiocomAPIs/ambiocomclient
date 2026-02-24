@@ -214,7 +214,7 @@ const FORMULAS = {
     ),
 
   dif_kilos_neto: (L) =>
-    round(toNum(L.variacion_peso) - toNum(L.kilos_peso_neto), 3),
+    round(toNum(L.peso_neto_bascula_ambiocom) -  (toNum(L.kilos_peso_inicial)-toNum(L.kilos_peso_final)), 3),
 
   diferencia_recibo_cliente_vnetofacturado: (L) =>
     round(toNum(L.cantidad_recibida_cliente) - toNum(L.volumen_despachar), 3),
