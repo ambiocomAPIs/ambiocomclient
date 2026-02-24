@@ -450,6 +450,89 @@ const IngresoDataDespachoModal = ({
 
   const sxDisabled = { backgroundColor: "#f5f5f5" };
 
+const COLUMN_RENDER_ORDER = [
+  "transportadora",
+  "nombre_conductor",
+  "placa",
+  "remolque",
+  "hora_llegada",
+  "cliente",
+  "producto",
+  "__RESPONSABLE_RECIBO__",
+  "operario_auxiliar_logistica",  // responsable cargue
+  "volumen_despachar",
+  "tanque_salida",
+  "grado_alcoholico_lab",
+  "densidadlab_alcohol_tanque",
+  "vehiculo_rechazado",
+  "agua_tratada",
+  "brazo_despacho",
+  "inicio_contador_ambiocom",
+  "final_contador_ambiocom",
+  "peso_neto_contador_ambiocom",
+  "volumen_contador_gravimetrico",
+  "inicio_volumen_ambiocom",
+  "final_volumen_ambiocom",
+  "volumen_ambiocom_contador",
+  "temperatura_despacho_contador_ambiocom",
+  "muestreador_analista_laboratorio",
+  "numeracion_precintos_instalados",
+  "peso_neto_bascula_ambiocom",
+  "variacion_peso",
+  "variación_volumen",
+  "tiquete_bascula",
+  "hora_salida",
+  "responsable_despacho",
+  "tiempo_neto_cargue_despacho",
+  "orden_fabricacion",
+  "remision_factura",
+  "número_tornagia",
+  "cantidad_recibida_cliente",
+  "kilos_peso_inicial",
+  "kilos_peso_final",
+  "kilos_peso_neto",
+  "diferencia_recibo_cliente_vnetofacturado",
+  "diferencia_recibo_cliente",
+  "dif_v_netodif_v_desp_bascula_ambiocom",
+  "dif_kilos_neto",
+  "costo_transporte",
+  "factura_proveedor",
+  "entrada_orden_compra",
+  "__OBSERVACIONES__",
+];
+
+const buildRenderPlan = (cols) => {
+  const byKey = new Map((cols ?? []).map((c) => [c.key, c]));
+  const used = new Set();
+
+  const plan = [];
+
+  // Primero, todo lo definido en tu secuencia
+  for (const k of COLUMN_RENDER_ORDER) {
+    if (k === "__RESPONSABLE_RECIBO__") {
+      plan.push({ type: "fixed_responsable" });
+      continue;
+    }
+    if (k === "__OBSERVACIONES__") {
+      plan.push({ type: "fixed_observaciones" });
+      continue;
+    }
+
+    const col = byKey.get(k);
+    if (col) {
+      plan.push({ type: "col", col });
+      used.add(k);
+    }
+  }
+
+  // si hay columnas nuevas, que no estan definidas en la secuencia, listar despues de..
+  for (const c of cols ?? []) {
+    if (!used.has(c.key)) plan.push({ type: "col", col: c });
+  }
+
+  return plan;
+};
+
   return (
     <Dialog
       open={open}
@@ -495,153 +578,160 @@ const IngresoDataDespachoModal = ({
               </Box>
             )}
 
-            <Grid container spacing={1} mt={1}>
-              <Grid item xs={12} md={2}>
-                <TextField
-                  fullWidth
-                  type="date"
-                  label="Fecha"
-                  InputLabelProps={{ shrink: true }}
-                  value={form.fecha || ""}
-                  onChange={(e) => setForm({ ...form, fecha: e.target.value })}
-                />
-              </Grid>
+<Grid container spacing={1} mt={1}>
+  {/* ✅ 1) Fecha SIEMPRE primero */}
+  <Grid item xs={12} md={2}>
+    <TextField
+      fullWidth
+      type="date"
+      label="Fecha"
+      InputLabelProps={{ shrink: true }}
+      value={form.fecha || ""}
+      onChange={(e) => setForm({ ...form, fecha: e.target.value })}
+    />
+  </Grid>
 
-              {columnasOrdenadas.map((c) => {
-                const esSelect = SELECT_KEYS.includes(c.key);
-                const esHora = TIME_KEYS.includes(c.key);
-                const esVehiculoRechazado = c.key === VEHICULO_RECHAZADO_KEY;
-                const items = esSelect ? getItems(c.key) : [];
+  {/* ✅ 2) Render ordenado según la secuencia */}
+  {buildRenderPlan(columnasOrdenadas).map((item, idx) => {
+    if (item.type === "fixed_responsable") {
+      return (
+        <Grid item xs={6} md={2} key={`fixed_responsable_${idx}`}>
+          <TextField
+            fullWidth
+            label="Responsable de recibo"
+            value={form.responsable || ""}
+            onChange={(e) => setForm({ ...form, responsable: e.target.value })}
+          />
+        </Grid>
+      );
+    }
 
-                const allowedByRole = canRoleEditColumn(c);
-                const isDisabled = !allowedByRole;
+    if (item.type === "fixed_observaciones") {
+      return (
+        <Grid item xs={12} md={12} key={`fixed_observaciones_${idx}`}>
+          <TextField
+            fullWidth
+            label="Observaciones"
+            value={form.observaciones || ""}
+            onChange={(e) =>
+              setForm({ ...form, observaciones: e.target.value })
+            }
+          />
+        </Grid>
+      );
+    }
 
-                const sxField = allowedByRole ? sxAllowed : sxDisabled;
+    const c = item.col;
 
-                return (
-                  <Grid item xs={12} md={2} key={c.key}>
-                    {esSelect ? (
-                      <Autocomplete
-                        freeSolo
-                        forcePopupIcon
-                        options={items}
-                        getOptionLabel={(option) =>
-                          typeof option === "string"
-                            ? option
-                            : option.label ?? option.value ?? ""
-                        }
-                        value={
-                          items.find(
-                            (opt) => opt.value === form.lecturas?.[c.key]
-                          ) ||
-                          form.lecturas?.[c.key] ||
-                          ""
-                        }
-                        onChange={(event, newValue) => {
-                          if (isDisabled) return;
-                          if (typeof newValue === "string")
-                            handleChangeLectura(c.key, newValue);
-                          else handleChangeLectura(c.key, newValue?.value || "");
-                        }}
-                        onInputChange={(event, newInputValue) => {
-                          if (isDisabled) return;
-                          handleChangeLectura(c.key, newInputValue);
-                        }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label={c.nombre}
-                            fullWidth
-                            disabled={isDisabled}
-                            sx={sxField}
-                          />
-                        )}
-                      />
-                    ) : esHora ? (
-                      <Autocomplete
-                        freeSolo
-                        forcePopupIcon
-                        options={timeOptions}
-                        value={form.lecturas?.[c.key] ?? ""}
-                        onChange={(event, newValue) => {
-                          if (isDisabled) return;
-                          handleChangeLectura(c.key, newValue ?? "");
-                        }}
-                        onInputChange={(event, newInputValue) => {
-                          if (isDisabled) return;
-                          handleChangeLectura(c.key, newInputValue);
-                        }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label={c.nombre}
-                            fullWidth
-                            disabled={isDisabled}
-                            sx={sxField}
-                          />
-                        )}
-                      />
-                    ) : esVehiculoRechazado ? (
-                      <Autocomplete
-                        disableClearable
-                        forcePopupIcon
-                        options={VEHICULO_RECHAZADO_OPTIONS}
-                        value={form.lecturas?.[c.key] ?? "NO"}
-                        onChange={(event, newValue) => {
-                          if (isDisabled) return;
-                          handleChangeLectura(c.key, newValue ?? "");
-                        }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label={c.nombre}
-                            fullWidth
-                            disabled={isDisabled}
-                            sx={sxField}
-                          />
-                        )}
-                      />
-                    ) : (
-                      <TextField
-                        fullWidth
-                        label={c.nombre}
-                        type="text"
-                        value={form.lecturas?.[c.key] ?? ""}
-                        onChange={(e) => {
-                          if (isDisabled) return;
-                          handleChangeLectura(c.key, e.target.value);
-                        }}
-                        disabled={isDisabled}
-                        sx={sxField}
-                      />
-                    )}
-                  </Grid>
-                );
-              })}
+    const esSelect = SELECT_KEYS.includes(c.key);
+    const esHora = TIME_KEYS.includes(c.key);
+    const esVehiculoRechazado = c.key === VEHICULO_RECHAZADO_KEY;
+    const items = esSelect ? getItems(c.key) : [];
 
-              {/* Campos fijos (si también deben ser por rol, dímelo y los metemos igual) */}
-              <Grid item xs={6} md={2}>
-                <TextField
-                  fullWidth
-                  label="Responsable de recibo"
-                  value={form.responsable || ""}
-                  onChange={(e) =>
-                    setForm({ ...form, responsable: e.target.value })
-                  }
-                />
-              </Grid>
+    const allowedByRole = canRoleEditColumn(c);
+    const isDisabled = !allowedByRole;
 
-              <Grid item xs={12} md={12}>
-                <TextField
-                  fullWidth
-                  label="Observaciones"
-                  value={form.observaciones || ""}
-                  onChange={(e) =>
-                    setForm({ ...form, observaciones: e.target.value })
-                  }
-                />
-              </Grid>
-            </Grid>
+    const sxField = allowedByRole ? sxAllowed : sxDisabled;
+
+    return (
+      <Grid item xs={12} md={2} key={c.key}>
+        {esSelect ? (
+          <Autocomplete
+            freeSolo
+            forcePopupIcon
+            options={items}
+            getOptionLabel={(option) =>
+              typeof option === "string"
+                ? option
+                : option.label ?? option.value ?? ""
+            }
+            value={
+              items.find((opt) => opt.value === form.lecturas?.[c.key]) ||
+              form.lecturas?.[c.key] ||
+              ""
+            }
+            onChange={(event, newValue) => {
+              if (isDisabled) return;
+              if (typeof newValue === "string")
+                handleChangeLectura(c.key, newValue);
+              else handleChangeLectura(c.key, newValue?.value || "");
+            }}
+            onInputChange={(event, newInputValue) => {
+              if (isDisabled) return;
+              handleChangeLectura(c.key, newInputValue);
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label={c.nombre}
+                fullWidth
+                disabled={isDisabled}
+                sx={sxField}
+              />
+            )}
+          />
+        ) : esHora ? (
+          <Autocomplete
+            freeSolo
+            forcePopupIcon
+            options={timeOptions}
+            value={form.lecturas?.[c.key] ?? ""}
+            onChange={(event, newValue) => {
+              if (isDisabled) return;
+              handleChangeLectura(c.key, newValue ?? "");
+            }}
+            onInputChange={(event, newInputValue) => {
+              if (isDisabled) return;
+              handleChangeLectura(c.key, newInputValue);
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label={c.nombre}
+                fullWidth
+                disabled={isDisabled}
+                sx={sxField}
+              />
+            )}
+          />
+        ) : esVehiculoRechazado ? (
+          <Autocomplete
+            disableClearable
+            forcePopupIcon
+            options={VEHICULO_RECHAZADO_OPTIONS}
+            value={form.lecturas?.[c.key] ?? "NO"}
+            onChange={(event, newValue) => {
+              if (isDisabled) return;
+              handleChangeLectura(c.key, newValue ?? "");
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label={c.nombre}
+                fullWidth
+                disabled={isDisabled}
+                sx={sxField}
+              />
+            )}
+          />
+        ) : (
+          <TextField
+            fullWidth
+            label={c.nombre}
+            type="text"
+            value={form.lecturas?.[c.key] ?? ""}
+            onChange={(e) => {
+              if (isDisabled) return;
+              handleChangeLectura(c.key, e.target.value);
+            }}
+            disabled={isDisabled}
+            sx={sxField}
+          />
+        )}
+      </Grid>
+    );
+  })}
+</Grid>
           </>
         )}
       </DialogContent>
