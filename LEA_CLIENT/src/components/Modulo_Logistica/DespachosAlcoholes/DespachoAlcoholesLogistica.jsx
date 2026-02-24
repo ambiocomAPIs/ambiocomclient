@@ -122,6 +122,15 @@ export default function TablaDespachosLogistica() {
     totalizable: false,
   });
 
+  const [openObsVehiculo, setOpenObsVehiculo] = useState(false);
+  const [obsVehiculoData, setObsVehiculoData] = useState({
+    estado: "",
+    observacion: "",
+    fecha: "",
+    placa: "",
+    cliente: "",
+  });
+
   /* ================= CARGA INICIAL ================= */
   useEffect(() => {
     obtenerColumnas();
@@ -230,6 +239,25 @@ export default function TablaDespachosLogistica() {
     "liderlogistica",
   ]);
 
+  //doble click para mostrar observaciones si un vehiculo ha sido rechazado o aprobado con observaciones
+  const handleDblClickVehiculo = (row) => {
+    const estado = (row?.lecturas?.vehiculo_rechazado || "").toString().toUpperCase().trim();
+
+    // solo estos abren modal
+    if (estado !== "SI" && estado !== "APROBADO CON OBSERVACIONES") return;
+
+    const observacion = (row?.observaciones || "").toString().trim();
+
+    setObsVehiculoData({
+      estado,
+      observacion: observacion || "(Esta fila no tiene observación registrada)",
+      fecha: row?.fecha || "",
+      placa: row?.lecturas?.placa || "",
+      cliente: row?.lecturas?.cliente || "",
+    });
+
+    setOpenObsVehiculo(true);
+  };
   // Detectar click derecho para copiar tabla tipo SAP
   const handleContextMenu = (e) => {
     e.preventDefault();
@@ -1335,8 +1363,8 @@ export default function TablaDespachosLogistica() {
                       position: "sticky",
                       left: 0,
                       zIndex: 4,
-                      backgroundColor:"#dad9d9d4",
-                        // porcentajeFaltante > 0 ? colorFila : "#fff",
+                      backgroundColor: "#dad9d9d4",
+                      // porcentajeFaltante > 0 ? colorFila : "#fff",
                       borderRight: "1px solid rgba(224,224,224,1)",
                       minWidth: 110,
                     }}
@@ -1378,8 +1406,15 @@ export default function TablaDespachosLogistica() {
                       </Tooltip>
 
                       {/* ICONO Vehiculo */}
-                      {renderIconoVehiculo(row.lecturas?.vehiculo_rechazado)}
-                    </Box>
+                      <Box
+                        onDoubleClick={(e) => {  // doble click para abrir nota
+                          e.stopPropagation();
+                          handleDblClickVehiculo(row);
+                        }}
+                        sx={{ display: "flex", alignItems: "center" }}
+                      >
+                        {renderIconoVehiculo(row.lecturas?.vehiculo_rechazado)}
+                      </Box>                    </Box>
                   </TableCell>
                   <TableCell align="center">{row.fecha}</TableCell>
 
@@ -1496,6 +1531,36 @@ export default function TablaDespachosLogistica() {
           api.get("/transportadoras").then((r) => r.data)
         }
       />
+
+       {/* modal para mostrar notas y observaciones sobre carros rechazados */}
+      <Dialog
+        open={openObsVehiculo}
+        onClose={() => setOpenObsVehiculo(false)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle sx={{ pb: 1 }}>
+          vehículo Rechazado ? : ({obsVehiculoData.estado})
+        </DialogTitle>
+
+        <DialogContent sx={{ pt: 1 }}>
+          <Typography variant="body2" sx={{ mb: 1, opacity: 0.8 }}>
+            <b>Fecha:</b> {obsVehiculoData.fecha || "—"} <br />
+            <b>Placa:</b> {obsVehiculoData.placa || "—"} <br />
+            <b>Cliente:</b> {obsVehiculoData.cliente || "—"}
+          </Typography>
+
+          <Paper variant="outlined" sx={{ p: 1.2, borderRadius: 2 }}>
+            <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+              {obsVehiculoData.observacion}
+            </Typography>
+          </Paper>
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setOpenObsVehiculo(false)}>Cerrar</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* ================= MODAL COLUMNA ================= */}
       <Dialog open={openColumna} fullWidth maxWidth="xs">
