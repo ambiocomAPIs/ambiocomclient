@@ -1532,33 +1532,145 @@ export default function TablaDespachosLogistica() {
         }
       />
 
-       {/* modal para mostrar notas y observaciones sobre carros rechazados */}
+      {/* modal para mostrar notas y observaciones sobre carros rechazados */}
       <Dialog
         open={openObsVehiculo}
         onClose={() => setOpenObsVehiculo(false)}
         fullWidth
         maxWidth="xs"
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: "0 18px 60px rgba(0,0,0,0.18)",
+            overflow: "hidden",
+          },
+        }}
       >
-        <DialogTitle sx={{ pb: 1 }}>
-          vehículo Rechazado ? : ({obsVehiculoData.estado})
-        </DialogTitle>
+        {/* Header */}
+        <Box sx={{ px: 2.2, py: 1.6, borderBottom: "1px solid rgba(0,0,0,0.08)" }}>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 800, letterSpacing: 0.2 }}>
+                Observación del vehículo
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.75 }}>
+                Revisión / control de despacho
+              </Typography>
+            </Box>
 
-        <DialogContent sx={{ pt: 1 }}>
-          <Typography variant="body2" sx={{ mb: 1, opacity: 0.8 }}>
-            <b>Fecha:</b> {obsVehiculoData.fecha || "—"} <br />
-            <b>Placa:</b> {obsVehiculoData.placa || "—"} <br />
-            <b>Cliente:</b> {obsVehiculoData.cliente || "—"}
+            {/* Chip de estado */}
+            <Box
+              sx={{
+                px: 1.1,
+                py: 0.5,
+                borderRadius: 999,
+                fontSize: 12,
+                fontWeight: 800,
+                letterSpacing: 0.4,
+                border: "1px solid rgba(0,0,0,0.14)",
+                bgcolor:
+                  obsVehiculoData.estado === "SI" || obsVehiculoData.estado === "APROBADO CON OBSERVACIONES"
+                    ? "rgba(211, 47, 47, 0.10)"
+                    : "rgba(46, 125, 50, 0.10)",
+                color:
+                  obsVehiculoData.estado === "SI" || obsVehiculoData.estado === "APROBADO CON OBSERVACIONES"
+                    ? "rgb(211, 47, 47)"
+                    : "rgb(46, 125, 50)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {obsVehiculoData.estado || "—"}
+            </Box>
+          </Box>
+        </Box>
+
+        <DialogContent sx={{ px: 2.2, py: 2 }}>
+          {/* Bloque de metadata */}
+          <Paper
+            variant="outlined"
+            sx={{
+              borderRadius: 2.5,
+              p: 1.4,
+              bgcolor: "rgba(0,0,0,0.02)",
+              borderColor: "rgba(0,0,0,0.08)",
+              mb: 1.5,
+            }}
+          >
+            <Box sx={{ display: "grid", gridTemplateColumns: "1fr", rowGap: 0.6 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
+                <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                  Fecha
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                  {obsVehiculoData.fecha || "—"}
+                </Typography>
+              </Box>
+
+              <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
+                <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                  Placa
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                  {obsVehiculoData.placa || "—"}
+                </Typography>
+              </Box>
+
+              <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
+                <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                  Cliente
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 700, textAlign: "right", maxWidth: "65%", overflow: "hidden", textOverflow: "ellipsis" }}
+                  title={obsVehiculoData.cliente || ""}
+                >
+                  {obsVehiculoData.cliente || "—"}
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
+
+          {/* Observación */}
+          <Typography variant="caption" sx={{ opacity: 0.75, display: "block", mb: 0.8 }}>
+            Observación
           </Typography>
 
-          <Paper variant="outlined" sx={{ p: 1.2, borderRadius: 2 }}>
-            <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-              {obsVehiculoData.observacion}
+          <Paper
+            variant="outlined"
+            sx={{
+              borderRadius: 2.5,
+              p: 1.4,
+              borderColor: "rgba(0,0,0,0.10)",
+              bgcolor: "#fff",
+            }}
+          >
+            <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
+              {obsVehiculoData.observacion || "—"}
             </Typography>
           </Paper>
         </DialogContent>
 
-        <DialogActions>
-          <Button onClick={() => setOpenObsVehiculo(false)}>Cerrar</Button>
+        <DialogActions
+          sx={{
+            px: 2.2,
+            py: 1.4,
+            borderTop: "1px solid rgba(0,0,0,0.08)",
+            justifyContent: "flex-end",
+          }}
+        >
+          <Button
+            onClick={() => setOpenObsVehiculo(false)}
+            variant="contained"
+            sx={{
+              borderRadius: 2,
+              textTransform: "none",
+              fontWeight: 800,
+              px: 2.4,
+              boxShadow: "none",
+            }}
+          >
+            Cerrar
+          </Button>
         </DialogActions>
       </Dialog>
 
