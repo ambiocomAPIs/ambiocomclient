@@ -34,9 +34,9 @@ const FORM_CACHE_PREFIX = "despacho_form_draft_";
 const TIME_KEYS = ["hora_llegada", "hora_salida"];
 const VEHICULO_RECHAZADO_KEY = "vehiculo_rechazado";
 const VEHICULO_RECHAZADO_OPTIONS = ["SI", "NO", "EN TRANSITO", "APROBADO CON OBSERVACIONES", "EN CARGUE"];
+const RESPONSABLE_RECIBO_ROLES = ["developer", "liderlogistica","auxiliarlogistica2"];  // permisos para editar responsable
 
 // celdas que seran tipo select formato 8:00 15:30
-
 const loadCacheMeta = (key) => {
   try {
     const raw = localStorage.getItem(`${CACHE_PREFIX}${key}`);
@@ -257,8 +257,9 @@ const IngresoDataDespachoModal = ({
 }) => {
   // rol real desde cookie/session (AuthContext)
   const { rol, loadingAuth, isAuth } = useAuth();
-
   const roleNorm = String(rol || "").toLowerCase().trim();
+  //evalua que roles pueden editar el campo
+  const canEditResponsableRecibo = isAuth && RESPONSABLE_RECIBO_ROLES.includes(roleNorm);
 
   const [catalogos, setCatalogos] = useState({
     conductores: [],
@@ -630,13 +631,20 @@ const IngresoDataDespachoModal = ({
               {/* ✅ 2) Render ordenado según la secuencia */}
               {buildRenderPlan(columnasOrdenadas).map((item, idx) => {
                 if (item.type === "fixed_responsable") {
+                  const isDisabled = !canEditResponsableRecibo;
+                  const sxField = !isDisabled ? sxAllowed : sxDisabled;
                   return (
                     <Grid item xs={6} md={2} key={`fixed_responsable_${idx}`}>
                       <TextField
                         fullWidth
                         label="Responsable de recibo"
                         value={form.responsable || ""}
-                        onChange={(e) => setForm({ ...form, responsable: e.target.value })}
+                        onChange={(e) => {
+                          if (isDisabled) return;
+                          setForm({ ...form, responsable: e.target.value });
+                        }}
+                        disabled={isDisabled}
+                        sx={sxField}
                       />
                     </Grid>
                   );
@@ -796,7 +804,7 @@ const IngresoDataDespachoModal = ({
         <Button
           variant="contained"
           onClick={() => {
-            clearFormDraft(formCacheKey);
+            if (formCacheKey) clearFormDraft(formCacheKey);
             onSave();
           }}
           disabled={loadingAuth || !isAuth} // opcional: bloquear guardar sin sesión
