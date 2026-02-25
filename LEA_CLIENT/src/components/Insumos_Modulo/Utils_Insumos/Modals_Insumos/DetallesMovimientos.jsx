@@ -51,7 +51,7 @@ const ModalFilterMovimientos = ({ open, onClose, usuario }) => {
   const fetchData = async () => {
     try {
       const response = await axios.get(
-        "https://ambiocomserver.onrender.com/api/registro/movimientos"
+        "https://ambiocomserver.onrender.com1/api/registro/movimientos"
       );
       setData(response.data);
     } catch (error) {
@@ -344,7 +344,7 @@ const ModalFilterMovimientos = ({ open, onClose, usuario }) => {
         return;
       }
       await axios.delete(
-        `https://ambiocomserver.onrender.com/api/registro/movimientos/${id}`
+        `https://ambiocomserver.onrender.com1/api/registro/movimientos/${id}`
       );
 
       fetchData(); // refrescar lista

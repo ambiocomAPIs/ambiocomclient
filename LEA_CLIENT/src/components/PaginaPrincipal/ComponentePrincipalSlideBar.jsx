@@ -61,6 +61,7 @@ import DespachoAlcoholesLogistica from '../Modulo_Logistica/DespachosAlcoholes/D
 import ConductoresPage from '../Modulo_Logistica/ConductoresDB/ConductoresPage.jsx';
 import TransportadorasPage from "../Modulo_Logistica/Transportadoras/TransportadorasPage.jsx"
 import ProductosDespacho from "../Modulo_Logistica/Productos/ProductosDespacho.jsx"
+import ColumnasDBManagement from "../Modulo_Logistica/Desarrollador_DB/ColumnasDBManagement.jsx"
 //empelados
 import EmpleadosManager from '../EmpleadosManager/EmpleadosAmbiocomList.jsx';
 //Medidores
@@ -78,7 +79,7 @@ import {
     tanqueIcon, factoryIcon, despachoIcon, despachoSalidaIcon, despachoRecepcionIcon, laboratoryIcon, inventoryIcon, rulerIcon, oilTankIcon, coalInventoryIcon,
     ptapIcon, GraphIcon, BarGraphIcon, BarGraphComparativeIcon, robotAssistanceIcon, bitacoraIcon, StopWatchIcon, PdfIcon, DatabaseAdministratorIcon, workerIcon,
     TankGraphIcon, CounterIcon, MoneyGraphIcon, EnergyIcon, EnergyDataIcon, InOutMaderaCarbonIcon, InformeIcon, TankWithLiquidIcon, ReportIcon,
-    Driver, ClientIcon, TruckCompany, ProductDespacho
+    Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -94,7 +95,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
     const { tanques, loading, setTanques } = useTanques();
     const { nivelesTanques, nivelesTanquesLoading, setNivelesTanques } = useNivelesDiariosTanques();
     const { empleadosActivos, loadingEmpleados } = useEmpleados();
-    const { rol, loadingAuth, logout, user } = useAuth();
+    const { rol, loadingAuth, logout, user, refreshMe } = useAuth();
     // -----------------------------------------------
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -107,9 +108,25 @@ export default function EmpresarialPrincipalSchedulerApp() {
     const [dbInfo, setDbInfo] = useState("");
 
     const navigate = useNavigate();
+
+    useEffect(() => {
+        refreshMe();
+    }, []);
+
+    // recarga la pagina al iniciar
+    //     useEffect(() => {
+    //   const key = "reloaded_principal_once";
+    //   const already = sessionStorage.getItem(key);
+
+    //   if (!already) {
+    //     sessionStorage.setItem(key, "1");
+    //     window.location.reload();
+    //   }
+    // }, []);
+    
     // watch para ver en que DB estoy trabajando
     useEffect(() => {
-        axios.get("https://ambiocomserver.onrender.com/api/meta").then(res => {
+        axios.get("https://ambiocomserver.onrender.com1/api/meta").then(res => {
             setDbInfo(res.data.db);
         });
     }, []);
@@ -165,7 +182,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             text: 'Inicio Ambiocom',
             key: 'paginadeinicio',
             roles: ["*"], //visible para todos
-            icon: <img src={"/logo_ambiocom.png"} alt="inicio" style={{ width: 35, height: 35 }} />,
+            icon: <img src={"/LogoCompany/logoambiocomicon.png"} alt="inicio" style={{ width: 34, height: 34 }} />,
         },
         {
             text: 'Informes',
@@ -180,11 +197,11 @@ export default function EmpresarialPrincipalSchedulerApp() {
         {
             text: 'Produccion',
             key: 'produccion',
-            roles: ["admin", "developer"],
+            roles: ["admin", "developer","supervisor"],
             icon: <img src={factoryIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
             subItems: [
                 { text: 'Inventario de insumos', subKey: 'Inventariodeinsumos', /* roles: ["admin","supervisor"], */ icon: <img src={inventoryIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
-                { text: 'Tanques Jornaleros', subKey: 'Tanquesjornaleros', roles: ["admin", "developer", "liderlogistica"], icon: <img src={rulerIcon} alt="tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
+                { text: 'Tanques Jornaleros', subKey: 'Tanquesjornaleros', roles: ["admin", "developer", "liderlogistica","supervisor"], icon: <img src={rulerIcon} alt="tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
                 { text: 'Bitacora Supervisores', subKey: 'bitacoradeturnosupervisores', /* roles: ["admin","supervisor"], */ icon: <img src={bitacoraIcon} alt="bitacoradeturnosupervisores" style={{ width: 25, height: 25 }} /> },
                 { text: 'Inventario Combust', subKey: 'inventariodecarbonymadera', /* roles: ["admin","supervisor"], */ icon: <img src={coalInventoryIcon} alt="Tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
                 { text: 'Horas Extras', subKey: 'horasextrassupervisores', /* roles: ["admin","supervisor"], */ icon: <img src={StopWatchIcon} alt="horasextrassupervisores" style={{ width: 25, height: 25 }} /> },
@@ -205,6 +222,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'Clientes', subKey: 'ClientesDB', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1"], icon: <img src={ClientIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Transportadora', subKey: 'transportadorasdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1"], icon: <img src={TruckCompany} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Ingresos_M-C', subKey: 'moduloingresosmaderacarbon', roles: ["admin", "developer"], icon: <img src={InOutMaderaCarbonIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'DEV_Functions', subKey: 'gestiondecolumnasdesarrollador', roles: ["developer"], icon: <img src={DevIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
             ],
         },
         {
@@ -345,6 +363,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'conductoresdb': return <ConductoresPage />;
             case 'transportadorasdb': return <TransportadorasPage />;
             case 'productosdespacho': return <ProductosDespacho />;
+            case 'gestiondecolumnasdesarrollador': return <ColumnasDBManagement />;
             //pagina mantenimiento
             case 'modulomantenimiento': return <ModuloEnMantenimiento />;
             default: return null;

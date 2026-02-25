@@ -8,9 +8,11 @@ import {
   Button,
   Grid,
   TextField,
-  MenuItem,
+  Box,
+  Typography,
 } from "@mui/material";
 import Autocomplete from "@mui/material/Autocomplete";
+import { useAuth } from "../../../utils/Context/AuthContext/AuthContext";
 
 const columnasBloqueadas = [
   "volumen_contador_gravimetrico",
@@ -22,7 +24,6 @@ const columnasBloqueadas = [
   "variacion_peso",
   "variación_volumen",
   "tiempo_neto_cargue_despacho",
-  // "cantidad_recibida_cliente",
   "kilos_peso_neto",
   "diferencia_recibo_cliente_vnetofacturado",
 ];
@@ -30,14 +31,18 @@ const columnasBloqueadas = [
 const SELECT_KEYS = ["nombre_conductor", "cliente", "transportadora", "producto"];
 const CACHE_PREFIX = "despacho_catalogo_";
 const FORM_CACHE_PREFIX = "despacho_form_draft_";
+const TIME_KEYS = ["hora_llegada", "hora_salida"];
+const VEHICULO_RECHAZADO_KEY = "vehiculo_rechazado";
+const VEHICULO_RECHAZADO_OPTIONS = ["SI", "NO", "EN TRANSITO", "APROBADO CON OBSERVACIONES", "EN CARGUE"];
+const RESPONSABLE_RECIBO_ROLES = ["developer", "liderlogistica","auxiliarlogistica2"];  // permisos para editar responsable
 
+// celdas que seran tipo select formato 8:00 15:30
 const loadCacheMeta = (key) => {
   try {
     const raw = localStorage.getItem(`${CACHE_PREFIX}${key}`);
     if (!raw) return { data: [], updatedAt: 0 };
 
     const parsed = JSON.parse(raw);
-
     if (Array.isArray(parsed)) return { data: parsed, updatedAt: 0 };
 
     return {
@@ -115,38 +120,21 @@ const toNum = (v) => {
   let s = String(v).trim();
   if (!s) return 0;
 
-  // quitar espacios
   s = s.replace(/\s/g, "");
-
   const hasComma = s.includes(",");
   const hasDot = s.includes(".");
 
   if (hasComma && hasDot) {
-    // el último símbolo es el decimal
-    if (s.lastIndexOf(",") > s.lastIndexOf(".")) {
-      // 1.234,56  → decimal es coma
+    if (s.lastIndexOf(",") > s.lastIndexOf("."))
       s = s.replace(/\./g, "").replace(",", ".");
-    } else {
-      // 1,234.56  → decimal es punto
-      s = s.replace(/,/g, "");
-    }
+    else s = s.replace(/,/g, "");
   } else if (hasComma) {
-    // solo coma → decidir si es decimal o miles
     const parts = s.split(",");
-    if (parts[1]?.length === 3) {
-      // probablemente miles → 1,234
-      s = parts.join("");
-    } else {
-      // decimal → 123,45
-      s = s.replace(",", ".");
-    }
+    if (parts[1]?.length === 3) s = parts.join("");
+    else s = s.replace(",", ".");
   } else if (hasDot) {
     const parts = s.split(".");
-    if (parts[1]?.length === 3) {
-      // miles → 1.234
-      s = parts.join("");
-    }
-    // si no, se asume decimal
+    if (parts[1]?.length === 3) s = parts.join("");
   }
 
   const n = Number(s);
@@ -171,6 +159,18 @@ const parseHHMMToMinutes = (hhmm) => {
 
 const safeStr = (v) => (v == null ? "" : String(v));
 
+const pad2 = (n) => String(n).padStart(2, "0");
+
+const buildTimeOptions = (stepMinutes = 15) => {
+  const out = [];
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += stepMinutes) {
+      out.push(`${h}:${pad2(m)}`);
+    }
+  }
+  return out;
+};
+
 const FORMULAS = {
   volumen_contador_gravimetrico: (L) =>
     round(
@@ -194,12 +194,11 @@ const FORMULAS = {
     if (a == null || b == null) return "";
     const diff = b - a;
     if (diff < 0) return "";
-
-    return round(diff / 60, 1); // horas con 1 decimales
+    return round(diff / 60, 1);
   },
 
   kilos_peso_neto: (L) =>
-    round(toNum(L.kilos_peso_final) - toNum(L.kilos_peso_inicial), 3),
+    round( toNum(L.kilos_peso_inicial)-toNum(L.kilos_peso_final), 3),
 
   variacion_peso: (L) =>
     round(
@@ -209,15 +208,17 @@ const FORMULAS = {
     ),
 
   variación_volumen: (L) =>
-    round(toNum(L.volumen_ambiocom_contador) - toNum(L.volumen_despachar), 3),
+    round(
+      toNum(L.volumen_ambiocom_contador) - toNum(L.volumen_despachar),
+      3
+    ),
 
   dif_kilos_neto: (L) =>
-    round(toNum(L.variacion_peso) - toNum(L.kilos_peso_neto), 3),
+    round((toNum(L.kilos_peso_inicial)-toNum(L.kilos_peso_final))- toNum(L.peso_neto_bascula_ambiocom)  , 3),
 
   diferencia_recibo_cliente_vnetofacturado: (L) =>
     round(toNum(L.cantidad_recibida_cliente) - toNum(L.volumen_despachar), 3),
 
-  //aun no
   diferencia_recibo_cliente: (L) =>
     round(
       toNum(L.cantidad_recibida_cliente_real) - toNum(L.cantidad_facturada),
@@ -230,11 +231,6 @@ const FORMULAS = {
       toNum(L.volumen_despacho_bascula_ambiocom),
       3
     ),
-
-  // cantidad_recibida_cliente: (L) => {
-  //   const v = L.cantidad_recibida_cliente_real ?? L.cantidad_recibida_cliente;
-  //   return v == null ? "" : v;
-  // },
 };
 
 const recalcBloqueadas = (lecturas) => {
@@ -242,8 +238,7 @@ const recalcBloqueadas = (lecturas) => {
   for (const key of columnasBloqueadas) {
     const fn = FORMULAS[key];
     if (!fn) continue;
-    const computed = fn(next);
-    next[key] = computed;
+    next[key] = fn(next);
   }
   return next;
 };
@@ -256,12 +251,16 @@ const IngresoDataDespachoModal = ({
   form,
   setForm,
   isEdit = false,
-
-  // ✅ Pásalas cuando conectes backend (pueden ser undefined por ahora)
-  fetchConductores, // async () => [...]
-  fetchClientes, // async () => [...]
-  fetchTransportadoras, // async () => [...]
+  fetchConductores,
+  fetchClientes,
+  fetchTransportadoras,
 }) => {
+  // rol real desde cookie/session (AuthContext)
+  const { rol, loadingAuth, isAuth } = useAuth();
+  const roleNorm = String(rol || "").toLowerCase().trim();
+  //evalua que roles pueden editar el campo
+  const canEditResponsableRecibo = isAuth && RESPONSABLE_RECIBO_ROLES.includes(roleNorm);
+
   const [catalogos, setCatalogos] = useState({
     conductores: [],
     clientes: [],
@@ -273,8 +272,12 @@ const IngresoDataDespachoModal = ({
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
 
-  const formCacheKey = `${FORM_CACHE_PREFIX}${form?.id ?? form?.id_despacho ?? "nuevo"
-    }`;
+  // const formCacheKey = `${FORM_CACHE_PREFIX}${form?.id ?? form?.id_despacho ?? "nuevo"}`;
+  const formCacheKey = !isEdit
+    ? `${FORM_CACHE_PREFIX}${form?.id ?? form?.id_despacho ?? "nuevo"}`
+    : null;
+
+  const timeOptions = useMemo(() => buildTimeOptions(15), []);
 
   const handleChangeLectura = (key, value) => {
     setForm((prev) => ({
@@ -286,6 +289,18 @@ const IngresoDataDespachoModal = ({
     }));
   };
 
+  const canRoleEditColumn = (col) => {
+    // no auth / sin rol => bloquea todo
+    if (!isAuth || !roleNorm) return false;
+
+    // calculadas => siempre bloqueadas
+    if (columnasBloqueadas.includes(col.key)) return false;
+
+    // rolesDigitables viene de tu colección de columnas
+    const roles = Array.isArray(col.rolesDigitables) ? col.rolesDigitables : [];
+    return roles.map((r) => String(r).toLowerCase().trim()).includes(roleNorm);
+  };
+
   const getItems = (key) => {
     if (key === "nombre_conductor") return catalogos.conductores;
     if (key === "cliente") return catalogos.clientes;
@@ -295,10 +310,7 @@ const IngresoDataDespachoModal = ({
   };
 
   const refreshCatalogos = async () => {
-    // si no hay funciones aún, no hacemos nada
     if (!fetchConductores || !fetchClientes || !fetchTransportadoras) return;
-
-    // si no hay internet, evita el intento (igual podrías intentar y que falle)
     if (typeof navigator !== "undefined" && !navigator.onLine) return;
 
     try {
@@ -328,7 +340,7 @@ const IngresoDataDespachoModal = ({
     }
   };
 
-  const PRODUCTOS_URL = "https://ambiocomserver.onrender.com/api/alcoholesdespacho";
+  const PRODUCTOS_URL = "https://ambiocomserver.onrender.com1/api/alcoholesdespacho";
 
   const mapProductosToOptions = (arr) =>
     (arr ?? []).map((p) => ({
@@ -354,7 +366,6 @@ const IngresoDataDespachoModal = ({
     }
   };
 
-  // ✅ 1) cuando abre, cargar cache inmediatamente + refrescar si se puede
   useEffect(() => {
     if (!open) return;
 
@@ -381,20 +392,49 @@ const IngresoDataDespachoModal = ({
 
     refreshCatalogos();
     refreshProductosTTL();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // "EN CARGUE" para vehiculo_rechazado en NUEVO
+  useEffect(() => {
+    if (!open) return;
+    if (isEdit) return;
+
+    setForm((prev) => {
+      const lecturas = prev?.lecturas ?? {};
+      const actual = lecturas?.[VEHICULO_RECHAZADO_KEY];
+
+      // Si ya tiene valor (por draft o usuario), no lo piso
+      if (actual != null && String(actual).trim() !== "") return prev;
+
+      return {
+        ...prev,
+        lecturas: {
+          ...lecturas,
+          [VEHICULO_RECHAZADO_KEY]: "EN CARGUE",
+        },
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isEdit]);
+
+  // useEffect(() => {
+  //   if (!open) return;
+  //   const t = setTimeout(() => saveFormDraft(formCacheKey, form), 400);
+  //   return () => clearTimeout(t);
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [open, form, formCacheKey]);
 
   useEffect(() => {
     if (!open) return;
+    if (isEdit) return;            // ✅ no guardar draft en edición
+    if (!formCacheKey) return;     // ✅ seguridad
 
-    const t = setTimeout(() => {
-      saveFormDraft(formCacheKey, form);
-    }, 400);
-
+    const t = setTimeout(() => saveFormDraft(formCacheKey, form), 400);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, form, formCacheKey]);
+  }, [open, form, formCacheKey, isEdit]);
 
-  // ✅ 2) listener online/offline para reintentar cuando vuelva el internet
   useEffect(() => {
     const onOnline = () => {
       setIsOnline(true);
@@ -429,21 +469,111 @@ const IngresoDataDespachoModal = ({
       }
       if (!changed) return prev;
 
-      return {
-        ...prev,
-        lecturas: lecturasNext,
-      };
+      return { ...prev, lecturas: lecturasNext };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, form?.lecturas]);
 
   const columnasOrdenadas = useMemo(() => columnas, [columnas]);
 
+  const sxAllowed = {
+    "& .MuiOutlinedInput-root fieldset": {
+      borderWidth: 2,
+      borderColor: "orange",
+    },
+    "& .MuiOutlinedInput-root:hover fieldset": { borderColor: "orange" },
+    "& .MuiOutlinedInput-root.Mui-focused fieldset": { borderColor: "orange" },
+  };
+
+  const sxDisabled = { backgroundColor: "#f5f5f5" };
+
+  const COLUMN_RENDER_ORDER = [
+    "transportadora",
+    "nombre_conductor",
+    "placa",
+    "remolque",
+    "hora_llegada",
+    "cliente",
+    "producto",
+    "__RESPONSABLE_RECIBO__",
+    "operario_auxiliar_logistica",  // responsable cargue
+    "volumen_despachar",
+    "tanque_salida",
+    "grado_alcoholico_lab",
+    "densidadlab_alcohol_tanque",
+    "vehiculo_rechazado",
+    "agua_tratada",
+    "brazo_despacho",
+    "inicio_contador_ambiocom",
+    "final_contador_ambiocom",
+    "peso_neto_contador_ambiocom",
+    "volumen_contador_gravimetrico",
+    "inicio_volumen_ambiocom",
+    "final_volumen_ambiocom",
+    "volumen_ambiocom_contador",
+    "temperatura_despacho_contador_ambiocom",
+    "muestreador_analista_laboratorio",
+    "numeracion_precintos_instalados",
+    "peso_neto_bascula_ambiocom",
+    "variacion_peso",
+    "variación_volumen",
+    "tiquete_bascula",
+    "hora_salida",
+    "responsable_despacho",
+    "tiempo_neto_cargue_despacho",
+    "orden_fabricacion",
+    "remision_factura",
+    "número_tornagia",
+    "cantidad_recibida_cliente",
+    "kilos_peso_inicial",
+    "kilos_peso_final",
+    "kilos_peso_neto",
+    "diferencia_recibo_cliente_vnetofacturado",
+    "diferencia_recibo_cliente",
+    "dif_v_netodif_v_desp_bascula_ambiocom",
+    "dif_kilos_neto",
+    "costo_transporte",
+    "factura_proveedor",
+    "entrada_orden_compra",
+    "__OBSERVACIONES__",
+  ];
+
+  const buildRenderPlan = (cols) => {
+    const byKey = new Map((cols ?? []).map((c) => [c.key, c]));
+    const used = new Set();
+
+    const plan = [];
+
+    // Primero, todo lo definido en tu secuencia
+    for (const k of COLUMN_RENDER_ORDER) {
+      if (k === "__RESPONSABLE_RECIBO__") {
+        plan.push({ type: "fixed_responsable" });
+        continue;
+      }
+      if (k === "__OBSERVACIONES__") {
+        plan.push({ type: "fixed_observaciones" });
+        continue;
+      }
+
+      const col = byKey.get(k);
+      if (col) {
+        plan.push({ type: "col", col });
+        used.add(k);
+      }
+    }
+
+    // si hay columnas nuevas, que no estan definidas en la secuencia, listar despues de..
+    for (const c of cols ?? []) {
+      if (!used.has(c.key)) plan.push({ type: "col", col: c });
+    }
+
+    return plan;
+  };
+
   return (
     <Dialog
       open={open}
       onClose={(event, reason) => {
-        // Evita cerrar por click fuera o por ESC
         if (reason === "backdropClick" || reason === "escapeKeyDown") return;
         onClose();
       }}
@@ -462,104 +592,203 @@ const IngresoDataDespachoModal = ({
       </DialogTitle>
 
       <DialogContent>
-        <Grid container spacing={1} mt={1}>
-          {/* 🔹 Campos dinámicos */}
-          {columnasOrdenadas.map((c) => {
-            const isDisabled = columnasBloqueadas.includes(c.key);
-            const esSelect = SELECT_KEYS.includes(c.key);
-            const items = esSelect ? getItems(c.key) : [];
+        {/* ✅ mientras el AuthContext resuelve /me */}
+        {loadingAuth ? (
+          <Box py={2}>
+            <Typography variant="body2" sx={{ opacity: 0.8 }}>
+              Cargando sesión...
+            </Typography>
+          </Box>
+        ) : (
+          <>
+            {!isAuth || !roleNorm ? (
+              <Box py={2}>
+                <Typography variant="body2" color="error">
+                  No hay sesión válida. No se puede editar.
+                </Typography>
+              </Box>
+            ) : (
+              <Box pb={1}>
+                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                  Rol logueado: <b>{roleNorm}</b>
+                </Typography>
+              </Box>
+            )}
 
-            return (
-              <Grid item xs={12} md={2} key={c.key}>
-                {esSelect ? (
-                  <Autocomplete
-                    freeSolo
-                    forcePopupIcon={true} // 👈 esto obliga a mostrar la flecha
-                    options={items}
-                    getOptionLabel={(option) =>
-                      typeof option === "string" ? option : (option.label ?? option.value ?? "")
-                    }
-                    value={
-                      items.find((opt) => opt.value === form.lecturas?.[c.key]) ||
-                      form.lecturas?.[c.key] ||
-                      ""
-                    }
-                    onChange={(event, newValue) => {
-                      if (typeof newValue === "string") {
-                        handleChangeLectura(c.key, newValue);
-                      } else {
-                        handleChangeLectura(c.key, newValue?.value || "");
-                      }
-                    }}
-                    onInputChange={(event, newInputValue) => {
-                      handleChangeLectura(c.key, newInputValue);
-                    }}
-                    renderInput={(params) => (
+            <Grid container spacing={1} mt={1}>
+              {/* ✅ 1) Fecha SIEMPRE primero */}
+              <Grid item xs={12} md={2}>
+                <TextField
+                  fullWidth
+                  type="date"
+                  label="Fecha"
+                  InputLabelProps={{ shrink: true }}
+                  value={form.fecha || ""}
+                  onChange={(e) => setForm({ ...form, fecha: e.target.value })}
+                />
+              </Grid>
+
+              {/* ✅ 2) Render ordenado según la secuencia */}
+              {buildRenderPlan(columnasOrdenadas).map((item, idx) => {
+                if (item.type === "fixed_responsable") {
+                  const isDisabled = !canEditResponsableRecibo;
+                  const sxField = !isDisabled ? sxAllowed : sxDisabled;
+                  return (
+                    <Grid item xs={6} md={2} key={`fixed_responsable_${idx}`}>
                       <TextField
-                        {...params}
-                        label={c.nombre}
                         fullWidth
+                        label="Responsable de recibo"
+                        value={form.responsable || ""}
+                        onChange={(e) => {
+                          if (isDisabled) return;
+                          setForm({ ...form, responsable: e.target.value });
+                        }}
                         disabled={isDisabled}
+                        sx={sxField}
+                      />
+                    </Grid>
+                  );
+                }
+
+                if (item.type === "fixed_observaciones") {
+                  return (
+                    <Grid item xs={12} md={12} key={`fixed_observaciones_${idx}`}>
+                      <TextField
+                        fullWidth
+                        label="Observaciones"
+                        value={form.observaciones || ""}
+                        onChange={(e) =>
+                          setForm({ ...form, observaciones: e.target.value })
+                        }
+                      />
+                    </Grid>
+                  );
+                }
+
+                const c = item.col;
+
+                const esSelect = SELECT_KEYS.includes(c.key);
+                const esHora = TIME_KEYS.includes(c.key);
+                const esVehiculoRechazado = c.key === VEHICULO_RECHAZADO_KEY;
+                const items = esSelect ? getItems(c.key) : [];
+
+                const allowedByRole = canRoleEditColumn(c);
+                const isDisabled = !allowedByRole;
+
+                const sxField = allowedByRole ? sxAllowed : sxDisabled;
+
+                return (
+                  <Grid item xs={12} md={2} key={c.key}>
+                    {esSelect ? (
+                      <Autocomplete
+                        freeSolo
+                        forcePopupIcon
+                        options={items}
+                        getOptionLabel={(option) =>
+                          typeof option === "string"
+                            ? option
+                            : option.label ?? option.value ?? ""
+                        }
+                        value={
+                          items.find((opt) => opt.value === form.lecturas?.[c.key]) ||
+                          form.lecturas?.[c.key] ||
+                          ""
+                        }
+                        onChange={(event, newValue) => {
+                          if (isDisabled) return;
+                          if (typeof newValue === "string")
+                            handleChangeLectura(c.key, newValue);
+                          else handleChangeLectura(c.key, newValue?.value || "");
+                        }}
+                        onInputChange={(event, newInputValue) => {
+                          if (isDisabled) return;
+                          handleChangeLectura(c.key, newInputValue);
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label={c.nombre}
+                            fullWidth
+                            disabled={isDisabled}
+                            sx={sxField}
+                          />
+                        )}
+                      />
+                    ) : esHora ? (
+                      <Autocomplete
+                        freeSolo
+                        forcePopupIcon
+                        options={timeOptions}
+                        value={form.lecturas?.[c.key] ?? ""}
+                        onChange={(event, newValue) => {
+                          if (isDisabled) return;
+                          handleChangeLectura(c.key, newValue ?? "");
+                        }}
+                        onInputChange={(event, newInputValue) => {
+                          if (isDisabled) return;
+                          handleChangeLectura(c.key, newInputValue);
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label={c.nombre}
+                            fullWidth
+                            disabled={isDisabled}
+                            sx={sxField}
+                          />
+                        )}
+                      />
+                    ) : esVehiculoRechazado ? (
+                      <Autocomplete
+                        disableClearable
+                        forcePopupIcon
+                        options={VEHICULO_RECHAZADO_OPTIONS}
+                        value={form.lecturas?.[c.key] ?? "EN CARGUE"}
+                        onChange={(event, newValue) => {
+                          if (isDisabled) return;
+                          handleChangeLectura(c.key, newValue ?? "");
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label={c.nombre}
+                            fullWidth
+                            disabled={isDisabled}
+                            sx={sxField}
+                          />
+                        )}
+                      />
+                    ) : (
+                      <TextField
+                        fullWidth
+                        label={c.nombre}
+                        type="text"
+                        value={form.lecturas?.[c.key] ?? ""}
+                        onChange={(e) => {
+                          if (isDisabled) return;
+                          handleChangeLectura(c.key, e.target.value);
+                        }}
+                        disabled={isDisabled}
+                        sx={sxField}
                       />
                     )}
-                  />
-                ) : (
-                  <TextField
-                    fullWidth
-                    label={c.nombre}
-                    type="text"
-                    value={form.lecturas?.[c.key] ?? ""}
-                    onChange={(e) => handleChangeLectura(c.key, e.target.value)}
-                    disabled={isDisabled}
-                    sx={{
-                      backgroundColor: isDisabled ? "#f5f5f5" : "inherit",
-                    }}
-                  />
-                )}
-              </Grid>
-            );
-          })}
-
-          {/* 🔹 Campos fijos */}
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Observaciones"
-              value={form.observaciones || ""}
-              onChange={(e) => setForm({ ...form, observaciones: e.target.value })}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Responsable"
-              value={form.responsable || ""}
-              onChange={(e) => setForm({ ...form, responsable: e.target.value })}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              type="date"
-              label="Fecha"
-              InputLabelProps={{ shrink: true }}
-              value={form.fecha || ""}
-              onChange={(e) => setForm({ ...form, fecha: e.target.value })}
-            />
-          </Grid>
-        </Grid>
+                  </Grid>
+                );
+              })}
+            </Grid>
+          </>
+        )}
       </DialogContent>
 
       <DialogActions>
         <Button onClick={onClose}>Cancelar</Button>
+
         <Button
           disabled={isEdit}
           variant="contained"
           color="warning"
           onClick={() => {
-            clearFormDraft(formCacheKey);
+            if (formCacheKey) clearFormDraft(formCacheKey);
             setForm((prev) => ({
               ...prev,
               lecturas: recalcBloqueadas({}),
@@ -571,12 +800,14 @@ const IngresoDataDespachoModal = ({
         >
           Limpiar
         </Button>
+
         <Button
           variant="contained"
           onClick={() => {
-            clearFormDraft(formCacheKey);
+            if (formCacheKey) clearFormDraft(formCacheKey);
             onSave();
           }}
+          disabled={loadingAuth || !isAuth} // opcional: bloquear guardar sin sesión
         >
           {isEdit ? "Actualizar" : "Guardar"}
         </Button>

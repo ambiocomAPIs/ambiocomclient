@@ -57,6 +57,11 @@ import SaveAsIcon from "@mui/icons-material/SaveAs";
 import SummarizeIcon from "@mui/icons-material/Summarize";
 import HistoryIcon from "@mui/icons-material/History";
 import YouTubeIcon from "@mui/icons-material/YouTube";
+import HowToRegIcon from '@mui/icons-material/HowToReg';
+import PersonRemoveAlt1Icon from '@mui/icons-material/PersonRemoveAlt1';
+import TimelapseIcon from '@mui/icons-material/Timelapse';
+import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
+import ReportIcon from '@mui/icons-material/Report';
 
 import ExcelUploadButton from "../utils_Logistica/ExcelUploadButton";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -65,12 +70,13 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import IngresoDataDespachoModal from "../utils_Logistica/IngresoDataDespachoModal.jsx";
 import ChartBuilder from "../utils_Logistica/ChartBuilder";
 
+
 // Contexto usuario por roles
 import { useAuth } from "../../../utils/Context/AuthContext/AuthContext.jsx";
 
 /* ================= ENDPOINTS ================= */
-const API_DESPACHOS = "https://ambiocomserver.onrender.com/api/despacho-alcoholes";
-const API_COLUMNAS = "https://ambiocomserver.onrender.com/api/columna-despacho-alcoholes";
+const API_DESPACHOS = "https://ambiocomserver.onrender.com1/api/despacho-alcoholes";
+const API_COLUMNAS = "https://ambiocomserver.onrender.com1/api/columna-despacho-alcoholes";
 
 export default function TablaDespachosLogistica() {
   //refs del componente
@@ -114,6 +120,15 @@ export default function TablaDespachosLogistica() {
     key: "",
     unidad: "",
     totalizable: false,
+  });
+
+  const [openObsVehiculo, setOpenObsVehiculo] = useState(false);
+  const [obsVehiculoData, setObsVehiculoData] = useState({
+    estado: "",
+    observacion: "",
+    fecha: "",
+    placa: "",
+    cliente: "",
   });
 
   /* ================= CARGA INICIAL ================= */
@@ -224,6 +239,25 @@ export default function TablaDespachosLogistica() {
     "liderlogistica",
   ]);
 
+  //doble click para mostrar observaciones si un vehiculo ha sido rechazado o aprobado con observaciones
+  const handleDblClickVehiculo = (row) => {
+    const estado = (row?.lecturas?.vehiculo_rechazado || "").toString().toUpperCase().trim();
+
+    // solo estos abren modal
+    if (estado !== "SI" && estado !== "APROBADO CON OBSERVACIONES") return;
+
+    const observacion = (row?.observaciones || "").toString().trim();
+
+    setObsVehiculoData({
+      estado,
+      observacion: observacion || "(Esta fila no tiene observación registrada)",
+      fecha: row?.fecha || "",
+      placa: row?.lecturas?.placa || "",
+      cliente: row?.lecturas?.cliente || "",
+    });
+
+    setOpenObsVehiculo(true);
+  };
   // Detectar click derecho para copiar tabla tipo SAP
   const handleContextMenu = (e) => {
     e.preventDefault();
@@ -382,16 +416,6 @@ export default function TablaDespachosLogistica() {
     });
   }, [busquedaGlobal, medicionesOrdenadas]);
 
-  // /* ================= CALCULAR ACUMULADO ================= */
-  // const calcularAcumulado = (columna) => {
-  //   if (!columna.totalizable) return "";
-
-  //   return medicionesFiltradas.reduce((total, m) => {
-  //     const valor = m.lecturas?.[columna.key];
-  //     const num = Number(valor);
-  //     return total + (Number.isNaN(num) ? 0 : num);
-  //   }, 0);
-  // };
   /* ================= CALCULAR ACUMULADO por columna mapa ================= */
 
   const acumuladosPorColumna = useMemo(() => {
@@ -430,7 +454,7 @@ export default function TablaDespachosLogistica() {
         .filter((c) => columnasVisibles.includes(c.key))
         .map((c) => c.nombre),
       "Observaciones",
-      "Responsable",
+      "Responsable de recibo",
     ];
 
     const rows = medicionesOrdenadas.map((row) => {
@@ -530,6 +554,57 @@ export default function TablaDespachosLogistica() {
     }
 
     return "rgba(238, 173, 173, 0.71)"; // menos de 30% (muy suave)
+  };
+
+  const renderIconoVehiculo = (estado) => {
+    const valor = (estado || "").toString().toUpperCase().trim();
+
+    const commonWrapper = (icon, title) => (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          width: "100%",
+        }}
+      >
+        <Tooltip title={title}>
+          {icon}
+        </Tooltip>
+      </Box>
+    );
+    if (valor === "SI") {
+      return commonWrapper(
+        <PersonRemoveAlt1Icon sx={{ color: "#9616ff" }} />,
+        "Vehículo rechazado"
+      );
+    }
+    if (valor === "NO") {
+      return commonWrapper(
+        <HowToRegIcon sx={{ color: "#3ed423" }} />,
+        "Vehículo aprobado"
+      );
+    }
+    if (valor === "EN TRANSITO") {
+      return commonWrapper(
+        <TimelapseIcon sx={{ color: "#ffb516" }} />,
+        "En Transito"
+      );
+    }
+    if (valor === "EN CARGUE") {
+      return commonWrapper(
+        <LocalGasStationIcon sx={{ color: "#41acbd" }} />,
+        "En Cargue"
+      );
+    }
+    if (valor === "APROBADO CON OBSERVACIONES") {
+      return commonWrapper(
+        <ReportIcon sx={{ color: "#ff2d16" }} />,
+        "Aprobado con Observaciones"
+      );
+    }
+
+    return null;
   };
 
   /* ================= RENDER ================= */
@@ -769,7 +844,7 @@ export default function TablaDespachosLogistica() {
                 size="small"
                 onClick={() => {
                   window.open(
-                    "https://ambiocomserver.onrender.com/api/despacho-alcoholes/plantilla-excel",
+                    "https://ambiocomserver.onrender.com1/api/despacho-alcoholes/plantilla-excel",
                     "_blank"
                   );
                 }}
@@ -1251,7 +1326,7 @@ export default function TablaDespachosLogistica() {
                 align="center"
                 sx={{ borderRight: "1px solid rgba(224, 224, 224, 1)" }}
               >
-                Responsable
+                Responsable de recibo
               </TableCell>
             </TableRow>
           </TableHead>
@@ -1288,37 +1363,58 @@ export default function TablaDespachosLogistica() {
                       position: "sticky",
                       left: 0,
                       zIndex: 4,
-                      backgroundColor:
-                        porcentajeFaltante > 0 ? colorFila : "#fff",
+                      backgroundColor: "#dad9d9d4",
+                      // porcentajeFaltante > 0 ? colorFila : "#fff",
                       borderRight: "1px solid rgba(224,224,224,1)",
                       minWidth: 110,
                     }}
                   >
-                    <Tooltip title={"Editar Fila"}>
-                      <IconButton
-                        onClick={() => {
-                          setEditId(row._id);
-                          setForm({
-                            ...row,
-                            fecha: row.fecha || "",
-                          });
-                          setOpenEditar(true);
-                        }}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip
-                      title={puedeEliminar ? "Eliminar" : "No tienes permisos"}
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        gap: 0.5, // espacio entre iconos
+                        width: "100%",
+                      }}
                     >
-                      <IconButton
-                        disabled={!puedeEliminar}
-                        sx={{ color: "#5E5E5E" }}
-                        onClick={() => eliminarMedicion(row._id)}
+                      <Tooltip title={"Editar Fila"}>
+                        <IconButton
+                          onClick={() => {
+                            setEditId(row._id);
+                            setForm({
+                              ...row,
+                              fecha: row.fecha || "",
+                            });
+                            setOpenEditar(true);
+                          }}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
+
+                      <Tooltip
+                        title={puedeEliminar ? "Eliminar" : "No tienes permisos"}
                       >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Tooltip>
+                        <IconButton
+                          disabled={!puedeEliminar}
+                          sx={{ color: "#5E5E5E" }}
+                          onClick={() => eliminarMedicion(row._id)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+
+                      {/* ICONO Vehiculo */}
+                      <Box
+                        onDoubleClick={(e) => {  // doble click para abrir nota
+                          e.stopPropagation();
+                          handleDblClickVehiculo(row);
+                        }}
+                        sx={{ display: "flex", alignItems: "center", cursor:"pointer" }}
+                      >
+                        {renderIconoVehiculo(row.lecturas?.vehiculo_rechazado)}
+                      </Box>                    </Box>
                   </TableCell>
                   <TableCell align="center">{row.fecha}</TableCell>
 
@@ -1409,7 +1505,7 @@ export default function TablaDespachosLogistica() {
           tooltipTitle="Descargar plantilla Excel"
           onClick={() => {
             window.open(
-              "https://ambiocomserver.onrender.com/api/recepcion-alcoholes/plantilla-excel",
+              "https://ambiocomserver.onrender.com1/api/recepcion-alcoholes/plantilla-excel",
               "_blank"
             );
           }}
@@ -1435,6 +1531,148 @@ export default function TablaDespachosLogistica() {
           api.get("/transportadoras").then((r) => r.data)
         }
       />
+
+      {/* modal para mostrar notas y observaciones sobre carros rechazados */}
+      <Dialog
+        open={openObsVehiculo}
+        onClose={() => setOpenObsVehiculo(false)}
+        fullWidth
+        maxWidth="xs"
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: "0 18px 60px rgba(0,0,0,0.18)",
+            overflow: "hidden",
+          },
+        }}
+      >
+        {/* Header */}
+        <Box sx={{ px: 2.2, py: 1.6, borderBottom: "1px solid rgba(0,0,0,0.08)" }}>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 800, letterSpacing: 0.2 }}>
+                Observación del vehículo
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.75 }}>
+                Revisión / control de despacho
+              </Typography>
+            </Box>
+
+            {/* Chip de estado */}
+            <Box
+              sx={{
+                px: 1.1,
+                py: 0.5,
+                borderRadius: 999,
+                fontSize: 12,
+                fontWeight: 800,
+                letterSpacing: 0.4,
+                border: "1px solid rgba(0,0,0,0.14)",
+                bgcolor:
+                  obsVehiculoData.estado === "SI" || obsVehiculoData.estado === "APROBADO CON OBSERVACIONES"
+                    ? "rgba(211, 47, 47, 0.10)"
+                    : "rgba(46, 125, 50, 0.10)",
+                color:
+                  obsVehiculoData.estado === "SI" || obsVehiculoData.estado === "APROBADO CON OBSERVACIONES"
+                    ? "rgb(211, 47, 47)"
+                    : "rgb(46, 125, 50)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {obsVehiculoData.estado || "—"}
+            </Box>
+          </Box>
+        </Box>
+
+        <DialogContent sx={{ px: 2.2, py: 2 }}>
+          {/* Bloque de metadata */}
+          <Paper
+            variant="outlined"
+            sx={{
+              borderRadius: 2.5,
+              p: 1.4,
+              bgcolor: "rgba(0,0,0,0.02)",
+              borderColor: "rgba(0,0,0,0.08)",
+              mb: 1.5,
+            }}
+          >
+            <Box sx={{ display: "grid", gridTemplateColumns: "1fr", rowGap: 0.6 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
+                <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                  Fecha
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                  {obsVehiculoData.fecha || "—"}
+                </Typography>
+              </Box>
+
+              <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
+                <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                  Placa
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                  {obsVehiculoData.placa || "—"}
+                </Typography>
+              </Box>
+
+              <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
+                <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                  Cliente
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 700, textAlign: "right", maxWidth: "65%", overflow: "hidden", textOverflow: "ellipsis" }}
+                  title={obsVehiculoData.cliente || ""}
+                >
+                  {obsVehiculoData.cliente || "—"}
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
+
+          {/* Observación */}
+          <Typography variant="caption" sx={{ opacity: 0.75, display: "block", mb: 0.8 }}>
+            Observación
+          </Typography>
+
+          <Paper
+            variant="outlined"
+            sx={{
+              borderRadius: 2.5,
+              p: 1.4,
+              borderColor: "rgba(0,0,0,0.10)",
+              bgcolor: "#fff",
+            }}
+          >
+            <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
+              {obsVehiculoData.observacion || "—"}
+            </Typography>
+          </Paper>
+        </DialogContent>
+
+        <DialogActions
+          sx={{
+            px: 2.2,
+            py: 1.4,
+            borderTop: "1px solid rgba(0,0,0,0.08)",
+            justifyContent: "flex-end",
+          }}
+        >
+          <Button
+            onClick={() => setOpenObsVehiculo(false)}
+            variant="contained"
+            sx={{
+              borderRadius: 2,
+              textTransform: "none",
+              fontWeight: 800,
+              px: 2.4,
+              boxShadow: "none",
+            }}
+          >
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* ================= MODAL COLUMNA ================= */}
       <Dialog open={openColumna} fullWidth maxWidth="xs">
@@ -1603,7 +1841,7 @@ export default function TablaDespachosLogistica() {
       {/* Boton para carga masiva*/}
       <ExcelUploadButton
         ref={excelUploadRef}
-        url="https://ambiocomserver.onrender.com/api/recepcion-alcoholes/carga-masiva"
+        url="https://ambiocomserver.onrender.com1/api/recepcion-alcoholes/carga-masiva"
         onSuccess={obtenerMediciones}
       />
     </Box>

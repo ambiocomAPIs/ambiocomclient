@@ -26,7 +26,7 @@ function NoteBoard({ supervisor, turno, fecha, notes, setNotes }) {
   // Cargar notas existentes desde la API
   const fetchNotes = async () => {
     try {
-      const res = await axios.get("https://ambiocomserver.onrender.com/api/notasbitacora");
+      const res = await axios.get("https://ambiocomserver.onrender.com1/api/notasbitacora");
       const grouped = sections.reduce((acc, s) => {
         acc[s.key] = res.data.filter((n) => n.module === s.key);
         return acc;
@@ -48,7 +48,7 @@ function NoteBoard({ supervisor, turno, fecha, notes, setNotes }) {
     const sendNote = async () => {
       try {
         const response = await axios.post(
-          "https://ambiocomserver.onrender.com/api/notasbitacora",
+          "https://ambiocomserver.onrender.com1/api/notasbitacora",
           noteToCreate
         );
         const sectionKey = noteToCreate.module;
@@ -98,7 +98,7 @@ function NoteBoard({ supervisor, turno, fecha, notes, setNotes }) {
 
     try {
       const response = await axios.patch(
-        `https://ambiocomserver.onrender.com/api/notasbitacora/${noteId}/toggle`
+        `https://ambiocomserver.onrender.com1/api/notasbitacora/${noteId}/toggle`
       );
 
       if (response.status === 200) {

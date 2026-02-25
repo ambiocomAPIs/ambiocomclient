@@ -81,7 +81,7 @@ function HeaderForm({ data, onChange, clearFieldsExceptFechaTurno, trabajadoresR
       setIsLoading(true);
 
       try {
-        const response = await axios.get("https://ambiocomserver.onrender.com/api/bitacora/getbyfechayturno", {
+        const response = await axios.get("https://ambiocomserver.onrender.com1/api/bitacora/getbyfechayturno", {
           params: {
             fecha: data.fecha,
             turno: data.turno,
@@ -139,7 +139,7 @@ function HeaderForm({ data, onChange, clearFieldsExceptFechaTurno, trabajadoresR
     }
 
     try {
-      const response = await axios.post("https://ambiocomserver.onrender.com/api/bitacora/bitacorareplaceall", [data]);
+      const response = await axios.post("https://ambiocomserver.onrender.com1/api/bitacora/bitacorareplaceall", [data]);
       if (response.status === 200) {
         setSnackbarMessage("Datos guardados correctamente");
         setSnackbarSeverity("success");

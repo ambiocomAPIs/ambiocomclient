@@ -25,7 +25,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import SaveIcon from "@mui/icons-material/Save";
 import AddIcon from "@mui/icons-material/Add";
 
-const API_URL = "https://ambiocomserver.onrender.com/api/empresas";
+const API_URL = "https://ambiocomserver.onrender.com1/api/empresas";
 
 const EmpresasPage = () => {
   const [empresas, setEmpresas] = useState([]);

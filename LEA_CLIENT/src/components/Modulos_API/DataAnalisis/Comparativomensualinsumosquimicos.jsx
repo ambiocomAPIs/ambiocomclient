@@ -78,7 +78,7 @@ const Comparativomensualinsumosquimicos = () => {
   useEffect(() => {
     const fetchConsumo = async () => {
       try {
-        const res = await axios.get("https://ambiocomserver.onrender.com/api/cierreMes/data");
+        const res = await axios.get("https://ambiocomserver.onrender.com1/api/cierreMes/data");
         setConsumo(res.data || []);
       } catch (err) {
         console.error("Error al traer consumo:", err);
@@ -92,7 +92,7 @@ const Comparativomensualinsumosquimicos = () => {
     const fetchGraficas = async () => {
       try {
         const res = await axios.get(
-          "https://ambiocomserver.onrender.com/api/graficainsumosoh/listarkilosporoh"
+          "https://ambiocomserver.onrender.com1/api/graficainsumosoh/listarkilosporoh"
         );
         setGraficasGuardadas(res.data || []);
       } catch (err) {
@@ -230,7 +230,7 @@ const Comparativomensualinsumosquimicos = () => {
       });
       // 👇 Aquí mandamos los datos al backend con axios
       await axios.post(
-        "https://ambiocomserver.onrender.com/api/graficainsumosoh/guardarkilosporoh",
+        "https://ambiocomserver.onrender.com1/api/graficainsumosoh/guardarkilosporoh",
         {
           produccionActual,
           produccionAnterior,

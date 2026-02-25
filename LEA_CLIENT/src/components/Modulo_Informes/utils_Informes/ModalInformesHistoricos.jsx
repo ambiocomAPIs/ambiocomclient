@@ -28,7 +28,7 @@ const ModalInformesHistoricos = ({ open, onClose }) => {
   const cargarHistoricos = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get("https://ambiocomserver.onrender.com/api/informes-alcoholes");
+      const { data } = await axios.get("https://ambiocomserver.onrender.com1/api/informes-alcoholes");
 
       const ordenados = (data || []).sort((a, b) => {
         return new Date(b.fecha) - new Date(a.fecha);
@@ -66,7 +66,7 @@ const ModalInformesHistoricos = ({ open, onClose }) => {
       });
 
       const { data: informeCompleto } = await axios.get(
-        `https://ambiocomserver.onrender.com/api/informes-alcoholes/${inf._id}`
+        `https://ambiocomserver.onrender.com1/api/informes-alcoholes/${inf._id}`
       );
 
       await exportarInformeAlcoholesPDF(
@@ -115,7 +115,7 @@ const ModalInformesHistoricos = ({ open, onClose }) => {
 
       setDeletingId(inf._id);
 
-      await axios.delete(`https://ambiocomserver.onrender.com/api/informes-alcoholes/${inf._id}`, {
+      await axios.delete(`https://ambiocomserver.onrender.com1/api/informes-alcoholes/${inf._id}`, {
         data: { clave },
       });
 
