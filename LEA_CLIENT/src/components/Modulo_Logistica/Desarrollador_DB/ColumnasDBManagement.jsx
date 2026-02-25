@@ -31,8 +31,8 @@ import SaveIcon from "@mui/icons-material/Save";
 import AddIcon from "@mui/icons-material/Add";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 
-const API_COLUMNAS = "https://ambiocomserver.onrender.com1/api/columna-despacho-alcoholes";
-const API_AUTH_VERIFY = "https://ambiocomserver.onrender.com1/api/auth/verify-columns";
+const API_COLUMNAS = "http://localhost:4041/api/columna-despacho-alcoholes";
+const API_AUTH_VERIFY = "http://localhost:4041/api/auth/verify-columns";
 
 //roles del select
 const ROLES = [
