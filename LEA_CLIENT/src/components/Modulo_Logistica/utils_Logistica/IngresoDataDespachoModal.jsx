@@ -10,9 +10,14 @@ import {
   TextField,
   Box,
   Typography,
+  Checkbox,
 } from "@mui/material";
+import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
+import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import Autocomplete from "@mui/material/Autocomplete";
+//Contextos
 import { useAuth } from "../../../utils/Context/AuthContext/AuthContext";
+import { useTanques } from "../../../utils/Context/TanquesContext";
 
 const columnasBloqueadas = [
   "volumen_contador_gravimetrico",
@@ -257,8 +262,12 @@ const IngresoDataDespachoModal = ({
   fetchClientes,
   fetchTransportadoras,
 }) => {
+
+  // =============   Contextos   ===============================
   // rol real desde cookie/session (AuthContext)
   const { rol, loadingAuth, isAuth } = useAuth();
+  const { tanques, loading: loadingTanques } = useTanques();
+  //============================================================
   const roleNorm = String(rol || "").toLowerCase().trim();
   //evalua que roles pueden editar el campo
   const canEditResponsableRecibo = isAuth && RESPONSABLE_RECIBO_ROLES.includes(roleNorm);
@@ -291,6 +300,53 @@ const IngresoDataDespachoModal = ({
     }));
   };
 
+  //tanques desde el contexto para el select
+
+  const tanquesArray = useMemo(() => {
+    // por si el contexto trae: []  o  {data: []}  o  {tanques: []}
+    if (Array.isArray(tanques)) return tanques;
+    if (Array.isArray(tanques?.data)) return tanques.data;
+    if (Array.isArray(tanques?.tanques)) return tanques.tanques;
+    return [];
+  }, [tanques]);
+
+  const tanquesOptions = useMemo(() => {
+    return tanquesArray
+      .map((t) => {
+        const nombre = String(t?.NombreTanque ?? t?.nombreTanque ?? t?.nombre_tanque ?? "").trim();
+        return { value: nombre, label: nombre };
+      })
+      .filter((o) => o.value);
+  }, [tanquesArray]);
+
+  // *****  Cuando son mezcla de tanques, crear un string con el nombre de los tanques **************
+  const parseTanquesString = (v) => {
+    // Acepta: "301/801A" o "M-301/801A"
+    const s = String(v ?? "").trim();
+    if (!s) return [];
+    const withoutPrefix = s.startsWith("M-") ? s.slice(2) : s;
+    return withoutPrefix
+      .split("/")
+      .map((x) => x.trim())
+      .filter(Boolean);
+  };
+
+  const buildTanquesString = (names) => {
+    const clean = (names ?? [])
+      .map((x) => String(x ?? "").trim())
+      .filter(Boolean);
+
+    if (clean.length === 0) return "";
+    if (clean.length === 1) return clean[0];
+    return `M-${clean.join("/")}`;
+  };
+
+  const selectedTanques = useMemo(() => {
+    const names = parseTanquesString(form?.lecturas?.tanque_salida);
+    const byValue = new Map(tanquesOptions.map((o) => [o.value, o]));
+    return names.map((n) => byValue.get(n) ?? { value: n, label: n });
+  }, [form?.lecturas?.tanque_salida, tanquesOptions]);
+  // ****************************************************************
   const canRoleEditColumn = (col) => {
     // no auth / sin rol => bloquea todo
     if (!isAuth || !roleNorm) return false;
@@ -695,6 +751,7 @@ const IngresoDataDespachoModal = ({
                 const esHora = TIME_KEYS.includes(c.key);
                 const esVehiculoRechazado = c.key === VEHICULO_RECHAZADO_KEY; // evalua si fue rechazado
                 const esLlegadaDestino = c.key === LLEGADA_DESTINO_KEY; // evalua si llego al destino el vehiculo
+                const esTanqueSalida = c.key === "tanque_salida"; // evalua que la lista select se renderizara en la columna con esta key
                 const items = esSelect ? getItems(c.key) : [];
 
                 const allowedByRole = canRoleEditColumn(c);
@@ -784,38 +841,85 @@ const IngresoDataDespachoModal = ({
                         )}
                       />
                     ) : esLlegadaDestino ? (
-                    <Autocomplete
-                      disableClearable
-                      forcePopupIcon
-                      options={LLEGADA_DESTINO_OPTIONS}
-                      value={form.lecturas?.[c.key] ?? ""}
-                      onChange={(event, newValue) => {
-                        if (isDisabled) return;
-                        handleChangeLectura(c.key, newValue ?? "");
-                      }}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label={c.nombre}
-                          fullWidth
-                          disabled={isDisabled}
-                          sx={sxField}
-                        />
-                      )}
-                    />
+                      <Autocomplete
+                        disableClearable
+                        forcePopupIcon
+                        options={LLEGADA_DESTINO_OPTIONS}
+                        value={form.lecturas?.[c.key] ?? ""}
+                        onChange={(event, newValue) => {
+                          if (isDisabled) return;
+                          handleChangeLectura(c.key, newValue ?? "");
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label={c.nombre}
+                            fullWidth
+                            disabled={isDisabled}
+                            sx={sxField}
+                          />
+                        )}
+                      />
+                    ) : esTanqueSalida ? (
+                      <Autocomplete
+                        multiple
+                        disableCloseOnSelect
+                        forcePopupIcon
+                        loading={loadingTanques}
+                        options={tanquesOptions}
+                        value={selectedTanques}
+                        isOptionEqualToValue={(option, value) => option.value === value.value}
+                        getOptionLabel={(option) =>
+                          typeof option === "string" ? option : option.label ?? ""
+                        }
+                        onChange={(event, newValue) => {
+                          if (isDisabled) return;
+
+                          const names = (newValue ?? []).map((x) =>
+                            typeof x === "string" ? x : x.value
+                          );
+
+                          handleChangeLectura(c.key, buildTanquesString(names));
+                        }}
+                        renderOption={(props, option, { selected }) => {
+                          const icon = <CheckBoxOutlineBlankIcon fontSize="small" />;
+                          const checkedIcon = <CheckBoxIcon fontSize="small" />;
+                          return (
+                            <li {...props} key={option.value}>
+                              <Checkbox
+                                icon={icon}
+                                checkedIcon={checkedIcon}
+                                style={{ marginRight: 8 }}
+                                checked={selected}
+                              />
+                              {option.label}
+                            </li>
+                          );
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label={c.nombre}
+                            fullWidth
+                            disabled={isDisabled}
+                            sx={sxField}
+                            placeholder="Selecciona 1 o más tanques"
+                          />
+                        )}
+                      />
                     ) : (
-                    <TextField
-                      fullWidth
-                      label={c.nombre}
-                      type="text"
-                      value={form.lecturas?.[c.key] ?? ""}
-                      onChange={(e) => {
-                        if (isDisabled) return;
-                        handleChangeLectura(c.key, e.target.value);
-                      }}
-                      disabled={isDisabled}
-                      sx={sxField}
-                    />
+                      <TextField
+                        fullWidth
+                        label={c.nombre}
+                        type="text"
+                        value={form.lecturas?.[c.key] ?? ""}
+                        onChange={(e) => {
+                          if (isDisabled) return;
+                          handleChangeLectura(c.key, e.target.value);
+                        }}
+                        disabled={isDisabled}
+                        sx={sxField}
+                      />
                     )}
                   </Grid>
                 );
