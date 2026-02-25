@@ -62,6 +62,8 @@ import PersonRemoveAlt1Icon from '@mui/icons-material/PersonRemoveAlt1';
 import TimelapseIcon from '@mui/icons-material/Timelapse';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import ReportIcon from '@mui/icons-material/Report';
+import AlarmOnIcon from '@mui/icons-material/AlarmOn';
+import AlarmOffIcon from '@mui/icons-material/AlarmOff';
 
 import ExcelUploadButton from "../utils_Logistica/ExcelUploadButton";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -244,13 +246,31 @@ export default function TablaDespachosLogistica() {
     const estado = (row?.lecturas?.vehiculo_rechazado || "").toString().toUpperCase().trim();
 
     // solo estos abren modal
-    if (estado !== "SI" && estado !== "APROBADO CON OBSERVACIONES") return;
+    // if (estado !== "SI" && estado !== "APROBADO CON OBSERVACIONES") return;   al comentarla permite que todos sean clickeables
+    const observacion = (row?.observaciones || "").toString().trim();
+
+    setObsVehiculoData({
+      estado,
+      observacion: observacion || "Esta fila no tiene observación registrada",
+      fecha: row?.fecha || "",
+      placa: row?.lecturas?.placa || "",
+      cliente: row?.lecturas?.cliente || "",
+    });
+
+    setOpenObsVehiculo(true);
+  };
+
+  const handleDblClickLlegadaATiempo = (row) => {
+    const estado = (row?.lecturas?.llegada_destino || "").toString().toUpperCase().trim();
+
+    // solo estos abren modal
+    if (estado !== "PUNTUAL" && estado !== "RETRASADO") return;
 
     const observacion = (row?.observaciones || "").toString().trim();
 
     setObsVehiculoData({
       estado,
-      observacion: observacion || "(Esta fila no tiene observación registrada)",
+      observacion: observacion || "Esta fila no tiene observación registrada",
       fecha: row?.fecha || "",
       placa: row?.lecturas?.placa || "",
       cliente: row?.lecturas?.cliente || "",
@@ -587,13 +607,13 @@ export default function TablaDespachosLogistica() {
     }
     if (valor === "EN TRANSITO") {
       return commonWrapper(
-        <TimelapseIcon sx={{ color: "#ffb516" }} />,
+        <TimelapseIcon sx={{ color: "#e2890c" }} />,
         "En Transito"
       );
     }
     if (valor === "EN CARGUE") {
       return commonWrapper(
-        <LocalGasStationIcon sx={{ color: "#41acbd" }} />,
+        <LocalGasStationIcon sx={{ color: "#3697a6" }} />,
         "En Cargue"
       );
     }
@@ -604,6 +624,38 @@ export default function TablaDespachosLogistica() {
       );
     }
 
+    return null;
+  };
+
+  const renderIconoTiempodeEntrega = (estado) => {
+    const valor = (estado || "").toString().toUpperCase().trim();
+
+    const commonWrapper = (icon, title) => (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          width: "100%",
+        }}
+      >
+        <Tooltip title={title}>
+          {icon}
+        </Tooltip>
+      </Box>
+    );
+    if (valor === "PUNTUAL") {
+      return commonWrapper(
+        <AlarmOnIcon sx={{ color: "#58555a" }} />,
+        "Vehículo a tiempo"
+      );
+    }
+    if (valor === "RETRASADO") {
+      return commonWrapper(
+        <AlarmOffIcon sx={{ color: "#ea5931" }} />,
+        "Vehículo con retrazo a destino"
+      );
+    }
     return null;
   };
 
@@ -1363,7 +1415,7 @@ export default function TablaDespachosLogistica() {
                       position: "sticky",
                       left: 0,
                       zIndex: 4,
-                      backgroundColor: "#dad9d9d4",
+                      backgroundColor: "#dad9d9e3",
                       // porcentajeFaltante > 0 ? colorFila : "#fff",
                       borderRight: "1px solid rgba(224,224,224,1)",
                       minWidth: 110,
@@ -1414,7 +1466,18 @@ export default function TablaDespachosLogistica() {
                         sx={{ display: "flex", alignItems: "center", cursor:"pointer" }}
                       >
                         {renderIconoVehiculo(row.lecturas?.vehiculo_rechazado)}
-                      </Box>                    </Box>
+                      </Box>                   
+                      {/* ICONO VEHICULO A TIEMPO */}
+                      <Box
+                        onDoubleClick={(e) => {  // doble click para abrir nota
+                          e.stopPropagation();
+                          handleDblClickLlegadaATiempo(row);
+                        }}
+                        sx={{ display: "flex", alignItems: "center", cursor:"pointer" }}
+                      >
+                        {renderIconoTiempodeEntrega(row.lecturas?.llegada_destino)}
+                      </Box>                   
+                     </Box>
                   </TableCell>
                   <TableCell align="center">{row.fecha}</TableCell>
 
@@ -1573,7 +1636,7 @@ export default function TablaDespachosLogistica() {
                     ? "rgba(211, 47, 47, 0.10)"
                     : "rgba(46, 125, 50, 0.10)",
                 color:
-                  obsVehiculoData.estado === "SI" || obsVehiculoData.estado === "APROBADO CON OBSERVACIONES"
+                  obsVehiculoData.estado === "SI" || obsVehiculoData.estado === "APROBADO CON OBSERVACIONES" || obsVehiculoData.estado === "RETRASADO"
                     ? "rgb(211, 47, 47)"
                     : "rgb(46, 125, 50)",
                 whiteSpace: "nowrap",

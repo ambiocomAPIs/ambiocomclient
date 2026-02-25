@@ -34,7 +34,9 @@ const FORM_CACHE_PREFIX = "despacho_form_draft_";
 const TIME_KEYS = ["hora_llegada", "hora_salida"];
 const VEHICULO_RECHAZADO_KEY = "vehiculo_rechazado";
 const VEHICULO_RECHAZADO_OPTIONS = ["SI", "NO", "EN TRANSITO", "APROBADO CON OBSERVACIONES", "EN CARGUE"];
-const RESPONSABLE_RECIBO_ROLES = ["developer", "liderlogistica","auxiliarlogistica2"];  // permisos para editar responsable
+const RESPONSABLE_RECIBO_ROLES = ["developer", "liderlogistica", "auxiliarlogistica2"];  // permisos para editar responsable
+const LLEGADA_DESTINO_KEY = "llegada_destino";
+const LLEGADA_DESTINO_OPTIONS = ["PUNTUAL", "RETRASADO"];  // select para modal de registro de datos
 
 // celdas que seran tipo select formato 8:00 15:30
 const loadCacheMeta = (key) => {
@@ -198,7 +200,7 @@ const FORMULAS = {
   },
 
   kilos_peso_neto: (L) =>
-    round( toNum(L.kilos_peso_inicial)-toNum(L.kilos_peso_final), 3),
+    round(toNum(L.kilos_peso_inicial) - toNum(L.kilos_peso_final), 3),
 
   variacion_peso: (L) =>
     round(
@@ -214,7 +216,7 @@ const FORMULAS = {
     ),
 
   dif_kilos_neto: (L) =>
-    round((toNum(L.kilos_peso_inicial)-toNum(L.kilos_peso_final))- toNum(L.peso_neto_bascula_ambiocom)  , 3),
+    round((toNum(L.kilos_peso_inicial) - toNum(L.kilos_peso_final)) - toNum(L.peso_neto_bascula_ambiocom), 3),
 
   diferencia_recibo_cliente_vnetofacturado: (L) =>
     round(toNum(L.cantidad_recibida_cliente) - toNum(L.volumen_despachar), 3),
@@ -418,6 +420,27 @@ const IngresoDataDespachoModal = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, isEdit]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    setForm((prev) => {
+      const lecturas = prev?.lecturas ?? {};
+      const actual = lecturas?.[LLEGADA_DESTINO_KEY];
+
+      // Si ya tiene valor, no lo piso
+      if (actual != null && String(actual).trim() !== "") return prev;
+
+      return {
+        ...prev,
+        lecturas: {
+          ...lecturas,
+          [LLEGADA_DESTINO_KEY]: "PUNTUAL",
+        },
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   // useEffect(() => {
   //   if (!open) return;
   //   const t = setTimeout(() => saveFormDraft(formCacheKey, form), 400);
@@ -532,6 +555,7 @@ const IngresoDataDespachoModal = ({
     "diferencia_recibo_cliente",
     "dif_v_netodif_v_desp_bascula_ambiocom",
     "dif_kilos_neto",
+    "llegada_destino",
     "costo_transporte",
     "factura_proveedor",
     "entrada_orden_compra",
@@ -669,7 +693,8 @@ const IngresoDataDespachoModal = ({
 
                 const esSelect = SELECT_KEYS.includes(c.key);
                 const esHora = TIME_KEYS.includes(c.key);
-                const esVehiculoRechazado = c.key === VEHICULO_RECHAZADO_KEY;
+                const esVehiculoRechazado = c.key === VEHICULO_RECHAZADO_KEY; // evalua si fue rechazado
+                const esLlegadaDestino = c.key === LLEGADA_DESTINO_KEY; // evalua si llego al destino el vehiculo
                 const items = esSelect ? getItems(c.key) : [];
 
                 const allowedByRole = canRoleEditColumn(c);
@@ -758,19 +783,39 @@ const IngresoDataDespachoModal = ({
                           />
                         )}
                       />
+                    ) : esLlegadaDestino ? (
+                    <Autocomplete
+                      disableClearable
+                      forcePopupIcon
+                      options={LLEGADA_DESTINO_OPTIONS}
+                      value={form.lecturas?.[c.key] ?? ""}
+                      onChange={(event, newValue) => {
+                        if (isDisabled) return;
+                        handleChangeLectura(c.key, newValue ?? "");
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label={c.nombre}
+                          fullWidth
+                          disabled={isDisabled}
+                          sx={sxField}
+                        />
+                      )}
+                    />
                     ) : (
-                      <TextField
-                        fullWidth
-                        label={c.nombre}
-                        type="text"
-                        value={form.lecturas?.[c.key] ?? ""}
-                        onChange={(e) => {
-                          if (isDisabled) return;
-                          handleChangeLectura(c.key, e.target.value);
-                        }}
-                        disabled={isDisabled}
-                        sx={sxField}
-                      />
+                    <TextField
+                      fullWidth
+                      label={c.nombre}
+                      type="text"
+                      value={form.lecturas?.[c.key] ?? ""}
+                      onChange={(e) => {
+                        if (isDisabled) return;
+                        handleChangeLectura(c.key, e.target.value);
+                      }}
+                      disabled={isDisabled}
+                      sx={sxField}
+                    />
                     )}
                   </Grid>
                 );
