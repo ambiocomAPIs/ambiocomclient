@@ -25,7 +25,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import SaveIcon from "@mui/icons-material/Save";
 import AddIcon from "@mui/icons-material/Add";
 
-const API_URL = "https://ambiocomserver.onrender.com1/api/conductores";
+const API_URL = "https://ambiocomserver.onrender.com/api/conductores";
 
 const ConductoresPage = () => {
   const [conductores, setConductores] = useState([]);

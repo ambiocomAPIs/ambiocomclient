@@ -55,8 +55,8 @@ const TooltipConsumo = styled(({ className, ...props }) => (
 }));
 
 /* ================= ENDPOINTS ================= */
-const API_MEDICIONES = "https://ambiocomserver.onrender.com1/api/medidoresenergia";
-const API_COLUMNAS = "https://ambiocomserver.onrender.com1/api/columnamedidoresenergia";
+const API_MEDICIONES = "https://ambiocomserver.onrender.com/api/medidoresenergia";
+const API_COLUMNAS = "https://ambiocomserver.onrender.com/api/columnamedidoresenergia";
 
 /* ================= UTILS ================= */
 const parseFecha = (fecha) => {

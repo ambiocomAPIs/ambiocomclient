@@ -54,7 +54,7 @@ const DataTableChartModalCost = ({ modalIsOpen, closeModal }) => {
     const fetchMovimientos = async () => {
       try {
         const response = await axios.get(
-          "https://ambiocomserver.onrender.com1/api/registro/movimientos"
+          "https://ambiocomserver.onrender.com/api/registro/movimientos"
         );
 
         setInsumosData(response.data);

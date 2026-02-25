@@ -15,7 +15,7 @@ export const EmpleadosProvider = ({ children }) => {
   useEffect(() => {
     const fetchEmpleados = async () => {
       try {
-        const res = await axios.get("https://ambiocomserver.onrender.com1/api/empleadosambiocom");
+        const res = await axios.get("https://ambiocomserver.onrender.com/api/empleadosambiocom");
         setEmpleados(res.data || []);
       } catch (error) {
         console.error("Error cargando empleados:", error);

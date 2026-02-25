@@ -55,7 +55,7 @@ const GraficoNivelesTanquesPorDiaPageComponente = ({NivelesTanquesContext}) => {
   // useEffect(() => {
   //   setIsLoading(true);
   //   axios
-  //     .get('https://ambiocomserver.onrender.com1/api/tanquesjornaleros/nivelesdiariostanquesjornaleros')
+  //     .get('https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros')
   //     .then((response) => {
   //       if (Array.isArray(response.data)) {
   //         setRegistros(response.data);

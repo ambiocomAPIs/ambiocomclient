@@ -126,7 +126,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
     
     // watch para ver en que DB estoy trabajando
     useEffect(() => {
-        axios.get("https://ambiocomserver.onrender.com1/api/meta").then(res => {
+        axios.get("https://ambiocomserver.onrender.com/api/meta").then(res => {
             setDbInfo(res.data.db);
         });
     }, []);

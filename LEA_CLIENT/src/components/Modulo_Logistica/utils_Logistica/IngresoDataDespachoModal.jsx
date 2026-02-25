@@ -340,7 +340,7 @@ const IngresoDataDespachoModal = ({
     }
   };
 
-  const PRODUCTOS_URL = "https://ambiocomserver.onrender.com1/api/alcoholesdespacho";
+  const PRODUCTOS_URL = "https://ambiocomserver.onrender.com/api/alcoholesdespacho";
 
   const mapProductosToOptions = (arr) =>
     (arr ?? []).map((p) => ({

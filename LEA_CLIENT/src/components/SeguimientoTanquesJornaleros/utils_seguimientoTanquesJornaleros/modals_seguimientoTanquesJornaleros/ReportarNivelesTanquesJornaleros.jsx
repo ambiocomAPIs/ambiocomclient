@@ -90,7 +90,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
   // Traer datos de tanques
   useEffect(() => {
     axios
-      .get("https://ambiocomserver.onrender.com1/api/tanques")
+      .get("https://ambiocomserver.onrender.com/api/tanques")
       .then((res) => setTanquesData(res.data))
       .catch((err) => console.error("Error al obtener tanques:", err));
   }, []);
@@ -114,7 +114,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
 
     try {
       const res = await axios.get(
-        `https://ambiocomserver.onrender.com1/api/tanquesjornaleros/porfecha/${fechaSeleccionada}`
+        `https://ambiocomserver.onrender.com/api/tanquesjornaleros/porfecha/${fechaSeleccionada}`
       );
 
       if (res.data?.length > 0) {
@@ -175,7 +175,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
   //     console.log("payload:", payload);
 
   //     await axios.post(
-  //       "https://ambiocomserver.onrender.com1/api/tanquesjornaleros/nivelesdiariostanquesjornaleros",
+  //       "https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros",
   //       payload
   //     );
 
@@ -217,13 +217,13 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
 
       if (modoEdicion) {
         await axios.put(
-          "https://ambiocomserver.onrender.com1/api/tanquesjornaleros/actualizarporfecha",
+          "https://ambiocomserver.onrender.com/api/tanquesjornaleros/actualizarporfecha",
           payload
         );
         Swal.fire("Actualizado", "Reporte actualizado correctamente.", "success");
       } else {
         await axios.post(
-          "https://ambiocomserver.onrender.com1/api/tanquesjornaleros/nivelesdiariostanquesjornaleros",
+          "https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros",
           payload
         );
         Swal.fire("Éxito", "Reporte guardado correctamente.", "success");
@@ -261,7 +261,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
     if (confirm.isConfirmed) {
       try {
         await axios.delete(
-          "https://ambiocomserver.onrender.com1/api/tanquesjornaleros/eliminarporfecha",
+          "https://ambiocomserver.onrender.com/api/tanquesjornaleros/eliminarporfecha",
           { data: { FechaRegistro: fecha } } // 👈 enviar fecha en el body
         );
         Swal.fire("Eliminado", "Los registros fueron eliminados.", "success");

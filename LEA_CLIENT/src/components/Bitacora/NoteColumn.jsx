@@ -188,7 +188,7 @@ function NoteColumn({
     if (!updatedText) return;    
     try {
       await axios.patch(
-        `https://ambiocomserver.onrender.com1/api/notasbitacora/bitacora/editarnota/${readModal._id}`,
+        `https://ambiocomserver.onrender.com/api/notasbitacora/bitacora/editarnota/${readModal._id}`,
         { text: updatedText }
       );
 
@@ -240,7 +240,7 @@ function NoteColumn({
     try {
       setDeletingNoteId(deleteTarget._id); // nota a eliminar y aplicar el loading
       await axios.delete(
-        `https://ambiocomserver.onrender.com1/api/notasbitacora/bitacora/${deleteTarget._id}`,
+        `https://ambiocomserver.onrender.com/api/notasbitacora/bitacora/${deleteTarget._id}`,
         {
           headers: { Authorization: `Bearer ${deletePassword}` },
         }

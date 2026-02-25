@@ -66,8 +66,8 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import ChartBuilder from "../utils_Logistica/ChartBuilder";
 
 /* ================= ENDPOINTS ================= */
-const API_RECEPCIONES = "https://ambiocomserver.onrender.com1/api/recepcion-alcoholes";
-const API_COLUMNAS = "https://ambiocomserver.onrender.com1/api/columna-recepcion-alcoholes";
+const API_RECEPCIONES = "https://ambiocomserver.onrender.com/api/recepcion-alcoholes";
+const API_COLUMNAS = "https://ambiocomserver.onrender.com/api/columna-recepcion-alcoholes";
 
 export default function TablaIngresoCarbonMadera() {
   //refs del componente
@@ -668,7 +668,7 @@ export default function TablaIngresoCarbonMadera() {
                 size="small"
                 onClick={() => {
                   window.open(
-                    "https://ambiocomserver.onrender.com1/api/recepcion-alcoholes/plantilla-excel",
+                    "https://ambiocomserver.onrender.com/api/recepcion-alcoholes/plantilla-excel",
                     "_blank"
                   );
                 }}
@@ -1211,7 +1211,7 @@ export default function TablaIngresoCarbonMadera() {
           tooltipTitle="Descargar plantilla Excel"
           onClick={() => {
             window.open(
-              "https://ambiocomserver.onrender.com1/api/recepcion-alcoholes/plantilla-excel",
+              "https://ambiocomserver.onrender.com/api/recepcion-alcoholes/plantilla-excel",
               "_blank"
             );
           }}
@@ -1492,7 +1492,7 @@ export default function TablaIngresoCarbonMadera() {
       {/* Boton para carga masiva*/}
       <ExcelUploadButton
         ref={excelUploadRef}
-        url="https://ambiocomserver.onrender.com1/api/recepcion-alcoholes/carga-masiva"
+        url="https://ambiocomserver.onrender.com/api/recepcion-alcoholes/carga-masiva"
         onSuccess={obtenerMediciones}
       />
     </Box>
