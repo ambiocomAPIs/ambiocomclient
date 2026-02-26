@@ -282,6 +282,9 @@ const IngresoDataDespachoModal = ({
   setForm,
   isEdit = false,
 }) => {
+
+  const CLIENTES_URL = "https://ambiocomserver.onrender.com/api/clienteslogistica";
+
   // =============   Contextos   ===============================
   // rol real desde cookie/session (AuthContext)
   const { rol, loadingAuth, isAuth } = useAuth();
@@ -395,29 +398,36 @@ const IngresoDataDespachoModal = ({
     return [];
   };
 
+
   const refreshCatalogos = async () => {
     if (typeof navigator !== "undefined" && !navigator.onLine) return;
 
     try {
-      const [conductoresRaw] = await Promise.all([
+      const [conductoresRaw, clientesRaw] = await Promise.all([
         axios.get("https://ambiocomserver.onrender.com/api/conductores"),
+        axios.get(CLIENTES_URL),
       ]);
 
-      // const [clientesRaw] = await Promise.all([]);
-      // const [transportadorasRaw] = await Promise.all([]);
-      //mientras no tenga endpouint es mejor dejarlo vacio si no dispara el catch
-      const clientesRaw = { data: [] };
-      const transportadorasRaw = { data: [] };
+      const transportadorasRaw = { data: [] }; // por ahora sin endpoint
 
       const conductores = (conductoresRaw.data ?? []).map((c) => ({
-        value: String(`${c.nombres ?? ""} ${c.apellidos ?? ""}`),
-        label: ` ${c.nombres ?? ""} ${c.apellidos ?? ""} - ${c.placaVehiculo ?? ""} - ${c.carroseria ?? ""}`.trim(),
+        value: String(`${c.nombres ?? ""} ${c.apellidos ?? ""}`).trim(),
+        label: `${c.nombres ?? ""} ${c.apellidos ?? ""} - ${c.placaVehiculo ?? ""} - ${c.carroseria ?? ""}`.trim(),
       }));
 
-      const clientes = (clientesRaw.data ?? []).map(normalizeOption);
-      const transportadoras = (transportadorasRaw.data ?? []).map(
-        normalizeOption
-      );
+      // ✅ SOLO el campo "cliente" (y quitar duplicados)
+      const clientesDB = Array.isArray(clientesRaw.data) ? clientesRaw.data : [];
+      const clientes = Array.from(
+        new Set(
+          clientesDB
+            .map((x) => String(x?.cliente ?? "").trim())
+            .filter(Boolean)
+        )
+      )
+        .sort((a, b) => a.localeCompare(b, "es"))
+        .map((name) => ({ value: name, label: name }));
+
+      const transportadoras = (transportadorasRaw.data ?? []).map(normalizeOption);
 
       setCatalogos((prev) => ({
         ...prev,
@@ -426,23 +436,18 @@ const IngresoDataDespachoModal = ({
         transportadoras,
       }));
 
-      //limpia cache por su conductores ya existen
+      // si el conductor actual no existe, lo limpia (tu lógica)
       setForm((prev) => {
         const actual = prev?.lecturas?.nombre_conductor ?? "";
-        // verificar si el conductor todavía existe
-        const existe = conductores.some(c => c.value === actual);
-        // si existe → NO tocarlo
+        const existe = conductores.some((c) => c.value === actual);
         if (existe) return prev;
-        // si NO existe → limpiar
         return {
           ...prev,
-          lecturas: {
-            ...prev.lecturas,
-            nombre_conductor: ""
-          }
+          lecturas: { ...prev.lecturas, nombre_conductor: "" },
         };
       });
 
+      // ✅ cache
       saveCache("conductores", conductores);
       saveCache("clientes", clientes);
       saveCache("transportadoras", transportadoras);
