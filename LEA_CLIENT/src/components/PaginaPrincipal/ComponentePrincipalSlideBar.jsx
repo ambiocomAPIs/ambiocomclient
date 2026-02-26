@@ -63,6 +63,7 @@ import TransportadorasPage from "../Modulo_Logistica/Transportadoras/Transportad
 import ProductosDespacho from "../Modulo_Logistica/Productos/ProductosDespacho.jsx"
 import ColumnasDBManagement from "../Modulo_Logistica/Desarrollador_DB/ColumnasDBManagement.jsx"
 import ColaboradoresAmbiocom from "../Modulo_Logistica/ColaboradoresDB/ColaboradoresDespachosDB.jsx"
+import ClientesDespachoPageDB from "../Modulo_Logistica/ClientesDB/ClientesAmbiocomDB.jsx"
 //empelados
 import EmpleadosManager from '../EmpleadosManager/EmpleadosAmbiocomList.jsx';
 //Medidores
@@ -221,7 +222,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'Colaboradores', subKey: 'colaboradoresambiocom', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1"], icon: <img src={PersonalIcons} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Productos', subKey: 'productosdespacho', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1"], icon: <img src={ProductDespacho} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Conductores', subKey: 'conductoresdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1"], icon: <img src={Driver} alt="Despacho" style={{ width: 25, height: 25 }} /> },
-                { text: 'Clientes', subKey: 'ClientesDB', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1"], icon: <img src={ClientIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Clientes', subKey: 'clientesdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1"], icon: <img src={ClientIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Transportadora', subKey: 'transportadorasdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1"], icon: <img src={TruckCompany} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Ingresos_M-C', subKey: 'moduloingresosmaderacarbon', roles: ["admin", "developer"], icon: <img src={InOutMaderaCarbonIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'DEV_Functions', subKey: 'gestiondecolumnasdesarrollador', roles: ["developer"], icon: <img src={DevIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
@@ -367,6 +368,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'productosdespacho': return <ProductosDespacho />;
             case 'gestiondecolumnasdesarrollador': return <ColumnasDBManagement />;
             case 'colaboradoresambiocom': return <ColaboradoresAmbiocom />;
+            case 'clientesdb': return <ClientesDespachoPageDB />;
             //pagina mantenimiento
             case 'modulomantenimiento': return <ModuloEnMantenimiento />;
             default: return null;
