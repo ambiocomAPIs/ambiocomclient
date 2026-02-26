@@ -182,7 +182,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             text: 'Inicio Ambiocom',
             key: 'paginadeinicio',
             roles: ["*"], //visible para todos
-            icon: <img src={"/logo_ambiocom.png"} alt="inicio" style={{ width: 35, height: 35 }} />,
+            icon: <img src={"/LogoCompany/logoambiocomicon.png"} alt="inicio" style={{ width: 34, height: 34 }} />,
         },
         {
             text: 'Informes',

@@ -33,15 +33,30 @@ const columnasBloqueadas = [
   "diferencia_recibo_cliente_vnetofacturado",
 ];
 
-const SELECT_KEYS = ["nombre_conductor", "cliente", "transportadora", "producto"];
+const SELECT_KEYS = [
+  "nombre_conductor",
+  "cliente",
+  "transportadora",
+  "producto",
+];
 const CACHE_PREFIX = "despacho_catalogo_";
 const FORM_CACHE_PREFIX = "despacho_form_draft_";
 const TIME_KEYS = ["hora_llegada", "hora_salida"];
 const VEHICULO_RECHAZADO_KEY = "vehiculo_rechazado";
-const VEHICULO_RECHAZADO_OPTIONS = ["SI", "NO", "EN TRANSITO", "APROBADO CON OBSERVACIONES", "EN CARGUE"];
-const RESPONSABLE_RECIBO_ROLES = ["developer", "liderlogistica", "auxiliarlogistica2"];  // permisos para editar responsable
+const VEHICULO_RECHAZADO_OPTIONS = [
+  "SI",
+  "NO",
+  "EN TRANSITO",
+  "APROBADO CON OBSERVACIONES",
+  "EN CARGUE",
+];
+const RESPONSABLE_RECIBO_ROLES = [
+  "developer",
+  "liderlogistica",
+  "auxiliarlogistica2",
+]; // permisos para editar responsable
 const LLEGADA_DESTINO_KEY = "llegada_destino";
-const LLEGADA_DESTINO_OPTIONS = ["PUNTUAL", "RETRASADO"];  // select para modal de registro de datos
+const LLEGADA_DESTINO_OPTIONS = ["PUNTUAL", "RETRASADO"]; // select para modal de registro de datos
 
 // celdas que seran tipo select formato 8:00 15:30
 const loadCacheMeta = (key) => {
@@ -107,7 +122,7 @@ const saveFormDraft = (key, data) => {
 const clearFormDraft = (key) => {
   try {
     localStorage.removeItem(key);
-  } catch { }
+  } catch {}
 };
 
 const normalizeOption = (opt) => {
@@ -182,7 +197,7 @@ const FORMULAS = {
   volumen_contador_gravimetrico: (L) =>
     round(
       toNum(L.peso_neto_contador_ambiocom) /
-      toNum(L.densidadlab_alcohol_tanque),
+        toNum(L.densidadlab_alcohol_tanque),
       3
     ),
 
@@ -210,18 +225,20 @@ const FORMULAS = {
   variacion_peso: (L) =>
     round(
       toNum(L.peso_neto_bascula_ambiocom) -
-      toNum(L.peso_neto_contador_ambiocom),
+        toNum(L.peso_neto_contador_ambiocom),
       3
     ),
 
   variación_volumen: (L) =>
-    round(
-      toNum(L.volumen_ambiocom_contador) - toNum(L.volumen_despachar),
-      3
-    ),
+    round(toNum(L.volumen_ambiocom_contador) - toNum(L.volumen_despachar), 3),
 
   dif_kilos_neto: (L) =>
-    round((toNum(L.kilos_peso_inicial) - toNum(L.kilos_peso_final)) - toNum(L.peso_neto_bascula_ambiocom), 3),
+    round(
+      toNum(L.kilos_peso_inicial) -
+        toNum(L.kilos_peso_final) -
+        toNum(L.peso_neto_bascula_ambiocom),
+      3
+    ),
 
   diferencia_recibo_cliente_vnetofacturado: (L) =>
     round(toNum(L.cantidad_recibida_cliente) - toNum(L.volumen_despachar), 3),
@@ -235,7 +252,7 @@ const FORMULAS = {
   dif_v_netodif_v_desp_bascula_ambiocom: (L) =>
     round(
       toNum(L.volumen_neto_diferencia) -
-      toNum(L.volumen_despacho_bascula_ambiocom),
+        toNum(L.volumen_despacho_bascula_ambiocom),
       3
     ),
 };
@@ -258,19 +275,18 @@ const IngresoDataDespachoModal = ({
   form,
   setForm,
   isEdit = false,
-  fetchConductores,
-  fetchClientes,
-  fetchTransportadoras,
 }) => {
-
   // =============   Contextos   ===============================
   // rol real desde cookie/session (AuthContext)
   const { rol, loadingAuth, isAuth } = useAuth();
   const { tanques, loading: loadingTanques } = useTanques();
   //============================================================
-  const roleNorm = String(rol || "").toLowerCase().trim();
+  const roleNorm = String(rol || "")
+    .toLowerCase()
+    .trim();
   //evalua que roles pueden editar el campo
-  const canEditResponsableRecibo = isAuth && RESPONSABLE_RECIBO_ROLES.includes(roleNorm);
+  const canEditResponsableRecibo =
+    isAuth && RESPONSABLE_RECIBO_ROLES.includes(roleNorm);
 
   const [catalogos, setCatalogos] = useState({
     conductores: [],
@@ -313,7 +329,9 @@ const IngresoDataDespachoModal = ({
   const tanquesOptions = useMemo(() => {
     return tanquesArray
       .map((t) => {
-        const nombre = String(t?.NombreTanque ?? t?.nombreTanque ?? t?.nombre_tanque ?? "").trim();
+        const nombre = String(
+          t?.NombreTanque ?? t?.nombreTanque ?? t?.nombre_tanque ?? ""
+        ).trim();
         return { value: nombre, label: nombre };
       })
       .filter((o) => o.value);
@@ -368,20 +386,30 @@ const IngresoDataDespachoModal = ({
   };
 
   const refreshCatalogos = async () => {
-    if (!fetchConductores || !fetchClientes || !fetchTransportadoras) return;
     if (typeof navigator !== "undefined" && !navigator.onLine) return;
 
     try {
-      const [conductoresRaw, clientesRaw, transportadorasRaw] =
-        await Promise.all([
-          fetchConductores(),
-          fetchClientes(),
-          fetchTransportadoras(),
-        ]);
+      const [conductoresRaw] = await Promise.all([
+        axios.get("https://ambiocomserver.onrender.com/api/conductores"),
+      ]);
+      // const [clientesRaw] = await Promise.all([]);
+      // const [transportadorasRaw] = await Promise.all([]);
+      //mientras no tenga endpouint es mejor dejarlo vacio si no dispara el catch
+      const clientesRaw = { data: [] };
+      const transportadorasRaw = { data: [] };
 
-      const conductores = (conductoresRaw ?? []).map(normalizeOption);
-      const clientes = (clientesRaw ?? []).map(normalizeOption);
-      const transportadoras = (transportadorasRaw ?? []).map(normalizeOption);
+      console.log("RESPUESTA COMPLETA:", conductoresRaw);
+      console.log("DATA:", conductoresRaw.data);
+
+      const conductores = (conductoresRaw.data ?? []).map((c) => ({
+        value: String(`${c.nombres ?? ""} ${c.apellidos ?? ""}`),
+        label: ` ${c.nombres ?? ""} ${ c.apellidos ?? ""} - ${c.placaVehiculo ?? ""} - ${c.carroseria ?? ""}`.trim(),}));
+
+      console.log("NORMALIZADOS:", conductores);
+      const clientes = (clientesRaw.data ?? []).map(normalizeOption);
+      const transportadoras = (transportadorasRaw.data ?? []).map(
+        normalizeOption
+      );
 
       setCatalogos((prev) => ({
         ...prev,
@@ -389,6 +417,22 @@ const IngresoDataDespachoModal = ({
         clientes,
         transportadoras,
       }));
+
+      setForm((prev) => {
+        const actual = prev?.lecturas?.nombre_conductor ?? "";
+        // verificar si el conductor todavía existe
+        const existe = conductores.some(c => c.value === actual);
+        // si existe → NO tocarlo
+        if (existe) return prev;
+        // si NO existe → limpiar
+        return {
+          ...prev,
+          lecturas: {
+            ...prev.lecturas,
+            nombre_conductor: ""
+          }
+        };
+      });
 
       saveCache("conductores", conductores);
       saveCache("clientes", clientes);
@@ -506,8 +550,8 @@ const IngresoDataDespachoModal = ({
 
   useEffect(() => {
     if (!open) return;
-    if (isEdit) return;            // ✅ no guardar draft en edición
-    if (!formCacheKey) return;     // ✅ seguridad
+    if (isEdit) return; // ✅ no guardar draft en edición
+    if (!formCacheKey) return; // ✅ seguridad
 
     const t = setTimeout(() => saveFormDraft(formCacheKey, form), 400);
     return () => clearTimeout(t);
@@ -575,7 +619,7 @@ const IngresoDataDespachoModal = ({
     "cliente",
     "producto",
     "__RESPONSABLE_RECIBO__",
-    "operario_auxiliar_logistica",  // responsable cargue
+    "operario_auxiliar_logistica", // responsable cargue
     "volumen_despachar",
     "tanque_salida",
     "grado_alcoholico_lab",
@@ -732,7 +776,12 @@ const IngresoDataDespachoModal = ({
 
                 if (item.type === "fixed_observaciones") {
                   return (
-                    <Grid item xs={12} md={12} key={`fixed_observaciones_${idx}`}>
+                    <Grid
+                      item
+                      xs={12}
+                      md={12}
+                      key={`fixed_observaciones_${idx}`}
+                    >
                       <TextField
                         fullWidth
                         label="Observaciones"
@@ -753,6 +802,7 @@ const IngresoDataDespachoModal = ({
                 const esLlegadaDestino = c.key === LLEGADA_DESTINO_KEY; // evalua si llego al destino el vehiculo
                 const esTanqueSalida = c.key === "tanque_salida"; // evalua que la lista select se renderizara en la columna con esta key
                 const items = esSelect ? getItems(c.key) : [];
+                const esNombreConductor = c.key === "nombre_conductor";
 
                 const allowedByRole = canRoleEditColumn(c);
                 const isDisabled = !allowedByRole;
@@ -761,7 +811,34 @@ const IngresoDataDespachoModal = ({
 
                 return (
                   <Grid item xs={12} md={2} key={c.key}>
-                    {esSelect ? (
+                    {esNombreConductor ? (
+                      <Autocomplete
+                        forcePopupIcon
+                        options={catalogos.conductores || []}
+                        value={
+                          catalogos.conductores.find(
+                            opt => opt.value === form.lecturas?.nombre_conductor
+                          ) || null
+                        }
+                        getOptionLabel={(option) => option.label ?? ""}
+                        isOptionEqualToValue={(option, value) =>
+                          option.value === value.value
+                        }
+                        onChange={(event, newValue) => {
+                          handleChangeLectura(
+                            "nombre_conductor",
+                            newValue?.value || ""
+                          );
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                          {...params}
+                          label="Conductor"
+                          fullWidth
+                        />
+                        )}
+                      />
+                    ) : esSelect ? (
                       <Autocomplete
                         freeSolo
                         forcePopupIcon
@@ -772,7 +849,9 @@ const IngresoDataDespachoModal = ({
                             : option.label ?? option.value ?? ""
                         }
                         value={
-                          items.find((opt) => opt.value === form.lecturas?.[c.key]) ||
+                          items.find(
+                            (opt) => opt.value === form.lecturas?.[c.key]
+                          ) ||
                           form.lecturas?.[c.key] ||
                           ""
                         }
@@ -780,7 +859,8 @@ const IngresoDataDespachoModal = ({
                           if (isDisabled) return;
                           if (typeof newValue === "string")
                             handleChangeLectura(c.key, newValue);
-                          else handleChangeLectura(c.key, newValue?.value || "");
+                          else
+                            handleChangeLectura(c.key, newValue?.value || "");
                         }}
                         onInputChange={(event, newInputValue) => {
                           if (isDisabled) return;
@@ -868,9 +948,13 @@ const IngresoDataDespachoModal = ({
                         loading={loadingTanques}
                         options={tanquesOptions}
                         value={selectedTanques}
-                        isOptionEqualToValue={(option, value) => option.value === value.value}
+                        isOptionEqualToValue={(option, value) =>
+                          option.value === value.value
+                        }
                         getOptionLabel={(option) =>
-                          typeof option === "string" ? option : option.label ?? ""
+                          typeof option === "string"
+                            ? option
+                            : option.label ?? ""
                         }
                         onChange={(event, newValue) => {
                           if (isDisabled) return;
@@ -882,7 +966,9 @@ const IngresoDataDespachoModal = ({
                           handleChangeLectura(c.key, buildTanquesString(names));
                         }}
                         renderOption={(props, option, { selected }) => {
-                          const icon = <CheckBoxOutlineBlankIcon fontSize="small" />;
+                          const icon = (
+                            <CheckBoxOutlineBlankIcon fontSize="small" />
+                          );
                           const checkedIcon = <CheckBoxIcon fontSize="small" />;
                           return (
                             <li {...props} key={option.value}>
