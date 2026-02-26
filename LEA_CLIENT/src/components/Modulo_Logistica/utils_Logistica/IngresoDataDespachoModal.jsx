@@ -284,6 +284,7 @@ const IngresoDataDespachoModal = ({
 }) => {
 
   const CLIENTES_URL = "https://ambiocomserver.onrender.com/api/clienteslogistica";
+  const TRANSPORTADORAS_URL = "https://ambiocomserver.onrender.com/api/transportadoraslogistica";
 
   // =============   Contextos   ===============================
   // rol real desde cookie/session (AuthContext)
@@ -403,12 +404,11 @@ const IngresoDataDespachoModal = ({
     if (typeof navigator !== "undefined" && !navigator.onLine) return;
 
     try {
-      const [conductoresRaw, clientesRaw] = await Promise.all([
+      const [conductoresRaw, clientesRaw, transportadorasRaw] = await Promise.all([
         axios.get("https://ambiocomserver.onrender.com/api/conductores"),
         axios.get(CLIENTES_URL),
+        axios.get(TRANSPORTADORAS_URL),
       ]);
-
-      const transportadorasRaw = { data: [] }; // por ahora sin endpoint
 
       const conductores = (conductoresRaw.data ?? []).map((c) => ({
         value: String(`${c.nombres ?? ""} ${c.apellidos ?? ""}`).trim(),
@@ -427,7 +427,17 @@ const IngresoDataDespachoModal = ({
         .sort((a, b) => a.localeCompare(b, "es"))
         .map((name) => ({ value: name, label: name }));
 
-      const transportadoras = (transportadorasRaw.data ?? []).map(normalizeOption);
+      const transportadorasDB = Array.isArray(transportadorasRaw.data) ? transportadorasRaw.data : [];
+
+      const transportadoras = Array.from(
+        new Set(
+          transportadorasDB
+            .map((x) => String(x?.nombreTransportadora ?? "").trim())
+            .filter(Boolean)
+        )
+      )
+        .sort((a, b) => a.localeCompare(b, "es"))
+        .map((name) => ({ value: name, label: name }));
 
       setCatalogos((prev) => ({
         ...prev,
