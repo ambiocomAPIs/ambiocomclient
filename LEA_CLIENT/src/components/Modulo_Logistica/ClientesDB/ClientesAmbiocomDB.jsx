@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import Swal from "sweetalert2";
 
 import {
   Box,
@@ -57,6 +58,15 @@ const ClientesDespachoPageDB = () => {
     incoterm: "",
   });
 
+  const getApiErrorMessage = (error) => {
+    return (
+      error?.response?.data?.message ||
+      error?.response?.data?.error ||
+      error?.message ||
+      "Ocurrió un error inesperado."
+    );
+  };
+
   // ===============================
   // OBTENER CLIENTES
   // ===============================
@@ -66,6 +76,13 @@ const ClientesDespachoPageDB = () => {
       setClientes(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       console.error("Error al obtener clientes:", error);
+
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "No se pudieron cargar los clientes.",
+      });
+
       setClientes([]);
     }
   };
@@ -96,16 +113,58 @@ const ClientesDespachoPageDB = () => {
   // ===============================
   const handleSubmit = async () => {
     try {
-      if (editingId) {
-        await axios.put(`${API_URL}/${editingId}`, form);
-      } else {
-        await axios.post(API_URL, form);
+      const payload = {
+        comercial: (form.comercial ?? "").trim(),
+        cliente: (form.cliente ?? "").trim(),
+        tipoOH: (form.tipoOH ?? "").trim(),
+        incoterm: (form.incoterm ?? "").trim(),
+      };
+
+      // Validación mínima (sin cambiar estilos)
+      if (!payload.comercial || !payload.cliente) {
+        await Swal.fire({
+          icon: "warning",
+          title: "Campos obligatorios",
+          text: "Debes diligenciar Comercial y Cliente.",
+        });
+        return;
       }
+
+      Swal.fire({
+        title: editingId ? "Actualizando..." : "Guardando...",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
+      if (editingId) {
+        await axios.put(`${API_URL}/${editingId}`, payload);
+      } else {
+        await axios.post(API_URL, payload);
+      }
+
+      Swal.close();
+
+      await Swal.fire({
+        icon: "success",
+        title: "Listo",
+        text: editingId
+          ? "Cliente actualizado correctamente."
+          : "Cliente registrado correctamente.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
 
       resetForm();
       fetchClientes();
     } catch (error) {
+      Swal.close();
       console.error("Error al guardar cliente:", error);
+
+      Swal.fire({
+        icon: "error",
+        title: "No se pudo guardar",
+        text: getApiErrorMessage(error),
+      });
     }
   };
 
@@ -117,14 +176,61 @@ const ClientesDespachoPageDB = () => {
       incoterm: item.incoterm ?? "",
     });
     setEditingId(item._id);
+
+    Swal.fire({
+      icon: "info",
+      title: "Modo edición",
+      text: "Edita el registro y pulsa Actualizar.",
+      timer: 1200,
+      showConfirmButton: false,
+    });
   };
 
   const handleDelete = async (id) => {
     try {
+      const confirm = await Swal.fire({
+        icon: "warning",
+        title: "¿Eliminar cliente?",
+        text: "Esta acción no se puede deshacer.",
+        showCancelButton: true,
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#d33",
+      });
+
+      if (!confirm.isConfirmed) return;
+
+      Swal.fire({
+        title: "Eliminando...",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
       await axios.delete(`${API_URL}/${id}`);
+
+      Swal.close();
+
+      await Swal.fire({
+        icon: "success",
+        title: "Eliminado",
+        text: "Cliente eliminado correctamente.",
+        timer: 1300,
+        showConfirmButton: false,
+      });
+
+      // si estabas editando el mismo registro, resetea
+      if (editingId === id) resetForm();
+
       fetchClientes();
     } catch (error) {
+      Swal.close();
       console.error("Error al eliminar cliente:", error);
+
+      Swal.fire({
+        icon: "error",
+        title: "No se pudo eliminar",
+        text: getApiErrorMessage(error),
+      });
     }
   };
 
@@ -267,12 +373,35 @@ const ClientesDespachoPageDB = () => {
                 </Button>
 
                 {editingId && (
-                  <Button variant="outlined" onClick={resetForm}>
+                  <Button
+                    variant="outlined"
+                    onClick={async () => {
+                      resetForm();
+                      await Swal.fire({
+                        icon: "info",
+                        title: "Edición cancelada",
+                        timer: 1200,
+                        showConfirmButton: false,
+                      });
+                    }}
+                  >
                     Cancelar
                   </Button>
                 )}
 
-                <Button variant="text" onClick={fetchClientes}>
+                <Button
+                  variant="text"
+                  onClick={async () => {
+                    await fetchClientes();
+                    Swal.fire({
+                      icon: "success",
+                      title: "Actualizado",
+                      text: "Datos refrescados.",
+                      timer: 1200,
+                      showConfirmButton: false,
+                    });
+                  }}
+                >
                   Refrescar
                 </Button>
               </Box>
@@ -312,7 +441,14 @@ const ClientesDespachoPageDB = () => {
                   clientesFiltrados.map((c) => (
                     <TableRow key={c._id} hover>
                       <TableCell>{c.comercial}</TableCell>
-                      <TableCell sx={{ maxWidth: 520, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      <TableCell
+                        sx={{
+                          maxWidth: 520,
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
                         {c.cliente}
                       </TableCell>
                       <TableCell>{c.tipoOH}</TableCell>
