@@ -33,11 +33,17 @@ const columnasBloqueadas = [
   "diferencia_recibo_cliente_vnetofacturado",
 ];
 
+const PERSONAL_ANALISTA_KEY = "muestreador_analista_laboratorio";  // personal lab para el select
+const PERSONAL_LOGISTICA_KEYS = ["operario_auxiliar_logistica", "responsable_despacho",]; // personal logistica para el select
+
 const SELECT_KEYS = [
   "nombre_conductor",
   "cliente",
   "transportadora",
   "producto",
+  PERSONAL_ANALISTA_KEY,
+  ...PERSONAL_LOGISTICA_KEYS,
+
 ];
 const CACHE_PREFIX = "despacho_catalogo_";
 const FORM_CACHE_PREFIX = "despacho_form_draft_";
@@ -122,7 +128,7 @@ const saveFormDraft = (key, data) => {
 const clearFormDraft = (key) => {
   try {
     localStorage.removeItem(key);
-  } catch {}
+  } catch { }
 };
 
 const normalizeOption = (opt) => {
@@ -197,7 +203,7 @@ const FORMULAS = {
   volumen_contador_gravimetrico: (L) =>
     round(
       toNum(L.peso_neto_contador_ambiocom) /
-        toNum(L.densidadlab_alcohol_tanque),
+      toNum(L.densidadlab_alcohol_tanque),
       3
     ),
 
@@ -225,7 +231,7 @@ const FORMULAS = {
   variacion_peso: (L) =>
     round(
       toNum(L.peso_neto_bascula_ambiocom) -
-        toNum(L.peso_neto_contador_ambiocom),
+      toNum(L.peso_neto_contador_ambiocom),
       3
     ),
 
@@ -235,8 +241,8 @@ const FORMULAS = {
   dif_kilos_neto: (L) =>
     round(
       toNum(L.kilos_peso_inicial) -
-        toNum(L.kilos_peso_final) -
-        toNum(L.peso_neto_bascula_ambiocom),
+      toNum(L.kilos_peso_final) -
+      toNum(L.peso_neto_bascula_ambiocom),
       3
     ),
 
@@ -252,7 +258,7 @@ const FORMULAS = {
   dif_v_netodif_v_desp_bascula_ambiocom: (L) =>
     round(
       toNum(L.volumen_neto_diferencia) -
-        toNum(L.volumen_despacho_bascula_ambiocom),
+      toNum(L.volumen_despacho_bascula_ambiocom),
       3
     ),
 };
@@ -293,6 +299,8 @@ const IngresoDataDespachoModal = ({
     clientes: [],
     transportadoras: [],
     productos: [],
+    personalAnalistas: [],
+    personalLogistica: [],
   });
 
   const [isOnline, setIsOnline] = useState(
@@ -382,6 +390,8 @@ const IngresoDataDespachoModal = ({
     if (key === "cliente") return catalogos.clientes;
     if (key === "transportadora") return catalogos.transportadoras;
     if (key === "producto") return catalogos.productos;
+    if (key === PERSONAL_ANALISTA_KEY) return catalogos.personalAnalistas ?? [];
+    if (PERSONAL_LOGISTICA_KEYS.includes(key)) return catalogos.personalLogistica ?? [];
     return [];
   };
 
@@ -392,20 +402,18 @@ const IngresoDataDespachoModal = ({
       const [conductoresRaw] = await Promise.all([
         axios.get("https://ambiocomserver.onrender.com/api/conductores"),
       ]);
+
       // const [clientesRaw] = await Promise.all([]);
       // const [transportadorasRaw] = await Promise.all([]);
       //mientras no tenga endpouint es mejor dejarlo vacio si no dispara el catch
       const clientesRaw = { data: [] };
       const transportadorasRaw = { data: [] };
 
-      console.log("RESPUESTA COMPLETA:", conductoresRaw);
-      console.log("DATA:", conductoresRaw.data);
-
       const conductores = (conductoresRaw.data ?? []).map((c) => ({
         value: String(`${c.nombres ?? ""} ${c.apellidos ?? ""}`),
-        label: ` ${c.nombres ?? ""} ${ c.apellidos ?? ""} - ${c.placaVehiculo ?? ""} - ${c.carroseria ?? ""}`.trim(),}));
+        label: ` ${c.nombres ?? ""} ${c.apellidos ?? ""} - ${c.placaVehiculo ?? ""} - ${c.carroseria ?? ""}`.trim(),
+      }));
 
-      console.log("NORMALIZADOS:", conductores);
       const clientes = (clientesRaw.data ?? []).map(normalizeOption);
       const transportadoras = (transportadorasRaw.data ?? []).map(
         normalizeOption
@@ -418,6 +426,7 @@ const IngresoDataDespachoModal = ({
         transportadoras,
       }));
 
+      //limpia cache por su conductores ya existen
       setForm((prev) => {
         const actual = prev?.lecturas?.nombre_conductor ?? "";
         // verificar si el conductor todavía existe
@@ -439,6 +448,61 @@ const IngresoDataDespachoModal = ({
       saveCache("transportadoras", transportadoras);
     } catch (e) {
       console.warn("Error refrescando catálogos, usando cache", e);
+    }
+  };
+
+  const refreshPersonal = async () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) return;
+
+    try {
+      const res = await axios.get("https://ambiocomserver.onrender.com/api/personal");
+      const personal = Array.isArray(res.data) ? res.data : [];
+
+      // OJO: usa exactamente los valores de tu BD
+      const personalAnalistas = personal
+        .filter((p) => String(p.area ?? "").trim() === "Laboratorio")
+        .map((p) => {
+          const n = String(p?.nombres ?? "").trim();
+          return { value: n, label: n };
+        })
+        .filter((o) => o.value);
+
+      const personalLogistica = personal
+        .filter((p) => String(p.area ?? "").trim() === "Logistica")
+        .map((p) => {
+          const n = String(p?.nombres ?? "").trim();
+          return { value: n, label: n };
+        })
+        .filter((o) => o.value);
+
+      setCatalogos((prev) => ({
+        ...prev,
+        personalAnalistas,
+        personalLogistica,
+      }));
+
+      setForm((prev) => {
+        const lect = prev?.lecturas ?? {};
+        const next = { ...lect };
+
+        const exists = (opts, v) => (opts ?? []).some((o) => o.value === v);
+
+        // analistas
+        if (next[PERSONAL_ANALISTA_KEY] && !exists(personalAnalistas, next[PERSONAL_ANALISTA_KEY])) {
+          next[PERSONAL_ANALISTA_KEY] = "";
+        }
+
+        // logistica
+        for (const k of PERSONAL_LOGISTICA_KEYS) {
+          if (next[k] && !exists(personalLogistica, next[k])) {
+            next[k] = "";
+          }
+        }
+
+        return { ...prev, lecturas: next };
+      });
+    } catch (e) {
+      console.warn("Error refrescando personal", e);
     }
   };
 
@@ -476,7 +540,13 @@ const IngresoDataDespachoModal = ({
     const transportadoras = loadCacheMeta("transportadoras").data;
     const productos = loadCacheMeta("productos").data;
 
-    setCatalogos({ conductores, clientes, transportadoras, productos });
+    setCatalogos((prev) => ({
+      ...prev,
+      conductores,
+      clientes,
+      transportadoras,
+      productos,
+    }));
 
     if (!isEdit) {
       const draft = loadFormDraft(formCacheKey);
@@ -493,6 +563,7 @@ const IngresoDataDespachoModal = ({
     }
 
     refreshCatalogos();
+    refreshPersonal();
     refreshProductosTTL();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -757,18 +828,37 @@ const IngresoDataDespachoModal = ({
                 if (item.type === "fixed_responsable") {
                   const isDisabled = !canEditResponsableRecibo;
                   const sxField = !isDisabled ? sxAllowed : sxDisabled;
+
+                  const options = catalogos.personalLogistica ?? [];
+
+                  const valueObj =
+                    options.find((opt) => opt.value === (form.responsable ?? "")) || null;
+
                   return (
                     <Grid item xs={6} md={2} key={`fixed_responsable_${idx}`}>
-                      <TextField
-                        fullWidth
-                        label="Responsable de recibo"
-                        value={form.responsable || ""}
-                        onChange={(e) => {
+                      <Autocomplete
+                        disableClearable={false}
+                        forcePopupIcon
+                        options={options}
+                        value={valueObj}
+                        isOptionEqualToValue={(option, value) => option.value === value.value}
+                        getOptionLabel={(option) => option?.label ?? ""}
+                        onChange={(event, newValue) => {
                           if (isDisabled) return;
-                          setForm({ ...form, responsable: e.target.value });
+                          setForm((prev) => ({
+                            ...prev,
+                            responsable: newValue?.value ?? "",
+                          }));
                         }}
-                        disabled={isDisabled}
-                        sx={sxField}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Responsable de recibo"
+                            fullWidth
+                            disabled={isDisabled}
+                            sx={sxField}
+                          />
+                        )}
                       />
                     </Grid>
                   );
@@ -832,10 +922,10 @@ const IngresoDataDespachoModal = ({
                         }}
                         renderInput={(params) => (
                           <TextField
-                          {...params}
-                          label="Conductor"
-                          fullWidth
-                        />
+                            {...params}
+                            label="Conductor"
+                            fullWidth
+                          />
                         )}
                       />
                     ) : esSelect ? (
