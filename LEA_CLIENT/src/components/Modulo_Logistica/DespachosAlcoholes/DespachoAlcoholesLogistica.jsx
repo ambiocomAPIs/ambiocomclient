@@ -57,11 +57,13 @@ import SaveAsIcon from "@mui/icons-material/SaveAs";
 import SummarizeIcon from "@mui/icons-material/Summarize";
 import HistoryIcon from "@mui/icons-material/History";
 import YouTubeIcon from "@mui/icons-material/YouTube";
-import HowToRegIcon from '@mui/icons-material/HowToReg';
-import PersonRemoveAlt1Icon from '@mui/icons-material/PersonRemoveAlt1';
-import TimelapseIcon from '@mui/icons-material/Timelapse';
-import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
-import ReportIcon from '@mui/icons-material/Report';
+import HowToRegIcon from "@mui/icons-material/HowToReg";
+import PersonRemoveAlt1Icon from "@mui/icons-material/PersonRemoveAlt1";
+import TimelapseIcon from "@mui/icons-material/Timelapse";
+import LocalGasStationIcon from "@mui/icons-material/LocalGasStation";
+import ReportIcon from "@mui/icons-material/Report";
+import AlarmOnIcon from "@mui/icons-material/AlarmOn";
+import AlarmOffIcon from "@mui/icons-material/AlarmOff";
 
 import ExcelUploadButton from "../utils_Logistica/ExcelUploadButton";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -70,13 +72,14 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import IngresoDataDespachoModal from "../utils_Logistica/IngresoDataDespachoModal.jsx";
 import ChartBuilder from "../utils_Logistica/ChartBuilder";
 
-
 // Contexto usuario por roles
 import { useAuth } from "../../../utils/Context/AuthContext/AuthContext.jsx";
 
 /* ================= ENDPOINTS ================= */
-const API_DESPACHOS = "https://ambiocomserver.onrender.com/api/despacho-alcoholes";
-const API_COLUMNAS = "https://ambiocomserver.onrender.com/api/columna-despacho-alcoholes";
+const API_DESPACHOS =
+  "https://ambiocomserver.onrender.com/api/despacho-alcoholes";
+const API_COLUMNAS =
+  "https://ambiocomserver.onrender.com/api/columna-despacho-alcoholes";
 
 export default function TablaDespachosLogistica() {
   //refs del componente
@@ -241,16 +244,19 @@ export default function TablaDespachosLogistica() {
 
   //doble click para mostrar observaciones si un vehiculo ha sido rechazado o aprobado con observaciones
   const handleDblClickVehiculo = (row) => {
-    const estado = (row?.lecturas?.vehiculo_rechazado || "").toString().toUpperCase().trim();
+    const estado = (row?.lecturas?.vehiculo_rechazado || "")
+      .toString()
+      .toUpperCase()
+      .trim();
 
     // solo estos abren modal
-    if (estado !== "SI" && estado !== "APROBADO CON OBSERVACIONES") return;
+    // if (estado !== "SI" && estado !== "APROBADO CON OBSERVACIONES") return; al comentarlo hace que todos sean clickeable.
 
     const observacion = (row?.observaciones || "").toString().trim();
 
     setObsVehiculoData({
       estado,
-      observacion: observacion || "(Esta fila no tiene observación registrada)",
+      observacion: observacion || "Esta fila no tiene observación registrada",
       fecha: row?.fecha || "",
       placa: row?.lecturas?.placa || "",
       cliente: row?.lecturas?.cliente || "",
@@ -258,6 +264,32 @@ export default function TablaDespachosLogistica() {
 
     setOpenObsVehiculo(true);
   };
+
+    //doble click para mostrar observaciones si un vehiculo ha llegado a tiempo
+
+  const handleDblClickLlegadaATiempo = (row) => {
+    const estado = (row?.lecturas?.llegada_destino || "")
+      .toString()
+      .toUpperCase()
+      .trim();
+
+    // solo estos abren modal
+    if (estado !== "PUNTUAL" && estado !== "RETRASADO") return;
+
+    const observacion = (row?.observaciones || "").toString().trim();
+
+    setObsVehiculoData({
+      estado,
+      observacion: observacion || "Esta fila no tiene observación registrada",
+      fecha: row?.fecha || "",
+      placa: row?.lecturas?.placa || "",
+      cliente: row?.lecturas?.cliente || "",
+    });
+
+    setOpenObsVehiculo(true);
+
+  };
+
   // Detectar click derecho para copiar tabla tipo SAP
   const handleContextMenu = (e) => {
     e.preventDefault();
@@ -568,9 +600,7 @@ export default function TablaDespachosLogistica() {
           width: "100%",
         }}
       >
-        <Tooltip title={title}>
-          {icon}
-        </Tooltip>
+        <Tooltip title={title}>{icon}</Tooltip>
       </Box>
     );
     if (valor === "SI") {
@@ -604,6 +634,37 @@ export default function TablaDespachosLogistica() {
       );
     }
 
+    return null;
+  };
+
+  //renderizado botones visuales estado llegada a tiempo o retraso
+  const renderIconoTiempodeEntrega = (estado) => {
+    const valor = (estado || "").toString().toUpperCase().trim();
+
+    const commonWrapper = (icon, title) => (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          width: "100%",
+        }}
+      >
+        <Tooltip title={title}>{icon}</Tooltip>
+      </Box>
+    );
+    if (valor === "PUNTUAL") {
+      return commonWrapper(
+        <AlarmOnIcon sx={{ color: "#58555a" }} />,
+        "Vehículo a tiempo"
+      );
+    }
+    if (valor === "RETRASADO") {
+      return commonWrapper(
+        <AlarmOffIcon sx={{ color: "#ea5931" }} />,
+        "Vehículo con retrazo a destino"
+      );
+    }
     return null;
   };
 
@@ -1363,7 +1424,7 @@ export default function TablaDespachosLogistica() {
                       position: "sticky",
                       left: 0,
                       zIndex: 4,
-                      backgroundColor: "#dad9d9d4",
+                      backgroundColor: "#dad9d9e3",
                       // porcentajeFaltante > 0 ? colorFila : "#fff",
                       borderRight: "1px solid rgba(224,224,224,1)",
                       minWidth: 110,
@@ -1394,7 +1455,9 @@ export default function TablaDespachosLogistica() {
                       </Tooltip>
 
                       <Tooltip
-                        title={puedeEliminar ? "Eliminar" : "No tienes permisos"}
+                        title={
+                          puedeEliminar ? "Eliminar" : "No tienes permisos"
+                        }
                       >
                         <IconButton
                           disabled={!puedeEliminar}
@@ -1407,14 +1470,37 @@ export default function TablaDespachosLogistica() {
 
                       {/* ICONO Vehiculo */}
                       <Box
-                        onDoubleClick={(e) => {  // doble click para abrir nota
+                        onDoubleClick={(e) => {
+                          // doble click para abrir nota
                           e.stopPropagation();
                           handleDblClickVehiculo(row);
                         }}
-                        sx={{ display: "flex", alignItems: "center", cursor:"pointer" }}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          cursor: "pointer",
+                        }}
                       >
                         {renderIconoVehiculo(row.lecturas?.vehiculo_rechazado)}
-                      </Box>                    </Box>
+                      </Box>
+                      {/* ICONO VEHICULO A TIEMPO */}
+                      <Box
+                        onDoubleClick={(e) => {
+                          // doble click para abrir nota
+                          e.stopPropagation();
+                          handleDblClickLlegadaATiempo(row);
+                        }}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {renderIconoTiempodeEntrega(
+                          row.lecturas?.llegada_destino
+                        )}
+                      </Box>
+                    </Box>
                   </TableCell>
                   <TableCell align="center">{row.fecha}</TableCell>
 
@@ -1547,10 +1633,22 @@ export default function TablaDespachosLogistica() {
         }}
       >
         {/* Header */}
-        <Box sx={{ px: 2.2, py: 1.6, borderBottom: "1px solid rgba(0,0,0,0.08)" }}>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+        <Box
+          sx={{ px: 2.2, py: 1.6, borderBottom: "1px solid rgba(0,0,0,0.08)" }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 1,
+            }}
+          >
             <Box sx={{ minWidth: 0 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 800, letterSpacing: 0.2 }}>
+              <Typography
+                variant="subtitle1"
+                sx={{ fontWeight: 800, letterSpacing: 0.2 }}
+              >
                 Observación del vehículo
               </Typography>
               <Typography variant="caption" sx={{ opacity: 0.75 }}>
@@ -1569,11 +1667,12 @@ export default function TablaDespachosLogistica() {
                 letterSpacing: 0.4,
                 border: "1px solid rgba(0,0,0,0.14)",
                 bgcolor:
-                  obsVehiculoData.estado === "SI" || obsVehiculoData.estado === "APROBADO CON OBSERVACIONES"
+                  obsVehiculoData.estado === "SI" ||
+                  obsVehiculoData.estado === "APROBADO CON OBSERVACIONES"
                     ? "rgba(211, 47, 47, 0.10)"
                     : "rgba(46, 125, 50, 0.10)",
                 color:
-                  obsVehiculoData.estado === "SI" || obsVehiculoData.estado === "APROBADO CON OBSERVACIONES"
+                  obsVehiculoData.estado === "SI" || obsVehiculoData.estado === "APROBADO CON OBSERVACIONES" || obsVehiculoData.estado === "RETRASADO"
                     ? "rgb(211, 47, 47)"
                     : "rgb(46, 125, 50)",
                 whiteSpace: "nowrap",
@@ -1596,8 +1695,16 @@ export default function TablaDespachosLogistica() {
               mb: 1.5,
             }}
           >
-            <Box sx={{ display: "grid", gridTemplateColumns: "1fr", rowGap: 0.6 }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
+            <Box
+              sx={{ display: "grid", gridTemplateColumns: "1fr", rowGap: 0.6 }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 2,
+                }}
+              >
                 <Typography variant="caption" sx={{ opacity: 0.7 }}>
                   Fecha
                 </Typography>
@@ -1606,7 +1713,13 @@ export default function TablaDespachosLogistica() {
                 </Typography>
               </Box>
 
-              <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 2,
+                }}
+              >
                 <Typography variant="caption" sx={{ opacity: 0.7 }}>
                   Placa
                 </Typography>
@@ -1615,13 +1728,25 @@ export default function TablaDespachosLogistica() {
                 </Typography>
               </Box>
 
-              <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 2,
+                }}
+              >
                 <Typography variant="caption" sx={{ opacity: 0.7 }}>
                   Cliente
                 </Typography>
                 <Typography
                   variant="body2"
-                  sx={{ fontWeight: 700, textAlign: "right", maxWidth: "65%", overflow: "hidden", textOverflow: "ellipsis" }}
+                  sx={{
+                    fontWeight: 700,
+                    textAlign: "right",
+                    maxWidth: "65%",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
                   title={obsVehiculoData.cliente || ""}
                 >
                   {obsVehiculoData.cliente || "—"}
@@ -1631,7 +1756,10 @@ export default function TablaDespachosLogistica() {
           </Paper>
 
           {/* Observación */}
-          <Typography variant="caption" sx={{ opacity: 0.75, display: "block", mb: 0.8 }}>
+          <Typography
+            variant="caption"
+            sx={{ opacity: 0.75, display: "block", mb: 0.8 }}
+          >
             Observación
           </Typography>
 
@@ -1644,7 +1772,10 @@ export default function TablaDespachosLogistica() {
               bgcolor: "#fff",
             }}
           >
-            <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
+            <Typography
+              variant="body2"
+              sx={{ whiteSpace: "pre-wrap", lineHeight: 1.5 }}
+            >
               {obsVehiculoData.observacion || "—"}
             </Typography>
           </Paper>
