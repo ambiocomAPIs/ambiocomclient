@@ -936,10 +936,6 @@ const IngresoDataDespachoModal = ({
                           option.value === value.value
                         }
                         onChange={(event, newValue) => {
-<<<<<<< HEAD
-=======
-                          // newValue es el objeto conductor seleccionado (o null)
->>>>>>> d5417b80dc31e12fd38812076d9f08ee2de69803
                           const conductor = newValue || null;
 
                           setForm((prev) => ({
@@ -949,11 +945,6 @@ const IngresoDataDespachoModal = ({
                               nombre_conductor: conductor?.value ?? "",
                               placa: conductor?.placa ?? "",
                               remolque: conductor?.carroceria ?? "",
-<<<<<<< HEAD
-=======
-                              // si quieres también:
-                              // carroseria: conductor?.carroceria ?? "",
->>>>>>> d5417b80dc31e12fd38812076d9f08ee2de69803
                             },
                           }));
                         }}
