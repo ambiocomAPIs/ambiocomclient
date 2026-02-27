@@ -20,7 +20,6 @@ import Swal from 'sweetalert2'
 
 import {ExportExcelWithTemplate} from '../utils/Functions/DownloadExcelData'
 import ModalFilterData from '../utils/modals/ModalFilterData';
-// const FileUploadExcel = lazy(() => import('../utils/Functions/UploadExcelDataMasive')); //& aplicando lazy a este componente
 
 import DownloadIcon from '@mui/icons-material/Download';
 import UploadIcon from '@mui/icons-material/Upload';

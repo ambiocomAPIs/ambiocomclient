@@ -33,11 +33,17 @@ const columnasBloqueadas = [
   "diferencia_recibo_cliente_vnetofacturado",
 ];
 
+const PERSONAL_ANALISTA_KEY = "muestreador_analista_laboratorio";  // personal lab para el select
+const PERSONAL_LOGISTICA_KEYS = ["operario_auxiliar_logistica", "responsable_despacho",]; // personal logistica para el select
+
 const SELECT_KEYS = [
   "nombre_conductor",
   "cliente",
   "transportadora",
   "producto",
+  PERSONAL_ANALISTA_KEY,
+  ...PERSONAL_LOGISTICA_KEYS,
+
 ];
 const CACHE_PREFIX = "despacho_catalogo_";
 const FORM_CACHE_PREFIX = "despacho_form_draft_";
@@ -122,7 +128,7 @@ const saveFormDraft = (key, data) => {
 const clearFormDraft = (key) => {
   try {
     localStorage.removeItem(key);
-  } catch {}
+  } catch { }
 };
 
 const normalizeOption = (opt) => {
@@ -197,7 +203,7 @@ const FORMULAS = {
   volumen_contador_gravimetrico: (L) =>
     round(
       toNum(L.peso_neto_contador_ambiocom) /
-        toNum(L.densidadlab_alcohol_tanque),
+      toNum(L.densidadlab_alcohol_tanque),
       3
     ),
 
@@ -225,7 +231,7 @@ const FORMULAS = {
   variacion_peso: (L) =>
     round(
       toNum(L.peso_neto_bascula_ambiocom) -
-        toNum(L.peso_neto_contador_ambiocom),
+      toNum(L.peso_neto_contador_ambiocom),
       3
     ),
 
@@ -235,8 +241,8 @@ const FORMULAS = {
   dif_kilos_neto: (L) =>
     round(
       toNum(L.kilos_peso_inicial) -
-        toNum(L.kilos_peso_final) -
-        toNum(L.peso_neto_bascula_ambiocom),
+      toNum(L.kilos_peso_final) -
+      toNum(L.peso_neto_bascula_ambiocom),
       3
     ),
 
@@ -252,7 +258,7 @@ const FORMULAS = {
   dif_v_netodif_v_desp_bascula_ambiocom: (L) =>
     round(
       toNum(L.volumen_neto_diferencia) -
-        toNum(L.volumen_despacho_bascula_ambiocom),
+      toNum(L.volumen_despacho_bascula_ambiocom),
       3
     ),
 };
@@ -276,6 +282,10 @@ const IngresoDataDespachoModal = ({
   setForm,
   isEdit = false,
 }) => {
+
+  const CLIENTES_URL = "https://ambiocomserver.onrender.com/api/clienteslogistica";
+  const TRANSPORTADORAS_URL = "https://ambiocomserver.onrender.com/api/transportadoraslogistica";
+
   // =============   Contextos   ===============================
   // rol real desde cookie/session (AuthContext)
   const { rol, loadingAuth, isAuth } = useAuth();
@@ -293,6 +303,8 @@ const IngresoDataDespachoModal = ({
     clientes: [],
     transportadoras: [],
     productos: [],
+    personalAnalistas: [],
+    personalLogistica: [],
   });
 
   const [isOnline, setIsOnline] = useState(
@@ -382,34 +394,57 @@ const IngresoDataDespachoModal = ({
     if (key === "cliente") return catalogos.clientes;
     if (key === "transportadora") return catalogos.transportadoras;
     if (key === "producto") return catalogos.productos;
+    if (key === PERSONAL_ANALISTA_KEY) return catalogos.personalAnalistas ?? [];
+    if (PERSONAL_LOGISTICA_KEYS.includes(key)) return catalogos.personalLogistica ?? [];
     return [];
   };
+
 
   const refreshCatalogos = async () => {
     if (typeof navigator !== "undefined" && !navigator.onLine) return;
 
     try {
-      const [conductoresRaw] = await Promise.all([
+      const [conductoresRaw, clientesRaw, transportadorasRaw] = await Promise.all([
         axios.get("https://ambiocomserver.onrender.com/api/conductores"),
+        axios.get(CLIENTES_URL),
+        axios.get(TRANSPORTADORAS_URL),
       ]);
-      // const [clientesRaw] = await Promise.all([]);
-      // const [transportadorasRaw] = await Promise.all([]);
-      //mientras no tenga endpouint es mejor dejarlo vacio si no dispara el catch
-      const clientesRaw = { data: [] };
-      const transportadorasRaw = { data: [] };
 
-      console.log("RESPUESTA COMPLETA:", conductoresRaw);
-      console.log("DATA:", conductoresRaw.data);
+      const conductores = (conductoresRaw.data ?? []).map((c) => {
+        const nombre = String(`${c.nombres ?? ""} ${c.apellidos ?? ""}`).trim();
 
-      const conductores = (conductoresRaw.data ?? []).map((c) => ({
-        value: String(`${c.nombres ?? ""} ${c.apellidos ?? ""}`),
-        label: ` ${c.nombres ?? ""} ${ c.apellidos ?? ""} - ${c.placaVehiculo ?? ""} - ${c.carroseria ?? ""}`.trim(),}));
+        return {
+          value: nombre, // lo que guardas en lecturas.nombre_conductor
+          label: `${nombre} - ${c.placaVehiculo ?? ""} - ${c.carroseria ?? ""}`.trim(),
+          placa: String(c.placaVehiculo ?? "").trim(),
+          remolque: String(c.remolque ?? c.placaRemolque ?? "").trim(), // ajusta al nombre real en tu API
+          carroceria: String(c.carroseria ?? "").trim(),
+        };
+      });
 
-      console.log("NORMALIZADOS:", conductores);
-      const clientes = (clientesRaw.data ?? []).map(normalizeOption);
-      const transportadoras = (transportadorasRaw.data ?? []).map(
-        normalizeOption
-      );
+      // ✅ SOLO el campo "cliente" (y quitar duplicados)
+      const clientesDB = Array.isArray(clientesRaw.data) ? clientesRaw.data : [];
+      const clientes = Array.from(
+        new Set(
+          clientesDB
+            .map((x) => String(x?.cliente ?? "").trim())
+            .filter(Boolean)
+        )
+      )
+        .sort((a, b) => a.localeCompare(b, "es"))
+        .map((name) => ({ value: name, label: name }));
+
+      const transportadorasDB = Array.isArray(transportadorasRaw.data) ? transportadorasRaw.data : [];
+
+      const transportadoras = Array.from(
+        new Set(
+          transportadorasDB
+            .map((x) => String(x?.nombreTransportadora ?? "").trim())
+            .filter(Boolean)
+        )
+      )
+        .sort((a, b) => a.localeCompare(b, "es"))
+        .map((name) => ({ value: name, label: name }));
 
       setCatalogos((prev) => ({
         ...prev,
@@ -418,27 +453,78 @@ const IngresoDataDespachoModal = ({
         transportadoras,
       }));
 
+      // si el conductor actual no existe, lo limpia (tu lógica)
       setForm((prev) => {
         const actual = prev?.lecturas?.nombre_conductor ?? "";
-        // verificar si el conductor todavía existe
-        const existe = conductores.some(c => c.value === actual);
-        // si existe → NO tocarlo
+        const existe = conductores.some((c) => c.value === actual);
         if (existe) return prev;
-        // si NO existe → limpiar
         return {
           ...prev,
-          lecturas: {
-            ...prev.lecturas,
-            nombre_conductor: ""
-          }
+          lecturas: { ...prev.lecturas, nombre_conductor: "" },
         };
       });
 
+      // ✅ cache
       saveCache("conductores", conductores);
       saveCache("clientes", clientes);
       saveCache("transportadoras", transportadoras);
     } catch (e) {
       console.warn("Error refrescando catálogos, usando cache", e);
+    }
+  };
+
+  const refreshPersonal = async () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) return;
+
+    try {
+      const res = await axios.get("https://ambiocomserver.onrender.com/api/personal");
+      const personal = Array.isArray(res.data) ? res.data : [];
+
+      // OJO: usa exactamente los valores de tu BD
+      const personalAnalistas = personal
+        .filter((p) => String(p.area ?? "").trim() === "Laboratorio")
+        .map((p) => {
+          const n = String(p?.nombres ?? "").trim();
+          return { value: n, label: n };
+        })
+        .filter((o) => o.value);
+
+      const personalLogistica = personal
+        .filter((p) => String(p.area ?? "").trim() === "Logistica")
+        .map((p) => {
+          const n = String(p?.nombres ?? "").trim();
+          return { value: n, label: n };
+        })
+        .filter((o) => o.value);
+
+      setCatalogos((prev) => ({
+        ...prev,
+        personalAnalistas,
+        personalLogistica,
+      }));
+
+      setForm((prev) => {
+        const lect = prev?.lecturas ?? {};
+        const next = { ...lect };
+
+        const exists = (opts, v) => (opts ?? []).some((o) => o.value === v);
+
+        // analistas
+        if (next[PERSONAL_ANALISTA_KEY] && !exists(personalAnalistas, next[PERSONAL_ANALISTA_KEY])) {
+          next[PERSONAL_ANALISTA_KEY] = "";
+        }
+
+        // logistica
+        for (const k of PERSONAL_LOGISTICA_KEYS) {
+          if (next[k] && !exists(personalLogistica, next[k])) {
+            next[k] = "";
+          }
+        }
+
+        return { ...prev, lecturas: next };
+      });
+    } catch (e) {
+      console.warn("Error refrescando personal", e);
     }
   };
 
@@ -476,7 +562,13 @@ const IngresoDataDespachoModal = ({
     const transportadoras = loadCacheMeta("transportadoras").data;
     const productos = loadCacheMeta("productos").data;
 
-    setCatalogos({ conductores, clientes, transportadoras, productos });
+    setCatalogos((prev) => ({
+      ...prev,
+      conductores,
+      clientes,
+      transportadoras,
+      productos,
+    }));
 
     if (!isEdit) {
       const draft = loadFormDraft(formCacheKey);
@@ -493,6 +585,7 @@ const IngresoDataDespachoModal = ({
     }
 
     refreshCatalogos();
+    refreshPersonal();
     refreshProductosTTL();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -757,18 +850,37 @@ const IngresoDataDespachoModal = ({
                 if (item.type === "fixed_responsable") {
                   const isDisabled = !canEditResponsableRecibo;
                   const sxField = !isDisabled ? sxAllowed : sxDisabled;
+
+                  const options = catalogos.personalLogistica ?? [];
+
+                  const valueObj =
+                    options.find((opt) => opt.value === (form.responsable ?? "")) || null;
+
                   return (
                     <Grid item xs={6} md={2} key={`fixed_responsable_${idx}`}>
-                      <TextField
-                        fullWidth
-                        label="Responsable de recibo"
-                        value={form.responsable || ""}
-                        onChange={(e) => {
+                      <Autocomplete
+                        disableClearable={false}
+                        forcePopupIcon
+                        options={options}
+                        value={valueObj}
+                        isOptionEqualToValue={(option, value) => option.value === value.value}
+                        getOptionLabel={(option) => option?.label ?? ""}
+                        onChange={(event, newValue) => {
                           if (isDisabled) return;
-                          setForm({ ...form, responsable: e.target.value });
+                          setForm((prev) => ({
+                            ...prev,
+                            responsable: newValue?.value ?? "",
+                          }));
                         }}
-                        disabled={isDisabled}
-                        sx={sxField}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Responsable de recibo"
+                            fullWidth
+                            disabled={isDisabled}
+                            sx={sxField}
+                          />
+                        )}
                       />
                     </Grid>
                   );
@@ -825,17 +937,27 @@ const IngresoDataDespachoModal = ({
                           option.value === value.value
                         }
                         onChange={(event, newValue) => {
-                          handleChangeLectura(
-                            "nombre_conductor",
-                            newValue?.value || ""
-                          );
+                          // newValue es el objeto conductor seleccionado (o null)
+                          const conductor = newValue || null;
+
+                          setForm((prev) => ({
+                            ...prev,
+                            lecturas: {
+                              ...prev.lecturas,
+                              nombre_conductor: conductor?.value ?? "",
+                              placa: conductor?.placa ?? "",
+                              remolque: conductor?.carroceria ?? "",
+                              // si quieres también:
+                              // carroseria: conductor?.carroceria ?? "",
+                            },
+                          }));
                         }}
                         renderInput={(params) => (
                           <TextField
-                          {...params}
-                          label="Conductor"
-                          fullWidth
-                        />
+                            {...params}
+                            label="Conductor"
+                            fullWidth
+                          />
                         )}
                       />
                     ) : esSelect ? (

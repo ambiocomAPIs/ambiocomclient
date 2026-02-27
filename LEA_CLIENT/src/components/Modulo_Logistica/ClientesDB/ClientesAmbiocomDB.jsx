@@ -31,7 +31,7 @@ import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
-const API_URL = "https://ambiocomserver.onrender.com/api/transportadoraslogistica";
+const API_URL = "https://ambiocomserver.onrender.com/api/clienteslogistica";
 
 // Debounce simple sin librerías
 const useDebouncedValue = (value, delay = 250) => {
@@ -43,8 +43,8 @@ const useDebouncedValue = (value, delay = 250) => {
   return debounced;
 };
 
-const TransportadorasLogisticaPage = () => {
-  const [empresas, setEmpresas] = useState([]);
+const ClientesDespachoPageDB = () => {
+  const [clientes, setClientes] = useState([]);
   const [editingId, setEditingId] = useState(null);
 
   // buscador
@@ -52,32 +52,43 @@ const TransportadorasLogisticaPage = () => {
   const debouncedSearch = useDebouncedValue(search, 250);
 
   const [form, setForm] = useState({
-    nombreTransportadora: "",
-    locacion: "",
-    contactoTelefonico: "",
-    emailContacto: "",
+    comercial: "",
+    cliente: "",
+    tipoOH: "",
+    incoterm: "",
   });
 
+  const getApiErrorMessage = (error) => {
+    return (
+      error?.response?.data?.message ||
+      error?.response?.data?.error ||
+      error?.message ||
+      "Ocurrió un error inesperado."
+    );
+  };
+
   // ===============================
-  // OBTENER EMPRESAS
+  // OBTENER CLIENTES
   // ===============================
-  const fetchEmpresas = async () => {
+  const fetchClientes = async () => {
     try {
       const res = await axios.get(API_URL);
-      setEmpresas(Array.isArray(res.data) ? res.data : []);
+      setClientes(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
-      console.error("Error al obtener transportadoras:", error);
+      console.error("Error al obtener clientes:", error);
+
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: "No se pudieron cargar las transportadoras.",
+        text: "No se pudieron cargar los clientes.",
       });
-      setEmpresas([]);
+
+      setClientes([]);
     }
   };
 
   useEffect(() => {
-    fetchEmpresas();
+    fetchClientes();
   }, []);
 
   // ===============================
@@ -89,22 +100,12 @@ const TransportadorasLogisticaPage = () => {
 
   const resetForm = () => {
     setForm({
-      nombreTransportadora: "",
-      locacion: "",
-      contactoTelefonico: "",
-      emailContacto: "",
+      comercial: "",
+      cliente: "",
+      tipoOH: "",
+      incoterm: "",
     });
     setEditingId(null);
-  };
-
-  const getApiErrorMessage = (error) => {
-    // intenta leer mensaje del backend
-    const msg =
-      error?.response?.data?.message ||
-      error?.response?.data?.error ||
-      error?.message ||
-      "Ocurrió un error inesperado.";
-    return String(msg);
   };
 
   // ===============================
@@ -113,17 +114,18 @@ const TransportadorasLogisticaPage = () => {
   const handleSubmit = async () => {
     try {
       const payload = {
-        nombreTransportadora: form.nombreTransportadora.trim(),
-        locacion: form.locacion.trim(),
-        contactoTelefonico: form.contactoTelefonico.trim(),
-        emailContacto: form.emailContacto.trim(),
+        comercial: (form.comercial ?? "").trim(),
+        cliente: (form.cliente ?? "").trim(),
+        tipoOH: (form.tipoOH ?? "").trim(),
+        incoterm: (form.incoterm ?? "").trim(),
       };
 
-      if (!payload.nombreTransportadora || !payload.locacion) {
+      // Validación mínima (sin cambiar estilos)
+      if (!payload.comercial || !payload.cliente) {
         await Swal.fire({
           icon: "warning",
           title: "Campos obligatorios",
-          text: "Debes diligenciar Nombre Transportadora y Locación.",
+          text: "Debes diligenciar Comercial y Cliente.",
         });
         return;
       }
@@ -146,43 +148,40 @@ const TransportadorasLogisticaPage = () => {
         icon: "success",
         title: "Listo",
         text: editingId
-          ? "Transportadora actualizada correctamente."
-          : "Transportadora registrada correctamente.",
-        timer: 1600,
+          ? "Cliente actualizado correctamente."
+          : "Cliente registrado correctamente.",
+        timer: 1500,
         showConfirmButton: false,
       });
 
       resetForm();
-      fetchEmpresas();
+      fetchClientes();
     } catch (error) {
       Swal.close();
-      const msg = getApiErrorMessage(error);
+      console.error("Error al guardar cliente:", error);
 
       Swal.fire({
         icon: "error",
         title: "No se pudo guardar",
-        text: msg,
+        text: getApiErrorMessage(error),
       });
-
-      console.error("Error al guardar transportadora:", error?.response?.data ?? error);
     }
   };
 
-  const handleEdit = (empresa) => {
+  const handleEdit = (item) => {
     setForm({
-      nombreTransportadora: empresa.nombreTransportadora ?? "",
-      locacion: empresa.locacion ?? "",
-      contactoTelefonico: empresa.contactoTelefonico ?? "",
-      emailContacto: empresa.emailContacto ?? "",
+      comercial: item.comercial ?? "",
+      cliente: item.cliente ?? "",
+      tipoOH: item.tipoOH ?? "",
+      incoterm: item.incoterm ?? "",
     });
-
-    setEditingId(empresa._id);
+    setEditingId(item._id);
 
     Swal.fire({
       icon: "info",
       title: "Modo edición",
-      text: "Edita los campos y luego pulsa Actualizar.",
-      timer: 1400,
+      text: "Edita el registro y pulsa Actualizar.",
+      timer: 1200,
       showConfirmButton: false,
     });
   };
@@ -191,7 +190,7 @@ const TransportadorasLogisticaPage = () => {
     try {
       const confirm = await Swal.fire({
         icon: "warning",
-        title: "¿Eliminar transportadora?",
+        title: "¿Eliminar cliente?",
         text: "Esta acción no se puede deshacer.",
         showCancelButton: true,
         confirmButtonText: "Sí, eliminar",
@@ -213,54 +212,52 @@ const TransportadorasLogisticaPage = () => {
 
       await Swal.fire({
         icon: "success",
-        title: "Eliminada",
-        text: "Transportadora eliminada correctamente.",
-        timer: 1400,
+        title: "Eliminado",
+        text: "Cliente eliminado correctamente.",
+        timer: 1300,
         showConfirmButton: false,
       });
 
       // si estabas editando el mismo registro, resetea
       if (editingId === id) resetForm();
 
-      fetchEmpresas();
+      fetchClientes();
     } catch (error) {
       Swal.close();
-      const msg = getApiErrorMessage(error);
+      console.error("Error al eliminar cliente:", error);
 
       Swal.fire({
         icon: "error",
         title: "No se pudo eliminar",
-        text: msg,
+        text: getApiErrorMessage(error),
       });
-
-      console.error("Error al eliminar transportadora:", error?.response?.data ?? error);
     }
   };
 
   // ===============================
   // FILTRO BUSCADOR (rápido)
   // ===============================
-  const empresasFiltradas = useMemo(() => {
+  const clientesFiltrados = useMemo(() => {
     const q = (debouncedSearch || "").trim().toLowerCase();
-    if (!q) return empresas;
+    if (!q) return clientes;
 
-    return empresas.filter((e) => {
-      const nombre = String(e.nombreTransportadora ?? "").toLowerCase();
-      const loc = String(e.locacion ?? "").toLowerCase();
-      const tel = String(e.contactoTelefonico ?? "").toLowerCase();
-      const mail = String(e.emailContacto ?? "").toLowerCase();
+    return clientes.filter((c) => {
+      const comercial = String(c.comercial ?? "").toLowerCase();
+      const cliente = String(c.cliente ?? "").toLowerCase();
+      const tipoOH = String(c.tipoOH ?? "").toLowerCase();
+      const incoterm = String(c.incoterm ?? "").toLowerCase();
 
       return (
-        nombre.includes(q) ||
-        loc.includes(q) ||
-        tel.includes(q) ||
-        mail.includes(q)
+        comercial.includes(q) ||
+        cliente.includes(q) ||
+        tipoOH.includes(q) ||
+        incoterm.includes(q)
       );
     });
-  }, [empresas, debouncedSearch]);
+  }, [clientes, debouncedSearch]);
 
-  const total = empresas.length;
-  const filtradas = empresasFiltradas.length;
+  const total = clientes.length;
+  const filtrados = clientesFiltrados.length;
 
   return (
     <Box p={{ xs: 2, md: 4 }} mt={5}>
@@ -276,7 +273,7 @@ const TransportadorasLogisticaPage = () => {
           >
             <Box>
               <Typography variant="h5" fontWeight="bold">
-                Gestión de Transportadoras (Logística)
+                Gestión de Clientes Logistica
               </Typography>
 
               <Stack direction="row" spacing={1} mt={1} flexWrap="wrap">
@@ -284,7 +281,7 @@ const TransportadorasLogisticaPage = () => {
                 <Chip
                   size="small"
                   color={debouncedSearch ? "primary" : "default"}
-                  label={`Data Filtrada: ${filtradas}`}
+                  label={`Data Filtrada: ${filtrados}`}
                 />
                 {debouncedSearch && (
                   <Chip size="small" label={`Filtro: "${debouncedSearch}"`} />
@@ -296,7 +293,7 @@ const TransportadorasLogisticaPage = () => {
             <TextField
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nombre, locación, teléfono o email..."
+              placeholder="Buscar por comercial, cliente, tipo OH o incoterm..."
               size="small"
               sx={{ minWidth: { xs: "100%", md: 420 } }}
               InputProps={{
@@ -327,9 +324,9 @@ const TransportadorasLogisticaPage = () => {
             <Grid item xs={12} md={3}>
               <TextField
                 fullWidth
-                label="Nombre Transportadora"
-                name="nombreTransportadora"
-                value={form.nombreTransportadora}
+                label="Comercial"
+                name="comercial"
+                value={form.comercial}
                 onChange={handleChange}
               />
             </Grid>
@@ -337,9 +334,9 @@ const TransportadorasLogisticaPage = () => {
             <Grid item xs={12} md={3}>
               <TextField
                 fullWidth
-                label="Locación / Origen"
-                name="locacion"
-                value={form.locacion}
+                label="Cliente"
+                name="cliente"
+                value={form.cliente}
                 onChange={handleChange}
               />
             </Grid>
@@ -347,9 +344,9 @@ const TransportadorasLogisticaPage = () => {
             <Grid item xs={12} md={3}>
               <TextField
                 fullWidth
-                label="Contacto Telefónico"
-                name="contactoTelefonico"
-                value={form.contactoTelefonico}
+                label="Tipo OH"
+                name="tipoOH"
+                value={form.tipoOH}
                 onChange={handleChange}
               />
             </Grid>
@@ -357,10 +354,9 @@ const TransportadorasLogisticaPage = () => {
             <Grid item xs={12} md={3}>
               <TextField
                 fullWidth
-                type="email"
-                label="Email de Contacto"
-                name="emailContacto"
-                value={form.emailContacto}
+                label="Incoterm"
+                name="incoterm"
+                value={form.incoterm}
                 onChange={handleChange}
               />
             </Grid>
@@ -379,9 +375,9 @@ const TransportadorasLogisticaPage = () => {
                 {editingId && (
                   <Button
                     variant="outlined"
-                    onClick={() => {
+                    onClick={async () => {
                       resetForm();
-                      Swal.fire({
+                      await Swal.fire({
                         icon: "info",
                         title: "Edición cancelada",
                         timer: 1200,
@@ -396,7 +392,7 @@ const TransportadorasLogisticaPage = () => {
                 <Button
                   variant="text"
                   onClick={async () => {
-                    await fetchEmpresas();
+                    await fetchClientes();
                     Swal.fire({
                       icon: "success",
                       title: "Actualizado",
@@ -419,39 +415,49 @@ const TransportadorasLogisticaPage = () => {
             <Table stickyHeader size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell><strong>Transportadora</strong></TableCell>
-                  <TableCell><strong>Locación</strong></TableCell>
-                  <TableCell><strong>Teléfono</strong></TableCell>
-                  <TableCell><strong>Email</strong></TableCell>
+                  <TableCell><strong>Comercial</strong></TableCell>
+                  <TableCell><strong>Cliente</strong></TableCell>
+                  <TableCell><strong>Tipo OH</strong></TableCell>
+                  <TableCell><strong>Incoterm</strong></TableCell>
                   <TableCell align="center"><strong>Acciones</strong></TableCell>
                 </TableRow>
               </TableHead>
 
               <TableBody>
-                {empresasFiltradas.length === 0 ? (
+                {clientesFiltrados.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} align="center" sx={{ py: 5 }}>
-                      <Typography fontWeight="bold">No hay resultados</Typography>
+                      <Typography fontWeight="bold">
+                        No hay resultados
+                      </Typography>
                       <Typography variant="body2" color="text.secondary">
                         {debouncedSearch
                           ? "Prueba cambiando el texto de búsqueda."
-                          : "No hay transportadoras registradas."}
+                          : "No hay clientes registrados."}
                       </Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  empresasFiltradas.map((e) => (
-                    <TableRow key={e._id} hover>
-                      <TableCell>{e.nombreTransportadora}</TableCell>
-                      <TableCell>{e.locacion}</TableCell>
-                      <TableCell>{e.contactoTelefonico}</TableCell>
-                      <TableCell>{e.emailContacto}</TableCell>
+                  clientesFiltrados.map((c) => (
+                    <TableRow key={c._id} hover>
+                      <TableCell>{c.comercial}</TableCell>
+                      <TableCell
+                        sx={{
+                          maxWidth: 520,
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {c.cliente}
+                      </TableCell>
+                      <TableCell>{c.tipoOH}</TableCell>
+                      <TableCell>{c.incoterm}</TableCell>
                       <TableCell align="center">
-                        <IconButton color="primary" onClick={() => handleEdit(e)}>
+                        <IconButton color="primary" onClick={() => handleEdit(c)}>
                           <EditIcon />
                         </IconButton>
-
-                        <IconButton color="error" onClick={() => handleDelete(e._id)}>
+                        <IconButton color="error" onClick={() => handleDelete(c._id)}>
                           <DeleteIcon />
                         </IconButton>
                       </TableCell>
@@ -467,4 +473,4 @@ const TransportadorasLogisticaPage = () => {
   );
 };
 
-export default TransportadorasLogisticaPage;
+export default ClientesDespachoPageDB;
