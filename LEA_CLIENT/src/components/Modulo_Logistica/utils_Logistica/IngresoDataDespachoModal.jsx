@@ -410,10 +410,17 @@ const IngresoDataDespachoModal = ({
         axios.get(TRANSPORTADORAS_URL),
       ]);
 
-      const conductores = (conductoresRaw.data ?? []).map((c) => ({
-        value: String(`${c.nombres ?? ""} ${c.apellidos ?? ""}`).trim(),
-        label: `${c.nombres ?? ""} ${c.apellidos ?? ""} - ${c.placaVehiculo ?? ""} - ${c.carroseria ?? ""}`.trim(),
-      }));
+      const conductores = (conductoresRaw.data ?? []).map((c) => {
+        const nombre = String(`${c.nombres ?? ""} ${c.apellidos ?? ""}`).trim();
+
+        return {
+          value: nombre, // lo que guardas en lecturas.nombre_conductor
+          label: `${nombre} - ${c.placaVehiculo ?? ""} - ${c.carroseria ?? ""}`.trim(),
+          placa: String(c.placaVehiculo ?? "").trim(),
+          remolque: String(c.remolque ?? c.placaRemolque ?? "").trim(), // ajusta al nombre real en tu API
+          carroceria: String(c.carroseria ?? "").trim(),
+        };
+      });
 
       // ✅ SOLO el campo "cliente" (y quitar duplicados)
       const clientesDB = Array.isArray(clientesRaw.data) ? clientesRaw.data : [];
@@ -838,7 +845,6 @@ const IngresoDataDespachoModal = ({
                 />
               </Grid>
 
-              {/* ✅ 2) Render ordenado según la secuencia */}
               {buildRenderPlan(columnasOrdenadas).map((item, idx) => {
                 if (item.type === "fixed_responsable") {
                   const isDisabled = !canEditResponsableRecibo;
@@ -930,10 +936,17 @@ const IngresoDataDespachoModal = ({
                           option.value === value.value
                         }
                         onChange={(event, newValue) => {
-                          handleChangeLectura(
-                            "nombre_conductor",
-                            newValue?.value || ""
-                          );
+                          const conductor = newValue || null;
+
+                          setForm((prev) => ({
+                            ...prev,
+                            lecturas: {
+                              ...prev.lecturas,
+                              nombre_conductor: conductor?.value ?? "",
+                              placa: conductor?.placa ?? "",
+                              remolque: conductor?.carroceria ?? "",
+                            },
+                          }));
                         }}
                         renderInput={(params) => (
                           <TextField
