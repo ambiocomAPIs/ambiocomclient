@@ -910,19 +910,20 @@ const AnalisisDespachosBIPage = () => {
                       height={80}
                     />
                     <YAxis />
-
                     <RTooltip
                       formatter={(val, name) => {
-                        const nombre =
-                          name === "programados"
-                            ? "Programados"
-                            : name === "cumplidos"
-                              ? "Cumplidos"
-                              : "Rechazados";
-                        return [formatNumber(val), nombre];
+                        const map = {
+                          programados: "Programados",
+                          cumplidos: "Cumplidos",
+                          rechazados: "Rechazados",
+                          Programados: "Programados",
+                          Cumplidos: "Cumplidos",
+                          Rechazados: "Rechazados",
+                        };
+
+                        return [formatNumber(val), map[name] ?? String(name)];
                       }}
                     />
-
                     <Legend />
 
                     {/* PROGRAMADOS */}
@@ -1099,7 +1100,7 @@ const AnalisisDespachosBIPage = () => {
                       <TableCell align="center">
                         <Chip size="small" label={r.cumplioCantidad ? "SI" : "NO"} color={r.cumplioCantidad ? "success" : "error"} />
                       </TableCell>
-                      <TableCell align="center" sx={{width:350}}>
+                      <TableCell align="center" sx={{ width: 350 }}>
                         <Chip
                           size="small"
                           label={r.estadoProgramacion}
