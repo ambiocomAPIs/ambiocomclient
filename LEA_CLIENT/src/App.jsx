@@ -23,6 +23,8 @@ import ComponentePrincipalSlidebar from "./components/PaginaPrincipal/Componente
 import { Typography } from "@mui/material";
 import CargarMasivaTanquesDiariosExcel from "./utils/Functions/CargaMasivaNivelesTanques/CargaMasivaNivelesTanquesJornaleros";
 
+import DataAnalisysProgramacionDespacho from "./Pages/Logistica_Pages/DataAnalisysProgramacionDespacho"
+
 export const CombinedProviders = ({ children }) => {
   return (
     <TanquesProvider>
@@ -62,6 +64,7 @@ function App() {
                 /> */}
                 <Route path="/cargamasivatanquesjornaleros" element={<CargarMasivaTanquesDiariosExcel />} />
                 <Route path="/bitacoradeturnosproduccion" element={<BitacoraComponentProduccion />} />
+                <Route path="/analitica-despachos" element={<DataAnalisysProgramacionDespacho />} />
               </Routes>
             </CombinedProviders>
           </AuthProvider>

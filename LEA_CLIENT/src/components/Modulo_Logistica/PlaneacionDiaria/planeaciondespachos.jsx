@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
 
@@ -25,6 +26,8 @@ import {
   MenuItem,
   Tooltip,
 } from "@mui/material";
+
+import BarChartIcon from "@mui/icons-material/BarChart";
 
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -116,9 +119,8 @@ const getApiErrorMessage = (error) => {
   );
 };
 
-// ============================
+
 // HELPERS FECHAS (rango por defecto: mes anterior + mes actual)
-// ============================
 const pad2 = (n) => String(n).padStart(2, "0");
 
 // Convierte Date a YYYY-MM-DD (sin zonas raras)
@@ -131,28 +133,26 @@ const toISODate = (d) => {
 
 const getDefaultRange = () => {
   const now = new Date();
-
   // primer día del mes actual
   const startCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
   // primer día del mes anterior
   const startPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-
   // último día del mes actual (para incluir todo el mes, incluso programaciones futuras)
   const endCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
   return {
     from: toISODate(startPrevMonth),
     to: toISODate(endCurrentMonth),
   };
 };
 
+
 const ProgramacionDespachoDiariaPage = () => {
+
+  const navigate = useNavigate();
+
   const [rows, setRows] = useState([]);
   const [editingId, setEditingId] = useState(null);
-
-  // buscador global
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState("");   // buscador global
   const debouncedSearch = useDebouncedValue(search, 250);
 
   // filtros tipo BI
@@ -164,7 +164,7 @@ const ProgramacionDespachoDiariaPage = () => {
     destino: "",
   });
 
-  // ✅ filtro por rango (date pickers)
+  // filtro por rango (date pickers)
   const [range, setRange] = useState(() => getDefaultRange());
 
   // formulario
@@ -781,7 +781,7 @@ const ProgramacionDespachoDiariaPage = () => {
       .map(([, v]) => v);
   }, [rowsFiltrados]);
 
-  const top3Dias = kpiPorDia.slice(0, 3);
+  const top10Dias = kpiPorDia.slice(0, 10);
 
   const hasAnyFilter =
     !!debouncedSearch ||
@@ -827,7 +827,57 @@ const ProgramacionDespachoDiariaPage = () => {
             </Box>
 
             {/* Buscador */}
-            <TextField
+
+            <Box
+              sx={{
+                display: "flex",
+                gap: 1,
+                alignItems: "center",
+                justifyContent: "flex-end",
+                flexWrap: "wrap",
+              }}
+            >
+              <Button
+                variant="contained"
+                color="info"
+                startIcon={<BarChartIcon />}
+                size="small"
+                onClick={() =>
+                  navigate(`/analitica-despachos?from=${range.from}&to=${range.to}`)
+                }
+                sx={{ whiteSpace: "nowrap" }}
+              >
+                Analítica BI
+              </Button>
+
+              <TextField
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por fecha, placa, trailer, conductor, transportadora, cliente, destino, producto..."
+                size="small"
+                sx={{ minWidth: { xs: "100%", md: 520 } }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: search ? (
+                    <InputAdornment position="end">
+                      <IconButton
+                        size="small"
+                        onClick={() => setSearch("")}
+                        aria-label="Limpiar búsqueda"
+                      >
+                        <ClearIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
+                }}
+              />
+            </Box>
+
+            {/* <TextField
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por fecha, placa, trailer, conductor, transportadora, cliente, destino, producto..."
@@ -847,7 +897,7 @@ const ProgramacionDespachoDiariaPage = () => {
                   </InputAdornment>
                 ) : null,
               }}
-            />
+            /> */}
           </Box>
 
           <Divider sx={{ my: 3 }} />
@@ -1045,18 +1095,18 @@ const ProgramacionDespachoDiariaPage = () => {
           {kpiPorDia.length > 0 && (
             <>
               <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
-                Resumen por día (según filtro actual)
+                Resumen por día (según filtro actual) KPI´s
               </Typography>
 
               <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 2 }}>
-                {top3Dias.map((d) => (
+                {top10Dias.map((d) => (
                   <Chip
                     key={d.fecha}
-                    size="small"
+                    size="medium"
                     label={`${d.fecha}: ${d.viajes} viajes / ${formatNumber(d.cantidad)}`}
                   />
                 ))}
-                {kpiPorDia.length > 3 && <Chip size="small" label={`+ ${kpiPorDia.length - 3} días`} />}
+                {kpiPorDia.length > 3 && <Chip size="medium" label={`+ ${kpiPorDia.length - 3} días`} />}
               </Stack>
             </>
           )}
@@ -1234,8 +1284,8 @@ const ProgramacionDespachoDiariaPage = () => {
             <Grid item xs={12} md={1}
               sx={{
                 display: "flex",
-                alignItems: "center", 
-                justifyContent: "center" 
+                alignItems: "center",
+                justifyContent: "center"
               }}>
               <Button
                 variant="contained"
