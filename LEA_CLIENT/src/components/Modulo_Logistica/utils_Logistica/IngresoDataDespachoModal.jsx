@@ -10,7 +10,7 @@ import {
   TextField,
   Box,
   Typography,
-  Checkbox, 
+  Checkbox,
 } from "@mui/material";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
@@ -251,14 +251,13 @@ const FORMULAS = {
 
   diferencia_recibo_cliente: (L) =>
     round(
-      toNum(L.cantidad_recibida_cliente_real) - toNum(L.cantidad_facturada),
-      3
+       (toNum(L.peso_neto_contador_ambiocom) / toNum(L.densidadlab_alcohol_tanque)) - toNum(L.cantidad_recibida_cliente),3
     ),
 
   dif_v_netodif_v_desp_bascula_ambiocom: (L) =>
     round(
-      toNum(L.volumen_neto_diferencia) -
-      toNum(L.volumen_despacho_bascula_ambiocom),
+      toNum(L.volumen_ambiocom_contador)/
+      toNum(L.cantidad_recibida_cliente),
       3
     ),
 };
@@ -380,10 +379,8 @@ const IngresoDataDespachoModal = ({
   const canRoleEditColumn = (col) => {
     // no auth / sin rol => bloquea todo
     if (!isAuth || !roleNorm) return false;
-
     // calculadas => siempre bloqueadas
     if (columnasBloqueadas.includes(col.key)) return false;
-
     // rolesDigitables viene de tu colección de columnas
     const roles = Array.isArray(col.rolesDigitables) ? col.rolesDigitables : [];
     return roles.map((r) => String(r).toLowerCase().trim()).includes(roleNorm);

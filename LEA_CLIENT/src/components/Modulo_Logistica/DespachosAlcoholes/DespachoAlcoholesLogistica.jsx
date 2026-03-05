@@ -363,16 +363,16 @@ export default function TablaDespachosLogistica() {
     return hh * 60 + mm;
   };
 
-  const calcularTiempoAmbiocom = (entrada, salida) => {
-    const e = parseHora(entrada);
-    const s = parseHora(salida);
-    if (e === null || s === null) return "";
-    let diff = s - e;
-    if (diff < 0) diff += 24 * 60;
-    const horas = String(Math.floor(diff / 60)).padStart(2, "0");
-    const minutos = String(diff % 60).padStart(2, "0");
-    return `${horas}:${minutos}`;
-  };
+  // const calcularTiempoAmbiocom = (entrada, salida) => {
+  //   const e = parseHora(entrada);
+  //   const s = parseHora(salida);
+  //   if (e === null || s === null) return "";
+  //   let diff = s - e;
+  //   if (diff < 0) diff += 24 * 60;
+  //   const horas = String(Math.floor(diff / 60)).padStart(2, "0");
+  //   const minutos = String(diff % 60).padStart(2, "0");
+  //   return `${horas}:${minutos}`;
+  // };
 
   /* ================= CRUD COLUMNAS ================= */
   const guardarColumna = async () => {

@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Fragment, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
+import { LabelList } from "recharts";
 
 import {
   Box,
@@ -147,6 +148,12 @@ const keyDespacho = (d) => {
   return `${fecha}|${transportadora}|${cliente}|${producto}`;
 };
 
+const keyDespachoFT = (d) => {
+  const fecha = normalizeText(d?.fecha);
+  const transportadora = normalizeKey(d?.lecturas?.transportadora);
+  return `${fecha}|${transportadora}`;
+};
+
 const getDespachoCantidadRealPlanta = (d) =>
   Number(d?.lecturas?.volumen_contador_gravimetrico ?? 0);
 
@@ -157,10 +164,10 @@ const getDespachoDifPlanta = (d) => Number(d?.lecturas?.variación_volumen ?? 0)
 const getDespachoDifCliente = (d) =>
   Number(d?.lecturas?.diferencia_recibo_cliente ?? 0);
 
-// ===== NUEVO: Rechazo / Cumplimiento (salió de planta) =====
-const isVehiculoRechazado = (d) => {
-  const v = normalizeText(d?.lecturas?.vehiculo_rechazado);
-  return v.toUpperCase() === "SI";
+// Rechazo / Cumplimiento (salió de planta) =====
+const cumplioEstadoVehiculo = (d) => {
+  const v = normalizeText(d?.lecturas?.vehiculo_rechazado).toUpperCase();
+  return v !== "SI";
 };
 
 const getDespachoInfo = (d) => ({
@@ -168,7 +175,7 @@ const getDespachoInfo = (d) => ({
   transportadora: normalizeKey(d?.lecturas?.transportadora),
   cliente: normalizeKey(d?.lecturas?.cliente),
   producto: normalizeKey(d?.lecturas?.producto),
-  rechazado: isVehiculoRechazado(d),
+  rechazado: !cumplioEstadoVehiculo(d),
 });
 
 // Agregación + Cruce
@@ -187,85 +194,97 @@ const aggregate = (rows, getKey, getCantidad) => {
 };
 
 const buildComparativo = ({ programaciones, despachos, tolerancia = 0 }) => {
-  const progMap = aggregate(programaciones, keyProgramacion, (p) => p?.cantidad);
-  const realMap = aggregate(despachos, keyDespacho, getDespachoCantidadRealPlanta);
-  const plantaMap = aggregate(despachos, keyDespacho, getDespachoDifPlanta);
-  const clienteDifMap = aggregate(despachos, keyDespacho, getDespachoDifCliente);
+  // agrupa en arrays, pero NO suma
+  const group = (rows, getKey) => {
+    const m = new Map();
+    for (const r of rows ?? []) {
+      const k = getKey(r);
+      if (!k || k.startsWith("|")) continue;
+      const arr = m.get(k) || [];
+      arr.push(r);
+      m.set(k, arr);
+    }
+    return m;
+  };
 
-  const keys = new Set([
-    ...progMap.keys(),
-    ...realMap.keys(),
-    ...plantaMap.keys(),
-    ...clienteDifMap.keys(),
-  ]);
+  const progG = group(programaciones, keyProgramacion);
+  const despG = group(despachos, keyDespacho);
 
+  const keys = new Set([...progG.keys(), ...despG.keys()]);
   const out = [];
+
   for (const key of keys) {
     const [fecha, transportadora, cliente, producto] = key.split("|");
     if (!isValidDateISO(fecha)) continue;
 
-    const p = progMap.get(key);
-    const r = realMap.get(key);
-    const pl = plantaMap.get(key);
-    const dc = clienteDifMap.get(key);
+    const progs = progG.get(key) || [];
+    const desps = despG.get(key) || [];
 
-    const viajesProgramados = p?.viajes ?? 0;
-    const viajesReales = r?.viajes ?? 0;
+    // crea filas individuales: max(progs, desps)
+    const n = Math.max(progs.length, desps.length);
 
-    const cantidadProgramada = p?.cantidad ?? 0;
-    const cantidadRealPlanta = r?.cantidad ?? 0;
+    for (let i = 0; i < n; i++) {
+      const p = progs[i] || null;
+      const d = desps[i] || null;
 
-    const diffCantidad = cantidadProgramada - cantidadRealPlanta;
+      const cantidadProgramada = Number(p?.cantidad ?? 0);
+      const cantidadRealPlanta = Number(getDespachoCantidadRealPlanta(d) ?? 0);
 
-    const diffPlanta = pl?.cantidad ?? 0;
-    const diffCliente = dc?.cantidad ?? 0;
+      const cumpleVehiculo = d ? cumplioEstadoVehiculo(d) : true;
+      const rechazado = !cumpleVehiculo;
 
-    const cumplimientoPct =
-      cantidadProgramada > 0 ? (cantidadRealPlanta / cantidadProgramada) * 100 : 0;
+      const diffCantidad = cantidadProgramada - cantidadRealPlanta;
+      const diffPlanta = Number(getDespachoDifPlanta(d) ?? 0);
+      const diffCliente = Number(getDespachoDifCliente(d) ?? 0);
 
-    const tieneProgramacion = (viajesProgramados ?? 0) > 0;
-    const tieneDespacho = (viajesReales ?? 0) > 0;
+      const cumplimientoPct =
+        cantidadProgramada > 0 ? (cantidadRealPlanta / cantidadProgramada) * 100 : 0;
 
-    let estadoProgramacion = "Sin datos";
-    if (tieneProgramacion && tieneDespacho) estadoProgramacion = "Programado y despachado";
-    else if (tieneProgramacion && !tieneDespacho) estadoProgramacion = "Programado (no despachado)";
-    else if (!tieneProgramacion && tieneDespacho) estadoProgramacion = "No programado";
-    else estadoProgramacion = "Sin datos";
+      const viajesProgramados = p ? 1 : 0; // 👈 individual
+      const viajesRealizados = d ? 1 : 0;  // 👈 individual
 
-    out.push({
-      key,
-      fecha,
-      transportadora,
-      cliente,
-      producto,
-      viajesProgramados,
-      viajesReales,
-      cantidadProgramada,
-      cantidadRealPlanta,
-      diffCantidad,
-      diffPlanta,
-      diffCliente,
-      cumplimientoPct,
-      tieneProgramacion,
-      tieneDespacho,
-      estadoProgramacion,
-      cumplioViaje: viajesReales >= viajesProgramados && viajesProgramados > 0,
-      cumplioCantidad:
-        cantidadProgramada > 0 &&
-        Math.abs(diffCantidad) <= Number(tolerancia ?? 0),
-    });
-
+      out.push({
+        key: `${key}|${i}`, // key único por fila
+        fecha,
+        transportadora,
+        cliente,
+        producto,
+        viajesProgramados,
+        viajesRealizados,
+        cantidadProgramada,
+        cantidadRealPlanta,
+        diffCantidad,
+        diffPlanta,
+        diffCliente,
+        cumplimientoPct,
+        tieneProgramacion: !!p,
+        tieneDespacho: !!d,
+        estadoProgramacion:
+          p && d && !rechazado ? "Programado y despachado"
+            : p && !d ? "Programado (no despachado)"
+              : !p && d ? "No programado"
+                : rechazado ? "Cancelado por Rechazo"
+                  : "Sin datos",
+        cumplioViaje: p && d, // si hay ambos en esa fila
+        cumplioCantidad:
+          cantidadProgramada > 0 && Math.abs(diffCantidad) <= Number(tolerancia ?? 0),
+        cumplioEstadoVehiculo: cumpleVehiculo,
+        rechazado,
+      });
+    }
   }
 
-  out.sort((a, b) =>
-    a.fecha === b.fecha
-      ? a.transportadora.localeCompare(b.transportadora)
-      : a.fecha.localeCompare(b.fecha)
-  );
+  out.sort((a, b) => {
+    //  Fecha descendente y alfabetico
+    if (a.fecha !== b.fecha) { return b.fecha.localeCompare(a.fecha); }
+    if (a.transportadora !== b.transportadora) { return a.transportadora.localeCompare(b.transportadora); }
+    if (a.cliente !== b.cliente) { return a.cliente.localeCompare(b.cliente); }
+
+    return a.producto.localeCompare(b.producto);
+  });
 
   return out;
 };
-
 // UI: módulo BI
 const AnalisisDespachosBIPage = () => {
   const navigate = useNavigate();
@@ -286,7 +305,7 @@ const AnalisisDespachosBIPage = () => {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 250);
 
-  const [tolerancia, setTolerancia] = useState(100);
+  const [tolerancia, setTolerancia] = useState(250);
 
   const handleBack = () => {
     if (window.history.length > 1) navigate(-1);
@@ -423,7 +442,7 @@ const AnalisisDespachosBIPage = () => {
         r.cliente,
         r.producto,
         String(r.viajesProgramados),
-        String(r.viajesReales),
+        String(r.viajesRealizados),
         String(r.cantidadProgramada),
         String(r.cantidadRealPlanta),
         String(r.diffCantidad),
@@ -464,7 +483,7 @@ const AnalisisDespachosBIPage = () => {
     const rows = comparativoFiltrado ?? [];
 
     const viajesProgramados = rows.reduce((acc, r) => acc + (r.viajesProgramados ?? 0), 0);
-    const viajesReales = rows.reduce((acc, r) => acc + (r.viajesReales ?? 0), 0);
+    const viajesRealizados = rows.reduce((acc, r) => acc + (r.viajesRealizados ?? 0), 0);
 
     const cantidadProgramada = rows.reduce((acc, r) => acc + (r.cantidadProgramada ?? 0), 0);
     const cantidadReal = rows.reduce((acc, r) => acc + (r.cantidadRealPlanta ?? 0), 0);
@@ -482,7 +501,7 @@ const AnalisisDespachosBIPage = () => {
     return {
       filas: rows.length,
       viajesProgramados,
-      viajesReales,
+      viajesRealizados,
       cantidadProgramada,
       cantidadReal,
       diffTotal,
@@ -529,35 +548,60 @@ const AnalisisDespachosBIPage = () => {
     return Array.from(m.values()).sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
   }, [comparativoFiltrado]);
 
-  // ===== NUEVO: Cumplimiento por transportadora (Cumplidos vs Rechazados) =====
+  // Cumplimiento por transportadora (Cumplidos vs Rechazados) 
   const seriesCumplimientoPorTransportadora = useMemo(() => {
     const m = new Map();
 
-    for (const d of despachosFiltrados) {
-      const key = d.transportadora || "(SIN TRANSPORTADORA)";
+    for (const r of comparativoFiltrado) {
+      // Solo analizamos viajes que estaban programados
+      if (r.viajesProgramados === 0) continue;
+
+      const key = r.transportadora || "(SIN TRANSPORTADORA)";
       const prev = m.get(key) || {
         transportadora: key,
-        viajes: 0,
+        programados: 0,
         cumplidos: 0,
         rechazados: 0,
         pctCumpl: 0,
       };
 
-      prev.viajes += 1;
-      if (d.rechazado) prev.rechazados += 1;
-      else prev.cumplidos += 1;
+      prev.programados += 1;
+
+      // Si fue rechazado
+      if (r.rechazado) {
+        prev.rechazados += 1;
+      }
+      // Si se realizó y no fue rechazado
+      else if (r.viajesRealizados > 0) {
+        prev.cumplidos += 1;
+      }
 
       m.set(key, prev);
     }
 
     const out = Array.from(m.values()).map((x) => ({
       ...x,
-      pctCumpl: x.viajes ? (x.cumplidos / x.viajes) * 100 : 0,
+      pctCumpl: x.programados
+        ? (x.cumplidos / x.programados) * 100
+        : 0,
     }));
 
-    out.sort((a, b) => b.viajes - a.viajes);
+    out.sort((a, b) => b.programados - a.programados);
+
     return out;
-  }, [despachosFiltrados]);
+  }, [comparativoFiltrado]);
+
+  const pieTransportadoras = useMemo(() => {
+    const totalProgramados = seriesCumplimientoPorTransportadora.reduce((a, x) => a + (x.programados ?? 0), 0);
+    const totalCumplidos = seriesCumplimientoPorTransportadora.reduce((a, x) => a + (x.cumplidos ?? 0), 0);
+    const totalRechazados = seriesCumplimientoPorTransportadora.reduce((a, x) => a + (x.rechazados ?? 0), 0);
+
+    return [
+      { name: "Programados", value: totalProgramados, color: "#1976d2" },
+      { name: "Cumplidos", value: totalCumplidos, color: "#36b865" },
+      { name: "Rechazados", value: totalRechazados, color: "#e53935" },
+    ];
+  }, [seriesCumplimientoPorTransportadora]);
 
   // Pie: Cumple vs No cumple (cantidad)
   const pieCumplimiento = useMemo(() => {
@@ -600,7 +644,7 @@ const AnalisisDespachosBIPage = () => {
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <Tooltip title="Volver">
+              <Tooltip title="Volver al Inicio">
                 <IconButton
                   onClick={handleBack}
                   color="primary"
@@ -616,62 +660,105 @@ const AnalisisDespachosBIPage = () => {
 
               <Box>
                 <Typography variant="h5" fontWeight="bold" lineHeight={1.1}>
-                  Analítica BI: Programado vs Despachado y Cumplimiento de Transportadoras
+                  Analítica BI: Programado vs Despachado y Indicadores de Cumplimiento.
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: 16 }}>
                   Rango: <b>{range.from}</b> → <b>{range.to}</b> · Tolerancia: <b>{formatNumber(tolerancia)}</b> L
                 </Typography>
               </Box>
             </Box>
 
-            <TextField
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar en tabla (fecha, transportadora, cliente, producto, cantidades...)"
-              size="small"
-              sx={{ minWidth: { xs: "100%", md: 520 } }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-                endAdornment: search ? (
-                  <InputAdornment position="end">
-                    <IconButton size="small" onClick={() => setSearch("")} aria-label="Limpiar búsqueda">
-                      <ClearIcon fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                ) : null,
+            <Box
+              sx={{
+                display: "flex",
+                gap: 2,
+                alignItems: "center",
+                flexWrap: "wrap", // para que en mobile se apilen
               }}
-            />
+            >
+              <TextField
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar en tabla (fecha, transportadora, cliente, producto, cantidades...)"
+                size="small"
+                sx={{ flexGrow: 1, minWidth: { xs: "100%", md: 300, lg: 350 } }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: search ? (
+                    <InputAdornment position="end">
+                      <IconButton
+                        size="small"
+                        onClick={() => setSearch("")}
+                        aria-label="Limpiar búsqueda"
+                      >
+                        <ClearIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
+                }}
+              />
+
+              <Button
+                variant="outlined"
+                size="medium"
+                onClick={clearFilters}
+                sx={{ whiteSpace: "nowrap" }}
+              >
+                Limpiar filtros
+              </Button>
+            </Box>
           </Box>
 
           {/* KPIs */}
           <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 2 }}>
-            <Chip label={`Filas: ${kpis.filas}`} />
+            <Chip sx={{ backgroundColor: "#E6D9FC", fontSize: { xs: 9, sm: 10, md: 12, lg: 12 } }} label={`Datos: ${kpis.filas}`} />
             <Chip
+              sx={{ fontSize: { xs: 9, sm: 10, md: 12, lg: 12 } }}
               color={hasAnyFilter ? "primary" : "default"}
-              label={`Viajes Prog: ${formatNumber(kpis.viajesProgramados)} | Reales: ${formatNumber(kpis.viajesReales)}`}
+              label={`Desp. Programados: ${formatNumber(kpis.viajesProgramados)} | Despachados: ${formatNumber(kpis.viajesRealizados)}`}
             />
-            <Chip
-              label={`Vol Prog: ${formatNumber(kpis.cantidadProgramada)} L | Real: ${formatNumber(kpis.cantidadReal)} L`}
-            />
+            <Chip sx={{ backgroundColor: "#BBEDDA", fontSize: { xs: 9, sm: 10, md: 12, lg: 12 } }} label={`Vol. Progr: ${formatNumber(kpis.cantidadProgramada)} L | Vol. Despachado: ${formatNumber(kpis.cantidadReal)} L`} />
             <Chip
               color={Math.abs(kpis.diffTotal) <= tolerancia ? "success" : "warning"}
               label={`Diff Total: ${formatNumber(kpis.diffTotal)} L`}
+              sx={{
+                fontSize: { xs: 9, sm: 10, md: 12, lg: 12 },
+                transition: "all 0.3s ease",
+                ...(Math.abs(kpis.diffTotal) > tolerancia && {
+                  animation: "pulseGlow 1s infinite",
+                }),
+                "@keyframes pulseGlow": {
+                  "0%": {
+                    boxShadow: "0 0 0px rgba(255, 152, 0, 0.4)",
+                    transform: "scale(1)",
+                  },
+                  "50%": {
+                    boxShadow: "0 0 12px rgba(255, 152, 0, 0.9)",
+                    transform: "scale(1.1)",
+                  },
+                  "100%": {
+                    boxShadow: "0 0 0px rgba(255, 152, 0, 0.4)",
+                    transform: "scale(1)",
+
+                  },
+                },
+              }}
             />
-            <Chip label={`Diff Planta Σ: ${formatNumber(kpis.diffPlantaTotal)}`} />
-            <Chip label={`Diff Cliente Σ: ${formatNumber(kpis.diffClienteTotal)}`} />
+            <Chip sx={{ fontSize: { xs: 9, sm: 10, md: 12, lg: 12 } }} label={`Diff Planta Σ: ${formatNumber(kpis.diffPlantaTotal)}`} />
+            <Chip sx={{ fontSize: { xs: 9, sm: 10, md: 12, lg: 12 } }} label={`Diff Cliente Σ: ${formatNumber(kpis.diffClienteTotal)}`} />
             <Chip
-              color="info"
-              label={`% Cumpl Cant: ${kpis.pctCumplCant.toFixed(1)}% | % Cumpl Viaje: ${kpis.pctCumplViaje.toFixed(1)}%`}
+              sx={{ backgroundColor: "#CBDAF7", fontSize: { xs: 9, sm: 10, md: 12, lg: 12 } }}
+              label={`% Cumplimiento Vol.: ${kpis.pctCumplCant.toFixed(1)}% | % Cumplimiento Desp.: ${kpis.pctCumplViaje.toFixed(1)}%`}
             />
 
             {/* NUEVO: KPI de salidas/rechazos por vehiculo_rechazado */}
             <Chip
-              color={kpiVehiculos.rechazados > 0 ? "warning" : "success"}
-              label={`Viajes (Despachos): ${formatNumber(kpiVehiculos.total)} | Cumplen: ${formatNumber(
+              sx={{ backgroundColor: "#FFD8B8", fontSize: { xs: 9, sm: 10, md: 12, lg: 12 } }}
+              label={`Desp Prog.: ${formatNumber(kpiVehiculos.total)} | Cumplen: ${formatNumber(
                 kpiVehiculos.cumplidos
               )} | Rechazos: ${formatNumber(kpiVehiculos.rechazados)} | ${kpiVehiculos.pct.toFixed(1)}%`}
             />
@@ -716,41 +803,39 @@ const AnalisisDespachosBIPage = () => {
 
               <TextField
                 size="small"
-                label="Tolerancia (L)"
+                label="Tolerancia KPi (L)"
                 type="number"
                 value={tolerancia}
-                onChange={(e) => setTolerancia(Number(e.target.value ?? 0))}
+                onChange={(e) => setTolerancia(e.target.value)}
                 inputProps={{ min: 0 }}
                 sx={{ width: { xs: "100%", md: 190 } }}
               />
 
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                <Button variant="contained" size="small" onClick={() => fetchAll(range)}>
+                <Button variant="contained" size="medium" onClick={() => fetchAll(range)}>
                   Consultar
                 </Button>
-
-                <Button
-                  variant="outlined"
-                  size="small"
-                  color="warning"
-                  onClick={() => {
-                    const def = getDefaultRange();
-                    setRange(def);
-                    fetchAll(def);
-                  }}
-                >
-                  Default (mes actual + anterior)
-                </Button>
-
                 <Tooltip title="Recarga datasets con el rango actual">
-                  <Button variant="text" size="small" startIcon={<RefreshIcon />} onClick={() => fetchAll(range)}>
+                  <Button variant="outlined" size="small" startIcon={<RefreshIcon />} onClick={() => fetchAll(range)}>
                     Refrescar
                   </Button>
                 </Tooltip>
 
-                <Button variant="outlined" size="small" onClick={clearFilters}>
-                  Limpiar filtros
-                </Button>
+                <Tooltip title="Restablecer Filtro mes actual y anterior">
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    color="warning"
+                    onClick={() => {
+                      const def = getDefaultRange();
+                      setRange(def);
+                      fetchAll(def);
+                    }}
+                  >
+                    Default (actual / anterior)
+                  </Button>
+                </Tooltip>
+
               </Box>
             </Grid>
 
@@ -809,24 +894,54 @@ const AnalisisDespachosBIPage = () => {
 
           <Divider sx={{ my: 3 }} />
 
-          {/* Gráficas */}
+          {/* Gráficas con RECHA*/}
           <Grid container spacing={2}>
             {/* Line */}
             <Grid item xs={12} md={7}>
               <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
                 <Typography fontWeight="bold" sx={{ mb: 1 }}>
-                  Programado vs Real (por día)
+                  Volumen Despacho Programado vs Volumen Real Despachado (por día)
                 </Typography>
                 <ResponsiveContainer width="100%" height={320}>
-                  <LineChart data={seriesPorDia}>
+                  <LineChart
+                    data={seriesPorDia}
+                    margin={{ top: 20, right: 20, left: 10, bottom: 10 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="fecha" />
-                    <YAxis />
-                    <RTooltip />
+                    <YAxis
+                      domain={[
+                        (dataMin) => dataMin - 20000,
+                        (dataMax) => dataMax * 1.25,
+                      ]}
+                    />
+                    <RTooltip formatter={(v) => formatNumber(v)} />
                     <Legend />
-                    <Line type="monotone" dataKey="programado" />
-                    <Line type="monotone" dataKey="real" />
-                    <Line type="monotone" dataKey="diff" />
+
+                    <Line
+                      type="monotone"
+                      dataKey="programado"
+                      stroke="#1976d2"
+                      strokeWidth={2}
+                      label={{ position: "top", fontSize: 12, formatter: (v) => formatNumber(v) }}
+                      dot={{ r: 3 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="real"
+                      stroke="#2e7d32"
+                      strokeWidth={4}
+                      label={{ position: "top", fontSize: 12, formatter: (v) => formatNumber(v) }}
+                      dot={{ r: 3 }}
+                    />
+                    <Line
+                      type="natural"
+                      dataKey="diff"
+                      stroke="#ed6c02"
+                      strokeWidth={2}
+                      label={{ position: "top", fontSize: 12, formatter: (v) => formatNumber(v) }}
+                      dot={{ r: 3 }}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </Paper>
@@ -835,26 +950,69 @@ const AnalisisDespachosBIPage = () => {
             {/* Pie */}
             <Grid item xs={12} md={5}>
               <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
-                <Typography fontWeight="bold" sx={{ mb: 1 }}>
-                  Cumplimiento (Cantidad, según tolerancia)
+                <Typography fontWeight="bold" sx={{ mb: 2, mt: -1, textAlign: "center", fontSize: 20 }} >
+                  Cumplimiento (Volumen, según tolerancia KPi)
                 </Typography>
-                <ResponsiveContainer width="100%" height={320}>
-                  <PieChart>
-                    <Pie
-                      data={pieCumplimiento}
-                      dataKey="value"
-                      nameKey="name"
-                      outerRadius={110}
-                      label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
-                    >
-                      {pieCumplimiento.map((entry, idx) => (
-                        <Cell key={`cell-${idx}`} fill={entry.name === "Cumple" ? "#36b865" : "#2249e6"} />
-                      ))}
-                    </Pie>
-                    <RTooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+
+                <Grid container spacing={2}>
+                  {/* Pie 1 */}
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="body2" sx={{ mb: 1, textAlign: "center" }} fontWeight="bold">
+                      Resumen Cumplimiento en volumenes  (Transportadoras)
+                    </Typography>
+
+                    <ResponsiveContainer width="100%" height={285}>
+                      <PieChart>
+                        <Pie
+                          data={pieCumplimiento}
+                          dataKey="value"
+                          nameKey="name"
+                          outerRadius={90}
+                          label={({ name, value, percent }) =>
+                            `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
+                          }
+                        >
+                          {pieCumplimiento.map((entry, idx) => (
+                            <Cell
+                              key={`cell-1-${idx}`}
+                              fill={entry.name === "Cumple" ? "#36b865" : "#e53935"}
+                            />
+                          ))}
+                        </Pie>
+                        <RTooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </Grid>
+
+                  {/* Pie 2 */}
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="body2" sx={{ mb: 1, textAlign: "center" }} fontWeight="bold">
+                      Resumen Cumplimiento de la programacion  (Transportadoras)
+                    </Typography>
+
+                    <ResponsiveContainer width="100%" height={285}>
+                      <PieChart>
+                        <Pie
+                          data={pieTransportadoras}
+                          dataKey="value"
+                          nameKey="name"
+                          outerRadius={90}
+                          label={({ name, value }) => `${name}: ${value}`}
+                        >
+                          {pieTransportadoras.map((entry, idx) => (
+                            <Cell
+                              key={`cell-2-${idx}`}
+                              fill={entry.color}
+                            />
+                          ))}
+                        </Pie>
+                        <RTooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </Grid>
+                </Grid>
               </Paper>
             </Grid>
 
@@ -868,7 +1026,10 @@ const AnalisisDespachosBIPage = () => {
                   <BarChart data={seriesPorTransportadora}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="transportadora" />
-                    <YAxis />
+                    <YAxis domain={[
+                      (dataMin) => dataMin - 2000,
+                      (dataMax) => dataMax + 2000,
+                    ]} />
                     <RTooltip />
                     <Legend />
                     <Bar
@@ -905,7 +1066,7 @@ const AnalisisDespachosBIPage = () => {
                     <XAxis
                       dataKey="transportadora"
                       interval={0}
-                      angle={-20}
+                      angle={-15}
                       textAnchor="end"
                       height={80}
                     />
@@ -936,7 +1097,7 @@ const AnalisisDespachosBIPage = () => {
                         position: "top",
                         fill: "#111827",
                         fontSize: 12,
-                        formatter: (v) => `Prog: ${formatNumber(v)}`,
+                        formatter: (v) => `Programados: ${formatNumber(v)}`,
                       }}
                     />
 
@@ -985,10 +1146,19 @@ const AnalisisDespachosBIPage = () => {
           </Typography>
 
           <TableContainer component={Paper} elevation={2} sx={{ borderRadius: 2 }}>
-            <Table stickyHeader size="small">
+            <Table stickyHeader size="small" sx={{
+              tableLayout: "fixed",
+              "& tbody td": { fontSize: 12, py: 0.5 }, // 👈 body
+              "& tbody th": { fontSize: 10, py: 0.5 },
+              "& th": {
+                fontSize: 12,      // tamaño del título
+                fontWeight: 400,   // opcional
+                py: 0,           // altura del header
+              }
+            }}>
               <TableHead>
                 <TableRow>
-                  <TableCell>
+                  <TableCell sx={{ width: "auto", minWidth: 120, maxWidth: 120 }} >
                     <strong>Fecha</strong>
                   </TableCell>
                   <TableCell>
@@ -1002,37 +1172,40 @@ const AnalisisDespachosBIPage = () => {
                   </TableCell>
 
                   <TableCell align="right">
-                    <strong>Viajes Prog</strong>
+                    <strong>Programado</strong>
                   </TableCell>
                   <TableCell align="right">
-                    <strong>Viajes Reales</strong>
-                  </TableCell>
-
-                  <TableCell align="right">
-                    <strong>Cant Prog</strong>
-                  </TableCell>
-                  <TableCell align="right">
-                    <strong>Cant Real Planta</strong>
+                    <strong>Despachado</strong>
                   </TableCell>
 
                   <TableCell align="right">
-                    <strong>Diff Cant</strong>
+                    <strong>Cant Prog.</strong>
                   </TableCell>
                   <TableCell align="right">
-                    <strong>Diff Planta</strong>
-                  </TableCell>
-                  <TableCell align="right">
-                    <strong>Diff Cliente</strong>
+                    <strong>Cant Despa Vg</strong>
                   </TableCell>
 
                   <TableCell align="right">
-                    <strong>% Cumpl</strong>
+                    <strong>Diferencia</strong>
+                  </TableCell>
+                  <TableCell align="right">
+                    <strong>Diff V.Ambio</strong>
+                  </TableCell>
+                  <TableCell align="right">
+                    <strong>Diff V.Cliente</strong>
+                  </TableCell>
+
+                  <TableCell align="right">
+                    <strong>% Cumpl Prog</strong>
                   </TableCell>
                   <TableCell align="center">
-                    <strong>OK Viaje ?</strong>
+                    <strong>OK Despachos Programados ?</strong>
                   </TableCell>
                   <TableCell align="center">
-                    <strong>OK Cant ?</strong>
+                    <strong>OK Cant/Vol ?</strong>
+                  </TableCell>
+                  <TableCell align="center">
+                    <strong>Vehiculo Rechazado ?</strong>
                   </TableCell>
                   <TableCell align="center">
                     <strong>Estado Vehiculo</strong>
@@ -1043,7 +1216,7 @@ const AnalisisDespachosBIPage = () => {
               <TableBody>
                 {comparativoFiltrado.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={14} align="center" sx={{ py: 5 }}>
+                    <TableCell colSpan={16} align="center" sx={{ py: 5 }}>
                       <Typography fontWeight="bold">No hay resultados</Typography>
                       <Typography variant="body2" color="text.secondary">
                         Prueba cambiando rango, filtros o búsqueda.
@@ -1051,73 +1224,105 @@ const AnalisisDespachosBIPage = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  comparativoFiltrado.map((r) => (
-                    <TableRow key={r.key} hover>
-                      <TableCell>{r.fecha}</TableCell>
-                      <TableCell>{r.transportadora}</TableCell>
-                      <TableCell
-                        sx={{
-                          maxWidth: 260,
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                        title={r.cliente}
-                      >
-                        {r.cliente}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          maxWidth: 260,
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                        title={r.producto}
-                      >
-                        {r.producto}
-                      </TableCell>
+                  comparativoFiltrado.map((r, idx) => {
+                    const prev = comparativoFiltrado[idx - 1];
+                    const nuevaFecha = !prev || prev.fecha !== r.fecha;
 
-                      <TableCell align="right">{formatNumber(r.viajesProgramados)}</TableCell>
-                      <TableCell align="right">{formatNumber(r.viajesReales)}</TableCell>
+                    return (
+                      <Fragment key={r.key}>
+                        {nuevaFecha && (
+                          <TableRow>
+                            <TableCell
+                              colSpan={16}
+                              sx={{
+                                position: "sticky",
+                                top: 0,
+                                zIndex: 1,
+                                backgroundColor: "rgba(25, 118, 210, 0.08)",
+                                fontWeight: "bold",
+                                py: 1,
+                              }}
+                            >
+                              📅 {r.fecha}
+                            </TableCell>
+                          </TableRow>
+                        )}
 
-                      <TableCell align="right">{formatNumber(r.cantidadProgramada)}</TableCell>
-                      <TableCell align="right">{formatNumber(r.cantidadRealPlanta)}</TableCell>
+                        <TableRow hover>
+                          <TableCell>{r.fecha}</TableCell>
+                          <TableCell>{r.transportadora}</TableCell>
+                          <TableCell
+                            sx={{
+                              maxWidth: 260,
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                            title={r.cliente}
+                          >
+                            {r.cliente}
+                          </TableCell>
+                          <TableCell
+                            sx={{
+                              maxWidth: 260,
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                            title={r.producto}
+                          >
+                            {r.producto}
+                          </TableCell>
 
-                      <TableCell align="right" sx={{ backgroundColor: heatBg(r.diffCantidad, tolerancia) }}>
-                        {formatNumber(r.diffCantidad)}
-                      </TableCell>
+                          <TableCell align="right">{formatNumber(r.viajesProgramados)}</TableCell>
+                          <TableCell align="right">{formatNumber(r.viajesRealizados)}</TableCell>
 
-                      <TableCell align="right">{formatNumber(r.diffPlanta)}</TableCell>
-                      <TableCell align="right">{formatNumber(r.diffCliente)}</TableCell>
+                          <TableCell align="right">{formatNumber(r.cantidadProgramada)}</TableCell>
+                          <TableCell align="right">{formatNumber(r.cantidadRealPlanta)}</TableCell>
 
-                      <TableCell align="right">{r.cumplimientoPct.toFixed(1)}%</TableCell>
+                          <TableCell align="right" sx={{ backgroundColor: heatBg(r.diffCantidad, tolerancia) }}>
+                            {formatNumber(r.diffCantidad)}
+                          </TableCell>
 
-                      <TableCell align="center">
-                        <Chip size="small" label={r.cumplioViaje ? "SI" : "NO"} color={r.cumplioViaje ? "success" : "default"} />
-                      </TableCell>
+                          <TableCell align="right">{formatNumber(r.diffPlanta)}</TableCell>
+                          <TableCell align="right">{formatNumber(r.diffCliente)}</TableCell>
 
-                      <TableCell align="center">
-                        <Chip size="small" label={r.cumplioCantidad ? "SI" : "NO"} color={r.cumplioCantidad ? "success" : "error"} />
-                      </TableCell>
-                      <TableCell align="center" sx={{ width: 350 }}>
-                        <Chip
-                          size="small"
-                          label={r.estadoProgramacion}
-                          color={
-                            r.estadoProgramacion === "Programado y despachado"
-                              ? "success"
-                              : r.estadoProgramacion === "Programado (no despachado)"
-                                ? "warning"
-                                : r.estadoProgramacion === "No programado"
-                                  ? "error"
-                                  : "default"
-                          }
-                          variant={r.estadoProgramacion === "No programado" ? "filled" : "outlined"}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))
+                          <TableCell align="right">{r.cumplimientoPct.toFixed(1)}%</TableCell>
+
+                          <TableCell align="center">
+                            <Chip size="small" label={r.cumplioViaje ? "SI" : "NO"} color={r.cumplioViaje ? "success" : "default"} />
+                          </TableCell>
+
+                          <TableCell align="center">
+                            <Chip size="small" label={r.cumplioCantidad ? "SI" : "NO"} color={r.cumplioCantidad ? "success" : "error"} />
+                          </TableCell>
+
+                          <TableCell align="center">
+                            <Chip size="small" label={r.rechazado ? "RECHAZADO" : "APROBADO"} color={r.rechazado ? "error" : "success"} />
+                          </TableCell>
+
+                          <TableCell align="center" sx={{ width: 350 }}>
+                            <Chip
+                              size="small"
+                              label={r.estadoProgramacion}
+                              color={
+                                r.estadoProgramacion === "Programado y despachado"
+                                  ? "success"
+                                  : r.estadoProgramacion === "Programado (no despachado)"
+                                    ? "warning"
+                                    : r.estadoProgramacion === "No programado"
+                                      ? "error"
+                                      : r.estadoProgramacion === "Cancelado por Rechazo"
+                                        ? "error"
+                                        : "default"
+                              }
+                              variant={r.estadoProgramacion === "No programado" ? "filled" : "outlined"}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      </Fragment>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
