@@ -64,6 +64,7 @@ import LocalGasStationIcon from "@mui/icons-material/LocalGasStation";
 import ReportIcon from "@mui/icons-material/Report";
 import AlarmOnIcon from "@mui/icons-material/AlarmOn";
 import AlarmOffIcon from "@mui/icons-material/AlarmOff";
+import UndoIcon from '@mui/icons-material/Undo';
 
 import ExcelUploadButton from "../utils_Logistica/ExcelUploadButton";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -363,17 +364,6 @@ export default function TablaDespachosLogistica() {
     return hh * 60 + mm;
   };
 
-  // const calcularTiempoAmbiocom = (entrada, salida) => {
-  //   const e = parseHora(entrada);
-  //   const s = parseHora(salida);
-  //   if (e === null || s === null) return "";
-  //   let diff = s - e;
-  //   if (diff < 0) diff += 24 * 60;
-  //   const horas = String(Math.floor(diff / 60)).padStart(2, "0");
-  //   const minutos = String(diff % 60).padStart(2, "0");
-  //   return `${horas}:${minutos}`;
-  // };
-
   /* ================= CRUD COLUMNAS ================= */
   const guardarColumna = async () => {
     await axios.post(API_COLUMNAS, nuevaColumna);
@@ -550,11 +540,8 @@ export default function TablaDespachosLogistica() {
     const columnasActivas = columnas.filter((c) =>
       columnasVisibles.includes(c.key)
     );
-
     if (columnasActivas.length === 0) return 0;
-
     let faltantes = 0;
-
     columnasActivas.forEach((c) => {
       const valor = row.lecturas?.[c.key];
 
@@ -562,8 +549,8 @@ export default function TablaDespachosLogistica() {
         valor === undefined ||
         valor === null ||
         valor === "" ||
-        valor.toString().trim() === ""
-      ) {
+        (typeof valor === "string" && valor.trim() === ""))
+        {
         faltantes++;
       }
     });
@@ -631,6 +618,12 @@ export default function TablaDespachosLogistica() {
       return commonWrapper(
         <ReportIcon sx={{ color: "#ff2d16" }} />,
         "Aprobado con Observaciones"
+      );
+    }
+    if (valor === "RECHAZADO POR CLIENTE") {
+      return commonWrapper(
+        <UndoIcon sx={{ color: "#ff2d16" }} />,
+        "Rechazado por el Cliente"
       );
     }
 
@@ -1972,7 +1965,7 @@ export default function TablaDespachosLogistica() {
       {/* Boton para carga masiva*/}
       <ExcelUploadButton
         ref={excelUploadRef}
-        url="https://ambiocomserver.onrender.com/api/recepcion-alcoholes/carga-masiva"
+        url="https://ambiocomserver.onrender.com/api/despacho-alcoholes/carga-masiva"
         onSuccess={obtenerMediciones}
       />
     </Box>
