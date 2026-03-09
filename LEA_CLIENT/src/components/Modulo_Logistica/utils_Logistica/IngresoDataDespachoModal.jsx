@@ -33,8 +33,11 @@ const columnasBloqueadas = [
   "diferencia_recibo_cliente_vnetofacturado",
 ];
 
-const PERSONAL_ANALISTA_KEY = "muestreador_analista_laboratorio";  // personal lab para el select
-const PERSONAL_LOGISTICA_KEYS = ["operario_auxiliar_logistica", "responsable_despacho",]; // personal logistica para el select
+const PERSONAL_ANALISTA_KEY = "muestreador_analista_laboratorio"; // personal lab para el select
+const PERSONAL_LOGISTICA_KEYS = [
+  "operario_auxiliar_logistica",
+  "responsable_despacho",
+]; // personal logistica para el select
 
 const SELECT_KEYS = [
   "nombre_conductor",
@@ -43,7 +46,6 @@ const SELECT_KEYS = [
   "producto",
   PERSONAL_ANALISTA_KEY,
   ...PERSONAL_LOGISTICA_KEYS,
-
 ];
 const CACHE_PREFIX = "despacho_catalogo_";
 const FORM_CACHE_PREFIX = "despacho_form_draft_";
@@ -54,6 +56,7 @@ const VEHICULO_RECHAZADO_OPTIONS = [
   "NO",
   "EN TRANSITO",
   "APROBADO CON OBSERVACIONES",
+  "RECHAZADO POR CLIENTE",
   "EN CARGUE",
 ];
 const RESPONSABLE_RECIBO_ROLES = [
@@ -128,7 +131,7 @@ const saveFormDraft = (key, data) => {
 const clearFormDraft = (key) => {
   try {
     localStorage.removeItem(key);
-  } catch { }
+  } catch {}
 };
 
 const normalizeOption = (opt) => {
@@ -202,8 +205,10 @@ const buildTimeOptions = (stepMinutes = 15) => {
 const FORMULAS = {
   volumen_contador_gravimetrico: (L) =>
     round(
-      toNum(L.peso_neto_contador_ambiocom) /
-      toNum(L.densidadlab_alcohol_tanque),
+      toNum(L.densidadlab_alcohol_tanque) === 0
+        ? 0.0001
+        : toNum(L.peso_neto_contador_ambiocom) /
+            toNum(L.densidadlab_alcohol_tanque),
       3
     ),
 
@@ -214,14 +219,17 @@ const FORMULAS = {
     ),
 
   volumen_ambiocom_contador: (L) =>
-    round(toNum(L.final_volumen_ambiocom) - L.inicio_volumen_ambiocom, 3),
+    round(
+      toNum(L.final_volumen_ambiocom) - toNum(L.inicio_volumen_ambiocom),
+      3
+    ),
 
   tiempo_neto_cargue_despacho: (L) => {
     const a = parseHHMMToMinutes(L.hora_llegada);
     const b = parseHHMMToMinutes(L.hora_salida);
-    if (a == null || b == null) return "";
+    if (a == null || b == null) return 0;
     const diff = b - a;
-    if (diff < 0) return "";
+    if (diff < 0) return 0;
     return round(diff / 60, 1);
   },
 
@@ -231,7 +239,7 @@ const FORMULAS = {
   variacion_peso: (L) =>
     round(
       toNum(L.peso_neto_bascula_ambiocom) -
-      toNum(L.peso_neto_contador_ambiocom),
+        toNum(L.peso_neto_contador_ambiocom),
       3
     ),
 
@@ -241,8 +249,8 @@ const FORMULAS = {
   dif_kilos_neto: (L) =>
     round(
       toNum(L.kilos_peso_inicial) -
-      toNum(L.kilos_peso_final) -
-      toNum(L.peso_neto_bascula_ambiocom),
+        toNum(L.kilos_peso_final) -
+        toNum(L.peso_neto_bascula_ambiocom),
       3
     ),
 
@@ -251,13 +259,20 @@ const FORMULAS = {
 
   diferencia_recibo_cliente: (L) =>
     round(
-       (toNum(L.peso_neto_contador_ambiocom) / toNum(L.densidadlab_alcohol_tanque)) - toNum(L.cantidad_recibida_cliente),3
+      toNum(L.densidadlab_alcohol_tanque) === 0
+        ? 0.0001
+        : toNum(L.peso_neto_contador_ambiocom) /
+            toNum(L.densidadlab_alcohol_tanque) -
+            toNum(L.cantidad_recibida_cliente),
+      3
     ),
 
   dif_v_netodif_v_desp_bascula_ambiocom: (L) =>
     round(
-      toNum(L.volumen_ambiocom_contador)/
-      toNum(L.cantidad_recibida_cliente),
+      toNum(L.cantidad_recibida_cliente) === 0
+        ? 0.0001
+        : toNum(L.volumen_ambiocom_contador) /
+            toNum(L.cantidad_recibida_cliente),
       3
     ),
 };
@@ -281,9 +296,9 @@ const IngresoDataDespachoModal = ({
   setForm,
   isEdit = false,
 }) => {
-
   const CLIENTES_URL = "https://ambiocomserver.onrender.com/api/clienteslogistica";
-  const TRANSPORTADORAS_URL = "https://ambiocomserver.onrender.com/api/transportadoraslogistica";
+  const TRANSPORTADORAS_URL =
+    "https://ambiocomserver.onrender.com/api/transportadoraslogistica";
 
   // =============   Contextos   ===============================
   // rol real desde cookie/session (AuthContext)
@@ -392,27 +407,30 @@ const IngresoDataDespachoModal = ({
     if (key === "transportadora") return catalogos.transportadoras;
     if (key === "producto") return catalogos.productos;
     if (key === PERSONAL_ANALISTA_KEY) return catalogos.personalAnalistas ?? [];
-    if (PERSONAL_LOGISTICA_KEYS.includes(key)) return catalogos.personalLogistica ?? [];
+    if (PERSONAL_LOGISTICA_KEYS.includes(key))
+      return catalogos.personalLogistica ?? [];
     return [];
   };
-
 
   const refreshCatalogos = async () => {
     if (typeof navigator !== "undefined" && !navigator.onLine) return;
 
     try {
-      const [conductoresRaw, clientesRaw, transportadorasRaw] = await Promise.all([
-        axios.get("https://ambiocomserver.onrender.com/api/conductores"),
-        axios.get(CLIENTES_URL),
-        axios.get(TRANSPORTADORAS_URL),
-      ]);
+      const [conductoresRaw, clientesRaw, transportadorasRaw] =
+        await Promise.all([
+          axios.get("https://ambiocomserver.onrender.com/api/conductores"),
+          axios.get(CLIENTES_URL),
+          axios.get(TRANSPORTADORAS_URL),
+        ]);
 
       const conductores = (conductoresRaw.data ?? []).map((c) => {
         const nombre = String(`${c.nombres ?? ""} ${c.apellidos ?? ""}`).trim();
 
         return {
           value: nombre, // lo que guardas en lecturas.nombre_conductor
-          label: `${nombre} - ${c.placaVehiculo ?? ""} - ${c.carroseria ?? ""}`.trim(),
+          label: `${nombre} - ${c.placaVehiculo ?? ""} - ${
+            c.carroseria ?? ""
+          }`.trim(),
           placa: String(c.placaVehiculo ?? "").trim(),
           remolque: String(c.remolque ?? c.placaRemolque ?? "").trim(), // ajusta al nombre real en tu API
           carroceria: String(c.carroseria ?? "").trim(),
@@ -420,18 +438,20 @@ const IngresoDataDespachoModal = ({
       });
 
       // ✅ SOLO el campo "cliente" (y quitar duplicados)
-      const clientesDB = Array.isArray(clientesRaw.data) ? clientesRaw.data : [];
+      const clientesDB = Array.isArray(clientesRaw.data)
+        ? clientesRaw.data
+        : [];
       const clientes = Array.from(
         new Set(
-          clientesDB
-            .map((x) => String(x?.cliente ?? "").trim())
-            .filter(Boolean)
+          clientesDB.map((x) => String(x?.cliente ?? "").trim()).filter(Boolean)
         )
       )
         .sort((a, b) => a.localeCompare(b, "es"))
         .map((name) => ({ value: name, label: name }));
 
-      const transportadorasDB = Array.isArray(transportadorasRaw.data) ? transportadorasRaw.data : [];
+      const transportadorasDB = Array.isArray(transportadorasRaw.data)
+        ? transportadorasRaw.data
+        : [];
 
       const transportadoras = Array.from(
         new Set(
@@ -507,7 +527,10 @@ const IngresoDataDespachoModal = ({
         const exists = (opts, v) => (opts ?? []).some((o) => o.value === v);
 
         // analistas
-        if (next[PERSONAL_ANALISTA_KEY] && !exists(personalAnalistas, next[PERSONAL_ANALISTA_KEY])) {
+        if (
+          next[PERSONAL_ANALISTA_KEY] &&
+          !exists(personalAnalistas, next[PERSONAL_ANALISTA_KEY])
+        ) {
           next[PERSONAL_ANALISTA_KEY] = "";
         }
 
@@ -850,7 +873,9 @@ const IngresoDataDespachoModal = ({
                   const options = catalogos.personalLogistica ?? [];
 
                   const valueObj =
-                    options.find((opt) => opt.value === (form.responsable ?? "")) || null;
+                    options.find(
+                      (opt) => opt.value === (form.responsable ?? "")
+                    ) || null;
 
                   return (
                     <Grid item xs={6} md={2} key={`fixed_responsable_${idx}`}>
@@ -859,7 +884,9 @@ const IngresoDataDespachoModal = ({
                         forcePopupIcon
                         options={options}
                         value={valueObj}
-                        isOptionEqualToValue={(option, value) => option.value === value.value}
+                        isOptionEqualToValue={(option, value) =>
+                          option.value === value.value
+                        }
                         getOptionLabel={(option) => option?.label ?? ""}
                         onChange={(event, newValue) => {
                           if (isDisabled) return;
@@ -925,7 +952,8 @@ const IngresoDataDespachoModal = ({
                         options={catalogos.conductores || []}
                         value={
                           catalogos.conductores.find(
-                            opt => opt.value === form.lecturas?.nombre_conductor
+                            (opt) =>
+                              opt.value === form.lecturas?.nombre_conductor
                           ) || null
                         }
                         getOptionLabel={(option) => option.label ?? ""}
@@ -946,11 +974,7 @@ const IngresoDataDespachoModal = ({
                           }));
                         }}
                         renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Conductor"
-                            fullWidth
-                          />
+                          <TextField {...params} label="Conductor" fullWidth />
                         )}
                       />
                     ) : esSelect ? (
