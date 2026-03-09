@@ -249,16 +249,7 @@ const aggregate = (rows, getKey, getCantidad) => {
   return m;
 };
 
-<<<<<<< HEAD
 const buildComparativoBase = ({ programaciones, despachos }) => {
-=======
-const buildComparativo = ({  // agrupa en arrays, pero NO suma
-  programaciones,
-  despachos,
-  tolerancia = 0,
-  toleranciaDespacho = 0,
-}) => {
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
   const group = (rows, getKey) => {
     const m = new Map();
     for (const r of rows ?? []) {
@@ -299,28 +290,14 @@ const buildComparativo = ({  // agrupa en arrays, pero NO suma
       const aprobadoConObs = d ? isAprobadoConObs(estadoVehiculo) : false;
       const enProceso = d ? isEnProceso(estadoVehiculo) : false;
 
-<<<<<<< HEAD
-=======
-      // const diffCantidad = cantidadProgramada - cantidadRealPlanta;
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
       const diffCantidad = cantidadRealPlanta - cantidadProgramada;
       const diffPlanta = Number(getDespachoDifPlanta(d) ?? 0);
       const diffCliente = Number(getDespachoDifCliente(d) ?? 0);
-
-      const cumplioToleranciaDespacho =
-        cantidadProgramada > 0 &&
-        Math.abs(diffCantidad) <= Number(toleranciaDespacho ?? 0);
 
       const cumplimientoPct =
         cantidadProgramada > 0
           ? (cantidadRealPlanta / cantidadProgramada) * 100
           : 0;
-<<<<<<< HEAD
-=======
-
-      const viajesProgramados = p ? 1 : 0; // 👈 individual
-      const viajesRealizados = d ? 1 : 0; // 👈 individual
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
 
       out.push({
         key: `${key}|${i}`,
@@ -338,69 +315,24 @@ const buildComparativo = ({  // agrupa en arrays, pero NO suma
         cumplimientoPct,
         tieneProgramacion: !!p,
         tieneDespacho: !!d,
-<<<<<<< HEAD
         rechazado,
         rechazadoCliente,
         aprobado,
         aprobadoConObs,
         enProceso,
         estadoVehiculo,
-=======
-        cumplioToleranciaDespacho,
-        estadoProgramacion:
-          p && !d
-            ? "Programado (no despachado)"
-            : !p && d
-              ? "No programado"
-              : p && d && rechazado
-                ? "Rechazado Ambiocom"
-                : p && d && rechazadoCliente
-                  ? "Rechazado por cliente"
-                  : p && d && aprobadoConObs
-                    ? "Aprobado con observaciones"
-                    : p && d && aprobado
-                      ? "Cumple"
-                      : p && d && enProceso
-                        ? "En proceso"
-                        : "Sin datos",
-        cumplioViaje: p && d, // si hay ambos en esa fila
-        cumplioCantidadDespachada:
-          cantidadProgramada > 0 &&
-          Math.abs(diffCantidad) <= Number(toleranciaDespacho ?? 0),
-        cumplioCantidadCliente:
-          cantidadProgramada > 0 &&
-          Math.abs(diffCliente) <= Number(tolerancia ?? 0),
-        // cumplioEstadoVehiculo: cumpleVehiculo,
-        rechazado,
-        estadoVehiculo,
-        aprobado,
-        enProceso,
-        rechazadoCliente,
-        aprobadoConObs,
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
       });
     }
   }
 
   out.sort((a, b) => {
-<<<<<<< HEAD
     if (a.fecha !== b.fecha) return b.fecha.localeCompare(a.fecha);
-=======
-    //  Fecha descendente y alfabetico
-    if (a.fecha !== b.fecha) {
-      return b.fecha.localeCompare(a.fecha);
-    }
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
     if (a.transportadora !== b.transportadora) {
       return a.transportadora.localeCompare(b.transportadora);
     }
     if (a.cliente !== b.cliente) {
       return a.cliente.localeCompare(b.cliente);
     }
-<<<<<<< HEAD
-=======
-
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
     return a.producto.localeCompare(b.producto);
   });
 
@@ -531,7 +463,6 @@ const AnalisisDespachosBIPage = () => {
     return buildComparativoBase({
       programaciones,
       despachos,
-<<<<<<< HEAD
     });
   }, [programaciones, despachos]);
 
@@ -575,13 +506,6 @@ const AnalisisDespachosBIPage = () => {
     });
   }, [comparativoBase, tolerancia, toleranciaDespacho]);
 
-=======
-      tolerancia,
-      toleranciaDespacho,
-    });
-  }, [programaciones, despachos, tolerancia, toleranciaDespacho]);
-  
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
   const filterOptions = useMemo(() => {
     const uniq = (arr) => Array.from(new Set(arr.filter(Boolean))).sort();
     return {
@@ -1393,7 +1317,6 @@ const AnalisisDespachosBIPage = () => {
                     mb: 1,
                   }}
                 >
-<<<<<<< HEAD
                   <Box>
                     <Typography
                       fontWeight="bold"
@@ -1409,15 +1332,6 @@ const AnalisisDespachosBIPage = () => {
                       el gráfico.
                     </Typography>
                   </Box>
-=======
-                  <Typography
-                    fontWeight="bold"
-                    sx={{ mb: 4, textAlign: "center", fontSize: 25 }}
-                  >
-                    (KPI) Analisis de Cumplimiento de Programación por
-                    transportadora y Diferencias en Volumen.
-                  </Typography>
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
                   <Chip
                     size="medium"
                     variant="outlined"
@@ -1427,11 +1341,7 @@ const AnalisisDespachosBIPage = () => {
                 </Box>
                 <Divider
                   sx={{
-<<<<<<< HEAD
                     my: 2,
-=======
-                    my: -2,
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
                     mb: 1,
                     width: "90vw",
                     marginLeft: "auto",
@@ -1446,11 +1356,7 @@ const AnalisisDespachosBIPage = () => {
                       sx={{ mb: 1, textAlign: "center" }}
                       fontWeight="bold"
                     >
-<<<<<<< HEAD
                       KPI Cumplimiento Facturado vs Recibido por el cliente
-=======
-                      Resumen Cumplimiento en volumenes (Transportadoras)
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
                     </Typography>
 
                     <ResponsiveContainer width="100%" height={285}>
@@ -1575,13 +1481,9 @@ const AnalisisDespachosBIPage = () => {
                       Cliente) por transportadora
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-<<<<<<< HEAD
                       Regla: Los acumulados positivos y negativos se visualizan
                       por transportadora para analizar las variaciones de
                       volumen de cada ítem.
-=======
-                      Regla: Los acumulados positivos y negativos se visualizan por transportadora para analizar las variaciones de volumen de cada ítem.
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
                     </Typography>
                   </Box>
 
@@ -1642,16 +1544,12 @@ const AnalisisDespachosBIPage = () => {
                       ]}
                     />
                     {/* Eje cero */}
-<<<<<<< HEAD
                     <ReferenceLine
                       y={0}
                       stroke="#111827"
                       strokeWidth={2}
                       strokeDasharray="3 3"
                     />
-=======
-                    <ReferenceLine y={0} stroke="#111827" strokeWidth={2} strokeDasharray="3 3" />
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
                     <RTooltip
                       formatter={(v, name) => [`${formatNumber(v)} L`, name]}
                       labelFormatter={(label) => `Transportadora: ${label}`}
@@ -1744,7 +1642,6 @@ const AnalisisDespachosBIPage = () => {
                       (Cumplidos vs Rechazados)
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-<<<<<<< HEAD
                       Regla: Se analizan según cruce de información entre la
                       programación y los despachos reales, si un vehiculo o
                       Transportadora NO ESTÁ PROGRAMADO no será renderizado en
@@ -1757,17 +1654,6 @@ const AnalisisDespachosBIPage = () => {
                     label="KPI Chart Cumplimiento por transportadora"
                     sx={{ borderRadius: 2, fontWeight: 700 }}
                   />
-=======
-                      Regla: Se analizan según cruce de información entre la programación y los despachos reales, si un vehiculo o Transportadora NO ESTÁ PROGRAMADO no será renderizado en el gráfico.
-                    </Typography>
-                  </Box>
-                    <Chip
-                      size="medium"
-                      variant="outlined"
-                      label="KPI Chart Cumplimiento por transportadora"
-                      sx={{ borderRadius: 2, fontWeight: 700, }}
-                    />
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
                 </Box>
 
                 <ResponsiveContainer width="100%" height={360}>
@@ -1913,7 +1799,6 @@ const AnalisisDespachosBIPage = () => {
                   <TableCell align="center">
                     <strong>Cant Despa Gravimetrico</strong>
                   </TableCell>
-<<<<<<< HEAD
                   <Tooltip
                     placement="top"
                     title="Diferencia entre el volumen gravimetrico y el volumen facturado, determina que tanto o menos se despacha a clientes (< 0 = por encima de lo facturado)"
@@ -1921,14 +1806,10 @@ const AnalisisDespachosBIPage = () => {
                       tooltip: { sx: { fontSize: 13, textAlign: "center" } },
                     }}
                   >
-=======
-                  <Tooltip placement="top" title="Diferencia entre el volumen gravimetrico y el volumen facturado, determina que tanto o menos se despacha a clientes (< 0 = por encima de lo facturado)" slotProps={{ tooltip: { sx: { fontSize: 13, textAlign: "center" }, }, }}>
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
                     <TableCell align="center">
                       <strong>Diferencia Gravimetrico - Facturado</strong>
                     </TableCell>
                   </Tooltip>
-<<<<<<< HEAD
                   <Tooltip
                     placement="top"
                     title="KPI Diferencia Volumen Contador Despacho - Volumen Facturado"
@@ -1936,14 +1817,10 @@ const AnalisisDespachosBIPage = () => {
                       tooltip: { sx: { fontSize: 13, textAlign: "center" } },
                     }}
                   >
-=======
-                  <Tooltip placement="top" title="KPI Diferencia Volumen Contador Despacho - Volumen Facturado" slotProps={{ tooltip: { sx: { fontSize: 13, textAlign: "center" }, }, }}>
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
                     <TableCell align="center">
                       <strong>Diff V.Ambio</strong>
                     </TableCell>
                   </Tooltip>
-<<<<<<< HEAD
                   <Tooltip
                     placement="top"
                     title="KPI Diferencia Volumen Facturado Ambiocom - Volumen Recibido por el cliente"
@@ -1951,14 +1828,10 @@ const AnalisisDespachosBIPage = () => {
                       tooltip: { sx: { fontSize: 13, textAlign: "center" } },
                     }}
                   >
-=======
-                  <Tooltip placement="top" title="KPI Diferencia Volumen Facturado Ambiocom - Volumen Recibido por el cliente" slotProps={{ tooltip: { sx: { fontSize: 13, textAlign: "center" }, }, }}>
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
                     <TableCell align="center">
                       <strong>Diff V.Cliente</strong>
                     </TableCell>
                   </Tooltip>
-<<<<<<< HEAD
                   <Tooltip
                     placement="top"
                     title="KPI Volumen Facturado vs Volumen Real Despachado (<100 = Despachado por encima de lo Facturado ; >100 = Despachado por debajo de lo facturado)"
@@ -1966,14 +1839,10 @@ const AnalisisDespachosBIPage = () => {
                       tooltip: { sx: { fontSize: 13, textAlign: "center" } },
                     }}
                   >
-=======
-                  <Tooltip placement="top" title="KPI Volumen Facturado vs Volumen Real Despachado (<100 = Despachado por encima de lo Facturado ; >100 = Despachado por debajo de lo facturado)" slotProps={{ tooltip: { sx: { fontSize: 13, textAlign: "center" }, }, }}>
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
                     <TableCell align="center">
                       <strong>KPI Despacho (Vp-Vd)</strong>
                     </TableCell>
                   </Tooltip>
-<<<<<<< HEAD
                   <Tooltip
                     placement="top"
                     title="KPI Vechiculo en programación y vechiculo despachado (SI=100% ; NO= 0,0%)"
@@ -1981,14 +1850,10 @@ const AnalisisDespachosBIPage = () => {
                       tooltip: { sx: { fontSize: 13, textAlign: "center" } },
                     }}
                   >
-=======
-                  <Tooltip placement="top" title="KPI Vechiculo en programación y vechiculo despachado (SI=100% ; NO= 0,0%)" slotProps={{ tooltip: { sx: { fontSize: 13, textAlign: "center" }, }, }}>
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
                     <TableCell align="center">
                       <strong>Cumple Despachos Programados ?</strong>
                     </TableCell>
                   </Tooltip>
-<<<<<<< HEAD
                   <Tooltip
                     placement="top"
                     title="KPI Cantidad programada vs Despachada según tolerancia en el Despacho"
@@ -1996,14 +1861,10 @@ const AnalisisDespachosBIPage = () => {
                       tooltip: { sx: { fontSize: 13, textAlign: "center" } },
                     }}
                   >
-=======
-                  <Tooltip placement="top" title="KPI Cantidad programada vs Despachada según tolerancia en el Despacho" slotProps={{ tooltip: { sx: { fontSize: 13, textAlign: "center" }, }, }}>
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
                     <TableCell align="center">
                       <strong>Cumple Cantidad Despachada ?</strong>
                     </TableCell>
                   </Tooltip>
-<<<<<<< HEAD
                   <Tooltip
                     placement="top"
                     title="KPI Volumen recibido por el cliente vs Volumen Facturado Ambiocom"
@@ -2011,14 +1872,10 @@ const AnalisisDespachosBIPage = () => {
                       tooltip: { sx: { fontSize: 13, textAlign: "center" } },
                     }}
                   >
-=======
-                  <Tooltip placement="top" title="KPI Volumen recibido por el cliente vs Volumen Facturado Ambiocom" slotProps={{ tooltip: { sx: { fontSize: 13, textAlign: "center" }, }, }}>
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
                     <TableCell align="center">
                       <strong>Client/Desp</strong>
                     </TableCell>
                   </Tooltip>
-<<<<<<< HEAD
                   <Tooltip
                     placement="top"
                     title="KPI Estado del vehiculo (rechazo en planta o rechazo por el cliente)"
@@ -2026,14 +1883,10 @@ const AnalisisDespachosBIPage = () => {
                       tooltip: { sx: { fontSize: 13, textAlign: "center" } },
                     }}
                   >
-=======
-                  <Tooltip placement="top" title="KPI Estado del vehiculo (rechazo en planta o rechazo por el cliente)" slotProps={{ tooltip: { sx: { fontSize: 13, textAlign: "center" }, }, }}>
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
                     <TableCell align="center">
                       <strong>Vehiculo Rechazado ?</strong>
                     </TableCell>
                   </Tooltip>
-<<<<<<< HEAD
                   <Tooltip
                     placement="top"
                     title="KPI de estado en tiempo real del vehiculo (Rechazado por el cliente; rechazado en planta; En proceso = En Cargue o En Transito; Aprobado con observaciones; Cumple = Programado y Despachado; Programado pero no despachado; Despachado pero no Programado; No programado = despachado pero no estaba programado )"
@@ -2041,17 +1894,10 @@ const AnalisisDespachosBIPage = () => {
                       tooltip: { sx: { fontSize: 13, textAlign: "center" } },
                     }}
                   >
-=======
-                  <Tooltip placement="top" title="KPI de estado en tiempo real del vehiculo (Rechazado por el cliente; rechazado en planta; En proceso = En Cargue o En Transito; Aprobado con observaciones; Cumple = Programado y Despachado; Programado pero no despachado; Despachado pero no Programado; No programado = despachado pero no estaba programado )" slotProps={{ tooltip: { sx: { fontSize: 13, textAlign: "center" }, }, }}>
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
                     <TableCell align="center">
                       <strong>Estado Vehiculo</strong>
                     </TableCell>
                   </Tooltip>
-<<<<<<< HEAD
-=======
-
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
                 </TableRow>
               </TableHead>
 
@@ -2123,7 +1969,6 @@ const AnalisisDespachosBIPage = () => {
                           </TableCell>
                           <TableCell align="right">
                             {formatNumber(r.viajesRealizados)}
-<<<<<<< HEAD
                           </TableCell>
 
                           <TableCell align="right">
@@ -2162,40 +2007,6 @@ const AnalisisDespachosBIPage = () => {
                               fontWeight: 600,
                             }}
                           >
-=======
-                          </TableCell>
-
-                          <TableCell align="right">
-                            {formatNumber(r.cantidadProgramada)}
-                          </TableCell>
-                          <TableCell align="right">
-                            {formatNumber(r.cantidadRealPlanta)}
-                          </TableCell>
-
-                          <TableCell
-                            align="right"
-                            sx={{
-                              backgroundColor: heatBg(
-                                r.diffCantidad,
-                                tolerancia
-                              ),
-                            }}
-                          >
-                            {formatNumber(r.diffCantidad)}
-                          </TableCell>
-
-                          <TableCell align="right">
-                            {formatNumber(r.diffPlanta)}
-                          </TableCell>
-                          <TableCell align="right">
-                            {formatNumber(r.diffCliente)}
-                          </TableCell>
-
-                          <TableCell align="right" sx={{
-                            backgroundColor: heatCumplimiento(r.cumplimientoPct),
-                            fontWeight: 600
-                          }}>
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
                             {r.cumplimientoPct.toFixed(1)}%
                           </TableCell>
 
@@ -2205,7 +2016,6 @@ const AnalisisDespachosBIPage = () => {
                               label={r.cumplioViaje ? "SI" : "NO"}
                               color={r.cumplioViaje ? "success" : "error"}
                             />
-<<<<<<< HEAD
                           </TableCell>
                           <Tooltip placement="top" title={`Tolerancia en el Despacho: ${toleranciaDespacho}`}>
                             <TableCell align="center">
@@ -2232,27 +2042,6 @@ const AnalisisDespachosBIPage = () => {
                           </TableCell>
 
                           <TableCell align="center">
-=======
-                          </TableCell>
-
-                          <TableCell align="center">
-                            <Chip
-                              size="small"
-                              label={r.cumplioCantidadDespachada ? "SI" : "NO"}
-                              color={r.cumplioCantidadDespachada ? "success" : "error"}
-                            />
-                          </TableCell>
-
-                          <TableCell align="center">
-                            <Chip
-                              size="small"
-                              label={r.cumplioCantidadCliente ? "SI" : "NO"}
-                              color={r.cumplioCantidadCliente ? "success" : "error"}
-                            />
-                          </TableCell>
-
-                          <TableCell align="center">
->>>>>>> 93621565a0cfb5584602bd578025e498e5505a93
                             <Tooltip
                               arrow
                               placement="top"
