@@ -65,6 +65,7 @@ import ReportIcon from "@mui/icons-material/Report";
 import AlarmOnIcon from "@mui/icons-material/AlarmOn";
 import AlarmOffIcon from "@mui/icons-material/AlarmOff";
 import UndoIcon from '@mui/icons-material/Undo';
+import NotificationImportantIcon from "@mui/icons-material/NotificationImportant";
 
 import ExcelUploadButton from "../utils_Logistica/ExcelUploadButton";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -266,7 +267,7 @@ export default function TablaDespachosLogistica() {
     setOpenObsVehiculo(true);
   };
 
-    //doble click para mostrar observaciones si un vehiculo ha llegado a tiempo
+  //doble click para mostrar observaciones si un vehiculo ha llegado a tiempo
 
   const handleDblClickLlegadaATiempo = (row) => {
     const estado = (row?.lecturas?.llegada_destino || "")
@@ -549,8 +550,7 @@ export default function TablaDespachosLogistica() {
         valor === undefined ||
         valor === null ||
         valor === "" ||
-        (typeof valor === "string" && valor.trim() === ""))
-        {
+        (typeof valor === "string" && valor.trim() === "")) {
         faltantes++;
       }
     });
@@ -658,6 +658,54 @@ export default function TablaDespachosLogistica() {
         "Vehículo con retrazo a destino"
       );
     }
+    return null;
+  };
+
+
+  // helper para alertas de mermas segun tolerancia del 5%
+  const renderIconoCumplimientoCliente = (row) => {
+    // ===== Volumen =====
+    const volumenDespachar = Number(row?.lecturas?.volumen_despachar ?? 0);
+    const diffVolumen = Number(
+      row?.lecturas?.diferencia_recibo_cliente_vnetofacturado ?? 0
+    );
+
+    const tolVolumen =
+      Number.isFinite(volumenDespachar) && volumenDespachar > 0
+        ? volumenDespachar * 0.05
+        : null;
+
+    const estadoVolumen =
+      tolVolumen == null || !Number.isFinite(diffVolumen)
+        ? null
+        : diffVolumen > tolVolumen
+          ? "high"
+          : diffVolumen < -tolVolumen
+            ? "low"
+            : null;
+
+    // ===== Peso =====
+    const pesoBase = Number(row?.lecturas?.peso_neto_bascula_ambiocom ?? 0);
+    const diffPeso = Number(row?.lecturas?.dif_kilos_neto ?? 0);
+
+    const tolPeso =
+      Number.isFinite(pesoBase) && pesoBase > 0
+        ? pesoBase * 0.05
+        : null;
+
+    const estadoPeso =
+      tolPeso == null || !Number.isFinite(diffPeso)
+        ? null
+        : diffPeso > tolPeso
+          ? "high"
+          : diffPeso < -tolPeso
+            ? "low"
+            : null;
+
+    // ===== Prioridad visual =====
+    if (estadoVolumen === "high" || estadoPeso === "high") return "high";
+    if (estadoVolumen === "low" || estadoPeso === "low") return "low";
+
     return null;
   };
 
@@ -1401,6 +1449,7 @@ export default function TablaDespachosLogistica() {
             {medicionesFiltradas.map((row) => {
               const porcentajeFaltante = calcularPorcentajeFaltante(row);
               const colorFila = obtenerColorFila(porcentajeFaltante);
+              const alertaCliente = renderIconoCumplimientoCliente(row);
 
               return (
                 <TableRow
@@ -1432,19 +1481,59 @@ export default function TablaDespachosLogistica() {
                         width: "100%",
                       }}
                     >
-                      <Tooltip title={"Editar Fila"}>
-                        <IconButton
-                          onClick={() => {
-                            setEditId(row._id);
-                            setForm({
-                              ...row,
-                              fecha: row.fecha || "",
-                            });
-                            setOpenEditar(true);
+                      <Tooltip
+                        title={
+                          alertaCliente === "high"
+                            ? "Alerta cliente: diferencia de volumen y/o peso por encima de la tolerancia"
+                            : alertaCliente === "low"
+                              ? "Alerta cliente: diferencia de volumen y/o peso por debajo de la tolerancia"
+                              : "Editar Fila"
+                        }
+                      >
+                        <Box
+                          sx={{
+                            position: "relative",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
                           }}
                         >
-                          <EditIcon />
-                        </IconButton>
+                          <IconButton
+                            onClick={() => {
+                              setEditId(row._id);
+                              setForm({
+                                ...row,
+                                fecha: row.fecha || "",
+                              });
+                              setOpenEditar(true);
+                            }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+
+                          {alertaCliente && (
+                            <NotificationImportantIcon
+                              sx={{
+                                position: "absolute",
+                                top: -2,
+                                right: -2,
+                                fontSize: 18,
+                                color: alertaCliente === "high" ? "#d32f2f" : "#f56200",
+                                filter: "drop-shadow(0 0 1px white) drop-shadow(0 0 1px white)",
+                                backgroundColor: "inherit",
+                                borderRadius: "50%",
+                                boxShadow: "0 0 0 2px rgba(0,0,0,0.11)",
+                                animation: "blinkBell 1s ease-in-out infinite",
+                                "@keyframes blinkBell": {
+                                  "0%": { transform: "scale(0.95)", opacity: 1 },
+                                  "50%": { transform: "scale(1.45)", opacity: 0.6 },
+                                  "100%": { transform: "scale(1)", opacity: 1 },
+                                },
+                              }}
+                            />
+                          )}
+                        </Box>
                       </Tooltip>
 
                       <Tooltip
@@ -1661,7 +1750,7 @@ export default function TablaDespachosLogistica() {
                 border: "1px solid rgba(0,0,0,0.14)",
                 bgcolor:
                   obsVehiculoData.estado === "SI" ||
-                  obsVehiculoData.estado === "APROBADO CON OBSERVACIONES"
+                    obsVehiculoData.estado === "APROBADO CON OBSERVACIONES"
                     ? "rgba(211, 47, 47, 0.10)"
                     : "rgba(46, 125, 50, 0.10)",
                 color:
