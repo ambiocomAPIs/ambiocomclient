@@ -248,16 +248,10 @@ const FORMULAS = {
 
   dif_kilos_neto: (L) =>
     round(
-<<<<<<< HEAD
       toNum(L.kilos_peso_inicial) -
       toNum(L.kilos_peso_final) -
       toNum(L.peso_neto_bascula_ambiocom),
       3
-=======
-      (toNum(L.kilos_peso_inicial) - toNum(L.kilos_peso_final)) -
-      toNum(L.peso_neto_bascula_ambiocom),
-      1
->>>>>>> aa2758256817617179cee193f21f4c4479e0135d
     ),
 
   diferencia_recibo_cliente_vnetofacturado: (L) =>
@@ -266,15 +260,9 @@ const FORMULAS = {
   diferencia_recibo_cliente: (L) =>
     round(
       toNum(L.densidadlab_alcohol_tanque) === 0
-<<<<<<< HEAD
         ? 0.0001
         : toNum(L.cantidad_recibida_cliente) - toNum(L.peso_neto_contador_ambiocom) /
         toNum(L.densidadlab_alcohol_tanque)
-=======
-        ? 0.00018
-        : toNum(L.cantidad_recibida_cliente) - (toNum(L.peso_neto_contador_ambiocom) /
-        toNum(L.densidadlab_alcohol_tanque))
->>>>>>> aa2758256817617179cee193f21f4c4479e0135d
        ,
       3
     ),

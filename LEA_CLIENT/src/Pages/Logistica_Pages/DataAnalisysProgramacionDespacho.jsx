@@ -946,11 +946,8 @@ const AnalisisDespachosBIPage = () => {
       <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}> Detalle diferencia Kg</Typography>
       <Typography variant="body2"><strong>Fecha:</strong> {row.fecha}</Typography>
       <Typography variant="body2"> <strong>Estado:</strong> {row.estadoProgramacion || "Sin estado"}</Typography>
-<<<<<<< HEAD
       <Typography variant="body2"> <strong>Producto:</strong> {row.producto || "Sin estado"}</Typography>
       <Typography variant="body2"> <strong>Cliente:</strong> {row.cliente || "Sin dato"}</Typography>
-=======
->>>>>>> aa2758256817617179cee193f21f4c4479e0135d
       <Typography variant="body2"><strong>Conductor:</strong> {row.conductor || "Sin dato"}</Typography>
       <Typography variant="body2"><strong>Transportadora:</strong> {row.transportadora || "Sin dato"}</Typography>
       <Divider sx={{ my: 1 }} />
@@ -960,7 +957,6 @@ const AnalisisDespachosBIPage = () => {
       <Typography variant="body2" sx={{ color: "#a755ca", fontWeight: 700 }}><strong>Diferencia:</strong> {formatNumber(row.diffKgBasculaClienteAmbiocom)} Kg</Typography>
     </Box>
   );
-<<<<<<< HEAD
 
   const renderTooltipDiffVol = (row) => (
     <Box
@@ -988,8 +984,6 @@ const AnalisisDespachosBIPage = () => {
       <Typography variant="body2" sx={{ color: "#a755ca", fontWeight: 700 }}><strong>Diferencia:</strong> {formatNumber(row.diffCliente)} L</Typography>
     </Box>
   );
-=======
->>>>>>> aa2758256817617179cee193f21f4c4479e0135d
 
   return (
     <Box p={{ xs: 2, md: 4 }} mt={0}>
@@ -2273,7 +2267,6 @@ const AnalisisDespachosBIPage = () => {
                             {formatNumber(r.diffPlanta)}
                           </TableCell>
 
-<<<<<<< HEAD
                           <Tooltip
                             arrow
                             placement="top"
@@ -2294,11 +2287,6 @@ const AnalisisDespachosBIPage = () => {
                             </TableCell>
                           </Tooltip>
 
-=======
-                          <TableCell align="right">
-                            {formatNumber(r.diffCliente)}
-                          </TableCell>
->>>>>>> aa2758256817617179cee193f21f4c4479e0135d
                           <TableCell
                             align="right"
                             sx={{
