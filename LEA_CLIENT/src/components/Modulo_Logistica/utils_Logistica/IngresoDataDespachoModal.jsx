@@ -131,7 +131,7 @@ const saveFormDraft = (key, data) => {
 const clearFormDraft = (key) => {
   try {
     localStorage.removeItem(key);
-  } catch {}
+  } catch { }
 };
 
 const normalizeOption = (opt) => {
@@ -208,7 +208,7 @@ const FORMULAS = {
       toNum(L.densidadlab_alcohol_tanque) === 0
         ? 0.0001
         : toNum(L.peso_neto_contador_ambiocom) /
-            toNum(L.densidadlab_alcohol_tanque),
+        toNum(L.densidadlab_alcohol_tanque),
       3
     ),
 
@@ -239,7 +239,7 @@ const FORMULAS = {
   variacion_peso: (L) =>
     round(
       toNum(L.peso_neto_bascula_ambiocom) -
-        toNum(L.peso_neto_contador_ambiocom),
+      toNum(L.peso_neto_contador_ambiocom),
       3
     ),
 
@@ -249,8 +249,8 @@ const FORMULAS = {
   dif_kilos_neto: (L) =>
     round(
       toNum(L.kilos_peso_inicial) -
-        toNum(L.kilos_peso_final) -
-        toNum(L.peso_neto_bascula_ambiocom),
+      toNum(L.kilos_peso_final) -
+      toNum(L.peso_neto_bascula_ambiocom),
       3
     ),
 
@@ -261,9 +261,9 @@ const FORMULAS = {
     round(
       toNum(L.densidadlab_alcohol_tanque) === 0
         ? 0.0001
-        : toNum(L.peso_neto_contador_ambiocom) /
-            toNum(L.densidadlab_alcohol_tanque) -
-            toNum(L.cantidad_recibida_cliente),
+        : toNum(L.cantidad_recibida_cliente) - toNum(L.peso_neto_contador_ambiocom) /
+        toNum(L.densidadlab_alcohol_tanque)
+       ,
       3
     ),
 
@@ -272,7 +272,7 @@ const FORMULAS = {
       toNum(L.cantidad_recibida_cliente) === 0
         ? 0.0001
         : toNum(L.volumen_ambiocom_contador) /
-            toNum(L.cantidad_recibida_cliente),
+        toNum(L.cantidad_recibida_cliente),
       3
     ),
 };
@@ -312,6 +312,7 @@ const IngresoDataDespachoModal = ({
   const canEditResponsableRecibo =
     isAuth && RESPONSABLE_RECIBO_ROLES.includes(roleNorm);
 
+  const [fieldErrors, setFieldErrors] = useState({});
   const [catalogos, setCatalogos] = useState({
     conductores: [],
     clientes: [],
@@ -412,6 +413,35 @@ const IngresoDataDespachoModal = ({
     return [];
   };
 
+  // helper para validar digitacion en celdas con select
+const validateSelectValue = (key, inputValue, options) => {
+  const text = String(inputValue ?? "").trim();
+  if (!text) return "";
+
+  const exists = (options ?? []).some(
+    (opt) =>
+      String(opt?.value ?? "").trim().toLowerCase() === text.toLowerCase() ||
+      String(opt?.label ?? "").trim().toLowerCase() === text.toLowerCase()
+  );
+
+  return exists ? "" : "El valor debe ser seleccionado";
+};
+
+  const setFieldError = (key, message) => {
+    setFieldErrors((prev) => ({
+      ...prev,
+      [key]: message,
+    }));
+  };
+
+  const clearFieldError = (key) => {
+    setFieldErrors((prev) => {
+      const copy = { ...prev };
+      delete copy[key];
+      return copy;
+    });
+  };
+
   const refreshCatalogos = async () => {
     if (typeof navigator !== "undefined" && !navigator.onLine) return;
 
@@ -428,9 +458,8 @@ const IngresoDataDespachoModal = ({
 
         return {
           value: nombre, // lo que guardas en lecturas.nombre_conductor
-          label: `${nombre} - ${c.placaVehiculo ?? ""} - ${
-            c.carroseria ?? ""
-          }`.trim(),
+          label: `${nombre} - ${c.placaVehiculo ?? ""} - ${c.carroseria ?? ""
+            }`.trim(),
           placa: String(c.placaVehiculo ?? "").trim(),
           remolque: String(c.remolque ?? c.placaRemolque ?? "").trim(), // ajusta al nombre real en tu API
           carroceria: String(c.carroseria ?? "").trim(),
@@ -884,16 +913,45 @@ const IngresoDataDespachoModal = ({
                         forcePopupIcon
                         options={options}
                         value={valueObj}
+                        inputValue={form?.responsable__input ?? form?.responsable ?? ""}
                         isOptionEqualToValue={(option, value) =>
                           option.value === value.value
                         }
                         getOptionLabel={(option) => option?.label ?? ""}
                         onChange={(event, newValue) => {
                           if (isDisabled) return;
+
                           setForm((prev) => ({
                             ...prev,
                             responsable: newValue?.value ?? "",
+                            responsable__input: newValue?.label ?? newValue?.value ?? "",
                           }));
+
+                          if (newValue) clearFieldError("responsable");
+                          else setFieldError("responsable", "El valor debe ser seleccionado");
+                        }}
+                        onInputChange={(event, newInputValue, reason) => {
+                          if (isDisabled) return;
+
+                          setForm((prev) => ({
+                            ...prev,
+                            responsable__input: newInputValue,
+                          }));
+
+                          if (reason === "input") {
+                            const msg = validateSelectValue("responsable", newInputValue, options);
+                            if (msg) setFieldError("responsable", msg);
+                            else clearFieldError("responsable");
+                          }
+
+                          if (reason === "clear") {
+                            setForm((prev) => ({
+                              ...prev,
+                              responsable: "",
+                              responsable__input: "",
+                            }));
+                            clearFieldError("responsable");
+                          }
                         }}
                         renderInput={(params) => (
                           <TextField
@@ -902,6 +960,8 @@ const IngresoDataDespachoModal = ({
                             fullWidth
                             disabled={isDisabled}
                             sx={sxField}
+                            error={!!fieldErrors.responsable}
+                            helperText={fieldErrors.responsable || " "}
                           />
                         )}
                       />
@@ -952,15 +1012,21 @@ const IngresoDataDespachoModal = ({
                         options={catalogos.conductores || []}
                         value={
                           catalogos.conductores.find(
-                            (opt) =>
-                              opt.value === form.lecturas?.nombre_conductor
+                            (opt) => opt.value === form.lecturas?.nombre_conductor
                           ) || null
                         }
-                        getOptionLabel={(option) => option.label ?? ""}
+                        inputValue={
+                          form.lecturas?.nombre_conductor__input ??
+                          form.lecturas?.nombre_conductor ??
+                          ""
+                        }
+                        getOptionLabel={(option) => option?.label ?? ""}
                         isOptionEqualToValue={(option, value) =>
                           option.value === value.value
                         }
                         onChange={(event, newValue) => {
+                          if (isDisabled) return;
+
                           const conductor = newValue || null;
 
                           setForm((prev) => ({
@@ -968,42 +1034,98 @@ const IngresoDataDespachoModal = ({
                             lecturas: {
                               ...prev.lecturas,
                               nombre_conductor: conductor?.value ?? "",
+                              nombre_conductor__input:
+                                conductor?.label ?? conductor?.value ?? "",
                               placa: conductor?.placa ?? "",
                               remolque: conductor?.carroceria ?? "",
                             },
                           }));
+
+                          if (newValue) clearFieldError("nombre_conductor");
+                          else setFieldError("nombre_conductor", "El valor debe ser seleccionado");
+                        }}
+                        onInputChange={(event, newInputValue, reason) => {
+                          if (isDisabled) return;
+
+                          handleChangeLectura("nombre_conductor__input", newInputValue);
+
+                          if (reason === "input") {
+                            const msg = validateSelectValue(
+                              "nombre_conductor",
+                              newInputValue,
+                              catalogos.conductores || []
+                            );
+
+                            if (msg) setFieldError("nombre_conductor", msg);
+                            else clearFieldError("nombre_conductor");
+                          }
+
+                          if (reason === "clear") {
+                            setForm((prev) => ({
+                              ...prev,
+                              lecturas: {
+                                ...prev.lecturas,
+                                nombre_conductor: "",
+                                nombre_conductor__input: "",
+                                placa: "",
+                                remolque: "",
+                              },
+                            }));
+                            clearFieldError("nombre_conductor");
+                          }
                         }}
                         renderInput={(params) => (
-                          <TextField {...params} label="Conductor" fullWidth />
+                          <TextField
+                            {...params}
+                            label="Conductor"
+                            fullWidth
+                            disabled={isDisabled}
+                            sx={sxField}
+                            error={!!fieldErrors.nombre_conductor}
+                            helperText={fieldErrors.nombre_conductor || " "}
+                          />
                         )}
                       />
                     ) : esSelect ? (
                       <Autocomplete
-                        freeSolo
                         forcePopupIcon
                         options={items}
                         getOptionLabel={(option) =>
                           typeof option === "string"
                             ? option
-                            : option.label ?? option.value ?? ""
+                            : option?.label ?? option?.value ?? ""
+                        }
+                        isOptionEqualToValue={(option, value) =>
+                          option.value === value.value
                         }
                         value={
-                          items.find(
-                            (opt) => opt.value === form.lecturas?.[c.key]
-                          ) ||
-                          form.lecturas?.[c.key] ||
-                          ""
+                          items.find((opt) => opt.value === form.lecturas?.[c.key]) || null
                         }
+                        inputValue={form.lecturas?.[`${c.key}__input`] ?? form.lecturas?.[c.key] ?? ""}
                         onChange={(event, newValue) => {
                           if (isDisabled) return;
-                          if (typeof newValue === "string")
-                            handleChangeLectura(c.key, newValue);
-                          else
-                            handleChangeLectura(c.key, newValue?.value || "");
+
+                          handleChangeLectura(c.key, newValue?.value ?? "");
+                          handleChangeLectura(`${c.key}__input`, newValue?.label ?? newValue?.value ?? "");
+
+                          if (newValue) clearFieldError(c.key);
+                          else setFieldError(c.key, "El valor debe ser seleccionado");
                         }}
-                        onInputChange={(event, newInputValue) => {
+                        onInputChange={(event, newInputValue, reason) => {
                           if (isDisabled) return;
-                          handleChangeLectura(c.key, newInputValue);
+
+                          handleChangeLectura(`${c.key}__input`, newInputValue);
+
+                          if (reason === "input") {
+                            const msg = validateSelectValue(c.key, newInputValue, items);
+                            if (msg) setFieldError(c.key, msg);
+                            else clearFieldError(c.key);
+                          }
+
+                          if (reason === "clear") {
+                            handleChangeLectura(c.key, "");
+                            clearFieldError(c.key);
+                          }
                         }}
                         renderInput={(params) => (
                           <TextField
@@ -1012,6 +1134,8 @@ const IngresoDataDespachoModal = ({
                             fullWidth
                             disabled={isDisabled}
                             sx={sxField}
+                            error={!!fieldErrors[c.key]}
+                            helperText={fieldErrors[c.key] || " "}
                           />
                         )}
                       />
@@ -1178,10 +1302,13 @@ const IngresoDataDespachoModal = ({
         <Button
           variant="contained"
           onClick={() => {
+            const hasErrors = Object.values(fieldErrors).some(Boolean);
+            if (hasErrors) return;
+
             if (formCacheKey) clearFormDraft(formCacheKey);
             onSave();
           }}
-          disabled={loadingAuth || !isAuth} // opcional: bloquear guardar sin sesión
+          disabled={loadingAuth || !isAuth || Object.values(fieldErrors).some(Boolean)}
         >
           {isEdit ? "Actualizar" : "Guardar"}
         </Button>
