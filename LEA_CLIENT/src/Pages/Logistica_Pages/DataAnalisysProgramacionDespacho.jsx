@@ -244,24 +244,6 @@ const getDespachoInfo = (d) => {
   };
 };
 
-<<<<<<< HEAD
-=======
-// Agregación + Cruce
-const aggregate = (rows, getKey, getCantidad) => {
-  const m = new Map();
-  for (const r of rows ?? []) {
-    const key = getKey(r);
-    if (!key || key.startsWith("|")) continue;
-
-    const prev = m.get(key) || { viajes: 0, cantidad: 0 };
-    prev.viajes += 1;
-    prev.cantidad += Number(getCantidad(r) ?? 0);
-    m.set(key, prev);
-  }
-  return m;
-};
-
->>>>>>> 0fc2086be501d2a9da917848659f272099357eec
 const buildComparativoBase = ({ programaciones, despachos }) => {
   const group = (rows, getKey) => {
     const m = new Map();
@@ -306,10 +288,7 @@ const buildComparativoBase = ({ programaciones, despachos }) => {
       const diffCantidad = cantidadRealPlanta - cantidadProgramada;
       const diffPlanta = Number(getDespachoDifPlanta(d) ?? 0);
       const diffCliente = Number(getDespachoDifCliente(d) ?? 0);
-<<<<<<< HEAD
       const diffKgBasculaClienteAmbiocom = Number(getDespachoDifKgCliente(d) ?? 0);
-=======
->>>>>>> 0fc2086be501d2a9da917848659f272099357eec
 
       const cumplimientoPct =
         cantidadProgramada > 0
@@ -322,10 +301,7 @@ const buildComparativoBase = ({ programaciones, despachos }) => {
         transportadora,
         cliente,
         producto,
-<<<<<<< HEAD
         conductor: normalizeText(d?.lecturas?.nombre_conductor),
-=======
->>>>>>> 0fc2086be501d2a9da917848659f272099357eec
         viajesProgramados: p ? 1 : 0,
         viajesRealizados: d ? 1 : 0,
         cantidadProgramada,
@@ -615,21 +591,9 @@ const AnalisisDespachosBIPage = () => {
     const cantidadReal = rows.reduce((acc, r) => acc + (r.cantidadRealPlanta ?? 0), 0);
     // DIFERENCIAS
     const diffTotal = rows.reduce((acc, r) => acc + (r.diffCantidad ?? 0), 0);
-<<<<<<< HEAD
     const diffPlantaTotal = rows.reduce((acc, r) => acc + (r.diffPlanta ?? 0), 0);
     const diffClienteTotal = rows.reduce((acc, r) => acc + (r.diffCliente ?? 0), 0);
     // CUMPLIMIENTO
-=======
-    const diffPlantaTotal = rows.reduce(
-      (acc, r) => acc + (r.diffPlanta ?? 0),
-      0
-    );
-    const diffClienteTotal = rows.reduce(
-      (acc, r) => acc + (r.diffCliente ?? 0),
-      0
-    );
-
->>>>>>> 0fc2086be501d2a9da917848659f272099357eec
     const cumplidosCantidad = rows.filter((r) => r.cumplioCantidadDespachada).length;
     const cumplidosViaje = rows.filter((r) => r.cumplioViaje).length;
 
@@ -851,23 +815,10 @@ const AnalisisDespachosBIPage = () => {
     ].filter((x) => x.value > 0);
   }, [comparativoFiltrado]);
 
-<<<<<<< HEAD
   // Pie: analisis sobre mermas y diferencias en peso
   const pieCumplimientoPeso = useMemo(() => {
     const rows = seriesMermasDetalladaFiltrada ?? [];
     const tolKg = Number(toleranciaKgCliente ?? 0);
-=======
-  // Pie: Cumple vs No cumple (cantidad)
-  const pieCumplimiento = useMemo(() => {
-    const rows = comparativoFiltrado ?? [];
-    const ok = rows.filter((r) => r.cumplioCantidadCliente).length;
-    const no = rows.length - ok;
-    return [
-      { name: "Cumple", value: ok },
-      { name: "No cumple", value: no },
-    ];
-  }, [comparativoFiltrado]);
->>>>>>> 0fc2086be501d2a9da917848659f272099357eec
 
     const enRango = rows.filter((r) => {
       const diffKg = Number(r.diffPesoCliente ?? 0);
@@ -1512,11 +1463,7 @@ const AnalisisDespachosBIPage = () => {
                       Regla: Se analizan según cruce de información entre la
                       programación y los despachos reales, si un vehiculo o
                       Transportadora NO ESTÁ PROGRAMADO no será renderizado en
-<<<<<<< HEAD
                       el gráfico. <strong>NOTA: Los Rechazos son excluidos de este análisis.</strong>
-=======
-                      el gráfico.
->>>>>>> 0fc2086be501d2a9da917848659f272099357eec
                     </Typography>
                   </Box>
                   <Chip
@@ -1543,11 +1490,7 @@ const AnalisisDespachosBIPage = () => {
                       sx={{ mb: 1, textAlign: "center" }}
                       fontWeight="bold"
                     >
-<<<<<<< HEAD
                       KPI cumplimiento por peso neto (Báscula Ambiocom vs Cliente) Según Tolerancia: ±{`${toleranciaKgCliente} Kg`}.
-=======
-                      KPI Cumplimiento Facturado vs Recibido por el cliente
->>>>>>> 0fc2086be501d2a9da917848659f272099357eec
                     </Typography>
 
                     <ResponsiveContainer width="100%" height={285}>
@@ -2087,7 +2030,6 @@ const AnalisisDespachosBIPage = () => {
                   <TableCell align="center">
                     <strong>Cant Despa Gravimetrico</strong>
                   </TableCell>
-<<<<<<< HEAD
                   <TableCell align="center">
                     <Tooltip
                       placement="top"
@@ -2199,107 +2141,6 @@ const AnalisisDespachosBIPage = () => {
                       <strong>Estado Vehiculo</strong>
                     </Tooltip>
                   </TableCell>
-=======
-                  <Tooltip
-                    placement="top"
-                    title="Diferencia entre el volumen gravimetrico y el volumen facturado, determina que tanto o menos se despacha a clientes (< 0 = por encima de lo facturado)"
-                    slotProps={{
-                      tooltip: { sx: { fontSize: 13, textAlign: "center" } },
-                    }}
-                  >
-                    <TableCell align="center">
-                      <strong>Diferencia Gravimetrico - Facturado</strong>
-                    </TableCell>
-                  </Tooltip>
-                  <Tooltip
-                    placement="top"
-                    title="KPI Diferencia Volumen Contador Despacho - Volumen Facturado"
-                    slotProps={{
-                      tooltip: { sx: { fontSize: 13, textAlign: "center" } },
-                    }}
-                  >
-                    <TableCell align="center">
-                      <strong>Diff V.Ambio</strong>
-                    </TableCell>
-                  </Tooltip>
-                  <Tooltip
-                    placement="top"
-                    title="KPI Diferencia Volumen Facturado Ambiocom - Volumen Recibido por el cliente"
-                    slotProps={{
-                      tooltip: { sx: { fontSize: 13, textAlign: "center" } },
-                    }}
-                  >
-                    <TableCell align="center">
-                      <strong>Diff V.Cliente</strong>
-                    </TableCell>
-                  </Tooltip>
-                  <Tooltip
-                    placement="top"
-                    title="KPI Volumen Facturado vs Volumen Real Despachado (<100 = Despachado por encima de lo Facturado ; >100 = Despachado por debajo de lo facturado)"
-                    slotProps={{
-                      tooltip: { sx: { fontSize: 13, textAlign: "center" } },
-                    }}
-                  >
-                    <TableCell align="center">
-                      <strong>KPI Despacho (Vp-Vd)</strong>
-                    </TableCell>
-                  </Tooltip>
-                  <Tooltip
-                    placement="top"
-                    title="KPI Vechiculo en programación y vechiculo despachado (SI=100% ; NO= 0,0%)"
-                    slotProps={{
-                      tooltip: { sx: { fontSize: 13, textAlign: "center" } },
-                    }}
-                  >
-                    <TableCell align="center">
-                      <strong>Cumple Despachos Programados ?</strong>
-                    </TableCell>
-                  </Tooltip>
-                  <Tooltip
-                    placement="top"
-                    title="KPI Cantidad programada vs Despachada según tolerancia en el Despacho"
-                    slotProps={{
-                      tooltip: { sx: { fontSize: 13, textAlign: "center" } },
-                    }}
-                  >
-                    <TableCell align="center">
-                      <strong>Cumple Cantidad Despachada ?</strong>
-                    </TableCell>
-                  </Tooltip>
-                  <Tooltip
-                    placement="top"
-                    title="KPI Volumen recibido por el cliente vs Volumen Facturado Ambiocom"
-                    slotProps={{
-                      tooltip: { sx: { fontSize: 13, textAlign: "center" } },
-                    }}
-                  >
-                    <TableCell align="center">
-                      <strong>Client/Desp</strong>
-                    </TableCell>
-                  </Tooltip>
-                  <Tooltip
-                    placement="top"
-                    title="KPI Estado del vehiculo (rechazo en planta o rechazo por el cliente)"
-                    slotProps={{
-                      tooltip: { sx: { fontSize: 13, textAlign: "center" } },
-                    }}
-                  >
-                    <TableCell align="center">
-                      <strong>Vehiculo Rechazado ?</strong>
-                    </TableCell>
-                  </Tooltip>
-                  <Tooltip
-                    placement="top"
-                    title="KPI de estado en tiempo real del vehiculo (Rechazado por el cliente; rechazado en planta; En proceso = En Cargue o En Transito; Aprobado con observaciones; Cumple = Programado y Despachado; Programado pero no despachado; Despachado pero no Programado; No programado = despachado pero no estaba programado )"
-                    slotProps={{
-                      tooltip: { sx: { fontSize: 13, textAlign: "center" } },
-                    }}
-                  >
-                    <TableCell align="center">
-                      <strong>Estado Vehiculo</strong>
-                    </TableCell>
-                  </Tooltip>
->>>>>>> 0fc2086be501d2a9da917848659f272099357eec
                 </TableRow>
               </TableHead>
 
@@ -2400,7 +2241,6 @@ const AnalisisDespachosBIPage = () => {
                           <TableCell align="right">
                             {formatNumber(r.diffCliente)}
                           </TableCell>
-<<<<<<< HEAD
                           <TableCell
                             align="right"
                             sx={{
@@ -2438,9 +2278,6 @@ const AnalisisDespachosBIPage = () => {
                               </Box>
                             </Tooltip>
                           </TableCell>
-=======
-
->>>>>>> 0fc2086be501d2a9da917848659f272099357eec
                           <TableCell
                             align="right"
                             sx={{
