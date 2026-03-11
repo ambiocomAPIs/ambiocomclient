@@ -263,7 +263,7 @@ const FORMULAS = {
         ? 0.0001
         : toNum(L.cantidad_recibida_cliente) - toNum(L.peso_neto_contador_ambiocom) /
         toNum(L.densidadlab_alcohol_tanque)
-       ,
+      ,
       3
     ),
 
@@ -414,18 +414,18 @@ const IngresoDataDespachoModal = ({
   };
 
   // helper para validar digitacion en celdas con select
-const validateSelectValue = (key, inputValue, options) => {
-  const text = String(inputValue ?? "").trim();
-  if (!text) return "";
+  const validateSelectValue = (key, inputValue, options) => {
+    const text = String(inputValue ?? "").trim();
+    if (!text) return "";
 
-  const exists = (options ?? []).some(
-    (opt) =>
-      String(opt?.value ?? "").trim().toLowerCase() === text.toLowerCase() ||
-      String(opt?.label ?? "").trim().toLowerCase() === text.toLowerCase()
-  );
+    const exists = (options ?? []).some(
+      (opt) =>
+        String(opt?.value ?? "").trim().toLowerCase() === text.toLowerCase() ||
+        String(opt?.label ?? "").trim().toLowerCase() === text.toLowerCase()
+    );
 
-  return exists ? "" : "El valor debe ser seleccionado";
-};
+    return exists ? "" : "El valor debe ser seleccionado";
+  };
 
   const setFieldError = (key, message) => {
     setFieldErrors((prev) => ({
@@ -1101,7 +1101,10 @@ const validateSelectValue = (key, inputValue, options) => {
                         value={
                           items.find((opt) => opt.value === form.lecturas?.[c.key]) || null
                         }
-                        inputValue={form.lecturas?.[`${c.key}__input`] ?? form.lecturas?.[c.key] ?? ""}
+                        inputValue={
+                          String(form.lecturas?.[`${c.key}__input`] ?? "").trim() ||
+                          String(form.lecturas?.[c.key] ?? "").trim()
+                        }
                         onChange={(event, newValue) => {
                           if (isDisabled) return;
 
