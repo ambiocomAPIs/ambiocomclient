@@ -41,9 +41,14 @@ import ReportIcon from "@mui/icons-material/Report";
 import UndoIcon from "@mui/icons-material/Undo";
 import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import DonutSmallIcon from '@mui/icons-material/DonutSmall';
+import CleaningServicesIcon from '@mui/icons-material/CleaningServices';
+import RestoreIcon from '@mui/icons-material/Restore';
 
 import PersonRemoveAlt1Icon from "@mui/icons-material/PersonRemoveAlt1";
 import PlaylistRemoveIcon from "@mui/icons-material/PlaylistRemove";
+
+import ResumenKpiRadarModal from "./utils_Logistica_Page/ResumenKpiRadarModal";
 
 import {
   ResponsiveContainer,
@@ -360,6 +365,8 @@ const AnalisisDespachosBIPage = () => {
   const [toleranciaDespacho, setToleranciaDespacho] = useState(30);
   const [toleranciaKgCliente, setToleranciaKgCliente] = useState(30);
 
+  const [openRadarModal, setOpenRadarModal] = useState(false);
+
   useEffect(() => {
     const onScroll = () => setFiltersElevated(window.scrollY > 200);
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -617,7 +624,7 @@ const AnalisisDespachosBIPage = () => {
   // ===== NUEVO: KPI viajes (salió de planta) usando vehiculo_rechazado =====
   const kpiVehiculos = useMemo(() => {
     const total = despachosFiltrados.length;
-    const rechazados = despachosFiltrados.filter((d) => d.rechazado).length;
+    const rechazados = despachosFiltrados.filter((d) => d.rechazado || d.rechazadoCliente).length;
     const cumplidos = total - rechazados;
     const pct = total ? (cumplidos / total) * 100 : 0;
     return { total, rechazados, cumplidos, pct };
@@ -896,6 +903,93 @@ const AnalisisDespachosBIPage = () => {
     !!filters.cliente ||
     !!filters.producto;
 
+
+  // resumen de kpis para resumen tipo radar
+  const radarSummaryData = useMemo(() => {
+    const rowsNoRechazados = (comparativoFiltrado ?? []).filter(
+      (r) => !r.rechazado && !r.rechazadoCliente
+    );
+
+    const tol = Number(tolerancia ?? 0);
+    const tolKg = Number(toleranciaKgCliente ?? 0);
+
+    const pctDespachosRealizados =
+      kpis.viajesProgramados > 0
+        ? (kpis.viajesRealizados / kpis.viajesProgramados) * 100
+        : 0;
+
+    const pctEnRangoVolumen = rowsNoRechazados.length
+      ? (rowsNoRechazados.filter((r) => {
+        const diff = Number(r.diffCantidad ?? 0);
+        return diff >= -tol && diff <= tol;
+      }).length /
+        rowsNoRechazados.length) *
+      100
+      : 0;
+
+    const rowsPeso = seriesMermasDetalladaFiltrada ?? [];
+    const pctPesoEnRango = rowsPeso.length
+      ? (rowsPeso.filter((r) => {
+        const diffKg = Number(r.diffPesoCliente ?? 0);
+        return diffKg >= -tolKg && diffKg <= tolKg;
+      }).length /
+        rowsPeso.length) *
+      100
+      : 0;
+
+    return [
+      {
+        subject: "Cumpl. Volumen",
+        value: Number(kpis.pctCumplCant ?? 0),
+        meta: "Programado vs despachado según tolerancia de despacho",
+      },
+      {
+        subject: "Cumpl. Despachos",
+        value: Number(kpis.pctCumplViaje ?? 0),
+        meta: "Programación vs despacho realizado",
+      },
+      {
+        subject: "Vehículos OK",
+        value: Number(kpiVehiculos.pct ?? 0),
+        meta: "Vehículos aceptados sobre total despachado",
+      },
+      {
+        subject: "Despachos ejecutados",
+        value: Number(pctDespachosRealizados ?? 0),
+        meta: "Viajes realizados sobre viajes programados",
+      },
+      {
+        subject: "Volumen en rango",
+        value: Number(pctEnRangoVolumen ?? 0),
+        meta: `Dentro de ±${tolerancia} L`,
+      },
+      {
+        subject: "Peso en rango",
+        value: Number(pctPesoEnRango ?? 0),
+        meta: `Dentro de ±${toleranciaKgCliente} Kg`,
+      },
+    ];
+  }, [
+    comparativoFiltrado,
+    kpis,
+    kpiVehiculos,
+    tolerancia,
+    toleranciaKgCliente,
+    seriesMermasDetalladaFiltrada,
+  ]);
+
+  //resumen data radar
+  const radarResumen = useMemo(() => {
+    return {
+      filas: kpis.filas,
+      viajesProgramados: kpis.viajesProgramados,
+      viajesRealizados: kpis.viajesRealizados,
+      pctCumplCant: kpis.pctCumplCant,
+      pctCumplViaje: kpis.pctCumplViaje,
+      pctVehiculos: kpiVehiculos.pct,
+    };
+  }, [kpis, kpiVehiculos]);
+
   // =============================  CUSTOMER TOOLTIP RENDER  =====================================
   //tooltip personalizado para ver datos mas completos en grafica
   const CustomMermasTooltip = ({ active, payload }) => {
@@ -1064,15 +1158,27 @@ const AnalisisDespachosBIPage = () => {
                   ) : null,
                 }}
               />
+              <Tooltip title="Reset Filtros">
+                <Button
+                  variant="outlined"
+                  size="medium"
+                  onClick={clearFilters}
+                  sx={{ whiteSpace: "nowrap" }}
+                >
+                  <CleaningServicesIcon />
+                </Button>
+              </Tooltip>
 
-              <Button
-                variant="outlined"
-                size="medium"
-                onClick={clearFilters}
-                sx={{ whiteSpace: "nowrap" }}
-              >
-                Limpiar filtros
-              </Button>
+              <Tooltip title="Resumen General KPI´s">
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  onClick={() => setOpenRadarModal(true)}
+                  sx={{ whiteSpace: "nowrap" }}
+                >
+                  <DonutSmallIcon />
+                </Button>
+              </Tooltip>
             </Box>
           </Box>
 
@@ -1270,14 +1376,14 @@ const AnalisisDespachosBIPage = () => {
                 >
                   Consultar
                 </Button>
-                <Tooltip title="Recarga datasets con el rango actual">
+                <Tooltip title="Refrescar datasets con el rango actual">
                   <Button
                     variant="outlined"
-                    size="small"
-                    startIcon={<RefreshIcon />}
+                    size="small" 
+                    // startIcon={<RefreshIcon />}
                     onClick={() => fetchAll(range)}
                   >
-                    Refrescar
+                   <RefreshIcon />
                   </Button>
                 </Tooltip>
 
@@ -1292,7 +1398,7 @@ const AnalisisDespachosBIPage = () => {
                       fetchAll(def);
                     }}
                   >
-                    Default (actual / anterior)
+                    <RestoreIcon/>
                   </Button>
                 </Tooltip>
               </Box>
@@ -2335,36 +2441,68 @@ const AnalisisDespachosBIPage = () => {
                           >
                             {r.cumplimientoPct.toFixed(1)}%
                           </TableCell>
-
                           <TableCell align="center">
-                            <Chip
-                              size="small"
-                              label={r.cumplioViaje ? "SI" : "NO"}
-                              color={r.cumplioViaje ? "success" : "error"}
-                            />
+                            {(r.rechazado || r.rechazadoCliente) ? (
+                              <Chip
+                                size="small"
+                                label="X"
+                                sx={{
+                                  backgroundColor: "#9E9E9E",
+                                  color: "#fff",
+                                  fontWeight: "bold",
+                                  minWidth: 32,
+                                }}
+                              />
+                            ) : (
+                              <Chip
+                                size="small"
+                                label={r.cumplioViaje ? "SI" : "NO"}
+                                color={r.cumplioViaje ? "success" : "error"}
+                              />
+                            )}
                           </TableCell>
                           <Tooltip placement="top" title={`Tolerancia en el Despacho: ${toleranciaDespacho}`}>
                             <TableCell align="center">
-                              <Chip
-                                size="small"
-                                label={r.cumplioCantidadDespachada ? "SI" : "NO"}
-                                color={
-                                  r.cumplioCantidadDespachada
-                                    ? "success"
-                                    : "error"
-                                }
-                              />
+                              {(r.rechazado || r.rechazadoCliente) ? (
+                                <Chip
+                                  size="small"
+                                  label="X"
+                                  sx={{
+                                    backgroundColor: "#9E9E9E",
+                                    color: "#fff",
+                                    fontWeight: "bold",
+                                    minWidth: 32,
+                                  }}
+                                />
+                              ) : (
+                                <Chip
+                                  size="small"
+                                  label={r.cumplioCantidadDespachada ? "SI" : "NO"}
+                                  color={r.cumplioCantidadDespachada ? "success" : "error"}
+                                />
+                              )}
                             </TableCell>
                           </Tooltip>
 
                           <TableCell align="center">
-                            <Chip
-                              size="small"
-                              label={r.cumplioCantidadCliente ? "SI" : "NO"}
-                              color={
-                                r.cumplioCantidadCliente ? "success" : "error"
-                              }
-                            />
+                            {(r.rechazado || r.rechazadoCliente) ? (
+                              <Chip
+                                size="small"
+                                label="X"
+                                sx={{
+                                  backgroundColor: "#9E9E9E",
+                                  color: "#fff",
+                                  fontWeight: "bold",
+                                  minWidth: 32,
+                                }}
+                              />
+                            ) : (
+                              <Chip
+                                size="small"
+                                label={r.cumplioCantidadCliente ? "SI" : "NO"}
+                                color={r.cumplioCantidadCliente ? "success" : "error"}
+                              />
+                            )}
                           </TableCell>
 
                           <TableCell align="center">
@@ -2372,24 +2510,20 @@ const AnalisisDespachosBIPage = () => {
                               arrow
                               placement="top"
                               title={
-                                r.rechazado
+                                (r.rechazado || r.rechazadoCliente)
                                   ? "Vehículo Rechazado"
                                   : "Vehículo Aceptado"
                               }
                               slotProps={{
                                 tooltip: {
-                                  sx: {
-                                    fontSize: 14,
-                                  },
+                                  sx: { fontSize: 14, },
                                 },
                               }}
                             >
                               <Chip
                                 size="small"
-                                icon={
-                                  r.rechazado ? <CancelIcon /> : <CheckIcon />
-                                }
-                                color={r.rechazado ? "error" : "success"}
+                                icon={(r.rechazado || r.rechazadoCliente) ? <CancelIcon /> : <CheckIcon />}
+                                color={(r.rechazado || r.rechazadoCliente) ? "error" : "success"}
                                 sx={{
                                   width: 25,
                                   justifyContent: "center",
@@ -2522,6 +2656,13 @@ const AnalisisDespachosBIPage = () => {
           </Box>
         </CardContent>
       </Card>
+
+      <ResumenKpiRadarModal
+        open={openRadarModal}
+        onClose={() => setOpenRadarModal(false)}
+        radarData={radarSummaryData}
+        resumen={radarResumen}
+      />
     </Box>
   );
 };
