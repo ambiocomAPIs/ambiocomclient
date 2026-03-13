@@ -1076,11 +1076,11 @@ const ProgramacionDespachoDiariaPage = () => {
                   flexWrap: "nowrap",
                 }}
               >
-                  <Tooltip title="Actualiza la Base de Datos con filtros actuales">
+                <Tooltip title="Actualiza la Base de Datos con filtros actuales">
                   <Button
                     variant="outlined"
                     size="medium"
-                    sx={{color: "#C450DE"}}
+                    sx={{ color: "#C450DE" }}
                     onClick={async () => {
                       await fetchProgramacion(range);
                       await fetchCatalogs();
@@ -1390,7 +1390,7 @@ const ProgramacionDespachoDiariaPage = () => {
                 ) : (
                   rowsFiltrados.map((r) => (
                     <TableRow key={r._id} hover>
-                      <TableCell sx={{ minWidth: 110, whiteSpace: "nowrap"}} >{normalizeText(r.fecha)}</TableCell>
+                      <TableCell sx={{ minWidth: 110, whiteSpace: "nowrap" }} >{normalizeText(r.fecha)}</TableCell>
                       <TableCell>{normalizeText(r.placa)}</TableCell>
                       <TableCell>{normalizeText(r.trailer)}</TableCell>
                       <TableCell
@@ -1440,11 +1440,13 @@ const ProgramacionDespachoDiariaPage = () => {
                       </TableCell>
                       <TableCell align="right">{formatNumber(r.cantidad)}</TableCell>
                       <TableCell align="center">
-                        <Tooltip title={Boolean(r?.cumplido) ? "Despacho cumplido" : "Pendiente"}>
+                        <Tooltip placement="top" title={Boolean(r?.cumplido) ? "Despacho cumplido" : "Pendiente"}>
                           <CheckIcon
                             sx={{
-                              color: Boolean(r?.cumplido) ? "success.main" : "grey.400",
+                              color: Boolean(r?.cumplido) ? "#64E899" : "grey.200",
                               fontSize: 28,
+                              filter:Boolean(r?.cumplido) ? "drop-shadow(0px 2px 4px rgba(0,0,0,0.35))" : "inherit",
+
                             }}
                           />
                         </Tooltip>
