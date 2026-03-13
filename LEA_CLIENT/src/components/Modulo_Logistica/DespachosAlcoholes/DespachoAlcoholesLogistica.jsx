@@ -66,6 +66,8 @@ import AlarmOnIcon from "@mui/icons-material/AlarmOn";
 import AlarmOffIcon from "@mui/icons-material/AlarmOff";
 import UndoIcon from '@mui/icons-material/Undo';
 import NotificationImportantIcon from "@mui/icons-material/NotificationImportant";
+import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt';
+import ChecklistIcon from '@mui/icons-material/Checklist';
 
 import ExcelUploadButton from "../utils_Logistica/ExcelUploadButton";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -73,6 +75,9 @@ import ExcelDownloadButton from "../utils_Logistica/ExcelDownloadButton";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import IngresoDataDespachoModal from "../utils_Logistica/IngresoDataDespachoModal.jsx";
 import ChartBuilder from "../utils_Logistica/ChartBuilder";
+
+import ObservacionEstadoModal from "../../../utils/modals/Modals_Logistica/ObservacionEstadoModal.jsx";
+import ChecklistDespachosModal from "../utils_Logistica/Logistica_Modals/ProgramacionDespachoCheckListModal.jsx";
 
 // Contexto usuario por roles
 import { useAuth } from "../../../utils/Context/AuthContext/AuthContext.jsx";
@@ -112,6 +117,7 @@ export default function TablaDespachosLogistica() {
   const [ordenFechaAsc, setOrdenFechaAsc] = useState(false); // true de mas viejo primero
   const [modoInteligenteScroll, setModoInteligenteScroll] = useState(false);
   const [openCharts, setOpenCharts] = useState(false);
+  const [openChecklist, setOpenChecklist] = useState(false);  // modal checlist de programacion diaria
 
   const [form, setForm] = useState({
     fecha: "",
@@ -134,6 +140,9 @@ export default function TablaDespachosLogistica() {
     fecha: "",
     placa: "",
     cliente: "",
+    transportadora: "",
+    producto: "",
+    conductor: "",
   });
 
   /* ================= CARGA INICIAL ================= */
@@ -262,6 +271,9 @@ export default function TablaDespachosLogistica() {
       fecha: row?.fecha || "",
       placa: row?.lecturas?.placa || "",
       cliente: row?.lecturas?.cliente || "",
+      transportadora: row?.lecturas?.transportadora || "",
+      producto: row?.lecturas?.producto || "",
+      conductor: row?.lecturas?.nombre_conductor || "",
     });
 
     setOpenObsVehiculo(true);
@@ -598,8 +610,8 @@ export default function TablaDespachosLogistica() {
     }
     if (valor === "NO") {
       return commonWrapper(
-        <HowToRegIcon sx={{ color: "#3ed423" }} />,
-        "Vehículo aprobado"
+        <ThumbUpAltIcon sx={{ color: "#47b69e" }} />,
+        "Vehículo aprobado para cargue"
       );
     }
     if (valor === "EN TRANSITO") {
@@ -624,6 +636,12 @@ export default function TablaDespachosLogistica() {
       return commonWrapper(
         <UndoIcon sx={{ color: "#ff2d16" }} />,
         "Rechazado por el Cliente"
+      );
+    }
+    if (valor === "EN CLIENTE") {
+      return commonWrapper(
+        <HowToRegIcon sx={{ color: "#3ed423" }} />,
+        "Ya aprobado y en Destino"
       );
     }
 
@@ -1235,22 +1253,25 @@ export default function TablaDespachosLogistica() {
               <BarChartIcon />
             </IconButton>
             <Divider orientation="vertical" flexItem />
-            <IconButton
-              size="small"
-              onClick={() => ""}
-              sx={{
-                width: 34,
-                height: 34,
-                borderRadius: 1,
-                backgroundColor: filtrosVisibles ? "#d3d8de" : "#f6f7f9",
-                border: "1px solid rgba(0,0,0,0.12)",
-                "&:hover": {
-                  backgroundColor: filtrosVisibles ? "#c6ccd3" : "#eef1f5",
-                },
-              }}
-            >
-              <LocalPrintshopIcon />
-            </IconButton>
+            <Tooltip placement="top" title="Ver programación">
+              <IconButton
+                size="small"
+                onClick={() => setOpenChecklist(true)}
+                sx={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 1,
+                  backgroundColor: openChecklist ? "#d3d8de" : "#f6f7f9",
+                  border: "1px solid rgba(0,0,0,0.12)",
+                  "&:hover": {
+                    backgroundColor: openChecklist ? "#c6ccd3" : "#eef1f5",
+                  },
+                }}
+              >
+                <ChecklistIcon sx={{ color: openChecklist ? "blue" : "none" }} />
+              </IconButton>
+            </Tooltip>
+
             <Divider orientation="vertical" flexItem />
             <IconButton
               size="small"
@@ -1699,194 +1720,14 @@ export default function TablaDespachosLogistica() {
           api.get("/transportadoras").then((r) => r.data)
         }
       />
-
-      {/* modal para mostrar notas y observaciones sobre carros rechazados */}
-      <Dialog
+      {/* ================= MODAL DE OBSERVACIONES ================= */}
+      <ObservacionEstadoModal
         open={openObsVehiculo}
         onClose={() => setOpenObsVehiculo(false)}
-        fullWidth
-        maxWidth="xs"
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            boxShadow: "0 18px 60px rgba(0,0,0,0.18)",
-            overflow: "hidden",
-          },
-        }}
-      >
-        {/* Header */}
-        <Box
-          sx={{ px: 2.2, py: 1.6, borderBottom: "1px solid rgba(0,0,0,0.08)" }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 1,
-            }}
-          >
-            <Box sx={{ minWidth: 0 }}>
-              <Typography
-                variant="subtitle1"
-                sx={{ fontWeight: 800, letterSpacing: 0.2 }}
-              >
-                Observación del vehículo
-              </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                Revisión / control de despacho
-              </Typography>
-            </Box>
-
-            {/* Chip de estado */}
-            <Box
-              sx={{
-                px: 1.1,
-                py: 0.5,
-                borderRadius: 999,
-                fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: 0.4,
-                border: "1px solid rgba(0,0,0,0.14)",
-                bgcolor:
-                  obsVehiculoData.estado === "SI" ||
-                    obsVehiculoData.estado === "APROBADO CON OBSERVACIONES"
-                    ? "rgba(211, 47, 47, 0.10)"
-                    : "rgba(46, 125, 50, 0.10)",
-                color:
-                  obsVehiculoData.estado === "SI" || obsVehiculoData.estado === "APROBADO CON OBSERVACIONES" || obsVehiculoData.estado === "RETRASADO"
-                    ? "rgb(211, 47, 47)"
-                    : "rgb(46, 125, 50)",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {obsVehiculoData.estado || "—"}
-            </Box>
-          </Box>
-        </Box>
-
-        <DialogContent sx={{ px: 2.2, py: 2 }}>
-          {/* Bloque de metadata */}
-          <Paper
-            variant="outlined"
-            sx={{
-              borderRadius: 2.5,
-              p: 1.4,
-              bgcolor: "rgba(0,0,0,0.02)",
-              borderColor: "rgba(0,0,0,0.08)",
-              mb: 1.5,
-            }}
-          >
-            <Box
-              sx={{ display: "grid", gridTemplateColumns: "1fr", rowGap: 0.6 }}
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 2,
-                }}
-              >
-                <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                  Fecha
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                  {obsVehiculoData.fecha || "—"}
-                </Typography>
-              </Box>
-
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 2,
-                }}
-              >
-                <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                  Placa
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                  {obsVehiculoData.placa || "—"}
-                </Typography>
-              </Box>
-
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 2,
-                }}
-              >
-                <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                  Cliente
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: 700,
-                    textAlign: "right",
-                    maxWidth: "65%",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                  title={obsVehiculoData.cliente || ""}
-                >
-                  {obsVehiculoData.cliente || "—"}
-                </Typography>
-              </Box>
-            </Box>
-          </Paper>
-
-          {/* Observación */}
-          <Typography
-            variant="caption"
-            sx={{ opacity: 0.75, display: "block", mb: 0.8 }}
-          >
-            Observación
-          </Typography>
-
-          <Paper
-            variant="outlined"
-            sx={{
-              borderRadius: 2.5,
-              p: 1.4,
-              borderColor: "rgba(0,0,0,0.10)",
-              bgcolor: "#fff",
-            }}
-          >
-            <Typography
-              variant="body2"
-              sx={{ whiteSpace: "pre-wrap", lineHeight: 1.5 }}
-            >
-              {obsVehiculoData.observacion || "—"}
-            </Typography>
-          </Paper>
-        </DialogContent>
-
-        <DialogActions
-          sx={{
-            px: 2.2,
-            py: 1.4,
-            borderTop: "1px solid rgba(0,0,0,0.08)",
-            justifyContent: "flex-end",
-          }}
-        >
-          <Button
-            onClick={() => setOpenObsVehiculo(false)}
-            variant="contained"
-            sx={{
-              borderRadius: 2,
-              textTransform: "none",
-              fontWeight: 800,
-              px: 2.4,
-              boxShadow: "none",
-            }}
-          >
-            Cerrar
-          </Button>
-        </DialogActions>
-      </Dialog>
-
+        data={obsVehiculoData}
+        title="Observación del vehículo"
+        subtitle="Revisión / control de despacho"
+      />
       {/* ================= MODAL COLUMNA ================= */}
       <Dialog open={openColumna} fullWidth maxWidth="xs">
         <DialogTitle>Nueva Columna</DialogTitle>
@@ -2050,7 +1891,11 @@ export default function TablaDespachosLogistica() {
           Copiar tabla
         </MenuItem>
       </Menu>
-
+      {/* Modal checlist programacion despachos*/}
+      <ChecklistDespachosModal
+        open={openChecklist}
+        onClose={() => setOpenChecklist(false)}
+      />
       {/* Boton para carga masiva*/}
       <ExcelUploadButton
         ref={excelUploadRef}

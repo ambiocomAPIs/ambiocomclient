@@ -5,27 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { LabelList } from "recharts";
 
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Grid,
-  TextField,
-  Button,
-  Divider,
-  Chip,
-  Stack,
-  MenuItem,
-  Tooltip,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  InputAdornment,
-  IconButton,
+  Box, Card, CardContent, Typography, Grid, TextField, Button, Divider, Chip, Stack, MenuItem, Tooltip,
+  Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, IconButton,
 } from "@mui/material";
 
 import { ReferenceLine } from "recharts";
@@ -37,6 +18,8 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CancelIcon from "@mui/icons-material/Cancel";
 import CheckIcon from "@mui/icons-material/Check";
 import LocalGasStationIcon from "@mui/icons-material/LocalGasStation";
+import HowToRegIcon from "@mui/icons-material/HowToReg";
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import ReportIcon from "@mui/icons-material/Report";
 import UndoIcon from "@mui/icons-material/Undo";
 import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
@@ -49,6 +32,7 @@ import PersonRemoveAlt1Icon from "@mui/icons-material/PersonRemoveAlt1";
 import PlaylistRemoveIcon from "@mui/icons-material/PlaylistRemove";
 
 import ResumenKpiRadarModal from "./utils_Logistica_Page/ResumenKpiRadarModal";
+import ObservacionEstadoModal from "../../utils/modals/Modals_Logistica/ObservacionEstadoModal";
 
 import {
   ResponsiveContainer,
@@ -129,6 +113,7 @@ const isRechazado = (estado) => ["SI"].includes(estado); // RECHAZADO de planta
 const isRechazadoCliente = (estado) =>
   ["RECHAZADO POR CLIENTE"].includes(estado);
 const isEnProceso = (estado) => ["EN TRANSITO", "EN CARGUE"].includes(estado);
+const isEnCliente = (estado) => ["EN CLIENTE"].includes(estado);
 
 const isValidDateISO = (s) => {
   const v = normalizeText(s);
@@ -168,27 +153,56 @@ const getDefaultRange = () => {
 };
 
 // Heatmap (diff cantidad)
-const heatBg = (diff, tol = 0) => {
-  const v = Number(diff ?? 0);
-  const a = Math.abs(v);
-  if (a <= tol) return "rgba(46,125,50,0.18)"; // verde
-  if (a <= tol * 2) return "rgba(251,140,0,0.18)"; // naranja
-  return "rgba(211,47,47,0.18)"; // rojo
-};
-// heatmap para datos de diferencia de peso con cliente
-const heatBgKg = (diff, tol = 0) => {
+const heatBg = (diff, tol = 0, row = null) => {
   const v = Number(diff ?? 0);
   const a = Math.abs(v);
 
-  if (a <= tol) return "rgba(46,125,50,0.18)";      // verde = dentro de tolerancia
-  if (v > 0 && v > tol) return "rgba(248, 168, 77, 0.66)";
-  if (a <= tol * 2) return "rgba(255,235,59,0.25)";  // naranja
-  return "rgba(211,47,47,0.18)";                    // rojo = fuera fuerte
+  if (row) {
+    const volGrav = Number(row?.cantidadRealPlanta ?? 0);
+    const volCliente = Number(row?.volumenRecibidoCliente ?? 0);
+    const volProg = Number(row?.cantidadProgramada ?? 0);
+
+    const ceroPorFaltaDato =
+      v === 0 &&
+      (volGrav <= 0 || volCliente <= 0 || volProg <= 0);
+
+    if (ceroPorFaltaDato) {
+      return "rgb(209, 215, 219)";
+    }
+  }
+
+  if (a <= tol) return "rgba(46,125,50,0.18)";
+  if (a <= tol * 2) return "rgba(251,140,0,0.18)";
+  return "rgba(211,47,47,0.18)";
+};
+
+// heatmap para datos de diferencia de peso con cliente
+const heatBgKg = (diff, tol = 0, row = null) => {
+  const v = Number(diff ?? 0);
+  const a = Math.abs(v);
+
+  if (row) {
+    const pesoCliente = Number(row?.pesoNetoCliente ?? 0);
+    const pesoAmbiocom = Number(row?.pesoNetoBasculaAmbiocom ?? 0);
+
+    const ceroFalso =
+      v === 0 &&
+      (pesoCliente <= 0 || pesoAmbiocom <= 0);
+
+    if (ceroFalso) {
+      return "rgb(209, 215, 219)"; // gris
+    }
+  }
+
+  if (a <= tol) return "rgba(46,125,50,0.18)";
+  if (v > 0 && v > tol) return "rgba(248,168,77,0.66)";
+  if (a <= tol * 2) return "rgba(255,235,59,0.25)";
+  return "rgba(211,47,47,0.18)";
 };
 //helper mapa de calor para %cumplimiento volumenes de despacho
 const heatCumplimiento = (pct) => {
   const v = Number(pct ?? 0);
-  if (v === 0) return "rgba(33,150,243,0.18)"; // azul frío
+  if (v === 0) return "rgb(209, 215, 219)"; // azul frío
   if (v > 100) return "rgba(244,67,54,0.18)"; // rojo pálido
   if (v === 100) return "rgba(46,125,50,0.18)"; // verde
   if (v > 0 && v < 100) return "rgba(255,235,59,0.25)"; // amarillo
@@ -246,6 +260,7 @@ const getDespachoInfo = (d) => {
     aprobadoConObs: isAprobadoConObs(estado),
 
     enProceso: isEnProceso(estado),
+    enCliente: isEnCliente(estado),
   };
 };
 
@@ -289,6 +304,7 @@ const buildComparativoBase = ({ programaciones, despachos }) => {
       const aprobado = d ? isAprobado(estadoVehiculo) : false;
       const aprobadoConObs = d ? isAprobadoConObs(estadoVehiculo) : false;
       const enProceso = d ? isEnProceso(estadoVehiculo) : false;
+      const enCliente = d ? isEnCliente(estadoVehiculo) : false;
 
       const diffCantidad = cantidadRealPlanta - cantidadProgramada;
       const diffPlanta = Number(getDespachoDifPlanta(d) ?? 0);
@@ -307,6 +323,12 @@ const buildComparativoBase = ({ programaciones, despachos }) => {
         cliente,
         producto,
         conductor: normalizeText(d?.lecturas?.nombre_conductor),
+        observacion: normalizeText(
+          d?.observaciones ??
+          d?.lecturas?.observaciones ??
+          d?.lecturas?.observacion ??
+          ""
+        ),
         viajesProgramados: p ? 1 : 0,
         viajesRealizados: d ? 1 : 0,
         cantidadProgramada,
@@ -326,6 +348,7 @@ const buildComparativoBase = ({ programaciones, despachos }) => {
         aprobado,
         aprobadoConObs,
         enProceso,
+        enCliente,
         estadoVehiculo,
       });
     }
@@ -364,8 +387,18 @@ const AnalisisDespachosBIPage = () => {
   const [tolerancia, setTolerancia] = useState(200);
   const [toleranciaDespacho, setToleranciaDespacho] = useState(30);
   const [toleranciaKgCliente, setToleranciaKgCliente] = useState(30);
-
   const [openRadarModal, setOpenRadarModal] = useState(false);
+
+  const [openObsEstado, setOpenObsEstado] = useState(false);
+  const [obsEstadoData, setObsEstadoData] = useState({
+    estado: "",
+    observacion: "",
+    fecha: "",
+    cliente: "",
+    transportadora: "",
+    producto: "",
+    conductor: "",
+  });
 
   useEffect(() => {
     const onScroll = () => setFiltersElevated(window.scrollY > 200);
@@ -501,8 +534,9 @@ const AnalisisDespachosBIPage = () => {
                   : r.tieneProgramacion && r.tieneDespacho && r.aprobado
                     ? "Cumple"
                     : r.tieneProgramacion && r.tieneDespacho && r.enProceso || !r.tieneProgramacion && r.tieneDespacho && r.enProceso
-                      ? "En proceso"
-                      : "Sin datos";
+                      ? "En proceso" :
+                      r.enCliente ? "En Cliente"
+                        : "Sin datos";
 
       return {
         ...r,
@@ -723,6 +757,23 @@ const AnalisisDespachosBIPage = () => {
         (Math.abs(a.negativos) + a.positivos)
     );
   }, [comparativoFiltrado]);
+
+
+  //doble click para abrir modal con informacion detallada del despacho
+  const handleDblClickEstado = (row) => {
+    setObsEstadoData({
+      estado: row?.estadoProgramacion || row?.estadoVehiculo || "",
+      observacion:
+        row?.observacion || "Esta fila no tiene observación registrada",
+      fecha: row?.fecha || "",
+      cliente: row?.cliente || "",
+      transportadora: row?.transportadora || "",
+      producto: row?.producto || "",
+      conductor: row?.conductor || "",
+    });
+
+    setOpenObsEstado(true);
+  };
 
   // Color estable por transportadora (siempre el mismo) en la grafica barras comparativa de mermas
   const hashToColor = (str) => {
@@ -1037,7 +1088,7 @@ const AnalisisDespachosBIPage = () => {
         color: "#111",
       }}
     >
-      <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}> Detalle diferencia Kg</Typography>
+      <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}> Detalle diferencia Báscula Ambiocom vs B.Cliente</Typography>
       <Typography variant="body2"><strong>Fecha:</strong> {row.fecha}</Typography>
       <Typography variant="body2"> <strong>Estado:</strong> {row.estadoProgramacion || "Sin estado"}</Typography>
       <Typography variant="body2"> <strong>Producto:</strong> {row.producto || "Sin estado"}</Typography>
@@ -1064,7 +1115,7 @@ const AnalisisDespachosBIPage = () => {
         color: "#111",
       }}
     >
-      <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}> Detalle diferencia Kg</Typography>
+      <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}> Detalle diferencia en Litros Facturado vs recibido cliente</Typography>
       <Typography variant="body2"><strong>Fecha:</strong> {row.fecha}</Typography>
       <Typography variant="body2"> <strong>Estado:</strong> {row.estadoProgramacion || "Sin estado"}</Typography>
       <Typography variant="body2"> <strong>Producto:</strong> {row.producto || "Sin estado"}</Typography>
@@ -1379,11 +1430,11 @@ const AnalisisDespachosBIPage = () => {
                 <Tooltip title="Refrescar datasets con el rango actual">
                   <Button
                     variant="outlined"
-                    size="small" 
+                    size="small"
                     // startIcon={<RefreshIcon />}
                     onClick={() => fetchAll(range)}
                   >
-                   <RefreshIcon />
+                    <RefreshIcon />
                   </Button>
                 </Tooltip>
 
@@ -1398,7 +1449,7 @@ const AnalisisDespachosBIPage = () => {
                       fetchAll(def);
                     }}
                   >
-                    <RestoreIcon/>
+                    <RestoreIcon />
                   </Button>
                 </Tooltip>
               </Box>
@@ -2014,7 +2065,17 @@ const AnalisisDespachosBIPage = () => {
                       textAnchor="end"
                       height={80}
                     />
-                    <YAxis tickFormatter={(v) => formatNumber1D(v)} />
+                    <YAxis tickFormatter={(v) => formatNumber1D(v)} domain={[
+                      (dataMin) => (dataMin * 0) - 5,
+                      (dataMax) => dataMax + 15,
+                    ]} />
+                    <ReferenceLine
+                      y={0}
+                      stroke="#111827"
+                      strokeDasharray="4 4"
+                      strokeWidth={1}
+                      ifOverflow="extendDomain"
+                    />
                     <RTooltip
                       formatter={(val, name) => {
                         const map = {
@@ -2041,6 +2102,7 @@ const AnalisisDespachosBIPage = () => {
                       radius={[6, 6, 0, 0]}
                       label={{
                         position: "top",
+                        offset: 20,
                         fill: "#111827",
                         fontSize: 12,
                         formatter: (v) => `Programados: ${formatNumber(v)}`,
@@ -2066,14 +2128,15 @@ const AnalisisDespachosBIPage = () => {
                       <Bar
                         dataKey="rechazadosAmbiocom"
                         name="Rechazados Ambiocom"
-                        stackId="rechazos"
+                        stackId="rechazosambiocom"
                         fill="#EF4444"
                         radius={[6, 6, 0, 0]}
                         label={{
                           position: "top",
+                          offset: 5,
                           fill: "#111827",
-                          fontSize: 12,
-                          formatter: (v) => (v ? `Rechazo Amb.: ${formatNumber(v)}` : ""),
+                          fontSize: 11,
+                          formatter: (v) => (v ? `${formatNumber(v)}` : ""),
                         }}
                       />
                     )}
@@ -2083,14 +2146,15 @@ const AnalisisDespachosBIPage = () => {
                       <Bar
                         dataKey="rechazadosCliente"
                         name="Rechazados Cliente"
-                        stackId="rechazos"
+                        stackId="rechazoscliente"
                         fill="#F59E0B"
                         radius={[6, 6, 0, 0]}
                         label={{
                           position: "top",
+                          offset: 5,
                           fill: "#111827",
-                          fontSize: 12,
-                          formatter: (v) => (v ? `Rechazo Clie.: ${formatNumber(v)}` : ""),
+                          fontSize: 11,
+                          formatter: (v) => (v ? ` ${formatNumber(v)}` : ""),
                         }}
                       />
                     )}
@@ -2156,7 +2220,7 @@ const AnalisisDespachosBIPage = () => {
                     <strong>Vehiculo Programado</strong>
                   </TableCell>
                   <TableCell align="center">
-                    <strong>Vehiculo Despachado</strong>
+                    <strong>Vehiculo en Despacho</strong>
                   </TableCell>
 
                   <TableCell align="center">
@@ -2315,7 +2379,6 @@ const AnalisisDespachosBIPage = () => {
                             </TableCell>
                           </TableRow>
                         )}
-
                         <TableRow hover>
                           <TableCell>{r.fecha}</TableCell>
                           <TableCell>{r.transportadora}</TableCell>
@@ -2341,14 +2404,12 @@ const AnalisisDespachosBIPage = () => {
                           >
                             {r.producto}
                           </TableCell>
-
                           <TableCell align="right">
                             {formatNumber(r.viajesProgramados)}
                           </TableCell>
                           <TableCell align="right">
                             {formatNumber(r.viajesRealizados)}
                           </TableCell>
-
                           <TableCell align="right">
                             {formatNumber(r.cantidadProgramada)}
                           </TableCell>
@@ -2388,7 +2449,13 @@ const AnalisisDespachosBIPage = () => {
                               },
                             }}
                           >
-                            <TableCell align="right">
+                            <TableCell
+                              align="right"
+                              sx={{
+                                backgroundColor: heatBg(r.diffCliente, tolerancia, r),
+                                fontWeight: 600,
+                              }}
+                            >
                               {formatNumber(r.diffCliente)}
                             </TableCell>
                           </Tooltip>
@@ -2396,10 +2463,7 @@ const AnalisisDespachosBIPage = () => {
                           <TableCell
                             align="right"
                             sx={{
-                              backgroundColor: heatBgKg(
-                                r.diffKgBasculaClienteAmbiocom,
-                                toleranciaKgCliente
-                              ),
+                              backgroundColor: heatBgKg(r.diffKgBasculaClienteAmbiocom, toleranciaKgCliente, r),
                               fontWeight: 600,
                             }}
                           >
@@ -2439,7 +2503,9 @@ const AnalisisDespachosBIPage = () => {
                               fontWeight: 600,
                             }}
                           >
-                            {r.cumplimientoPct.toFixed(1)}%
+                            <Tooltip placement="top" title="porcentaje de cumplimiento, Volumen Programado vs Real Despachado" >
+                              {r.cumplimientoPct.toFixed(1)}%
+                            </Tooltip>
                           </TableCell>
                           <TableCell align="center">
                             {(r.rechazado || r.rechazadoCliente) ? (
@@ -2550,71 +2616,45 @@ const AnalisisDespachosBIPage = () => {
                             >
                               <Chip
                                 size="medium"
+                                sx={{cursor: "pointer",}}
+                                onDoubleClick={(e) => { e.stopPropagation(); handleDblClickEstado(r); }}
                                 // label={r.estadoProgramacion}
                                 icon={
                                   r.estadoProgramacion === "Cumple" ? (
                                     <Box
                                       display="flex"
                                       alignItems="center"
-                                      gap={0.5}
+                                      gap={0.2}
                                     >
-                                      <PlaylistAddCheckIcon
-                                        fontSize="medium"
-                                        sx={{ fontSize: 30, color: "#4DBD5B" }}
-                                      />
-                                      <LocalShippingIcon
-                                        fontSize="small"
-                                        sx={{ fontSize: 27, color: "#6384BF" }}
-                                      />
+                                      <PlaylistAddCheckIcon fontSize="medium" sx={{ fontSize: 30, color: "#4DBD5B" }} />
+                                      <LocalShippingIcon fontSize="small" sx={{ fontSize: 27, color: "#6384BF" }} />
                                     </Box>
                                   ) : r.estadoProgramacion ===
                                     "Programado (no despachado)" ? (
                                     <Box
                                       display="flex"
                                       alignItems="center"
-                                      gap={0.5}
+                                      gap={0.2}
                                     >
-                                      <PlaylistAddCheckIcon
-                                        fontSize="medium"
-                                        sx={{ fontSize: 30, color: "#4DBD5B" }}
-                                      />
-                                      <LocalShippingIcon
-                                        fontSize="small"
-                                        sx={{ fontSize: 27, color: "#F07D8C" }}
-                                      />
+                                      <PlaylistAddCheckIcon fontSize="medium" sx={{ fontSize: 30, color: "#4DBD5B" }} />
+                                      <LocalShippingIcon fontSize="small" sx={{ fontSize: 27, color: "#F07D8C" }} />
                                     </Box>
                                   ) : r.estadoProgramacion ===
                                     "No programado" ? (
                                     <Box
                                       display="flex"
                                       alignItems="center"
-                                      gap={0.5}
+                                      gap={0.2}
                                     >
-                                      <PlaylistRemoveIcon
-                                        fontSize="medium"
-                                        sx={{ fontSize: 30, color: "#E35542" }}
-                                      />
-                                      <LocalShippingIcon
-                                        fontSize="small"
-                                        sx={{ fontSize: 27, color: "#248F4A" }}
-                                      />
+                                      <PlaylistRemoveIcon fontSize="medium" sx={{ fontSize: 30, color: "#E35542" }} />
+                                      <LocalShippingIcon fontSize="small" sx={{ fontSize: 27, color: "#6384BF" }} />
                                     </Box>
                                   ) : r.estadoProgramacion ===
                                     "Rechazado por cliente" ? (
-                                    <UndoIcon
-                                      sx={{
-                                        fontSize: 26,
-                                        color: "red !important",
-                                      }}
-                                    />
+                                    <UndoIcon sx={{ fontSize: 26, color: "red !important", }} />
                                   ) : r.estadoProgramacion ===
                                     "Rechazado Ambiocom" ? (
-                                    <PersonRemoveAlt1Icon
-                                      sx={{
-                                        fontSize: 26,
-                                        color: "#9E7CCF !important",
-                                      }}
-                                    />
+                                    <PersonRemoveAlt1Icon sx={{ fontSize: 26, color: "#9E7CCF !important", }} />
                                   ) : r.estadoProgramacion ===
                                     "Aprobado con observaciones" ? (
                                     <ReportIcon
@@ -2624,14 +2664,39 @@ const AnalisisDespachosBIPage = () => {
                                       }}
                                     />
                                   ) : r.estadoProgramacion === "En proceso" ? (
-                                    <LocalGasStationIcon
-                                      sx={{
-                                        fontSize: 26,
-                                        color: "#64A7CC !important",
-                                      }}
+                                    <LocalGasStationIcon sx={{ fontSize: 26, color: "#64A7CC !important", }}
                                     />
+                                  ) : r.estadoProgramacion === "En Cliente" ? (
+                                    <Box
+                                      sx={{
+                                        position: "relative",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 0.2,
+                                      }}
+                                    >
+                                      <PlaylistAddCheckIcon sx={{ fontSize: 30, color: "#4DBD5B" }} />
+                                      <LocalShippingIcon sx={{ fontSize: 27, color: "#4DBD5B" }} />
+                                      {/* Icono pequeño parpadeando */}
+                                      <HowToRegIcon
+                                        sx={{
+                                          position: "absolute",
+                                          top: -8,
+                                          right: -5,
+                                          fontSize: 23,
+                                          color: "#000000",
+                                          animation: "blinkIcon 0.8s infinite",
+
+                                          "@keyframes blinkIcon": {
+                                            "0%": { opacity: 1, transform: "scale(1)" },
+                                            "50%": { opacity: 0.2, transform: "scale(0.9)" },
+                                            "100%": { opacity: 1, transform: "scale(1)" },
+                                          },
+                                        }}
+                                      />
+                                    </Box>
                                   ) : (
-                                    <LocalGasStationIcon />
+                                    <RemoveCircleOutlineIcon />
                                   )
                                 }
                               />
@@ -2662,6 +2727,14 @@ const AnalisisDespachosBIPage = () => {
         onClose={() => setOpenRadarModal(false)}
         radarData={radarSummaryData}
         resumen={radarResumen}
+      />
+      {/* MODAL DE OBSERVACIONES */}
+      <ObservacionEstadoModal
+        open={openObsEstado}
+        onClose={() => setOpenObsEstado(false)}
+        data={obsEstadoData}
+        title="Observación del estado"
+        subtitle="Detalle de novedad / validación del despacho"
       />
     </Box>
   );

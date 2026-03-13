@@ -36,6 +36,11 @@ import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
+import SortByAlphaIcon from '@mui/icons-material/SortByAlpha';
+import CleaningServicesIcon from '@mui/icons-material/CleaningServices';
+import SwapVertIcon from "@mui/icons-material/SwapVert";
+import CheckIcon from '@mui/icons-material/Check';
 
 const API_URL = "https://ambiocomserver.onrender.com/api/programaciondespacho";
 
@@ -153,6 +158,7 @@ const ProgramacionDespachoDiariaPage = () => {
   const [rows, setRows] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState("");   // buscador global
+  const [sortOrder, setSortOrder] = useState("desc");
   const debouncedSearch = useDebouncedValue(search, 250);
 
   // filtros tipo BI
@@ -433,6 +439,7 @@ const ProgramacionDespachoDiariaPage = () => {
       transportadora: "",
       destino: "",
     });
+    setSearch("");
   };
 
   // ✅ handlers para rango
@@ -717,42 +724,63 @@ const ProgramacionDespachoDiariaPage = () => {
     const fTransportadora = normalizeText(filters.transportadora);
     const fDestino = normalizeText(filters.destino);
 
-    let out = safe;
+    let out = [...safe];
 
     if (fFecha) out = out.filter((r) => normalizeText(r.fecha) === fFecha);
     if (fCliente) out = out.filter((r) => normalizeText(r.cliente) === fCliente);
     if (fProducto) out = out.filter((r) => normalizeText(r.producto) === fProducto);
-    if (fTransportadora)
+    if (fTransportadora) {
       out = out.filter((r) => normalizeText(r.transportadora) === fTransportadora);
+    }
     if (fDestino) out = out.filter((r) => normalizeText(r.destino) === fDestino);
 
     const q = normalizeText(debouncedSearch).toLowerCase();
-    if (!q) return out;
+    if (q) {
+      out = out.filter((r) => {
+        const fecha = normalizeText(r.fecha).toLowerCase();
+        const placa = normalizeText(r.placa).toLowerCase();
+        const trailer = normalizeText(r.trailer).toLowerCase();
+        const conductor = normalizeText(r.conductor).toLowerCase();
+        const transportadora = normalizeText(r.transportadora).toLowerCase();
+        const cliente = normalizeText(r.cliente).toLowerCase();
+        const destino = normalizeText(r.destino).toLowerCase();
+        const producto = normalizeText(r.producto).toLowerCase();
+        const cantidad = String(r.cantidad ?? "").toLowerCase();
 
-    return out.filter((r) => {
-      const fecha = normalizeText(r.fecha).toLowerCase();
-      const placa = normalizeText(r.placa).toLowerCase();
-      const trailer = normalizeText(r.trailer).toLowerCase();
-      const conductor = normalizeText(r.conductor).toLowerCase();
-      const transportadora = normalizeText(r.transportadora).toLowerCase();
-      const cliente = normalizeText(r.cliente).toLowerCase();
-      const destino = normalizeText(r.destino).toLowerCase();
-      const producto = normalizeText(r.producto).toLowerCase();
-      const cantidad = String(r.cantidad ?? "").toLowerCase();
+        return (
+          fecha.includes(q) ||
+          placa.includes(q) ||
+          trailer.includes(q) ||
+          conductor.includes(q) ||
+          transportadora.includes(q) ||
+          cliente.includes(q) ||
+          destino.includes(q) ||
+          producto.includes(q) ||
+          cantidad.includes(q)
+        );
+      });
+    }
 
-      return (
-        fecha.includes(q) ||
-        placa.includes(q) ||
-        trailer.includes(q) ||
-        conductor.includes(q) ||
-        transportadora.includes(q) ||
-        cliente.includes(q) ||
-        destino.includes(q) ||
-        producto.includes(q) ||
-        cantidad.includes(q)
-      );
+    out.sort((a, b) => {
+      const fechaA = normalizeText(a.fecha);
+      const fechaB = normalizeText(b.fecha);
+
+      if (fechaA !== fechaB) {
+        return sortOrder === "desc"
+          ? fechaB.localeCompare(fechaA)
+          : fechaA.localeCompare(fechaB);
+      }
+
+      const createdA = normalizeText(a.createdAt);
+      const createdB = normalizeText(b.createdAt);
+
+      return sortOrder === "desc"
+        ? createdB.localeCompare(createdA)
+        : createdA.localeCompare(createdB);
     });
-  }, [rows, filters, debouncedSearch]);
+
+    return out;
+  }, [rows, filters, debouncedSearch, sortOrder]);
 
   // INDICADORES (chips)
   const total = rows.length;
@@ -876,28 +904,6 @@ const ProgramacionDespachoDiariaPage = () => {
                 }}
               />
             </Box>
-
-            {/* <TextField
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por fecha, placa, trailer, conductor, transportadora, cliente, destino, producto..."
-              size="small"
-              sx={{ minWidth: { xs: "100%", md: 520 } }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-                endAdornment: search ? (
-                  <InputAdornment position="end">
-                    <IconButton size="small" onClick={() => setSearch("")} aria-label="Limpiar búsqueda">
-                      <ClearIcon fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                ) : null,
-              }}
-            /> */}
           </Box>
 
           <Divider sx={{ my: 3 }} />
@@ -964,7 +970,7 @@ const ProgramacionDespachoDiariaPage = () => {
             </Grid>
 
             {/* filtros existentes */}
-            <Grid item xs={12} md={2.4}>
+            <Grid item xs={12} md={2}>
               <TextField
                 select
                 fullWidth
@@ -983,7 +989,7 @@ const ProgramacionDespachoDiariaPage = () => {
               </TextField>
             </Grid>
 
-            <Grid item xs={12} md={2.4}>
+            <Grid item xs={12} md={2}>
               <TextField
                 select
                 fullWidth
@@ -1002,7 +1008,7 @@ const ProgramacionDespachoDiariaPage = () => {
               </TextField>
             </Grid>
 
-            <Grid item xs={12} md={2.4}>
+            <Grid item xs={12} md={2}>
               <TextField
                 select
                 fullWidth
@@ -1021,7 +1027,7 @@ const ProgramacionDespachoDiariaPage = () => {
               </TextField>
             </Grid>
 
-            <Grid item xs={12} md={2.4}>
+            <Grid item xs={12} md={2}>
               <TextField
                 select
                 fullWidth
@@ -1040,7 +1046,7 @@ const ProgramacionDespachoDiariaPage = () => {
               </TextField>
             </Grid>
 
-            <Grid item xs={12} md={2.4}>
+            <Grid item xs={12} md={2}>
               <TextField
                 select
                 fullWidth
@@ -1059,17 +1065,22 @@ const ProgramacionDespachoDiariaPage = () => {
               </TextField>
             </Grid>
 
-            <Grid item xs={12}>
-              <Box display="flex" gap={2} flexWrap="wrap">
-                <Button variant="outlined" onClick={clearFilters} size="small">
-                  Limpiar filtros
-                </Button>
-
-                <Tooltip title="Actualiza la Base de Datos con filtros actuales">
+            <Grid item xs={12} md={2}>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 1,
+                  height: "100%",
+                  alignItems: "center",
+                  justifyContent: { xs: "flex-start", md: "flex-end" },
+                  flexWrap: "nowrap",
+                }}
+              >
+                  <Tooltip title="Actualiza la Base de Datos con filtros actuales">
                   <Button
-                    variant="text"
-                    startIcon={<RefreshIcon />}
-                    size="small"
+                    variant="outlined"
+                    size="medium"
+                    sx={{color: "#C450DE"}}
                     onClick={async () => {
                       await fetchProgramacion(range);
                       await fetchCatalogs();
@@ -1082,7 +1093,33 @@ const ProgramacionDespachoDiariaPage = () => {
                       });
                     }}
                   >
-                    Refrescar
+                    <RefreshIcon />
+                  </Button>
+                </Tooltip>
+
+                <Tooltip title="Limpiar filtros">
+                  <Button variant="outlined" onClick={clearFilters} size="medium">
+                    <CleaningServicesIcon />
+                  </Button>
+                </Tooltip>
+
+                <Tooltip
+                  title={
+                    sortOrder === "desc"
+                      ? "Orden actual: más recientes primero"
+                      : "Orden actual: más antiguos primero"
+                  }
+                >
+                  <Button
+                    variant="outlined"
+                    size="medium"
+                    onClick={() =>
+                      setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))
+                    }
+                  >
+                    <SwapVertIcon
+                      sx={{ color: sortOrder === "desc" ? "#7BDE50" : "error.main" }}
+                    />
                   </Button>
                 </Tooltip>
               </Box>
@@ -1333,6 +1370,7 @@ const ProgramacionDespachoDiariaPage = () => {
                   <TableCell><strong>Destino</strong></TableCell>
                   <TableCell><strong>Producto</strong></TableCell>
                   <TableCell align="right"><strong>Cantidad</strong></TableCell>
+                  <TableCell align="center"><strong>Checked</strong></TableCell>
                   <TableCell align="center"><strong>Acciones</strong></TableCell>
                 </TableRow>
               </TableHead>
@@ -1340,7 +1378,7 @@ const ProgramacionDespachoDiariaPage = () => {
               <TableBody>
                 {rowsFiltrados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} align="center" sx={{ py: 5 }}>
+                    <TableCell colSpan={11} align="center" sx={{ py: 5 }}>
                       <Typography fontWeight="bold">No hay resultados</Typography>
                       <Typography variant="body2" color="text.secondary">
                         {hasAnyFilter
@@ -1352,7 +1390,7 @@ const ProgramacionDespachoDiariaPage = () => {
                 ) : (
                   rowsFiltrados.map((r) => (
                     <TableRow key={r._id} hover>
-                      <TableCell>{normalizeText(r.fecha)}</TableCell>
+                      <TableCell sx={{ minWidth: 110, whiteSpace: "nowrap"}} >{normalizeText(r.fecha)}</TableCell>
                       <TableCell>{normalizeText(r.placa)}</TableCell>
                       <TableCell>{normalizeText(r.trailer)}</TableCell>
                       <TableCell
@@ -1401,6 +1439,16 @@ const ProgramacionDespachoDiariaPage = () => {
                         {normalizeText(r.producto)}
                       </TableCell>
                       <TableCell align="right">{formatNumber(r.cantidad)}</TableCell>
+                      <TableCell align="center">
+                        <Tooltip title={Boolean(r?.cumplido) ? "Despacho cumplido" : "Pendiente"}>
+                          <CheckIcon
+                            sx={{
+                              color: Boolean(r?.cumplido) ? "success.main" : "grey.400",
+                              fontSize: 28,
+                            }}
+                          />
+                        </Tooltip>
+                      </TableCell>
                       <TableCell align="center">
                         <IconButton color="primary" onClick={() => handleEdit(r)}>
                           <EditIcon />
