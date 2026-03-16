@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
-
+import ExcelDownloadButton from "../../../utils/Export_Data_General/ExcelDownloadData";
 import {
   Box,
   Card,
@@ -152,7 +152,6 @@ const getDefaultRange = () => {
     to: toISODate(endCurrentMonth),
   };
 };
-
 
 const ProgramacionDespachoDiariaPage = () => {
 
@@ -785,6 +784,53 @@ const ProgramacionDespachoDiariaPage = () => {
     return out;
   }, [rows, filters, debouncedSearch, sortOrder]);
 
+  const copiarTablaPortapapeles = async () => {
+  try {
+    const headers = [
+      "Fecha",
+      "Placa",
+      "Trailer",
+      "Conductor",
+      "Transportadora",
+      "Cliente",
+      "Destino",
+      "Producto",
+      "Cantidad",
+      "Checked",
+    ];
+
+    const rows = rowsFiltrados.map((r) => [
+      normalizeText(r.fecha),
+      normalizeText(r.placa),
+      normalizeText(r.trailer),
+      normalizeText(r.conductor),
+      normalizeText(r.transportadora),
+      normalizeText(r.cliente),
+      normalizeText(r.destino),
+      normalizeText(r.producto),
+      String(r.cantidad ?? ""),
+      r?.cumplido ? "SI" : "NO",
+    ]);
+
+    const texto =
+      headers.join("\t") +
+      "\n" +
+      rows.map((r) => r.join("\t")).join("\n");
+
+    await navigator.clipboard.writeText(texto);
+
+    Swal.fire({
+      icon: "success",
+      title: "Tabla copiada",
+      text: "Puedes pegarla directamente en Excel",
+      timer: 1500,
+      showConfirmButton: false,
+    });
+  } catch (error) {
+    console.error(error);
+  }
+};
+
   // INDICADORES (chips)
   const total = rows.length;
   const filtrados = rowsFiltrados.length;
@@ -1105,7 +1151,6 @@ const ProgramacionDespachoDiariaPage = () => {
                     <CleaningServicesIcon />
                   </Button>
                 </Tooltip>
-
                 <Tooltip
                   title={
                     sortOrder === "desc"
@@ -1124,6 +1169,23 @@ const ProgramacionDespachoDiariaPage = () => {
                       sx={{ color: sortOrder === "desc" ? "#7BDE50" : "error.main" }}
                     />
                   </Button>
+                </Tooltip>
+                <Tooltip title="Exportar Data">
+                  {/* // modulo exportar excel en el mismo boton. */}
+                  <ExcelDownloadButton
+                    data={rowsFiltrados}
+                    filename="programacion_despacho.xlsx"
+                    sheetName="Programacion"
+                    variant="outlined"
+                    buttonText=""
+                    startIcon={
+                      <img
+                        src="/Icons/excelIcon.png"
+                        alt="Excel"
+                        style={{ width: 30, height: 25 }}
+                      />
+                    }
+                  />
                 </Tooltip>
               </Box>
             </Grid>
@@ -1422,7 +1484,7 @@ const ProgramacionDespachoDiariaPage = () => {
               </Button>
 
               {editingId && (
-                <Button  
+                <Button
                   variant="outlined"
                   size="small"
                   onClick={async () => {
@@ -1444,7 +1506,11 @@ const ProgramacionDespachoDiariaPage = () => {
           <Divider sx={{ my: 3 }} />
 
           {/* TABLA */}
-          <TableContainer component={Paper} elevation={2} sx={{ borderRadius: 2 }}>
+          <TableContainer component={Paper} elevation={2} sx={{ borderRadius: 2 }} 
+           onContextMenu={(e) => {
+            e.preventDefault();
+            copiarTablaPortapapeles();
+          }}>
             <Table stickyHeader size="small">
               <TableHead>
                 <TableRow>
