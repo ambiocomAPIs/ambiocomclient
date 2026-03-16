@@ -22,6 +22,10 @@ import {
   InputAdornment,
   Chip,
   Stack,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem 
 } from "@mui/material";
 
 import EditIcon from "@mui/icons-material/Edit";
@@ -46,6 +50,7 @@ const useDebouncedValue = (value, delay = 250) => {
 const ConductoresPage = () => {
   const [conductores, setConductores] = useState([]);
   const [editingId, setEditingId] = useState(null);
+  const [transportadoras, setTransportadoras] = useState([]);
 
   // buscador
   const [search, setSearch] = useState("");
@@ -88,8 +93,18 @@ const ConductoresPage = () => {
     }
   };
 
+  const fetchTransportadoras = async () => {
+    try {
+      const res = await axios.get("https://ambiocomserver.onrender.com/api/transportadoraslogistica");
+      setTransportadoras(Array.isArray(res.data) ? res.data : []);
+    } catch (error) {
+      console.error("Error al obtener transportadoras:", error);
+    }
+  };
+
   useEffect(() => {
     fetchConductores();
+    fetchTransportadoras();
   }, []);
 
   // ===============================
@@ -357,13 +372,26 @@ const ConductoresPage = () => {
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Empresa"
-                name="empresa"
-                value={form.empresa}
-                onChange={handleChange}
-              />
+              <FormControl fullWidth>
+                <InputLabel id="empresa-label">Transportadora</InputLabel>
+                <Select
+                  labelId="empresa-label"
+                  name="empresa"
+                  value={form.empresa}
+                  label="Transportadora"
+                  onChange={handleChange}
+                >
+                  <MenuItem value="">
+                    <em>Seleccione una transportadora</em>
+                  </MenuItem>
+
+                  {transportadoras.map((t) => (
+                    <MenuItem key={t._id} value={t.nombreTransportadora}>
+                      {t.nombreTransportadora}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
 
             <Grid item xs={12} md={6}>

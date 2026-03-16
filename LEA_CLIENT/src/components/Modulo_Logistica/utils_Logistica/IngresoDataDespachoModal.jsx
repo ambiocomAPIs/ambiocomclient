@@ -981,7 +981,7 @@ const IngresoDataDespachoModal = ({
                       <TextField
                         fullWidth
                         label="Observaciones"
-                        value={form.observaciones || ""}
+                        value={form.observaciones || "Sin observaciones"}
                         onChange={(e) =>
                           setForm({ ...form, observaciones: e.target.value })
                         }
@@ -1294,7 +1294,7 @@ const IngresoDataDespachoModal = ({
             setForm((prev) => ({
               ...prev,
               lecturas: recalcBloqueadas({}),
-              observaciones: "",
+              observaciones: "Sin observaciones",
               responsable: "",
               fecha: "",
             }));
@@ -1309,8 +1309,14 @@ const IngresoDataDespachoModal = ({
             const hasErrors = Object.values(fieldErrors).some(Boolean);
             if (hasErrors) return;
 
+            const payload = {
+              ...form,
+              observaciones:
+                String(form?.observaciones ?? "").trim() || "Sin observaciones",
+            };
+
             if (formCacheKey) clearFormDraft(formCacheKey);
-            onSave();
+            onSave(payload);
           }}
           disabled={loadingAuth || !isAuth || Object.values(fieldErrors).some(Boolean)}
         >

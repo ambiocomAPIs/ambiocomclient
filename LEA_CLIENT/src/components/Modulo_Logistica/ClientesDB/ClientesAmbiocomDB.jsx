@@ -22,6 +22,10 @@ import {
   InputAdornment,
   Chip,
   Stack,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 
 import EditIcon from "@mui/icons-material/Edit";
@@ -32,6 +36,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
 const API_URL = "https://ambiocomserver.onrender.com/api/clienteslogistica";
+const API_TIPO_OH_URL = "https://ambiocomserver.onrender.com/api/alcoholesdespacho";
 
 // Debounce simple sin librerías
 const useDebouncedValue = (value, delay = 250) => {
@@ -46,7 +51,7 @@ const useDebouncedValue = (value, delay = 250) => {
 const ClientesDespachoPageDB = () => {
   const [clientes, setClientes] = useState([]);
   const [editingId, setEditingId] = useState(null);
-
+  const [tiposOH, setTiposOH] = useState([]);
   // buscador
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 250);
@@ -87,8 +92,18 @@ const ClientesDespachoPageDB = () => {
     }
   };
 
+  const fetchTiposOH = async () => {
+    try {
+      const res = await axios.get(API_TIPO_OH_URL);
+      setTiposOH(Array.isArray(res.data) ? res.data : []);
+    } catch (error) {
+      console.error("Error al obtener tipos OH:", error);
+    }
+  };
+
   useEffect(() => {
     fetchClientes();
+    fetchTiposOH();
   }, []);
 
   // ===============================
@@ -342,13 +357,29 @@ const ClientesDespachoPageDB = () => {
             </Grid>
 
             <Grid item xs={12} md={3}>
-              <TextField
-                fullWidth
-                label="Tipo OH"
-                name="tipoOH"
-                value={form.tipoOH}
-                onChange={handleChange}
-              />
+              <FormControl fullWidth>
+                <InputLabel id="tipooh-label">Tipo OH</InputLabel>
+                <Select
+                  labelId="tipooh-label"
+                  name="tipoOH"
+                  value={form.tipoOH}
+                  label="Tipo OH"
+                  onChange={handleChange}
+                >
+                  <MenuItem value="">
+                    <em>Seleccione un tipo OH</em>
+                  </MenuItem>
+
+                  {tiposOH.map((item) => (
+                    <MenuItem
+                      key={item._id}
+                      value={item.tipoProducto || item.nombre}
+                    >
+                      {item.tipoProducto || item.nombre}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
 
             <Grid item xs={12} md={3}>

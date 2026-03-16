@@ -1026,7 +1026,10 @@ export default function TablaDespachosLogistica() {
               data={medicionesOrdenadas}
               columnasVisibles={columnasVisibles}
               columnas={columnas}
-              filename="RecepcionAlcoholes.xlsx"
+              filename={`DespachoAlcoholes_hasta_${medicionesOrdenadas.length
+                  ? medicionesOrdenadas.reduce((max, r) => (r.fecha > max ? r.fecha : max), "")
+                  : "sin-fecha"
+                }.xlsx`}
             />
             <Divider orientation="vertical" flexItem />
             {/* Columnas filtro ocultar columnas */}
