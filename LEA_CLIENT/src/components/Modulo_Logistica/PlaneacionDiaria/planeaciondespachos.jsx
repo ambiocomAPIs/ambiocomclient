@@ -28,6 +28,9 @@ import {
 } from "@mui/material";
 
 import BarChartIcon from "@mui/icons-material/BarChart";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import OpacityIcon from "@mui/icons-material/Opacity";
 
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -1130,29 +1133,113 @@ const ProgramacionDespachoDiariaPage = () => {
 
           {/* KPIs rápidos por día */}
           {kpiPorDia.length > 0 && (
-            <>
-              <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
-                Resumen por día (según filtro actual) KPI´s
+            <Box sx={{ mt: 1, mb: 2.5 }}>
+              <Typography
+                variant="subtitle2"
+                fontWeight="bold"
+                sx={{ mb: 1 }}
+              >
+                Resumen por día (según filtro actual)
               </Typography>
 
-              <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 2 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 0.75,
+                  alignItems: "center",
+                }}
+              >
                 {top10Dias.map((d) => (
                   <Chip
                     key={d.fecha}
                     size="medium"
-                    label={`${d.fecha}: ${d.viajes} viajes / ${formatNumber(d.cantidad)}`}
+                    variant="outlined"
+                    sx={{
+                      height: 35,
+                      borderRadius: "5px",
+                      bgcolor: "#fff",
+                      "& .MuiChip-label": {
+                        px: 1,
+                        py: 0,
+                      },
+                    }}
+                    label={
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 0.8,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <CalendarMonthIcon
+                          sx={{ fontSize: 14, color: "text.secondary" }}
+                        />
+                        <Typography
+                          variant="caption"
+                          sx={{ fontWeight: 500, lineHeight: 1 }}
+                        >
+                          {d.fecha}
+                        </Typography>
+
+                        <LocalShippingIcon
+                          sx={{ fontSize: 14, color: "primary.main" }}
+                        />
+                        <Typography
+                          variant="caption"
+                          sx={{ fontWeight: 500, lineHeight: 1 }}
+                        >
+                          {d.viajes}
+                        </Typography>
+
+                        <OpacityIcon
+                          sx={{ fontSize: 14, color: "success.main" }}
+                        />
+                        <Typography
+                          variant="caption"
+                          sx={{ fontWeight: 500, lineHeight: 1 }}
+                        >
+                          {formatNumber(d.cantidad)}L
+                        </Typography>
+                      </Box>
+                    }
                   />
                 ))}
-                {kpiPorDia.length > 3 && <Chip size="medium" label={`+ ${kpiPorDia.length - 3} días`} />}
-              </Stack>
-            </>
+
+                {kpiPorDia.length > 10 && (
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    sx={{
+                      height: 30,
+                      borderRadius: "16px",
+                      bgcolor: "#e9c3ff",
+                      "& .MuiChip-label": {
+                        px: 1,
+                        py: 0,
+                        fontWeight: 500,
+                      },
+                    }}
+                    label={`+ ${kpiPorDia.length - 10} días más`}
+                  />
+                )}
+              </Box>
+            </Box>
           )}
-
+          <Divider sx={{ my: 3 }} />
           {/* FORMULARIO (COMPACTO + SELECTS) */}
-          <Typography sx={{ mb: 1, mt: -1.5 }} variant="h6" gutterBottom>
-            {editingId ? "Editar programación" : "Nueva programación"}
+          <Typography
+            variant="h5"
+            sx={{
+              mb: 2,
+              mt: -1,
+              textAlign: "center",
+              fontWeight: 600,
+            }}
+          >
+            {editingId ? "Editar programación" : "Registrar Nueva programación"}
           </Typography>
-
           <Grid container spacing={1}>
             {/* FECHA: DATE PICKER (guarda YYYY-MM-DD) */}
             <Grid item xs={12} md={1}>
@@ -1329,13 +1416,13 @@ const ProgramacionDespachoDiariaPage = () => {
                 color={editingId ? "warning" : "primary"}
                 startIcon={editingId ? <SaveIcon /> : <AddIcon />}
                 onClick={handleSubmit}
-                size="small"
+                size="medium"
               >
                 {editingId ? "Actualizar" : "Registrar"}
               </Button>
 
               {editingId && (
-                <Button
+                <Button  
                   variant="outlined"
                   size="small"
                   onClick={async () => {
@@ -1445,7 +1532,7 @@ const ProgramacionDespachoDiariaPage = () => {
                             sx={{
                               color: Boolean(r?.cumplido) ? "#64E899" : "grey.200",
                               fontSize: 28,
-                              filter:Boolean(r?.cumplido) ? "drop-shadow(0px 2px 4px rgba(0,0,0,0.35))" : "inherit",
+                              filter: Boolean(r?.cumplido) ? "drop-shadow(0px 2px 4px rgba(0,0,0,0.35))" : "inherit",
 
                             }}
                           />
