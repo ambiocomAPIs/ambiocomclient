@@ -67,6 +67,7 @@ const RESPONSABLE_RECIBO_ROLES = [
 ]; // permisos para editar responsable
 const LLEGADA_DESTINO_KEY = "llegada_destino";
 const LLEGADA_DESTINO_OPTIONS = ["PUNTUAL", "RETRASADO"]; // select para modal de registro de datos
+const REQUIRED_FIELDS = ["fecha", "responsable", "observaciones"]; // campos obligatorios minimos para crear un registro
 
 // celdas que seran tipo select formato 8:00 15:30
 const loadCacheMeta = (key) => {
@@ -298,8 +299,8 @@ const IngresoDataDespachoModal = ({
   isEdit = false,
 }) => {
   const CLIENTES_URL = "https://ambiocomserver.onrender.com/api/clienteslogistica";
-  const TRANSPORTADORAS_URL =
-    "https://ambiocomserver.onrender.com/api/transportadoraslogistica";
+  const TRANSPORTADORAS_URL = "https://ambiocomserver.onrender.com/api/transportadoraslogistica";
+  const PRODUCTOS_URL = "https://ambiocomserver.onrender.com/api/alcoholesdespacho";
 
   // =============   Contextos   ===============================
   // rol real desde cookie/session (AuthContext)
@@ -577,8 +578,6 @@ const IngresoDataDespachoModal = ({
       console.warn("Error refrescando personal", e);
     }
   };
-
-  const PRODUCTOS_URL = "https://ambiocomserver.onrender.com/api/alcoholesdespacho";
 
   const mapProductosToOptions = (arr) =>
     (arr ?? []).map((p) => ({
@@ -875,11 +874,7 @@ const IngresoDataDespachoModal = ({
                 </Typography>
               </Box>
             ) : (
-              <Box pb={1}>
-                <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                  Rol logueado: <b>{roleNorm}</b>
-                </Typography>
-              </Box>
+              <></>
             )}
 
             <Grid container spacing={1} mt={1}>
@@ -888,10 +883,18 @@ const IngresoDataDespachoModal = ({
                 <TextField
                   fullWidth
                   type="date"
-                  label="Fecha"
+                  label="Fecha *"
                   InputLabelProps={{ shrink: true }}
                   value={form.fecha || ""}
-                  onChange={(e) => setForm({ ...form, fecha: e.target.value })}
+                  onChange={(e) => {
+                    setForm({ ...form, fecha: e.target.value });
+
+                    if (e.target.value) {
+                      clearFieldError("fecha");
+                    }
+                  }}
+                  error={!!fieldErrors.fecha}
+                  helperText={fieldErrors.fecha || ""}
                 />
               </Grid>
 
@@ -928,8 +931,11 @@ const IngresoDataDespachoModal = ({
                             responsable__input: newValue?.label ?? newValue?.value ?? "",
                           }));
 
-                          if (newValue) clearFieldError("responsable");
-                          else setFieldError("responsable", "El valor debe ser seleccionado");
+                          if (newValue?.value) {
+                            clearFieldError("responsable");
+                          } else {
+                            setFieldError("responsable", "El responsable es obligatorio");
+                          }
                         }}
                         onInputChange={(event, newInputValue, reason) => {
                           if (isDisabled) return;
@@ -951,13 +957,13 @@ const IngresoDataDespachoModal = ({
                               responsable: "",
                               responsable__input: "",
                             }));
-                            clearFieldError("responsable");
+                            setFieldError("responsable", "El responsable es obligatorio");
                           }
                         }}
                         renderInput={(params) => (
                           <TextField
                             {...params}
-                            label="Responsable de recibo"
+                            label="Responsable de recibo *"
                             fullWidth
                             disabled={isDisabled}
                             sx={sxField}
@@ -980,11 +986,18 @@ const IngresoDataDespachoModal = ({
                     >
                       <TextField
                         fullWidth
-                        label="Observaciones"
-                        value={form.observaciones || "Sin observaciones"}
-                        onChange={(e) =>
-                          setForm({ ...form, observaciones: e.target.value })
-                        }
+                        label="Observaciones *"
+                        // value={form.observaciones || "Sin observaciones"}
+                        value={form.observaciones ?? ""}
+                        onChange={(e) => {
+                          setForm({ ...form, observaciones: e.target.value });
+
+                          if (e.target.value.trim()) {
+                            clearFieldError("observaciones");
+                          }
+                        }}
+                        error={!!fieldErrors.observaciones}
+                        helperText={fieldErrors.observaciones || ""}
                       />
                     </Grid>
                   );
@@ -999,6 +1012,7 @@ const IngresoDataDespachoModal = ({
                 const esTanqueSalida = c.key === "tanque_salida"; // evalua que la lista select se renderizara en la columna con esta key
                 const items = esSelect ? getItems(c.key) : [];
                 const esNombreConductor = c.key === "nombre_conductor";
+                const isRequired = (key) => REQUIRED_FIELDS.includes(key); // campos requeridos
 
                 const allowedByRole = canRoleEditColumn(c);
                 const isDisabled = !allowedByRole;
@@ -1294,7 +1308,7 @@ const IngresoDataDespachoModal = ({
             setForm((prev) => ({
               ...prev,
               lecturas: recalcBloqueadas({}),
-              observaciones: "Sin observaciones",
+              observaciones: "",
               responsable: "",
               fecha: "",
             }));
@@ -1306,13 +1320,36 @@ const IngresoDataDespachoModal = ({
         <Button
           variant="contained"
           onClick={() => {
-            const hasErrors = Object.values(fieldErrors).some(Boolean);
-            if (hasErrors) return;
+
+            const errors = {};
+
+            if (!form.fecha) {
+              errors.fecha = "La fecha es obligatoria";
+            }
+
+            if (!form.responsable) {
+              errors.responsable = "El responsable es obligatorio";
+            }
+
+            if (!form.observaciones?.trim()) {
+              errors.observaciones = "Las observaciones son obligatorias";
+            }
+
+            if (Object.keys(errors).length > 0) {
+              setFieldErrors(errors);
+
+              setAlertState({
+                open: true,
+                severity: "warning",
+                message: "Completa los campos obligatorios",
+              });
+
+              return;
+            }
 
             const payload = {
               ...form,
-              observaciones:
-                String(form?.observaciones ?? "").trim() || "Sin observaciones",
+              observaciones: String(form?.observaciones ?? "").trim(),
             };
 
             if (formCacheKey) clearFormDraft(formCacheKey);

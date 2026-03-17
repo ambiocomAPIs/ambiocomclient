@@ -65,6 +65,9 @@ import ColumnasDBManagement from "../Modulo_Logistica/Desarrollador_DB/ColumnasD
 import ColaboradoresAmbiocom from "../Modulo_Logistica/ColaboradoresDB/ColaboradoresDespachosDB.jsx"
 import ClientesDespachoPageDB from "../Modulo_Logistica/ClientesDB/ClientesAmbiocomDB.jsx"
 import ProgramacionDespachoDiariaPage from '../Modulo_Logistica/PlaneacionDiaria/planeaciondespachos.jsx';
+//MODULO LABORATORIO
+import TablaDespachosLogisticaReadOnly from "../Modulo_Laboratorio/Modulo_Despachos/Despachos_List/TablaDespachosLogisticaReadOnly.jsx"
+import ProgramacionDespachoReadOnlyPage from "../Modulo_Laboratorio/Modulo_Despachos/Despachos_List/ProgramacionDespachoReadOnlyPage.jsx"
 //empelados
 import EmpleadosManager from '../EmpleadosManager/EmpleadosAmbiocomList.jsx';
 //Medidores
@@ -126,7 +129,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
     //     window.location.reload();
     //   }
     // }, []);
-    
+
     // watch para ver en que DB estoy trabajando
     useEffect(() => {
         axios.get("https://ambiocomserver.onrender.com/api/meta").then(res => {
@@ -200,11 +203,11 @@ export default function EmpresarialPrincipalSchedulerApp() {
         {
             text: 'Produccion',
             key: 'produccion',
-            roles: ["admin", "developer","supervisor"],
+            roles: ["admin", "developer", "supervisor"],
             icon: <img src={factoryIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
             subItems: [
                 { text: 'Inventario de insumos', subKey: 'Inventariodeinsumos', /* roles: ["admin","supervisor"], */ icon: <img src={inventoryIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
-                { text: 'Tanques Jornaleros', subKey: 'Tanquesjornaleros', roles: ["admin", "developer", "liderlogistica","supervisor"], icon: <img src={rulerIcon} alt="tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
+                { text: 'Tanques Jornaleros', subKey: 'Tanquesjornaleros', roles: ["admin", "developer", "liderlogistica", "supervisor"], icon: <img src={rulerIcon} alt="tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
                 { text: 'Bitacora Supervisores', subKey: 'bitacoradeturnosupervisores', /* roles: ["admin","supervisor"], */ icon: <img src={bitacoraIcon} alt="bitacoradeturnosupervisores" style={{ width: 25, height: 25 }} /> },
                 { text: 'Inventario Combust', subKey: 'inventariodecarbonymadera', /* roles: ["admin","supervisor"], */ icon: <img src={coalInventoryIcon} alt="Tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
                 { text: 'Horas Extras', subKey: 'horasextrassupervisores', /* roles: ["admin","supervisor"], */ icon: <img src={StopWatchIcon} alt="horasextrassupervisores" style={{ width: 25, height: 25 }} /> },
@@ -218,14 +221,14 @@ export default function EmpresarialPrincipalSchedulerApp() {
             icon: <img src={despachoIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
             subItems: [
                 { text: 'Grafica Niveles Tanques Jornaleros', subKey: 'nivelestanquesjornalerospagina', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "torrecontrollogistica"], icon: <img src={TankGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
-                { text: 'Planeacion Diaria', subKey: 'planeaciondiariadespachos', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2","torrecontrollogistica"], icon: <img src={plannerIconDate} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
-                { text: 'Despachos', subKey: 'despachoalcoholeslogistica', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1","torrecontrollogistica"], icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
-                { text: 'Recepción', subKey: 'recepcionalcoholeslogistica', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1","torrecontrollogistica"], icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
-                { text: 'Colaboradores', subKey: 'colaboradoresambiocom', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1","torrecontrollogistica"], icon: <img src={PersonalIcons} alt="Despacho" style={{ width: 25, height: 25 }} /> },
-                { text: 'Productos', subKey: 'productosdespacho', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1","torrecontrollogistica"], icon: <img src={ProductDespacho} alt="Despacho" style={{ width: 25, height: 25 }} /> },
-                { text: 'Conductores', subKey: 'conductoresdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1","torrecontrollogistica"], icon: <img src={Driver} alt="Despacho" style={{ width: 25, height: 25 }} /> },
-                { text: 'Clientes', subKey: 'clientesdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1","torrecontrollogistica"], icon: <img src={ClientIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
-                { text: 'Transportadora', subKey: 'transportadorasdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1","torrecontrollogistica"], icon: <img src={TruckCompany} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Planeacion Diaria', subKey: 'planeaciondiariadespachos', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "torrecontrollogistica"], icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} /> },
+                { text: 'Despachos', subKey: 'despachoalcoholeslogistica', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Recepción', subKey: 'recepcionalcoholeslogistica', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Colaboradores', subKey: 'colaboradoresambiocom', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={PersonalIcons} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Productos', subKey: 'productosdespacho', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={ProductDespacho} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Conductores', subKey: 'conductoresdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={Driver} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Clientes', subKey: 'clientesdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={ClientIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Transportadora', subKey: 'transportadorasdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={TruckCompany} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Ingresos_M-C', subKey: 'moduloingresosmaderacarbon', roles: ["admin", "developer"], icon: <img src={InOutMaderaCarbonIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'DEV_Functions', subKey: 'gestiondecolumnasdesarrollador', roles: ["developer"], icon: <img src={DevIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
             ],
@@ -259,7 +262,15 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'Madera/L[OH]', subKey: 'nivelesunidadochocientos', /* roles: ["admin","supervisor"], */ icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
             ],
         },
-        { text: 'Laboratorio', roles: ["admin", "developer"], icon: <img src={laboratoryIcon} alt="laboratorio" style={{ width: 25, height: 25 }} />, key: 'modulomantenimiento' },
+        {
+            text: 'Laboratorio',
+            roles: ["admin", "developer","laboratorio"], icon: <img src={laboratoryIcon} alt="laboratorio" style={{ width: 25, height: 25 }} />, key: 'modulomantenimiento',  
+            subItems: [
+                { text: 'Planeacion Diaria', subKey: 'planeaciondiariadespachosreadonly', roles: ["admin", "laboratorio", "developer", "gerente"], icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} /> },
+                { text: 'Despachos', subKey: 'despachoalcoholeslogisticareadonly', roles: ["admin", "laboratorio", "developer", "gerente"], icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Recepción', subKey: 'recepcionalcoholeslogisticareadonly', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+            ],
+        },
         {
             text: 'Planta de Aguas', roles: ["admin", "developer"], icon: <img src={ptapIcon} alt="plantadeaguas" style={{ width: 25, height: 25 }} />, key: 'plantadeaguas', subItems: [
                 { text: 'Medidores', subKey: 'registrodemedidores', /* roles: ["admin","ptap"], */ icon: <img src={CounterIcon} alt="Medidores" style={{ width: 25, height: 25 }} /> },
@@ -372,6 +383,10 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'colaboradoresambiocom': return <ColaboradoresAmbiocom />;
             case 'clientesdb': return <ClientesDespachoPageDB />;
             case 'planeaciondiariadespachos': return <ProgramacionDespachoDiariaPage />;
+            //laboratorio
+            case 'despachoalcoholeslogisticareadonly': return <TablaDespachosLogisticaReadOnly />;
+            case 'planeaciondiariadespachosreadonly': return <ProgramacionDespachoReadOnlyPage />;
+            case 'recepcionalcoholeslogisticareadonly': return <ModuloEnMantenimiento />;
             //pagina mantenimiento
             case 'modulomantenimiento': return <ModuloEnMantenimiento />;
             default: return null;
