@@ -32,7 +32,7 @@ import PersonRemoveAlt1Icon from "@mui/icons-material/PersonRemoveAlt1";
 import PlaylistRemoveIcon from "@mui/icons-material/PlaylistRemove";
 
 import ResumenKpiRadarModal from "./utils_Logistica_Page/ResumenKpiRadarModal";
-import ObservacionEstadoModal from "../../utils/modals/Modals_Logistica/ObservacionEstadoModal";
+import ObservacionEstadoModal from "../../components/Modulo_Logistica/utils_Logistica/Logistica_Modals/ObservacionEstadoModal";
 
 import {
   ResponsiveContainer,

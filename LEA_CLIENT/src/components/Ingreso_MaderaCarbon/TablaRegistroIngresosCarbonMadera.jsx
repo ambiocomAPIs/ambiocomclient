@@ -66,7 +66,7 @@ const isoToDDMMYYYY = (iso) => {
   return `${d}-${m}-${y}`;
 };
 
-export default function TablaIngresoCarbonMadera() {
+export default function TablaIngresoDespachoLogistica() {
   /* ================= STATE ================= */
   const [columnas, setColumnas] = useState([]);
   const [mediciones, setMediciones] = useState([]);

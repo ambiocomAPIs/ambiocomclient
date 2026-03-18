@@ -80,12 +80,14 @@ import ConsultasHttpDb from '../DB_Consultas_View/ConsultasHttpDb.jsx';
 import SGMRC from '../Insumos_Modulo/SGMRC.jsx';
 //pagina mantenimiento de modulo y desarrollo
 import ModuloEnMantenimiento from '../PaginaMantenimientoYDesarrollo/PaginaMantenimientoYDesarrollo.jsx';
+// modulo captura de trafico logs
+import TrafficLogViewer from '../System/TrafficLogViewer.jsx'
 //importacion de iconos
 import {
     tanqueIcon, factoryIcon, despachoIcon, despachoSalidaIcon, despachoRecepcionIcon, laboratoryIcon, inventoryIcon, rulerIcon, oilTankIcon, coalInventoryIcon,
     ptapIcon, GraphIcon, BarGraphIcon, BarGraphComparativeIcon, robotAssistanceIcon, bitacoraIcon, StopWatchIcon, PdfIcon, DatabaseAdministratorIcon, workerIcon,
     TankGraphIcon, CounterIcon, MoneyGraphIcon, EnergyIcon, EnergyDataIcon, InOutMaderaCarbonIcon, InformeIcon, TankWithLiquidIcon, ReportIcon,
-    Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon, PersonalIcons, plannerIconDate
+    Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon, PersonalIcons, plannerIconDate, logsIcon
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -264,7 +266,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
         },
         {
             text: 'Laboratorio',
-            roles: ["admin", "developer","laboratorio"], icon: <img src={laboratoryIcon} alt="laboratorio" style={{ width: 25, height: 25 }} />, key: 'modulomantenimiento',  
+            roles: ["admin", "developer", "laboratorio"], icon: <img src={laboratoryIcon} alt="laboratorio" style={{ width: 25, height: 25 }} />, key: 'modulomantenimiento',
             subItems: [
                 { text: 'Planeacion Diaria', subKey: 'planeaciondiariadespachosreadonly', roles: ["admin", "laboratorio", "developer", "gerente"], icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} /> },
                 { text: 'Despachos', subKey: 'despachoalcoholeslogisticareadonly', roles: ["admin", "laboratorio", "developer", "gerente"], icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
@@ -282,7 +284,14 @@ export default function EmpresarialPrincipalSchedulerApp() {
             ],
         },
         { text: 'Registro Trabajadores', roles: ["admin", "developer"], icon: <img src={workerIcon} alt="empleadosambiocom" style={{ width: 25, height: 25 }} />, key: 'empleadosambiocom' },
-        { text: 'DB Aministrator', roles: ["admin", "developer"], icon: <img src={DatabaseAdministratorIcon} alt="basededatos" style={{ width: 25, height: 25 }} />, key: 'basededatos', /* roles: ["admin"] */ },
+        {
+            text: 'Administrator DEV', roles: ["admin", "developer"], icon: <img src={DevIcon} alt="basededatos" style={{ width: 25, height: 25 }} />, key: 'basededatos',
+            subItems: [
+                { text: 'Base de datos', subKey: 'basededatos', roles: ["admin", "developer"], icon: <img src={DatabaseAdministratorIcon} alt="basededatos" style={{ width: 25, height: 25 }} /> },
+                { text: 'Logs Traffic', subKey: 'logstraffic', roles: ["admin", "developer"], icon: <img src={logsIcon} alt="logstraffic" style={{ width: 25, height: 25 }} /> },
+            ],
+        },
+        
         { text: 'Assistance', roles: ["admin", "developer"], icon: <img src={robotAssistanceIcon} alt="robotassistance" style={{ width: 25, height: 25 }} />, key: 'robotassistance' },
     ];
 
@@ -387,6 +396,8 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'despachoalcoholeslogisticareadonly': return <TablaDespachosLogisticaReadOnly />;
             case 'planeaciondiariadespachosreadonly': return <ProgramacionDespachoReadOnlyPage />;
             case 'recepcionalcoholeslogisticareadonly': return <ModuloEnMantenimiento />;
+            //Modulo Desarrollador
+            case 'logstraffic': return <TrafficLogViewer />;
             //pagina mantenimiento
             case 'modulomantenimiento': return <ModuloEnMantenimiento />;
             default: return null;

@@ -73,11 +73,11 @@ import ExcelUploadButton from "../utils_Logistica/ExcelUploadButton";
 import DownloadIcon from "@mui/icons-material/Download";
 import ExcelDownloadButton from "../utils_Logistica/ExcelDownloadButton";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
-import IngresoDataDespachoModal from "../utils_Logistica/IngresoDataDespachoModal.jsx";
 import ChartBuilder from "../utils_Logistica/ChartBuilder";
 
-import ObservacionEstadoModal from "../../../utils/modals/Modals_Logistica/ObservacionEstadoModal.jsx";
-import ChecklistDespachosModal from "../utils_Logistica/Logistica_Modals/ProgramacionDespachoCheckListModal.jsx";
+import ObservacionEstadoModal from "../utils_Logistica/Logistica_Modals/ObservacionEstadoModal.jsx";
+import IngresoDataDespachoModal from "./DespachoAlcoholes_Utils/Modals/IngresoDataDespachoModal.jsx";
+import ChecklistDespachosModal from "./DespachoAlcoholes_Utils/Modals/ProgramacionDespachoCheckListModal.jsx";
 
 // Contexto usuario por roles
 import { useAuth } from "../../../utils/Context/AuthContext/AuthContext.jsx";
@@ -1027,8 +1027,8 @@ export default function TablaDespachosLogistica() {
               columnasVisibles={columnasVisibles}
               columnas={columnas}
               filename={`DespachoAlcoholes_hasta_${medicionesOrdenadas.length
-                  ? medicionesOrdenadas.reduce((max, r) => (r.fecha > max ? r.fecha : max), "")
-                  : "sin-fecha"
+                ? medicionesOrdenadas.reduce((max, r) => (r.fecha > max ? r.fecha : max), "")
+                : "sin-fecha"
                 }.xlsx`}
             />
             <Divider orientation="vertical" flexItem />
@@ -1725,6 +1725,7 @@ export default function TablaDespachosLogistica() {
       />
       {/* ================= MODAL DE OBSERVACIONES ================= */}
       <ObservacionEstadoModal
+        context="modulo_despacho"
         open={openObsVehiculo}
         onClose={() => setOpenObsVehiculo(false)}
         data={obsVehiculoData}

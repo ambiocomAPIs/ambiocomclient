@@ -32,7 +32,8 @@ import {
   Tooltip,
   List,
   ListItemButton,
-  ListSubheader
+  ListSubheader,
+
 } from "@mui/material";
 
 import UploadFileIcon from "@mui/icons-material/UploadFile";
@@ -40,39 +41,82 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import ViewColumnIcon from "@mui/icons-material/ViewColumn";
-import FilterAltIcon from '@mui/icons-material/FilterAlt';
-import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
-import FilterListIcon from '@mui/icons-material/FilterList';
+import FilterAltIcon from "@mui/icons-material/FilterAlt";
+import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
+import FilterListIcon from "@mui/icons-material/FilterList";
 import ManageSearchIcon from "@mui/icons-material/ManageSearch";
-import StackedLineChartIcon from '@mui/icons-material/StackedLineChart';
-import LocalPrintshopIcon from '@mui/icons-material/LocalPrintshop';
-import LocalShippingIcon from '@mui/icons-material/LocalShipping';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import DriveFolderUploadIcon from '@mui/icons-material/DriveFolderUpload';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import BarChartIcon from '@mui/icons-material/BarChart';
-import SortByAlphaIcon from '@mui/icons-material/SortByAlpha';
+import StackedLineChartIcon from "@mui/icons-material/StackedLineChart";
+import LocalPrintshopIcon from "@mui/icons-material/LocalPrintshop";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import DriveFolderUploadIcon from "@mui/icons-material/DriveFolderUpload";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import SortByAlphaIcon from "@mui/icons-material/SortByAlpha";
 import ClearIcon from "@mui/icons-material/Clear";
-import SaveAsIcon from '@mui/icons-material/SaveAs';
-import SummarizeIcon from '@mui/icons-material/Summarize';
-import HistoryIcon from '@mui/icons-material/History';
-import YouTubeIcon from '@mui/icons-material/YouTube';
+import SaveAsIcon from "@mui/icons-material/SaveAs";
+import SummarizeIcon from "@mui/icons-material/Summarize";
+import HistoryIcon from "@mui/icons-material/History";
+import YouTubeIcon from "@mui/icons-material/YouTube";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import DownloadIcon from "@mui/icons-material/Download";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
+import BuildIcon from "@mui/icons-material/Build";
+import CancelIcon from "@mui/icons-material/Cancel";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 
 import ExcelUploadButton from "../utils_Logistica/ExcelUploadButton";
-import DownloadIcon from "@mui/icons-material/Download";
 import ExcelDownloadButton from "../utils_Logistica/ExcelDownloadButton";
-import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
-
 import ChartBuilder from "../utils_Logistica/ChartBuilder";
+import IngresoDataRecepcionModal from "./RecepcionesAlcoholes_Utils/Modals/IngresoDataRecepcionModal";
+import ObservacionEstadoModal from "../utils_Logistica/Logistica_Modals/ObservacionEstadoModal";
+
+
+const renderEstadoVehiculoIcon = (estado) => {
+  const estadoNormalizado = (estado || "").trim();
+
+  switch (estadoNormalizado) {
+    case "APROBADO":
+      return (
+        <Tooltip title="Vehículo aprobado">
+          <CheckCircleIcon sx={{ color: "success.main" }} />
+        </Tooltip>
+      );
+
+    case "RECHAZADO":
+      return (
+        <Tooltip title="Vehículo rechazado">
+          <CancelIcon sx={{ color: "error.main" }} />
+        </Tooltip>
+      );
+
+    case "PROCESO":
+      return (
+        <Tooltip title="Vehículo en proceso">
+          <LocalShippingIcon sx={{ color: "#CF27F5" }} />
+        </Tooltip>
+      );
+
+    default:
+      return (
+        <Tooltip title={`Estado no definido: ${estado || "sin estado"}`}>
+          <HelpOutlineIcon sx={{ color: "text.secondary" }} />
+        </Tooltip>
+      );
+  }
+};
 
 /* ================= ENDPOINTS ================= */
 const API_RECEPCIONES = "https://ambiocomserver.onrender.com/api/recepcion-alcoholes";
 const API_COLUMNAS = "https://ambiocomserver.onrender.com/api/columna-recepcion-alcoholes";
 
-export default function TablaIngresoCarbonMadera() {
-  //refs del componente
+export default function TablaIngresoRecepcionesLogistica() {
+  // refs del componente
   const tablaRef = useRef(null);
   const excelUploadRef = useRef(null);
+
   /* ================= STATE ================= */
   const [columnas, setColumnas] = useState([]);
   const [mediciones, setMediciones] = useState([]);
@@ -83,17 +127,21 @@ export default function TablaIngresoCarbonMadera() {
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
   const [density, setDensity] = useState(1);
-  const [columnasVisibles, setColumnasVisibles] = useState(columnas.map((c) => c.key)) // inicialmente todas visibles
+  const [columnasVisibles, setColumnasVisibles] = useState(
+    columnas.map((c) => c.key)
+  );
   const [contextMenu, setContextMenu] = useState(null);
   const [filtrosVisibles, setFiltrosVisibles] = useState(false);
   const [filtrosColumna, setFiltrosColumna] = useState({});
-  const [filtroActivo, setFiltroActivo] = useState(null); // key de columna con filtro abierto o null
+  const [filtroActivo, setFiltroActivo] = useState(null);
   const [anchorFiltro, setAnchorFiltro] = useState(null);
   const [busquedaGlobal, setBusquedaGlobal] = useState("");
-  const [busquedaActiva, setBusquedaActiva] = useState(false);
-  const [ordenFechaAsc, setOrdenFechaAsc] = useState(false); // true de mas viejo primero
+  const [busquedaActiva, setBusquedaActiva] = useState(true);
+  const [ordenFechaAsc, setOrdenFechaAsc] = useState(false);
   const [modoInteligenteScroll, setModoInteligenteScroll] = useState(false);
   const [openCharts, setOpenCharts] = useState(false);
+  const [openEstadoModal, setOpenEstadoModal] = useState(false);
+  const [estadoModalData, setEstadoModalData] = useState(null);
 
   const [form, setForm] = useState({
     fecha: "",
@@ -109,6 +157,21 @@ export default function TablaIngresoCarbonMadera() {
     totalizable: false,
   });
 
+  //funcion para abrir modal de resumen o observaciones
+  const abrirModalEstado = (row) => {
+    setEstadoModalData({
+      context: "modulo_recepcion",  // con esto el modal sabe desde que modulo estoy ejecutando y que data mostrar
+      estado: row.lecturas?.estado_vehiculo || "",
+      fecha: row.fecha || "",
+      cliente: row.lecturas?.proveedor || "",
+      transportadora: row.lecturas?.transportadora || "",
+      producto: row.lecturas?.producto || "",
+      conductor: row.lecturas?.nombre_conductor || "",
+      observacion: row.observaciones || "",
+    });
+
+    setOpenEstadoModal(true);
+  };
   /* ================= CARGA INICIAL ================= */
   useEffect(() => {
     obtenerColumnas();
@@ -121,7 +184,6 @@ export default function TablaIngresoCarbonMadera() {
     }
   }, [columnas]);
 
-
   useEffect(() => {
     const isPointInside = (el, x, y) => {
       const r = el.getBoundingClientRect();
@@ -132,56 +194,56 @@ export default function TablaIngresoCarbonMadera() {
       const tabla = tablaRef.current;
       if (!tabla) return;
 
-      // Si el click derecho fue sobre la "zona" de la tabla (aunque el target sea el backdrop)
       if (isPointInside(tabla, e.clientX, e.clientY)) {
-        e.preventDefault(); // evita el menú de Chrome SIEMPRE dentro de la tabla
+        e.preventDefault();
         setContextMenu({ mouseX: e.clientX - 2, mouseY: e.clientY - 4 });
       }
     };
 
-    // OJO: true = capture (clave para ganarle a MUI/backdrop)
     window.addEventListener("contextmenu", onGlobalContextMenu, true);
-    return () => window.removeEventListener("contextmenu", onGlobalContextMenu, true);
+    return () =>
+      window.removeEventListener("contextmenu", onGlobalContextMenu, true);
   }, []);
 
-  // MODO INTELIGENTE SCROLL HORIZONTAL
+  /* ================= MODO INTELIGENTE SCROLL ================= */
   useEffect(() => {
     const el = tablaRef.current;
     if (!el) return;
 
     let over = false;
 
-    const onEnter = () => { over = true; };
-    const onLeave = () => { over = false; };
+    const onEnter = () => {
+      over = true;
+    };
+    const onLeave = () => {
+      over = false;
+    };
 
     const onWheel = (e) => {
       if (!over) return;
+
       if (e.shiftKey) {
         e.preventDefault();
         el.scrollLeft += e.deltaY;
         return;
       }
 
-      // Si el modo inteligente está apagado, dejamos el scroll normal
       if (!modoInteligenteScroll) return;
-      // --- MODO INTELIGENTE ---
-      // vertical mientras haya más vertical; si ya no se puede, horizontal
+
       const atTop = el.scrollTop <= 0;
       const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
 
       const goingDown = e.deltaY > 0;
       const goingUp = e.deltaY < 0;
 
-      const canVertical =
-        (goingDown && !atBottom) ||
-        (goingUp && !atTop);
+      const canVertical = (goingDown && !atBottom) || (goingUp && !atTop);
 
-      e.preventDefault(); // queremos controlar el scroll dentro de la tabla
+      e.preventDefault();
 
       if (canVertical) {
-        el.scrollTop += e.deltaY;     // mueve vertical
+        el.scrollTop += e.deltaY;
       } else {
-        el.scrollLeft += e.deltaY;    // al llegar al límite, mueve horizontal
+        el.scrollLeft += e.deltaY;
       }
     };
 
@@ -196,7 +258,7 @@ export default function TablaIngresoCarbonMadera() {
     };
   }, [modoInteligenteScroll]);
 
-  // Detectar click derecho para copiar tabla tipo SAP
+  /* ================= CONTEXT MENU ================= */
   const handleContextMenu = (e) => {
     e.preventDefault();
     setContextMenu({ mouseX: e.clientX - 2, mouseY: e.clientY - 4 });
@@ -222,6 +284,19 @@ export default function TablaIngresoCarbonMadera() {
   };
 
   /* ================= CRUD MEDICIONES ================= */
+  const handleGuardar = async () => {
+    try {
+      if (openEditar) {
+        await actualizarMedicion();
+      } else {
+        await guardarMedicion();
+      }
+    } catch (error) {
+      console.error(error);
+      Swal.fire("Error", "No se pudo guardar la información", "error");
+    }
+  };
+
   const guardarMedicion = async () => {
     await axios.post(API_RECEPCIONES, form);
     setOpenFila(false);
@@ -236,34 +311,16 @@ export default function TablaIngresoCarbonMadera() {
 
   const eliminarMedicion = async (id) => {
     Swal.fire({
-      title: '¿Eliminar este ingreso?',
-      icon: 'warning',
+      title: "¿Eliminar este ingreso?",
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar'
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
     }).then((result) => {
       if (!result.isConfirmed) return;
       axios.delete(`${API_RECEPCIONES}/${id}`);
       obtenerMediciones();
     });
-  };
-
-  const parseHora = (h) => {
-    if (!h || !h.includes(":")) return null;
-    const [hh, mm] = h.split(":").map((x) => Number(x));
-    if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
-    return hh * 60 + mm;
-  };
-
-  const calcularTiempoAmbiocom = (entrada, salida) => {
-    const e = parseHora(entrada);
-    const s = parseHora(salida);
-    if (e === null || s === null) return "";
-    let diff = s - e;
-    if (diff < 0) diff += 24 * 60;
-    const horas = String(Math.floor(diff / 60)).padStart(2, "0");
-    const minutos = String(diff % 60).padStart(2, "0");
-    return `${horas}:${minutos}`;
   };
 
   /* ================= CRUD COLUMNAS ================= */
@@ -280,22 +337,14 @@ export default function TablaIngresoCarbonMadera() {
     return new Date(Number(y), Number(m) - 1, Number(d), 0, 0, 0);
   }
 
-  function isoToDDMMYYYY(iso) {
-    if (!iso) return "";
-    const [y, m, d] = iso.split("-");
-    return `${y}-${m}-${d}`;
-  }
-
-  //para busqueda avanzada 
-  const normalizar = (v) =>
-    (v ?? "").toString().toLowerCase().trim();
+  const normalizar = (v) => (v ?? "").toString().toLowerCase().trim();
 
   /* ================= ORDEN + FILTRO ================= */
   const medicionesOrdenadas = useMemo(() => {
     let data = [...mediciones].sort((a, b) => {
       const fa = stringToDate(a.fecha);
       const fb = stringToDate(b.fecha);
-      return ordenFechaAsc ? (fa - fb) : (fb - fa); // funciona con el estado segun orden que se requiera
+      return ordenFechaAsc ? fa - fb : fb - fa;
     });
 
     if (fechaDesde) {
@@ -308,12 +357,14 @@ export default function TablaIngresoCarbonMadera() {
       data = data.filter((m) => stringToDate(m.fecha) <= fh);
     }
 
-    // Aplica filtros de columnas
     Object.entries(filtrosColumna).forEach(([key, valorFiltro]) => {
       if (valorFiltro.trim() !== "") {
         data = data.filter((m) => {
           const valorCelda = m.lecturas?.[key] ?? "";
-          return valorCelda.toString().toLowerCase().includes(valorFiltro.toLowerCase());
+          return valorCelda
+            .toString()
+            .toLowerCase()
+            .includes(valorFiltro.toLowerCase());
         });
       }
     });
@@ -321,7 +372,6 @@ export default function TablaIngresoCarbonMadera() {
     return data;
   }, [mediciones, fechaDesde, fechaHasta, filtrosColumna, ordenFechaAsc]);
 
-  //filtro de busqueda avanzada
   const medicionesFiltradas = useMemo(() => {
     const q = normalizar(busquedaGlobal);
     if (!q) return medicionesOrdenadas;
@@ -331,29 +381,17 @@ export default function TablaIngresoCarbonMadera() {
         row.fecha,
         row.observaciones,
         row.responsable,
-        ...Object.values(row.lecturas || {})
+        ...Object.values(row.lecturas || {}),
       ];
 
-      return valores.some((v) =>
-        normalizar(v).includes(q)
-      );
+      return valores.some((v) => normalizar(v).includes(q));
     });
   }, [busquedaGlobal, medicionesOrdenadas]);
 
-  /* ================= CALCULAR ACUMULADO ================= */
-  const calcularAcumulado = (columna) => {
-    if (!columna.totalizable) return "";
-
-    return medicionesFiltradas.reduce((total, m) => {
-      const valor = m.lecturas?.[columna.key];
-      const num = Number(valor);
-      return total + (Number.isNaN(num) ? 0 : num);
-    }, 0);
-  };
-  /* ================= CALCULAR ACUMULADO por columna mapa ================= */
-
+  /* ================= ACUMULADOS ================= */
   const acumuladosPorColumna = useMemo(() => {
     const map = {};
+
     columnas.forEach((c) => {
       if (!c.totalizable) return;
 
@@ -363,8 +401,8 @@ export default function TablaIngresoCarbonMadera() {
       }, 0);
 
       map[c.key] = new Intl.NumberFormat("es-CO", {
-        useGrouping: true,        // separador de miles
-        minimumFractionDigits: 1, // SIEMPRE 1 decimal
+        useGrouping: true,
+        minimumFractionDigits: 1,
         maximumFractionDigits: 2,
       }).format(total);
     });
@@ -372,7 +410,7 @@ export default function TablaIngresoCarbonMadera() {
     return map;
   }, [columnas, medicionesFiltradas]);
 
-  /* ============= densidad del texto en latabla ================= */
+  /* ================= DENSIDAD TABLA ================= */
   const tableDensityStyles = {
     fontSize: `${0.75 * density}rem`,
     padding: `${2 * density}px ${6 * density}px`,
@@ -380,7 +418,7 @@ export default function TablaIngresoCarbonMadera() {
     rowHeight: `${28 * density}px`,
   };
 
-  // Funcion que genera el texto y copia al portapapeles
+  /* ================= COPIAR TABLA ================= */
   const copiarTablaPortapapeles = () => {
     const headers = [
       "Fecha Registro",
@@ -403,9 +441,7 @@ export default function TablaIngresoCarbonMadera() {
     });
 
     const textoParaCopiar =
-      headers.join("\t") +
-      "\n" +
-      rows.map((r) => r.join("\t")).join("\n");
+      headers.join("\t") + "\n" + rows.map((r) => r.join("\t")).join("\n");
 
     navigator.clipboard
       .writeText(textoParaCopiar)
@@ -425,13 +461,12 @@ export default function TablaIngresoCarbonMadera() {
       });
   };
 
-  //valores unico para filtro por columna
+  /* ================= FILTRO POR COLUMNA ================= */
   const valoresUnicosFiltroActivo = useMemo(() => {
     if (!filtroActivo) return [];
 
     const set = new Set();
 
-    // Solo toma datos para LISTAR en el menú (no afecta la tabla)
     mediciones.forEach((m) => {
       const v = m.lecturas?.[filtroActivo] ?? "";
       set.add(v.toString().trim());
@@ -439,7 +474,6 @@ export default function TablaIngresoCarbonMadera() {
 
     const arr = Array.from(set);
 
-    // vacío primero, luego alfabético
     arr.sort((a, b) => {
       if (a === "") return -1;
       if (b === "") return 1;
@@ -465,10 +499,9 @@ export default function TablaIngresoCarbonMadera() {
           width: "100vw",
           maxWidth: "100%",
           gap: 2,
-          flexWrap: "wrap", // para que en pantallas muy pequeñas se acomode
+          flexWrap: "wrap",
         }}
       >
-        {/* Logo */}
         <Box
           component="img"
           src="/LogoCompany/logoambiocomsinfondo.png"
@@ -481,13 +514,14 @@ export default function TablaIngresoCarbonMadera() {
             objectFit: "contain",
           }}
         />
+
         <Box
           sx={{
             flex: 1,
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            minWidth: 0, // MUY importante para no romper flex
+            minWidth: 0,
           }}
         >
           <Typography
@@ -503,6 +537,7 @@ export default function TablaIngresoCarbonMadera() {
             COMPRA Y RECEPCIONES DE ALCOHOLES
           </Typography>
         </Box>
+
         {/* ================= FILTROS ================= */}
         <Box
           sx={{
@@ -513,7 +548,7 @@ export default function TablaIngresoCarbonMadera() {
             alignItems: "flex-end",
           }}
         >
-          {/* FILA SUPERIOR: Excel + Columnas + Densidad */}
+          {/* FILA SUPERIOR */}
           <Box
             sx={{
               display: "flex",
@@ -525,29 +560,11 @@ export default function TablaIngresoCarbonMadera() {
               py: 0.7,
               backgroundColor: "#e9edf2",
               border: "1px solid rgba(0,0,0,0.12)",
-              borderBottom: "1px solid rgba(0,0,0,0.22)", // línea divisoria
+              borderBottom: "1px solid rgba(0,0,0,0.22)",
               borderTopLeftRadius: 4,
               borderTopRightRadius: 4,
             }}
           >
-            <Divider orientation="vertical" flexItem />
-            <Tooltip title={"Ver Demo"}>
-              <IconButton
-                size="small"
-                onClick={() => setModoInteligenteScroll((p) => !p)}
-                sx={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 1,
-                  backgroundColor: "white",
-                  border: "1px solid rgba(0,0,0,0.12)",
-                  "&:focus": { outline: "none", boxShadow: "none" },
-                  "&:hover": { backgroundColor: modoInteligenteScroll ? "#c6ccd3" : "#eef1f5" },
-                }}
-              >
-                <YouTubeIcon sx={{ color: "red", fontSize: "1.9rem", }} />
-              </IconButton>
-            </Tooltip>
             <Divider orientation="vertical" flexItem />
             <Tooltip title={"Generar Informe"}>
               <IconButton
@@ -557,14 +574,23 @@ export default function TablaIngresoCarbonMadera() {
                   width: 34,
                   height: 34,
                   borderRadius: 1,
-                  backgroundColor: modoInteligenteScroll ? "#d3d8de" : "#f6f7f9",
+                  backgroundColor: modoInteligenteScroll
+                    ? "#d3d8de"
+                    : "#f6f7f9",
                   border: "1px solid rgba(0,0,0,0.12)",
-                  "&:hover": { backgroundColor: modoInteligenteScroll ? "#c6ccd3" : "#eef1f5" },
+                  "&:hover": {
+                    backgroundColor: modoInteligenteScroll
+                      ? "#c6ccd3"
+                      : "#eef1f5",
+                  },
                 }}
               >
-                <SummarizeIcon sx={{ color: modoInteligenteScroll ? "blue" : "inherit" }} />
+                <SummarizeIcon
+                  sx={{ color: modoInteligenteScroll ? "blue" : "inherit" }}
+                />
               </IconButton>
             </Tooltip>
+
             <Divider orientation="vertical" flexItem />
             <Tooltip title={"Historicos informe"}>
               <IconButton
@@ -574,14 +600,23 @@ export default function TablaIngresoCarbonMadera() {
                   width: 34,
                   height: 34,
                   borderRadius: 1,
-                  backgroundColor: modoInteligenteScroll ? "#d3d8de" : "#f6f7f9",
+                  backgroundColor: modoInteligenteScroll
+                    ? "#d3d8de"
+                    : "#f6f7f9",
                   border: "1px solid rgba(0,0,0,0.12)",
-                  "&:hover": { backgroundColor: modoInteligenteScroll ? "#c6ccd3" : "#eef1f5" },
+                  "&:hover": {
+                    backgroundColor: modoInteligenteScroll
+                      ? "#c6ccd3"
+                      : "#eef1f5",
+                  },
                 }}
               >
-                <HistoryIcon sx={{ color: modoInteligenteScroll ? "blue" : "inherit" }} />
+                <HistoryIcon
+                  sx={{ color: modoInteligenteScroll ? "blue" : "inherit" }}
+                />
               </IconButton>
             </Tooltip>
+
             <Divider orientation="vertical" flexItem />
             <Tooltip title={"Historiar Informe"}>
               <IconButton
@@ -591,14 +626,23 @@ export default function TablaIngresoCarbonMadera() {
                   width: 34,
                   height: 34,
                   borderRadius: 1,
-                  backgroundColor: modoInteligenteScroll ? "#d3d8de" : "#f6f7f9",
+                  backgroundColor: modoInteligenteScroll
+                    ? "#d3d8de"
+                    : "#f6f7f9",
                   border: "1px solid rgba(0,0,0,0.12)",
-                  "&:hover": { backgroundColor: modoInteligenteScroll ? "#c6ccd3" : "#eef1f5" },
+                  "&:hover": {
+                    backgroundColor: modoInteligenteScroll
+                      ? "#c6ccd3"
+                      : "#eef1f5",
+                  },
                 }}
               >
-                <SaveAsIcon sx={{ color: modoInteligenteScroll ? "blue" : "inherit" }} />
+                <SaveAsIcon
+                  sx={{ color: modoInteligenteScroll ? "blue" : "inherit" }}
+                />
               </IconButton>
             </Tooltip>
+
             <Divider orientation="vertical" flexItem />
             <Tooltip
               title={
@@ -614,14 +658,23 @@ export default function TablaIngresoCarbonMadera() {
                   width: 34,
                   height: 34,
                   borderRadius: 1,
-                  backgroundColor: modoInteligenteScroll ? "#d3d8de" : "#f6f7f9",
+                  backgroundColor: modoInteligenteScroll
+                    ? "#d3d8de"
+                    : "#f6f7f9",
                   border: "1px solid rgba(0,0,0,0.12)",
-                  "&:hover": { backgroundColor: modoInteligenteScroll ? "#c6ccd3" : "#eef1f5" },
+                  "&:hover": {
+                    backgroundColor: modoInteligenteScroll
+                      ? "#c6ccd3"
+                      : "#eef1f5",
+                  },
                 }}
               >
-                <SwapHorizIcon sx={{ color: modoInteligenteScroll ? "blue" : "inherit" }} />
+                <SwapHorizIcon
+                  sx={{ color: modoInteligenteScroll ? "blue" : "inherit" }}
+                />
               </IconButton>
             </Tooltip>
+
             <Divider orientation="vertical" flexItem />
             <Tooltip title={ordenFechaAsc ? "Ver Recientes" : "Ver Antiguos"}>
               <IconButton
@@ -636,7 +689,11 @@ export default function TablaIngresoCarbonMadera() {
                   "&:hover": { backgroundColor: "#eef1f5" },
                 }}
               >
-                {ordenFechaAsc ? <SortByAlphaIcon sx={{ color: "blue" }} /> : <SortByAlphaIcon />}
+                {ordenFechaAsc ? (
+                  <SortByAlphaIcon sx={{ color: "blue" }} />
+                ) : (
+                  <SortByAlphaIcon />
+                )}
               </IconButton>
             </Tooltip>
 
@@ -662,6 +719,7 @@ export default function TablaIngresoCarbonMadera() {
                 <ContentCopyIcon />
               </IconButton>
             </Tooltip>
+
             <Divider orientation="vertical" flexItem />
             <Tooltip title="Descargar Plantilla Carga Masiva">
               <IconButton
@@ -686,6 +744,7 @@ export default function TablaIngresoCarbonMadera() {
                 <FileDownloadIcon />
               </IconButton>
             </Tooltip>
+
             <Divider orientation="vertical" flexItem />
             <Tooltip title="Carga Masiva">
               <IconButton
@@ -705,6 +764,7 @@ export default function TablaIngresoCarbonMadera() {
                 <DriveFolderUploadIcon />
               </IconButton>
             </Tooltip>
+
             <Divider orientation="vertical" flexItem />
             <Tooltip title="análisis data">
               <IconButton
@@ -724,16 +784,22 @@ export default function TablaIngresoCarbonMadera() {
                 <StackedLineChartIcon />
               </IconButton>
             </Tooltip>
+
             <Divider orientation="vertical" flexItem />
-            {/* OPCIÓN A o B para Excel (mira abajo) */}
             <ExcelDownloadButton
               data={medicionesOrdenadas}
               columnasVisibles={columnasVisibles}
               columnas={columnas}
-              filename="RecepcionAlcoholes.xlsx"
+              filename={`RecepcionAlcoholes_hasta_${medicionesOrdenadas.length
+                ? medicionesOrdenadas.reduce(
+                  (max, r) => (r.fecha > max ? r.fecha : max),
+                  ""
+                )
+                : "sin-fecha"
+                }.xlsx`}
             />
+
             <Divider orientation="vertical" flexItem />
-            {/* Columnas filtro ocultar columnas */}
             <FormControl
               size="small"
               sx={{
@@ -763,7 +829,7 @@ export default function TablaIngresoCarbonMadera() {
                 }}
                 renderValue={(selected) => `Columnas (${selected.length})`}
                 MenuProps={{
-                  disableAutoFocusItem: true,   // para que no enfoque al final del menu
+                  disableAutoFocusItem: true,
                   autoFocus: false,
                   PaperProps: {
                     sx: {
@@ -773,13 +839,16 @@ export default function TablaIngresoCarbonMadera() {
                 }}
               >
                 <MenuItem value="__ALL__">
-                  <Checkbox checked={columnasVisibles.length === columnas.length} />
+                  <Checkbox
+                    checked={columnasVisibles.length === columnas.length}
+                  />
                   <ListItemText primary="Seleccionar todo" />
                 </MenuItem>
                 <MenuItem value="__NONE__">
                   <Checkbox checked={columnasVisibles.length === 0} />
                   <ListItemText primary="Deseleccionar todo" />
                 </MenuItem>
+
                 {columnas.map((c) => (
                   <MenuItem
                     key={c.key}
@@ -820,6 +889,7 @@ export default function TablaIngresoCarbonMadera() {
                 ))}
               </Select>
             </FormControl>
+
             <Divider orientation="vertical" flexItem />
             <FormControl
               size="small"
@@ -832,7 +902,10 @@ export default function TablaIngresoCarbonMadera() {
                 },
               }}
             >
-              <Select value={density} onChange={(e) => setDensity(e.target.value)}>
+              <Select
+                value={density}
+                onChange={(e) => setDensity(e.target.value)}
+              >
                 <MenuItem value={0.8}>Densa</MenuItem>
                 <MenuItem value={1}>Normal</MenuItem>
                 <MenuItem value={1.2}>Cómoda</MenuItem>
@@ -840,9 +913,11 @@ export default function TablaIngresoCarbonMadera() {
                 <MenuItem value={1.6}>Grande</MenuItem>
               </Select>
             </FormControl>
+
             <Divider orientation="vertical" flexItem />
           </Box>
-          {/* FILA INFERIOR: Filtro + Desde + Hasta */}
+
+          {/* FILA INFERIOR */}
           <Box
             sx={{
               display: "flex",
@@ -854,12 +929,34 @@ export default function TablaIngresoCarbonMadera() {
               py: 0.7,
               backgroundColor: "#e9edf2",
               border: "1px solid rgba(0,0,0,0.12)",
-              borderTop: "none", // evita doble borde
+              borderTop: "none",
               borderBottomLeftRadius: 4,
               borderBottomRightRadius: 4,
             }}
           >
-            {/* BUSQUEDA AVANZADA RENDER DE INPUT AQUI */}
+            <Divider orientation="vertical" flexItem />
+            <Tooltip title={"Ver Demo"}>
+              <IconButton
+                size="small"
+                onClick={() => setModoInteligenteScroll((p) => !p)}
+                sx={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 1,
+                  backgroundColor: "white",
+                  border: "1px solid rgba(0,0,0,0.12)",
+                  "&:focus": { outline: "none", boxShadow: "none" },
+                  "&:hover": {
+                    backgroundColor: modoInteligenteScroll
+                      ? "#c6ccd3"
+                      : "#eef1f5",
+                  },
+                }}
+              >
+                <YouTubeIcon sx={{ color: "red", fontSize: "1.9rem" }} />
+              </IconButton>
+            </Tooltip>
+
             {busquedaActiva && (
               <>
                 <Divider orientation="vertical" flexItem />
@@ -885,6 +982,7 @@ export default function TablaIngresoCarbonMadera() {
                 />
               </>
             )}
+
             <Divider orientation="vertical" flexItem />
             <Tooltip title="Registrar Recepción">
               <IconButton
@@ -912,6 +1010,7 @@ export default function TablaIngresoCarbonMadera() {
                 <LocalShippingIcon />
               </IconButton>
             </Tooltip>
+
             <Divider orientation="vertical" flexItem />
             <IconButton
               size="small"
@@ -929,6 +1028,7 @@ export default function TablaIngresoCarbonMadera() {
             >
               <BarChartIcon />
             </IconButton>
+
             <Divider orientation="vertical" flexItem />
             <IconButton
               size="small"
@@ -946,13 +1046,14 @@ export default function TablaIngresoCarbonMadera() {
             >
               <LocalPrintshopIcon />
             </IconButton>
+
             <Divider orientation="vertical" flexItem />
             <IconButton
               size="small"
               onClick={() => {
                 setBusquedaActiva((prev) => {
                   const next = !prev;
-                  if (!next) setBusquedaGlobal(""); // opcional: al apagar, limpia
+                  if (!next) setBusquedaGlobal("");
                   return next;
                 });
               }}
@@ -987,11 +1088,15 @@ export default function TablaIngresoCarbonMadera() {
               }}
             >
               {filtrosVisibles ? (
-                <FilterAltOffIcon fontSize="small" sx={{ color: filtrosVisibles ? "blue" : "none" }} />
+                <FilterAltOffIcon
+                  fontSize="small"
+                  sx={{ color: filtrosVisibles ? "blue" : "none" }}
+                />
               ) : (
                 <FilterAltIcon fontSize="small" />
               )}
             </IconButton>
+
             <Divider orientation="vertical" flexItem />
             <TextField
               type="date"
@@ -1008,10 +1113,11 @@ export default function TablaIngresoCarbonMadera() {
                 },
                 "& .MuiInputLabel-root": {
                   fontSize: "0.82rem",
-                }
+                },
               }}
               onChange={(e) => setFechaDesde(e.target.value)}
             />
+
             <Divider orientation="vertical" flexItem />
             <TextField
               type="date"
@@ -1028,18 +1134,39 @@ export default function TablaIngresoCarbonMadera() {
                 },
                 "& .MuiInputLabel-root": {
                   fontSize: "0.82rem",
-                }
+                },
               }}
               onChange={(e) => setFechaHasta(e.target.value)}
             />
           </Box>
         </Box>
       </Box>
+
       {/* ================= TABLA ================= */}
-      <TableContainer ref={tablaRef} component={Paper} elevation={3} sx={{ maxHeight: "78vh", overflowX: "auto" }} onContextMenu={handleContextMenu}>
+      <TableContainer
+        ref={tablaRef}
+        component={Paper}
+        elevation={3}
+        sx={{ maxHeight: "78vh", overflowX: "auto" }}
+        onContextMenu={handleContextMenu}
+      >
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
+              <TableCell
+                align="center"
+                sx={{
+                  position: "sticky",
+                  left: 0,
+                  zIndex: 6,
+                  backgroundColor: "#fff",
+                  borderRight: "1px solid rgba(224,224,224,1)",
+                  minWidth: 110,
+                }}
+              >
+                Acciones
+              </TableCell>
+
               <TableCell
                 align="center"
                 sx={{
@@ -1051,6 +1178,7 @@ export default function TablaIngresoCarbonMadera() {
               >
                 Fecha Registro
               </TableCell>
+
               {columnas
                 .filter((c) => columnasVisibles.includes(c.key))
                 .map((c) => (
@@ -1068,7 +1196,10 @@ export default function TablaIngresoCarbonMadera() {
                     {filtrosVisibles && (
                       <IconButton
                         size="small"
-                        sx={{ ml: 1, "&:focus": { outline: "none", boxShadow: "none" } }}
+                        sx={{
+                          ml: 1,
+                          "&:focus": { outline: "none", boxShadow: "none" },
+                        }}
                         onClick={(e) => {
                           if (filtroActivo === c.key) {
                             setFiltroActivo(null);
@@ -1094,66 +1225,123 @@ export default function TablaIngresoCarbonMadera() {
               >
                 Observaciones
               </TableCell>
+
               <TableCell
                 align="center"
                 sx={{ borderRight: "1px solid rgba(224, 224, 224, 1)" }}
               >
                 Responsable
               </TableCell>
-              <TableCell align="center">Acciones</TableCell>
             </TableRow>
           </TableHead>
-          <TableBody sx={{
-            "& .MuiTableCell-root": {
-              padding: tableDensityStyles.padding,
-              lineHeight: tableDensityStyles.lineHeight,
-              fontSize: tableDensityStyles.fontSize,
-              whiteSpace: "nowrap",
-              verticalAlign: "middle",
-            },
-            "& .MuiTableRow-root": {
-              height: tableDensityStyles.rowHeight,
-            },
-          }}>
-            {medicionesFiltradas.map((row, i) => (
+
+          <TableBody
+            sx={{
+              "& .MuiTableCell-root": {
+                padding: tableDensityStyles.padding,
+                lineHeight: tableDensityStyles.lineHeight,
+                fontSize: tableDensityStyles.fontSize,
+                whiteSpace: "nowrap",
+                verticalAlign: "middle",
+              },
+              "& .MuiTableRow-root": {
+                height: tableDensityStyles.rowHeight,
+              },
+            }}
+          >
+            {medicionesFiltradas.map((row) => (
               <TableRow key={row._id}>
+                <TableCell
+                  align="center"
+                  sx={{
+                    position: "sticky",
+                    left: 0,
+                    zIndex: 4,
+                    backgroundColor: "#dad9d9e3",
+                    borderRight: "1px solid rgba(224,224,224,1)",
+                    minWidth: 110,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      gap: 0.5,
+                      width: "100%",
+                    }}
+                  >
+                    <IconButton
+                      onClick={() => {
+                        setEditId(row._id);
+                        setForm({
+                          ...row,
+                          fecha: row.fecha || "",
+                        });
+                        setOpenEditar(true);
+                      }}
+                    >
+                      <EditIcon />
+                    </IconButton>
+
+                    <IconButton
+                      color="error"
+                      onClick={() => eliminarMedicion(row._id)}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 1,
+                      }}
+                    >
+                      <Box
+                        onDoubleClick={() => abrirModalEstado(row)}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <Tooltip title="Doble click para ver observación">
+                          <Box sx={{ display: "flex", alignItems: "center" }}>
+                            {renderEstadoVehiculoIcon(row.lecturas?.estado_vehiculo)}
+                          </Box>
+                        </Tooltip>
+                      </Box>
+                    </Box>
+                  </Box>
+                </TableCell>
+
                 <TableCell align="center">{row.fecha}</TableCell>
+
                 {columnas
                   .filter((c) => columnasVisibles.includes(c.key))
                   .map((c) => (
-                    <TableCell key={c.key} align="center" sx={{ whiteSpace: "nowrap", width: "1%", }}>
-                      {row.lecturas[c.key] ?? ""}
+                    <TableCell
+                      key={c.key}
+                      align="center"
+                      sx={{ whiteSpace: "nowrap", width: "1%" }}
+                    >
+                      {row.lecturas?.[c.key] ?? ""}
                     </TableCell>
                   ))}
+
                 <TableCell align="center">{row.observaciones}</TableCell>
                 <TableCell align="center">{row.responsable}</TableCell>
-                <TableCell align="center">
-                  <IconButton
-                    onClick={() => {
-                      setEditId(row._id);
-                      setForm({
-                        ...row,
-                        fecha: row.fecha || "",
-                      });
-                      setOpenEditar(true);
-                    }}
-                  >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    color="error"
-                    onClick={() => eliminarMedicion(row._id)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
               </TableRow>
             ))}
+
             {/* ================= ACUMULADO ================= */}
             <TableRow>
-              <TableCell colSpan={1}>
+              <TableCell colSpan={2}>
                 <b>Acumulado Total</b>
               </TableCell>
+
               {columnas
                 .filter((c) => columnasVisibles.includes(c.key))
                 .map((c) => (
@@ -1218,114 +1406,19 @@ export default function TablaIngresoCarbonMadera() {
         />
       </SpeedDial>
 
-      {/* ================= MODAL Recepcion ================= */}
-      <Dialog
+      {/* ================= MODAL INGRESO ================= */}
+      <IngresoDataRecepcionModal
         open={openFila || openEditar}
-        fullWidth
-        sx={{
-          "& .MuiDialog-paper": {
-            width: "70%",
-            maxWidth: "none",
-            margin: "auto",
-          },
+        onClose={() => {
+          setOpenFila(false);
+          setOpenEditar(false);
         }}
-      >
-        <DialogTitle>
-          {openEditar ? "Editar Ingreso" : "Nuevo Ingreso"}
-        </DialogTitle>
-
-        <DialogContent>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.7, mt: 1 }}>
-            {columnas.map((c) => {
-              const esNumero = c.tipo === "number";
-              return (
-                <TextField
-                  key={c.key}
-                  label={`${c.nombre}${c.unidad ? ` (${c.unidad})` : ""}`}
-                  type={esNumero ? "number" : "text"}
-                  margin="dense"
-                  value={form.lecturas?.[c.key] ?? ""}
-                  disabled={c.key.toLowerCase().includes("tiempo")}
-                  onChange={(e) => {
-                    const value = e.target.value;
-
-                    const nuevasLecturas = {
-                      ...form.lecturas,
-                      [c.key]: value,
-                    };
-
-                    const horaEntrada = nuevasLecturas["hora_ingreso"];
-                    const horaSalida = nuevasLecturas["hora_salida"];
-
-                    if (horaEntrada && horaSalida) {
-                      nuevasLecturas["tiempo_ambiocom"] =
-                        calcularTiempoAmbiocom(horaEntrada, horaSalida);
-                    }
-
-                    setForm((prev) => ({
-                      ...prev,
-                      lecturas: { ...nuevasLecturas },
-                    }));
-                  }}
-                  sx={{ flex: "1 1 200px", minWidth: 150 }} // ancho flexible y mínimo
-                />
-              );
-            })}
-          </Box>
-          <Box sx={{ display: "flex", gap: 2, mt: 2, width: "100%" }}>
-            <TextField
-              label="Observaciones"
-              fullWidth
-              margin="dense"
-              value={form.observaciones}
-              onChange={(e) =>
-                setForm({ ...form, observaciones: e.target.value })
-              }
-              sx={{ width: "60%" }}
-            />
-
-            <TextField
-              label="Responsable"
-              fullWidth
-              margin="dense"
-              value={form.responsable}
-              onChange={(e) =>
-                setForm({ ...form, responsable: e.target.value })
-              }
-              sx={{ width: "25%" }}
-            />
-            <TextField
-              type="date"
-              label="Fecha"
-              fullWidth
-              margin="dense"
-              InputLabelProps={{ shrink: true }}
-              onChange={(e) =>
-                setForm({ ...form, fecha: isoToDDMMYYYY(e.target.value) })
-              }
-              sx={{ width: "15%" }}
-            />
-          </Box>
-        </DialogContent>
-
-        <DialogActions>
-          <Button
-            onClick={() => {
-              setOpenFila(false);
-              setOpenEditar(false);
-            }}
-          >
-            Cancelar
-          </Button>
-          <Button
-            variant="contained"
-            onClick={openEditar ? actualizarMedicion : guardarMedicion}
-          >
-            Guardar
-          </Button>
-        </DialogActions>
-      </Dialog>
-
+        onSave={handleGuardar}
+        columnas={columnas}
+        isEdit={openEditar}
+        form={form}
+        setForm={setForm}
+      />
       {/* ================= MODAL COLUMNA ================= */}
       <Dialog open={openColumna} fullWidth maxWidth="xs">
         <DialogTitle>Nueva Columna</DialogTitle>
@@ -1363,16 +1456,17 @@ export default function TablaIngresoCarbonMadera() {
             Totalizable
           </InputLabel>
           <Select
-            labelId="totalizable-label"
-            label="Totalizable"
+            value={String(nuevaColumna.totalizable)}
             fullWidth
-            value={nuevaColumna.totalizable}
             onChange={(e) =>
-              setNuevaColumna({ ...nuevaColumna, totalizable: e.target.value })
+              setNuevaColumna({
+                ...nuevaColumna,
+                totalizable: e.target.value === "true",
+              })
             }
           >
-            <MenuItem value={true}>Sí (sumar en acumulado)</MenuItem>
-            <MenuItem value={false}>
+            <MenuItem value="true">Sí (sumar en acumulado)</MenuItem>
+            <MenuItem value="false">
               No (No es una variable totalizable)
             </MenuItem>
           </Select>
@@ -1386,7 +1480,7 @@ export default function TablaIngresoCarbonMadera() {
         </DialogActions>
       </Dialog>
 
-      {/* Menu para filtrar tabla */}
+      {/* ================= MENU FILTROS ================= */}
       <Menu
         anchorEl={anchorFiltro}
         open={Boolean(filtroActivo)}
@@ -1416,7 +1510,6 @@ export default function TablaIngresoCarbonMadera() {
             }
             sx={{ maxHeight: 360, overflow: "auto" }}
           >
-            {/* Limpiar (mantiene tu filtro tal cual: string) */}
             <ListItemButton
               onClick={() =>
                 setFiltrosColumna((prev) => ({
@@ -1459,7 +1552,7 @@ export default function TablaIngresoCarbonMadera() {
         </Box>
       </Menu>
 
-      {/* Graficas dinámicas */}
+      {/* ================= GRAFICAS ================= */}
       {openCharts && (
         <ChartBuilder
           rows={medicionesFiltradas}
@@ -1468,7 +1561,7 @@ export default function TablaIngresoCarbonMadera() {
         />
       )}
 
-      {/* //Menu para copiar tabla tipo SAP */}
+      {/* ================= MENU CONTEXTUAL ================= */}
       <Menu
         open={contextMenu !== null}
         onClose={handleCloseContextMenu}
@@ -1488,8 +1581,18 @@ export default function TablaIngresoCarbonMadera() {
           Copiar tabla
         </MenuItem>
       </Menu>
-
-      {/* Boton para carga masiva*/}
+      {/* ================= MODAL OBSERVACIONES ================= */}
+      <ObservacionEstadoModal
+        open={openEstadoModal}
+        onClose={() => {
+          setOpenEstadoModal(false);
+          setEstadoModalData(null);
+        }}
+        data={estadoModalData}
+        title="Observación del vehículo"
+        subtitle="Revisión / control de recepción"
+      />
+      {/* ================= CARGA MASIVA ================= */}
       <ExcelUploadButton
         ref={excelUploadRef}
         url="https://ambiocomserver.onrender.com/api/recepcion-alcoholes/carga-masiva"
