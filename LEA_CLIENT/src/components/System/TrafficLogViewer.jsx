@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Box,
   Paper,
@@ -10,7 +10,293 @@ import {
   Divider,
 } from "@mui/material";
 
-const API_URL = "https://ambiocomserver.onrender.com/api/system/traffic";
+/* =========================================================
+   =============== CONFIGURACIÓN GENERAL ===================
+   ========================================================= */
+
+const API_BASE_URL = "https://ambiocomserver.onrender.com/api/system/traffic";
+const API_GET_LOGS_URL = API_BASE_URL; // GET -> consultar logs
+const API_SAVE_LOG_URL = API_BASE_URL; // POST -> guardar un log
+const API_SYNC_LOGS_URL = `${API_BASE_URL}/sync`; // POST -> guardar varios logs pendientes
+
+const LOCAL_QUEUE_KEY = "pending_traffic_logs";
+const APP_TIMEZONE = "America/Bogota";
+
+/* =========================================================
+   =============== UTILIDADES DE CACHÉ LOCAL ===============
+   =========================================================
+   Aquí guardamos temporalmente los logs cuando:
+   - no hay internet
+   - falla el envío al backend
+   - queremos asegurar trazabilidad de errores
+   ========================================================= */
+
+const getPendingTrafficLogs = () => {
+  try {
+    const raw = localStorage.getItem(LOCAL_QUEUE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (error) {
+    console.error("Error leyendo caché de tráfico:", error);
+    return [];
+  }
+};
+
+const savePendingTrafficLogs = (logs) => {
+  try {
+    localStorage.setItem(LOCAL_QUEUE_KEY, JSON.stringify(logs));
+  } catch (error) {
+    console.error("Error guardando caché de tráfico:", error);
+  }
+};
+
+const addPendingTrafficLog = (log) => {
+  const current = getPendingTrafficLogs();
+
+  current.push({
+    ...log,
+    _offlineId:
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    queuedAt: new Date().toISOString(),
+    synced: false,
+  });
+
+  savePendingTrafficLogs(current);
+};
+
+const clearPendingTrafficLogs = () => {
+  try {
+    localStorage.removeItem(LOCAL_QUEUE_KEY);
+  } catch (error) {
+    console.error("Error limpiando caché de tráfico:", error);
+  }
+};
+
+/* =========================================================
+   =============== CONSTRUCTOR DE LOG ======================
+   =========================================================
+   Crea el objeto estándar que enviarás al backend o dejarás
+   en caché local cuando no se pueda enviar.
+   ========================================================= */
+
+const buildTrafficLog = ({
+  url,
+  method,
+  path,
+  moduleName,
+  statusCode,
+  email,
+  rol,
+  ip,
+  errorMessage,
+  extra,
+}) => {
+  return {
+    url: url || "",
+    path: path || url || "sin-ruta",
+    method: method || "GET",
+    moduleName: moduleName || "general",
+    statusCode: statusCode ?? 0,
+    email: email || "anonimo",
+    rol: rol || "anonimo",
+    ip: ip || "desconocida",
+    requestedAt: new Date().toISOString(),
+    timezone: APP_TIMEZONE,
+    errorMessage: errorMessage || "",
+    extra: extra || null,
+  };
+};
+
+/* =========================================================
+   =============== ENVÍO INMEDIATO DE LOG ==================
+   =========================================================
+   Intenta guardar el log en backend.
+   Si el backend falla o no hay conexión, lo deja en caché.
+   ========================================================= */
+
+const sendImmediateLog = async (log) => {
+  try {
+    const response = await fetch(API_SAVE_LOG_URL, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(log),
+    });
+
+    if (!response.ok) {
+      addPendingTrafficLog(log);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    addPendingTrafficLog(log);
+    return false;
+  }
+};
+
+/* =========================================================
+   =============== SINCRONIZACIÓN DE PENDIENTES ============
+   =========================================================
+   Cuando regresa internet, esta función toma todos los logs
+   guardados en localStorage, los envía al backend y luego
+   limpia la cola si todo salió bien.
+   ========================================================= */
+
+const syncPendingTrafficLogs = async () => {
+  const pending = getPendingTrafficLogs();
+
+  if (!pending.length) {
+    return { ok: true, synced: 0 };
+  }
+
+  try {
+    const response = await fetch(API_SYNC_LOGS_URL, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ logs: pending }),
+    });
+
+    if (!response.ok) {
+      throw new Error("No se pudieron sincronizar los logs pendientes");
+    }
+
+    clearPendingTrafficLogs();
+
+    return {
+      ok: true,
+      synced: pending.length,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      synced: 0,
+      error: error.message || "Error sincronizando pendientes",
+    };
+  }
+};
+
+/* =========================================================
+   =============== WRAPPER GLOBAL DE FETCH =================
+   =========================================================
+   Usa esta función en TODAS las peticiones importantes
+   de tu aplicación para registrar:
+   - respuestas 4xx
+   - respuestas 5xx
+   - fallos de red / sin internet
+   =========================================================
+
+   EJEMPLO DE USO:
+
+   const response = await fetchWithTrafficLog(
+     "/api/clientes",
+     {
+       method: "GET",
+       credentials: "include",
+     },
+     {
+       moduleName: "clientes",
+       email: user?.email,
+       rol: user?.rol,
+       path: "/api/clientes",
+     }
+   );
+*/
+
+export const fetchWithTrafficLog = async (url, options = {}, metadata = {}) => {
+  const method = options.method || "GET";
+
+  try {
+    const response = await fetch(url, options);
+
+    // =====================================================
+    // REGISTRO DE RESPUESTAS CON ERROR HTTP (4xx / 5xx)
+    // =====================================================
+    if (response.status >= 400) {
+      const errorLog = buildTrafficLog({
+        url,
+        method,
+        path: metadata.path || url,
+        moduleName: metadata.moduleName,
+        email: metadata.email,
+        rol: metadata.rol,
+        ip: metadata.ip,
+        statusCode: response.status,
+        errorMessage: `HTTP_${response.status}`,
+        extra: metadata.extra,
+      });
+
+      await sendImmediateLog(errorLog);
+    }
+
+    return response;
+  } catch (error) {
+    // =====================================================
+    // REGISTRO DE FALLOS DE RED / SIN INTERNET / TIMEOUT
+    // =====================================================
+    const networkErrorLog = buildTrafficLog({
+      url,
+      method,
+      path: metadata.path || url,
+      moduleName: metadata.moduleName,
+      email: metadata.email,
+      rol: metadata.rol,
+      ip: metadata.ip,
+      statusCode: 0,
+      errorMessage: error?.message || "NETWORK_ERROR",
+      extra: metadata.extra,
+    });
+
+    addPendingTrafficLog(networkErrorLog);
+    throw error;
+  }
+};
+
+/* =========================================================
+   =============== HOOK GLOBAL DE SINCRONIZACIÓN ===========
+   =========================================================
+   Este hook:
+   - intenta sincronizar al iniciar la app
+   - escucha cuando vuelve internet
+   - sincroniza automáticamente la cola pendiente
+   ========================================================= */
+
+export const useTrafficSync = () => {
+  useEffect(() => {
+    const handleOnline = async () => {
+      if (navigator.onLine) {
+        await syncPendingTrafficLogs();
+      }
+    };
+
+    // intento inicial
+    handleOnline();
+
+    // reintento cuando vuelve la conexión
+    window.addEventListener("online", handleOnline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+    };
+  }, []);
+};
+
+/* =========================================================
+   =============== COMPONENTE PRINCIPAL VIEWER =============
+   =========================================================
+   Este visor:
+   - consulta logs del backend
+   - muestra cuántos logs hay pendientes en caché
+   - permite refrescar
+   - permite live mode
+   - intenta sincronizar pendientes antes de consultar
+   ========================================================= */
 
 const TerminalTrafficLogViewer = () => {
   const [logs, setLogs] = useState([]);
@@ -18,34 +304,93 @@ const TerminalTrafficLogViewer = () => {
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
   const [live, setLive] = useState(true);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [syncing, setSyncing] = useState(false);
+  const [lastSyncMessage, setLastSyncMessage] = useState("");
 
-  const fetchLogs = async (firstLoad = false) => {
-    try {
-      if (firstLoad) setLoading(true);
-      setError("");
-
-      const response = await fetch(API_URL, {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error("No se pudieron obtener los registros");
-      }
-
-      const data = await response.json();
-      setLogs(Array.isArray(data.logs) ? data.logs : []);
-    } catch (err) {
-      setError(err.message || "Error cargando registros");
-    } finally {
-      if (firstLoad) setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchLogs(true);
+  // =======================================================
+  // ACTUALIZA CUÁNTOS LOGS HAY PENDIENTES EN CACHÉ
+  // =======================================================
+  const refreshPendingCount = useCallback(() => {
+    setPendingCount(getPendingTrafficLogs().length);
   }, []);
 
+  // =======================================================
+  // INTENTA SINCRONIZAR ANTES DE CONSULTAR EL HISTORIAL
+  // =======================================================
+  const trySyncPending = useCallback(async () => {
+    if (!navigator.onLine) {
+      setLastSyncMessage("sin conexión: logs pendientes conservados en caché");
+      refreshPendingCount();
+      return;
+    }
+
+    const currentPending = getPendingTrafficLogs();
+    if (!currentPending.length) {
+      setLastSyncMessage("");
+      refreshPendingCount();
+      return;
+    }
+
+    setSyncing(true);
+
+    try {
+      const result = await syncPendingTrafficLogs();
+
+      if (result.ok) {
+        setLastSyncMessage(`sincronizados ${result.synced} logs pendientes`);
+      } else {
+        setLastSyncMessage(result.error || "no se pudieron sincronizar los pendientes");
+      }
+    } finally {
+      setSyncing(false);
+      refreshPendingCount();
+    }
+  }, [refreshPendingCount]);
+
+  // =======================================================
+  // CONSULTA LOS LOGS DEL BACKEND
+  // =======================================================
+  const fetchLogs = useCallback(
+    async (firstLoad = false) => {
+      try {
+        if (firstLoad) setLoading(true);
+        setError("");
+
+        // antes de consultar, intentamos subir pendientes
+        await trySyncPending();
+
+        const response = await fetch(API_GET_LOGS_URL, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          throw new Error("No se pudieron obtener los registros");
+        }
+
+        const data = await response.json();
+        setLogs(Array.isArray(data.logs) ? data.logs : []);
+      } catch (err) {
+        setError(err.message || "Error cargando registros");
+      } finally {
+        refreshPendingCount();
+        if (firstLoad) setLoading(false);
+      }
+    },
+    [refreshPendingCount, trySyncPending]
+  );
+
+  // =======================================================
+  // CARGA INICIAL
+  // =======================================================
+  useEffect(() => {
+    fetchLogs(true);
+  }, [fetchLogs]);
+
+  // =======================================================
+  // MODO LIVE
+  // =======================================================
   useEffect(() => {
     if (!live) return;
 
@@ -54,8 +399,34 @@ const TerminalTrafficLogViewer = () => {
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [live]);
+  }, [live, fetchLogs]);
 
+  // =======================================================
+  // ACTUALIZA CONTADOR CUANDO VUELVE INTERNET
+  // =======================================================
+  useEffect(() => {
+    const handleOnline = async () => {
+      await trySyncPending();
+      await fetchLogs(false);
+    };
+
+    const handleOffline = () => {
+      refreshPendingCount();
+      setLastSyncMessage("sin internet: se almacenarán logs pendientes");
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [fetchLogs, refreshPendingCount, trySyncPending]);
+
+  // =======================================================
+  // FILTRO + ORDENAMIENTO
+  // =======================================================
   const filteredLogs = useMemo(() => {
     const term = filter.trim().toLowerCase();
 
@@ -77,20 +448,27 @@ const TerminalTrafficLogViewer = () => {
         log.ip,
         log.rol,
         log.email,
+        log.errorMessage,
       ]
         .map((v) => String(v ?? "").toLowerCase())
         .some((v) => v.includes(term))
     );
   }, [logs, filter]);
 
+  // =======================================================
+  // FORMATO DE FECHA
+  // =======================================================
   const formatDate = (value) => {
     if (!value) return "--/--/---- --:--:--";
     return new Date(value).toLocaleString("es-CO", {
-      timeZone: "America/Bogota",
+      timeZone: APP_TIMEZONE,
       hour12: false,
     });
   };
 
+  // =======================================================
+  // COLOR POR MÉTODO HTTP
+  // =======================================================
   const getMethodColor = (method) => {
     switch (method) {
       case "POST":
@@ -101,17 +479,25 @@ const TerminalTrafficLogViewer = () => {
         return "#40c4ff";
       case "DELETE":
         return "#ff5252";
+      case "GET":
+        return "#d7ffd9";
       default:
         return "#e0e0e0";
     }
   };
 
+  // =======================================================
+  // COLOR POR STATUS
+  // =======================================================
   const getStatusColor = (status) => {
     const code = Number(status);
+
+    if (code === 0) return "#ff4081"; // error de red / offline
     if (code >= 200 && code < 300) return "#00e676";
     if (code >= 300 && code < 400) return "#ffee58";
     if (code >= 400 && code < 500) return "#ff9100";
     if (code >= 500) return "#ff1744";
+
     return "#cfd8dc";
   };
 
@@ -139,6 +525,9 @@ const TerminalTrafficLogViewer = () => {
           flexDirection: "column",
         }}
       >
+        {/* ===================================================
+            CABECERA TIPO TERMINAL
+           =================================================== */}
         <Box
           sx={{
             px: 2,
@@ -182,6 +571,9 @@ const TerminalTrafficLogViewer = () => {
           />
         </Box>
 
+        {/* ===================================================
+            ZONA DE COMANDOS / FILTRO
+           =================================================== */}
         <Box
           sx={{
             px: 2,
@@ -211,7 +603,7 @@ const TerminalTrafficLogViewer = () => {
                 variant="standard"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                placeholder="filtrar por metodo, ruta, modulo, status, rol o email..."
+                placeholder="filtrar por método, ruta, módulo, status, rol, email o error..."
                 InputProps={{
                   disableUnderline: true,
                   sx: {
@@ -249,10 +641,22 @@ const TerminalTrafficLogViewer = () => {
               >
                 {live ? "pause" : "resume"}
               </Button>
+
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={trySyncPending}
+                sx={terminalButtonSx}
+              >
+                sync-cache
+              </Button>
             </Stack>
           </Stack>
         </Box>
 
+        {/* ===================================================
+            METADATOS DEL MONITOR
+           =================================================== */}
         <Box
           sx={{
             px: 2,
@@ -266,11 +670,38 @@ const TerminalTrafficLogViewer = () => {
           }}
         >
           <Typography sx={metaTextSx}>logs: {filteredLogs.length}</Typography>
-          <Typography sx={metaTextSx}>endpoint: {API_URL}</Typography>
+          <Typography sx={metaTextSx}>endpoint: {API_GET_LOGS_URL}</Typography>
+          <Typography sx={metaTextSx}>pendientes-cache: {pendingCount}</Typography>
+          <Typography sx={metaTextSx}>sync: {syncing ? "en progreso..." : "idle"}</Typography>
           <Typography sx={metaTextSx}>orden: más reciente arriba</Typography>
-          <Typography sx={metaTextSx}>timezone: America/Bogota</Typography>
+          <Typography sx={metaTextSx}>timezone: {APP_TIMEZONE}</Typography>
+          <Typography sx={metaTextSx}>
+            red: {navigator.onLine ? "online" : "offline"}
+          </Typography>
         </Box>
 
+        {/* ===================================================
+            MENSAJE DE ESTADO DE SINCRONIZACIÓN
+           =================================================== */}
+        {!!lastSyncMessage && (
+          <Box
+            sx={{
+              px: 2,
+              py: 1,
+              bgcolor: "#09140f",
+              borderBottom: "1px solid #102518",
+              flexShrink: 0,
+            }}
+          >
+            <Typography sx={{ ...metaTextSx, color: "#9dfdc2" }}>
+              {lastSyncMessage}
+            </Typography>
+          </Box>
+        )}
+
+        {/* ===================================================
+            CONTENIDO PRINCIPAL
+           =================================================== */}
         <Box
           sx={{
             flex: 1,
@@ -296,7 +727,7 @@ const TerminalTrafficLogViewer = () => {
             </>
           ) : (
             filteredLogs.map((log, index) => (
-              <Box key={log._id || `${log.requestedAt}-${index}`} sx={{ py: 0.75 }}>
+              <Box key={log._id || log._offlineId || `${log.requestedAt}-${index}`} sx={{ py: 0.75 }}>
                 <Typography
                   component="div"
                   sx={{
@@ -341,7 +772,12 @@ const TerminalTrafficLogViewer = () => {
                   </Box>{" "}
                   <Box component="span" sx={{ color: "#9ccaa3" }}>
                     email={log.email || "anonimo"}
-                  </Box>
+                  </Box>{" "}
+                  {!!log.errorMessage && (
+                    <Box component="span" sx={{ color: "#ffb74d" }}>
+                      error={log.errorMessage}
+                    </Box>
+                  )}
                 </Typography>
               </Box>
             ))
@@ -373,6 +809,10 @@ const TerminalTrafficLogViewer = () => {
   );
 };
 
+/* =========================================================
+   =============== ESTILOS AUXILIARES ======================
+   ========================================================= */
+
 const terminalButtonSx = {
   color: "#9dfdc2",
   borderColor: "#1c4b30",
@@ -398,3 +838,62 @@ const bootTextSx = {
 };
 
 export default TerminalTrafficLogViewer;
+
+/* =========================================================
+   =============== CÓMO USAR ESTE ARCHIVO ==================
+   =========================================================
+
+   1) Para mostrar el monitor:
+      <TerminalTrafficLogViewer />
+
+   2) Para sincronizar automáticamente pendientes
+      al arrancar tu app:
+      
+      function App() {
+        useTrafficSync();
+
+        return <TuAplicacion />;
+      }
+
+   3) Para registrar peticiones importantes de tu app,
+      reemplaza fetch(...) por fetchWithTrafficLog(...)
+
+      Ejemplo:
+
+      const response = await fetchWithTrafficLog(
+        "https://ambiocomserver.onrender.com/api/clientes",
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        },
+        {
+          moduleName: "clientes",
+          email: user?.email,
+          rol: user?.rol,
+          path: "/api/clientes",
+          extra: {
+            descripcion: "crear cliente",
+          },
+        }
+      );
+
+   =========================================================
+   NOTA IMPORTANTE:
+   Este archivo resuelve la parte FRONTEND.
+   Para que funcione completo, tu backend debe aceptar:
+
+   - GET  /api/system/traffic
+   - POST /api/system/traffic
+   - POST /api/system/traffic/sync
+
+   El endpoint /sync debería recibir:
+   {
+     logs: [...]
+   }
+
+   y guardar todos esos registros en base de datos.
+   ========================================================= */

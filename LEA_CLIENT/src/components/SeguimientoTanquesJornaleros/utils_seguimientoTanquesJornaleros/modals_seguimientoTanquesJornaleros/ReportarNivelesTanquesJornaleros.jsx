@@ -16,6 +16,8 @@ import Swal from "sweetalert2";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import SortByAlphaIcon from "@mui/icons-material/SortByAlpha";
 
+import useNetworkStatus from "../../../../Hooks/NetworkStatus/useNetworkStatus"    // verificador de conexion a red
+
 const styleModal = {
   position: "absolute",
   top: "50%",
@@ -46,6 +48,20 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
 
   const [modoEdicion, setModoEdicion] = useState(false);
   const [cargandoFecha, setCargandoFecha] = useState(false);
+
+  // ===================== Verificador de Redes ===========================
+  const {
+    isConnected,
+    isBrowserOnline,
+    isBackendReachable,
+    isChecking,
+  } = useNetworkStatus({
+    checkUrl: "https://ambiocomserver.onrender.com/api/health",
+    interval: 30000,
+    timeout: 5000,
+    checkBackend: true,
+  });
+  //==========================================================================
 
   // Recuperar datos de usuario de sesión
   useEffect(() => {
@@ -100,14 +116,9 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
     setInputs((prev) => ({ ...prev, [name]: value }));
   };
 
-  // const handleChangeFecha = (e) => {
-  //   setFecha(e.target.value);
-  //   setLoadingButton(false);
-  // };
-
   const handleChangeFecha = async (e) => {
     const fechaSeleccionada = e.target.value;
-      console.log("Fecha seleccionada:", fechaSeleccionada); // 👈 DEBUG
+    console.log("Fecha seleccionada:", fechaSeleccionada); // 👈 DEBUG
     setFecha(fechaSeleccionada);
     setLoadingButton(false);
     setCargandoFecha(true);
@@ -143,65 +154,17 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
     }
   };
 
-  // const handleSubmit = async () => {
-  //   if (!fecha) {
-  //     Swal.fire(
-  //       "Error",
-  //       "Debe seleccionar una fecha antes de reportar.",
-  //       "error"
-  //     );
-  //     return;
-  //   }
-
-  //   setLoadingButton(true);
-
-  //   try {
-
-  //     const payload = listaParaMostrar.map((tanque) => {
-  //       const nombreTanque = tanque.NombreTanque;
-  //       const valor = inputs[nombreTanque];
-
-  //       return {
-  //         NombreTanque: nombreTanque,
-  //         NivelTanque: valor === undefined || valor === "" ? 0 : Number(valor),
-  //         Responsable: responsable,
-  //         Observaciones: observaciones,
-  //         Factor: tanque.Factor,
-  //         Disposicion: tanque.Disposicion,
-  //         FechaRegistro: fecha,
-  //       };
-  //     });
-
-  //     console.log("payload:", payload);
-
-  //     await axios.post(
-  //       "https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros",
-  //       payload
-  //     );
-
-  //     Swal.fire("Éxito", "Reporte guardado correctamente.", "success");
-  //     localStorage.removeItem(LOCAL_STORAGE_KEY);
-  //     setInputs({});
-  //     setResponsable("");
-  //     setObservaciones("");
-  //     setFecha("");
-  //     onClose();
-  //   } catch (err) {
-  //     onClose();
-  //     console.error("Error al guardar reporte:", err);
-  //     Swal.fire("Error", "No se pudo guardar el reporte.", "error");
-  //   } finally {
-  //     setLoadingButton(false);
-  //   }
-  // };
-
-
   const handleSubmit = async () => {
+    // valida uq eno se ejecute si no se selecciona fecha
     if (!fecha) {
       Swal.fire("Error", "Debe seleccionar una fecha antes de reportar.", "error");
       return;
     }
-
+    // no se va guardar si no hay internet
+    if (!isConnected) {
+      Swal.fire("Sin conexión", "No hay conexión a internet o al servidor.", "warning");
+      return;
+    }
     setLoadingButton(true);
 
     try {
@@ -331,6 +294,18 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
 
         {/* Contenido scrollable */}
         <Box sx={{ flex: 1, overflowY: "auto", px: 3, pb: 2 }}>
+          {!fecha && (
+            <Typography color="error" sx={{ mb: 2 }}>
+              ⚠️ Debes seleccionar una fecha para habilitar el formulario
+            </Typography>
+          )}
+
+          {!isConnected && (
+            <Typography color="error" sx={{ mb: 2 }}>
+              ⚠️ Sin conexión. No puedes guardar el reporte en este momento.
+            </Typography>
+          )}
+
           {listaParaMostrar.length === 0 ? (
             <Typography color="text.secondary">
               No hay datos de tanques disponibles.
@@ -348,6 +323,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
                     onChange={(e) =>
                       handleInputChange(tanque.NombreTanque, e.target.value)
                     }
+                    disabled={!fecha}
                   />
                 </Grid>
               ))}
@@ -364,6 +340,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
                 size="small"
                 value={responsable}
                 onChange={(e) => setResponsable(e.target.value)}
+                disabled={!fecha}
               />
             </Grid>
 
@@ -374,6 +351,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
                 size="small"
                 value={observaciones}
                 onChange={(e) => setObservaciones(e.target.value)}
+                disabled={!fecha}
               />
             </Grid>
           </Grid>
@@ -418,7 +396,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
 
             <Button
               variant="contained"
-              disabled={loadingButton}
+              disabled={loadingButton || !fecha || !isConnected}
               color={modoEdicion ? "warning" : "primary"}
               onClick={handleSubmit}
               endIcon={loadingButton ? <CircularProgress size={20} color="inherit" /> : null}

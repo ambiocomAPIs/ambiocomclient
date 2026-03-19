@@ -11,7 +11,10 @@ import {
     Box,
     Typography,
     Divider,
+    Checkbox,
+    Tooltip,
 } from "@mui/material";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 
 import Autocomplete from "@mui/material/Autocomplete";
 import { useTanques } from "../../../../../utils/Context/TanquesContext";
@@ -19,6 +22,7 @@ import { useTanques } from "../../../../../utils/Context/TanquesContext";
 const TIME_KEYS = ["hora_ingreso", "hora_salida"];
 const REQUIRED_FIELDS = ["fecha", "responsable", "observaciones"];
 const ANALISTA_KEYS = ["analista_laboratorio"];
+const FLETE_FACTURADO_KEY = "flete_facturado";
 
 //LABELS para estado de la recepcion
 const ESTADO_VEHICULO_OPTIONS = [
@@ -307,6 +311,8 @@ const IngresoDataRecepcionModal = ({
         tanquesOptions.find(
             (t) => t.value === (form?.lecturas?.tanque_recepcion ?? "")
         ) || null;
+
+    const faltaRemisionFactura = !String(form?.lecturas?.remision ?? "").trim();
 
     return (
         <Dialog
@@ -616,6 +622,7 @@ const IngresoDataRecepcionModal = ({
                             const esErrorPeso = c.key === "error_en_peso";
                             const esErrorVolumen = c.key === "error_volumen";
                             const esEstadoVehiculo = c.key === "estado_vehiculo";
+                            const esFleteFacturado = c.key === FLETE_FACTURADO_KEY;
 
                             if (["nombre_conductor", "placa", "remolque", "transportadora", "tanque_recepcion"].includes(c.key)) {
                                 return null;
@@ -653,6 +660,77 @@ const IngresoDataRecepcionModal = ({
                                 );
                             }
 
+                            if (esFleteFacturado) {
+                                return (
+                                    <Grid item {...size} key={c.key}>
+                                        <Tooltip
+                                            title={faltaRemisionFactura ? "Debe registrar remisión o factura asociada" : ""}
+                                        >
+                                            <Box
+                                                sx={{
+                                                    border: "1px solid rgba(0,0,0,0.23)",
+                                                    borderRadius: 1,
+                                                    px: 2,
+                                                    minHeight: 56,
+                                                    height: 56,
+                                                    boxSizing: "border-box",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "space-between",
+                                                    backgroundColor: "#fff",
+                                                    position: "relative",
+                                                }}
+                                            >
+                                                <Typography
+                                                    variant="body2"
+                                                    sx={{ color: "rgba(0,0,0,0.7)", fontWeight: 500 }}
+                                                >
+                                                    {c.nombre} ?
+                                                </Typography>
+
+                                                <Box
+                                                    sx={{
+                                                        position: "relative",
+                                                        display: "inline-flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                    }}
+                                                >
+                                                    <Checkbox
+                                                        checked={Boolean(form?.lecturas?.[c.key])}
+                                                        onChange={(e) =>
+                                                            handleChangeLectura(c.key, e.target.checked)
+                                                        }
+                                                        disabled={faltaRemisionFactura}
+                                                    />
+
+                                                    {faltaRemisionFactura && (
+                                                        <WarningAmberRoundedIcon
+                                                            sx={{
+                                                                position: "absolute",
+                                                                top: -5,
+                                                                right: -14,
+                                                                fontSize: 22,
+                                                                color: "error.main",
+                                                                backgroundColor: "#fff",
+                                                                borderRadius: "50%",
+                                                                zIndex: 2,
+                                                                pointerEvents: "none",
+                                                                animation: "alertBlink 1s infinite",
+                                                                "@keyframes alertBlink": {
+                                                                    "0%": { opacity: 1, transform: "scale(1)" },
+                                                                    "50%": { opacity: 0.20, transform: "scale(1.18)" },
+                                                                    "100%": { opacity: 1, transform: "scale(1)" },
+                                                                },
+                                                            }}
+                                                        />
+                                                    )}
+                                                </Box>
+                                            </Box>
+                                        </Tooltip>
+                                    </Grid>
+                                );
+                            }
                             if (esHora) {
                                 return (
                                     <Grid item {...size} key={c.key}>

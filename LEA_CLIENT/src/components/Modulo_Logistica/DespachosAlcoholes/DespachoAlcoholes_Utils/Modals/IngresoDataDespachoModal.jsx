@@ -11,10 +11,12 @@ import {
   Box,
   Typography,
   Checkbox,
+  Tooltip,
 } from "@mui/material";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import Autocomplete from "@mui/material/Autocomplete";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 //Contextos
 import { useAuth } from "../../../../../utils/Context/AuthContext/AuthContext";
 import { useTanques } from "../../../../../utils/Context/TanquesContext";
@@ -68,6 +70,7 @@ const RESPONSABLE_RECIBO_ROLES = [
 const LLEGADA_DESTINO_KEY = "llegada_destino";
 const LLEGADA_DESTINO_OPTIONS = ["PUNTUAL", "RETRASADO"]; // select para modal de registro de datos
 const REQUIRED_FIELDS = ["fecha", "responsable", "observaciones"]; // campos obligatorios minimos para crear un registro
+const FLETE_FACTURADO_KEY = "flete_facturado";
 
 // celdas que seran tipo select formato 8:00 15:30
 const loadCacheMeta = (key) => {
@@ -204,6 +207,7 @@ const buildTimeOptions = (stepMinutes = 15) => {
   return out;
 };
 
+// ===================================  CALCULOS FORMULAS PARA CELDAS CALCULADAS  =========================================
 const FORMULAS = {
   volumen_contador_gravimetrico: (L) =>
     round(
@@ -279,6 +283,8 @@ const FORMULAS = {
     ),
 };
 
+// =========================================================================================================================
+
 const recalcBloqueadas = (lecturas) => {
   const next = { ...(lecturas ?? {}) };
   for (const key of columnasBloqueadas) {
@@ -323,7 +329,7 @@ const IngresoDataDespachoModal = ({
     personalAnalistas: [],
     personalLogistica: [],
   });
-
+  const [saving, setSaving] = useState(false);
   const [isOnline, setIsOnline] = useState(
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
@@ -683,12 +689,24 @@ const IngresoDataDespachoModal = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // useEffect(() => {
-  //   if (!open) return;
-  //   const t = setTimeout(() => saveFormDraft(formCacheKey, form), 400);
-  //   return () => clearTimeout(t);
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [open, form, formCacheKey]);
+  useEffect(() => {
+    if (!open) return;
+
+    setForm((prev) => {
+      const lecturas = prev?.lecturas ?? {};
+
+      if (typeof lecturas?.[FLETE_FACTURADO_KEY] === "boolean") return prev;
+
+      return {
+        ...prev,
+        lecturas: {
+          ...lecturas,
+          [FLETE_FACTURADO_KEY]: false,
+        },
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -801,6 +819,7 @@ const IngresoDataDespachoModal = ({
     "costo_transporte",
     "factura_proveedor",
     "entrada_orden_compra",
+    "flete_facturado",
     "__OBSERVACIONES__",
   ];
 
@@ -836,10 +855,14 @@ const IngresoDataDespachoModal = ({
     return plan;
   };
 
+  // con esta condicion validamos si esta asociada remision o factura si no, inhabilite el check
+  const faltaRemisionFactura = !String(form?.lecturas?.remision_factura ?? "").trim();
+
   return (
     <Dialog
       open={open}
       onClose={(event, reason) => {
+        if (saving) return;
         if (reason === "backdropClick" || reason === "escapeKeyDown") return;
         onClose();
       }}
@@ -1055,6 +1078,7 @@ const IngresoDataDespachoModal = ({
                 const esTanqueSalida = c.key === "tanque_salida"; // evalua que la lista select se renderizara en la columna con esta key
                 const items = esSelect ? getItems(c.key) : [];
                 const esNombreConductor = c.key === "nombre_conductor";
+                const esFleteFacturado = c.key === FLETE_FACTURADO_KEY;
                 const isRequired = (key) => REQUIRED_FIELDS.includes(key); // campos requeridos
 
                 const allowedByRole = canRoleEditColumn(c);
@@ -1317,6 +1341,74 @@ const IngresoDataDespachoModal = ({
                           />
                         )}
                       />
+                    ) : esFleteFacturado ? (
+                      <Tooltip title={faltaRemisionFactura ? "Debe Registrar remisión o Factura asociada": ""}>
+                        <Box
+                          sx={{
+                            border: "1px solid rgba(0,0,0,0.23)",
+                            borderRadius: 1,
+                            px: 2.0,
+                            py: 0.7,
+                            minHeight: 30,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            backgroundColor: isDisabled ? "#f5f5f5" : "#fff",
+                            ...(allowedByRole
+                              ? {
+                                borderWidth: 2,
+                                borderColor: "orange",
+                              }
+                              : {}),
+                          }}
+                        >
+                          <Typography
+                            variant="body2"
+                            sx={{ color: "rgba(0,0,0,0.7)", fontWeight: 500 }}
+                          >
+                            {c.nombre} ?
+                          </Typography>
+
+                          <Box
+                            sx={{
+                              position: "relative",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Checkbox
+                              checked={Boolean(form.lecturas?.[c.key])}
+                              onChange={(e) => {
+                                if (isDisabled) return;
+                                handleChangeLectura(c.key, e.target.checked);
+                              }}
+                              disabled={isDisabled || faltaRemisionFactura}
+                            />
+
+                            {faltaRemisionFactura && (
+                              <WarningAmberRoundedIcon
+                                sx={{
+                                  position: "absolute",
+                                  top: -5,
+                                  right: -15,
+                                  fontSize: 25,
+                                  color: "error.main",
+                                  backgroundColor: "#fff",
+                                  borderRadius: "50%",
+                                  zIndex: 2,
+                                  animation: "alertBlink 1s infinite",
+                                  "@keyframes alertBlink": {
+                                    "0%": { opacity: 1, transform: "scale(1)" },
+                                    "50%": { opacity: 0.25, transform: "scale(1.2)" },
+                                    "100%": { opacity: 1, transform: "scale(1)" },
+                                  },
+                                }}
+                              />
+                            )}
+                          </Box>
+                        </Box>
+                      </Tooltip>
                     ) : (
                       <TextField
                         fullWidth
@@ -1350,7 +1442,10 @@ const IngresoDataDespachoModal = ({
             if (formCacheKey) clearFormDraft(formCacheKey);
             setForm((prev) => ({
               ...prev,
-              lecturas: recalcBloqueadas({}),
+              lecturas: {
+                ...recalcBloqueadas({}),
+                [FLETE_FACTURADO_KEY]: false,
+              },
               observaciones: "",
               responsable: "",
               fecha: "",
@@ -1362,45 +1457,52 @@ const IngresoDataDespachoModal = ({
 
         <Button
           variant="contained"
-          onClick={() => {
+          disabled={
+            saving ||
+            loadingAuth ||
+            !isAuth ||
+            Object.values(fieldErrors).some(Boolean)
+          }
+          onClick={async () => {
+
+            if (saving) return; // evita doble click
 
             const errors = {};
 
-            if (!form.fecha) {
-              errors.fecha = "La fecha es obligatoria";
-            }
-
-            if (!form.responsable) {
-              errors.responsable = "El responsable es obligatorio";
-            }
-
+            if (!form.fecha) errors.fecha = "La fecha es obligatoria";
+            if (!form.responsable) errors.responsable = "El responsable es obligatorio";
             if (!form.observaciones?.trim()) {
               errors.observaciones = "Las observaciones son obligatorias";
             }
 
             if (Object.keys(errors).length > 0) {
               setFieldErrors(errors);
-
-              setAlertState({
-                open: true,
-                severity: "warning",
-                message: "Completa los campos obligatorios",
-              });
-
               return;
             }
 
             const payload = {
               ...form,
               observaciones: String(form?.observaciones ?? "").trim(),
+              lecturas: {
+                ...(form?.lecturas ?? {}),
+                [FLETE_FACTURADO_KEY]: Boolean(form?.lecturas?.[FLETE_FACTURADO_KEY]),
+              },
             };
 
-            if (formCacheKey) clearFormDraft(formCacheKey);
-            onSave(payload);
+            try {
+              setSaving(true); // 🔒 bloquea el botón
+              await onSave(payload); // espera el POST/PUT/PATCH
+              if (formCacheKey) clearFormDraft(formCacheKey);
+
+            } catch (error) {
+              console.error(error);
+            } finally {
+              setSaving(false); // 🔓 vuelve a habilitar el botón
+            }
+
           }}
-          disabled={loadingAuth || !isAuth || Object.values(fieldErrors).some(Boolean)}
         >
-          {isEdit ? "Actualizar" : "Guardar"}
+          {saving ? "Guardando..." : isEdit ? "Actualizar" : "Guardar"}
         </Button>
       </DialogActions>
     </Dialog>

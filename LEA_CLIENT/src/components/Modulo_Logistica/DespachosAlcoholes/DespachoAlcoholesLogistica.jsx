@@ -68,6 +68,8 @@ import UndoIcon from '@mui/icons-material/Undo';
 import NotificationImportantIcon from "@mui/icons-material/NotificationImportant";
 import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt';
 import ChecklistIcon from '@mui/icons-material/Checklist';
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
 
 import ExcelUploadButton from "../utils_Logistica/ExcelUploadButton";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -1624,7 +1626,24 @@ export default function TablaDespachosLogistica() {
                             width: "1%",
                           }}
                         >
-                          {valor}
+                          {c.key === "flete_facturado" ? (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                justifyContent: "center",
+                                alignItems: "center",
+                                width: "100%",
+                              }}
+                            >
+                              {valor ? (
+                                <CheckCircleIcon sx={{ color: "#2e7d32" }} />
+                              ) : (
+                                <CancelIcon sx={{ color: "#d32f2f" }} />
+                              )}
+                            </Box>
+                          ) : (
+                            valor ?? ""
+                          )}
                         </TableCell>
                       );
                     })}

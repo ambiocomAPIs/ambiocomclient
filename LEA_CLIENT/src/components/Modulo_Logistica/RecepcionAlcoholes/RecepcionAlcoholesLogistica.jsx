@@ -61,10 +61,7 @@ import YouTubeIcon from "@mui/icons-material/YouTube";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
-import BuildIcon from "@mui/icons-material/Build";
 import CancelIcon from "@mui/icons-material/Cancel";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 
 import ExcelUploadButton from "../utils_Logistica/ExcelUploadButton";
@@ -106,6 +103,40 @@ const renderEstadoVehiculoIcon = (estado) => {
         </Tooltip>
       );
   }
+};
+
+const renderIconoFleteFacturado = (valor) => {
+  const commonWrapper = (icon, title) => (
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        width: "100%",
+      }}
+    >
+      <Tooltip title={title}>{icon}</Tooltip>
+    </Box>
+  );
+
+  if (valor === true) {
+    return commonWrapper(
+      <CheckCircleIcon sx={{ color: "#2e7d32" }} />,
+      "Flete facturado"
+    );
+  }
+
+  if (valor === false) {
+    return commonWrapper(
+      <CancelIcon sx={{ color: "#d32f2f" }} />,
+      "Flete no facturado"
+    );
+  }
+
+  return commonWrapper(
+    <HelpOutlineIcon sx={{ color: "text.secondary" }} />,
+    "Sin información"
+  );
 };
 
 /* ================= ENDPOINTS ================= */
@@ -1321,15 +1352,21 @@ export default function TablaIngresoRecepcionesLogistica() {
 
                 {columnas
                   .filter((c) => columnasVisibles.includes(c.key))
-                  .map((c) => (
-                    <TableCell
-                      key={c.key}
-                      align="center"
-                      sx={{ whiteSpace: "nowrap", width: "1%" }}
-                    >
-                      {row.lecturas?.[c.key] ?? ""}
-                    </TableCell>
-                  ))}
+                  .map((c) => {
+                    const valor = row.lecturas?.[c.key];
+
+                    return (
+                      <TableCell
+                        key={c.key}
+                        align="center"
+                        sx={{ whiteSpace: "nowrap", width: "1%" }}
+                      >
+                        {c.key === "flete_facturado"
+                          ? renderIconoFleteFacturado(valor)
+                          : valor ?? ""}
+                      </TableCell>
+                    );
+                  })}
 
                 <TableCell align="center">{row.observaciones}</TableCell>
                 <TableCell align="center">{row.responsable}</TableCell>
