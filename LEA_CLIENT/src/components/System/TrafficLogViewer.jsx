@@ -9,6 +9,7 @@ import {
   Chip,
   Divider,
 } from "@mui/material";
+import { DEFAULT_STATUS_ORDER, getStatusLabel, sortStatuses } from "./Data/trafficStatusConfig.js";
 
 /* =========================================================
    =============== CONFIGURACIÓN GENERAL ===================
@@ -191,22 +192,6 @@ const syncPendingTrafficLogs = async () => {
    - respuestas 5xx
    - fallos de red / sin internet
    =========================================================
-
-   EJEMPLO DE USO:
-
-   const response = await fetchWithTrafficLog(
-     "/api/clientes",
-     {
-       method: "GET",
-       credentials: "include",
-     },
-     {
-       moduleName: "clientes",
-       email: user?.email,
-       rol: user?.rol,
-       path: "/api/clientes",
-     }
-   );
 */
 
 export const fetchWithTrafficLog = async (url, options = {}, metadata = {}) => {
@@ -456,6 +441,39 @@ const TerminalTrafficLogViewer = () => {
   }, [logs, filter]);
 
   // =======================================================
+  // RESUMEN DINÁMICO DE STATUS
+  // =======================================================
+  const statusSummary = useMemo(() => {
+    const counts = filteredLogs.reduce((acc, log) => {
+      const key = String(log.statusCode ?? "N/A");
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+    const merged = DEFAULT_STATUS_ORDER
+      .filter((status) => counts[status] > 0)
+      .map((status) => ({
+        status,
+        count: counts[status],
+      }));
+
+    const extraStatuses = Object.entries(counts)
+      .filter(([status]) => !DEFAULT_STATUS_ORDER.includes(status))
+      .map(([status, count]) => ({
+        status,
+        count,
+      }));
+
+    return sortStatuses([...merged, ...extraStatuses]).map((item) => ({
+      ...item,
+      percent: filteredLogs.length
+        ? ((item.count / filteredLogs.length) * 100).toFixed(1)
+        : "0.0",
+      label: getStatusLabel(item.status),
+    }));
+  }, [filteredLogs]);
+
+  // =======================================================
   // FORMATO DE FECHA
   // =======================================================
   const formatDate = (value) => {
@@ -504,8 +522,8 @@ const TerminalTrafficLogViewer = () => {
   return (
     <Box
       sx={{
-        width: "100vw",
-        height: "100vh",
+        width: "100%",
+        height: "96vh",
         bgcolor: "#050807",
         overflow: "hidden",
       }}
@@ -705,103 +723,271 @@ const TerminalTrafficLogViewer = () => {
         <Box
           sx={{
             flex: 1,
-            overflowY: "auto",
             px: 2,
             py: 2,
             bgcolor: "#050807",
             backgroundImage:
               "radial-gradient(circle at top, rgba(0,255,128,0.03), transparent 30%)",
             minHeight: 0,
+            display: "flex",
+            gap: 2,
+            overflow: "hidden",
           }}
         >
-          {loading ? (
-            <Typography sx={bootTextSx}>iniciando monitor de tráfico...</Typography>
-          ) : error ? (
-            <Typography sx={{ ...bootTextSx, color: "#ff6b6b" }}>
-              error: {error}
-            </Typography>
-          ) : filteredLogs.length === 0 ? (
-            <>
-              <Typography sx={bootTextSx}>monitor listo.</Typography>
-              <Typography sx={bootTextSx}>sin registros para mostrar.</Typography>
-            </>
-          ) : (
-            filteredLogs.map((log, index) => (
-              <Box key={log._id || log._offlineId || `${log.requestedAt}-${index}`} sx={{ py: 0.75 }}>
-                <Typography
-                  component="div"
-                  sx={{
-                    fontFamily: "inherit",
-                    fontSize: 14,
-                    lineHeight: 1.8,
-                    color: "#d7ffd9",
-                    wordBreak: "break-word",
-                    borderBottom: "1px dashed rgba(60, 120, 80, 0.18)",
-                    pb: 0.75,
-                  }}
-                >
-                  <Box component="span" sx={{ color: "#7fa88a" }}>
-                    [{formatDate(log.requestedAt)}]
-                  </Box>{" "}
-                  <Box
-                    component="span"
+          {/* =========================
+              COLUMNA IZQUIERDA LOGS
+             ========================= */}
+          <Box
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              overflowY: "auto",
+              pr: 1,
+            }}
+          >
+            {loading ? (
+              <Typography sx={bootTextSx}>iniciando monitor de tráfico...</Typography>
+            ) : error ? (
+              <Typography sx={{ ...bootTextSx, color: "#ff6b6b" }}>
+                error: {error}
+              </Typography>
+            ) : filteredLogs.length === 0 ? (
+              <>
+                <Typography sx={bootTextSx}>monitor listo.</Typography>
+                <Typography sx={bootTextSx}>sin registros para mostrar.</Typography>
+              </>
+            ) : (
+              filteredLogs.map((log, index) => (
+                <Box key={log._id || log._offlineId || `${log.requestedAt}-${index}`} sx={{ py: 0.75 }}>
+                  <Typography
+                    component="div"
                     sx={{
-                      color: getMethodColor(log.method),
-                      fontWeight: 700,
+                      fontFamily: "inherit",
+                      fontSize: 14,
+                      lineHeight: 1.8,
+                      color: "#d7ffd9",
+                      wordBreak: "break-word",
+                      borderBottom: "1px dashed rgba(60, 120, 80, 0.18)",
+                      pb: 0.75,
                     }}
                   >
-                    {String(log.method || "N/A").padEnd(6, " ")}
-                  </Box>{" "}
-                  <Box component="span" sx={{ color: "#f4fff4" }}>
-                    {log.path || log.url || "sin-ruta"}
-                  </Box>{" "}
-                  <Box
-                    component="span"
-                    sx={{
-                      color: getStatusColor(log.statusCode),
-                      fontWeight: 700,
-                    }}
-                  >
-                    status={log.statusCode ?? "N/A"}
-                  </Box>{" "}
-                  <Box component="span" sx={{ color: "#9ccaa3" }}>
-                    module={log.moduleName || "general"}
-                  </Box>{" "}
-                  <Box component="span" sx={{ color: "#9ccaa3" }}>
-                    rol={log.rol || "anonimo"}
-                  </Box>{" "}
-                  <Box component="span" sx={{ color: "#9ccaa3" }}>
-                    email={log.email || "anonimo"}
-                  </Box>{" "}
-                  {!!log.errorMessage && (
-                    <Box component="span" sx={{ color: "#ffb74d" }}>
-                      error={log.errorMessage}
-                    </Box>
-                  )}
-                </Typography>
-              </Box>
-            ))
-          )}
+                    <Box component="span" sx={{ color: "#7fa88a" }}>
+                      [{formatDate(log.requestedAt)}]
+                    </Box>{" "}
+                    <Box
+                      component="span"
+                      sx={{
+                        color: getMethodColor(log.method),
+                        fontWeight: 700,
+                      }}
+                    >
+                      {String(log.method || "N/A").padEnd(6, " ")}
+                    </Box>{" "}
+                    <Box component="span" sx={{ color: "#f4fff4" }}>
+                      {log.path || log.url || "sin-ruta"}
+                    </Box>{" "}
+                    <Box
+                      component="span"
+                      sx={{
+                        color: getStatusColor(log.statusCode),
+                        fontWeight: 700,
+                      }}
+                    >
+                      status={log.statusCode ?? "N/A"}
+                    </Box>{" "}
+                    <Box component="span" sx={{ color: "#9ccaa3" }}>
+                      module={log.moduleName || "general"}
+                    </Box>{" "}
+                    <Box component="span" sx={{ color: "#9ccaa3" }}>
+                      rol={log.rol || "anonimo"}
+                    </Box>{" "}
+                    <Box component="span" sx={{ color: "#9ccaa3" }}>
+                      email={log.email || "anonimo"}
+                    </Box>{" "}
+                    {!!log.errorMessage && (
+                      <Box component="span" sx={{ color: "#ffb74d" }}>
+                        error={log.errorMessage}
+                      </Box>
+                    )}
+                  </Typography>
+                </Box>
+              ))
+            )}
 
-          <Divider sx={{ my: 1, borderColor: "rgba(60, 120, 80, 0.18)" }} />
+            <Divider sx={{ my: 1, borderColor: "rgba(60, 120, 80, 0.18)" }} />
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            <Typography sx={{ color: "#00ff9c", fontFamily: "inherit", fontWeight: 700 }}>
-              root@ambiocom
-            </Typography>
-            <Typography sx={{ color: "#d7ffd9", fontFamily: "inherit" }}>:</Typography>
-            <Typography sx={{ color: "#62d2ff", fontFamily: "inherit" }}>~/traffic</Typography>
-            <Typography sx={{ color: "#f5f5f5", fontFamily: "inherit" }}>$</Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Typography sx={{ color: "#00ff9c", fontFamily: "inherit", fontWeight: 700 }}>
+                root@ambiocom
+              </Typography>
+              <Typography sx={{ color: "#d7ffd9", fontFamily: "inherit" }}>:</Typography>
+              <Typography sx={{ color: "#62d2ff", fontFamily: "inherit" }}>~/traffic</Typography>
+              <Typography sx={{ color: "#f5f5f5", fontFamily: "inherit" }}>$</Typography>
+              <Box
+                sx={{
+                  width: 10,
+                  height: 18,
+                  bgcolor: "#00ff9c",
+                  ml: 0.5,
+                  boxShadow: "0 0 8px rgba(0,255,156,0.7)",
+                  animation: "blink 1s step-end infinite",
+                }}
+              />
+            </Box>
+          </Box>
+
+          {/* =========================
+              COLUMNA DERECHA STATUS
+             ========================= */}
+          <Box
+            sx={{
+              width: 300,
+              flexShrink: 0,
+              borderLeft: "1px solid #163222",
+              pl: 2,
+              display: "flex",
+              flexDirection: "column",
+              minHeight: 0,
+            }}
+          >
             <Box
               sx={{
-                width: 10,
-                height: 18,
-                bgcolor: "#00ff9c",
-                ml: 0.5,
-                boxShadow: "0 0 8px rgba(0,255,156,0.7)",
-                animation: "blink 1s step-end infinite",
+                mb: 1.5,
+                pb: 1,
+                borderBottom: "1px dashed rgba(60, 120, 80, 0.25)",
               }}
-            />
+            >
+              <Typography
+                sx={{
+                  color: "#00ff9c",
+                  fontFamily: "inherit",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  mb: 0.5,
+                  letterSpacing: 0.4,
+                }}
+              >
+                status summary
+              </Typography>
+
+              <Typography
+                sx={{
+                  color: "#7fa88a",
+                  fontFamily: "inherit",
+                  fontSize: 13,
+                }}
+              >
+                códigos detectados en la vista actual
+              </Typography>
+            </Box>
+
+            <Box
+              sx={{
+                overflowY: "auto",
+                pr: 0.5,
+                minHeight: 0,
+              }}
+            >
+              {statusSummary.length === 0 ? (
+                <Typography
+                  sx={{
+                    color: "#88d498",
+                    fontFamily: "inherit",
+                    fontSize: 12,
+                  }}
+                >
+                  sin status para mostrar
+                </Typography>
+              ) : (
+                statusSummary.map((item) => (
+                  <Box
+                    key={item.status}
+                    sx={{
+                      mb: 1,
+                      px: 1.2,
+                      py: 1,
+                      border: "1px solid rgba(38, 77, 51, 0.85)",
+                      bgcolor: "rgba(8, 20, 14, 0.75)",
+                      boxShadow: "inset 0 0 10px rgba(0,255,128,0.03)",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 1,
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          color: getStatusColor(item.status),
+                          fontFamily: "inherit",
+                          fontSize: 14,
+                          fontWeight: 700,
+                        }}
+                      >
+                        status {item.status}
+                      </Typography>
+
+                      <Typography
+                        sx={{
+                          color: "#d7ffd9",
+                          fontFamily: "inherit",
+                          fontSize: 14,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {item.count}
+                      </Typography>
+                    </Box>
+
+                    <Typography
+                      sx={{
+                        color: "#8fb99a",
+                        fontFamily: "inherit",
+                        fontSize: 13,
+                        mt: 0.35,
+                        textTransform: "lowercase",
+                      }}
+                    >
+                      {item.label}
+                    </Typography>
+
+                    <Box
+                      sx={{
+                        mt: 0.9,
+                        height: 6,
+                        width: "100%",
+                        bgcolor: "#0b1611",
+                        border: "1px solid rgba(37, 71, 49, 0.6)",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          height: "100%",
+                          width: `${Math.max(Number(item.percent), 3)}%`,
+                          bgcolor: getStatusColor(item.status),
+                          boxShadow: `0 0 10px ${getStatusColor(item.status)}`,
+                        }}
+                      />
+                    </Box>
+
+                    <Typography
+                      sx={{
+                        color: "#7fa88a",
+                        fontFamily: "inherit",
+                        fontSize: 13,
+                        mt: 0.45,
+                      }}
+                    >
+                      {item.percent}% del total filtrado
+                    </Typography>
+                  </Box>
+                ))
+              )}
+            </Box>
           </Box>
         </Box>
       </Paper>

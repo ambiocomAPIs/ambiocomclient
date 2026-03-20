@@ -77,28 +77,28 @@ const renderEstadoVehiculoIcon = (estado) => {
   switch (estadoNormalizado) {
     case "APROBADO":
       return (
-        <Tooltip title="Vehículo aprobado">
+        <Tooltip placement="top" title="Vehículo aprobado">
           <CheckCircleIcon sx={{ color: "success.main" }} />
         </Tooltip>
       );
 
     case "RECHAZADO":
       return (
-        <Tooltip title="Vehículo rechazado">
+        <Tooltip placement="top" title="Vehículo rechazado">
           <CancelIcon sx={{ color: "error.main" }} />
         </Tooltip>
       );
 
     case "PROCESO":
       return (
-        <Tooltip title="Vehículo en proceso">
+        <Tooltip placement="top" title="Vehículo en proceso">
           <LocalShippingIcon sx={{ color: "#CF27F5" }} />
         </Tooltip>
       );
 
     default:
       return (
-        <Tooltip title={`Estado no definido: ${estado || "sin estado"}`}>
+        <Tooltip placement="top" title={`Estado no definido: ${estado || "sin estado"}`}>
           <HelpOutlineIcon sx={{ color: "text.secondary" }} />
         </Tooltip>
       );
@@ -1338,11 +1338,11 @@ export default function TablaIngresoRecepcionesLogistica() {
                           cursor: "pointer",
                         }}
                       >
-                        <Tooltip title="Doble click para ver observación">
+                        {/* <Tooltip placement="top" title="Doble click para ver observación"> */}
                           <Box sx={{ display: "flex", alignItems: "center" }}>
                             {renderEstadoVehiculoIcon(row.lecturas?.estado_vehiculo)}
                           </Box>
-                        </Tooltip>
+                        {/* </Tooltip> */}
                       </Box>
                     </Box>
                   </Box>

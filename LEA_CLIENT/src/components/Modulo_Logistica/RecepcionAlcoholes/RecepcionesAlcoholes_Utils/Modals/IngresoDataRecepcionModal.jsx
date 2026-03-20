@@ -22,7 +22,7 @@ import { useTanques } from "../../../../../utils/Context/TanquesContext";
 const TIME_KEYS = ["hora_ingreso", "hora_salida"];
 const REQUIRED_FIELDS = ["fecha", "responsable", "observaciones"];
 const ANALISTA_KEYS = ["analista_laboratorio"];
-const FLETE_FACTURADO_KEY = "flete_facturado";
+// const "flete_facturado" = "flete_facturado";
 
 //LABELS para estado de la recepcion
 const ESTADO_VEHICULO_OPTIONS = [
@@ -83,6 +83,7 @@ const IngresoDataRecepcionModal = ({
     const [colaboradoresLaboratorio, setColaboradoresLaboratorio] = useState([]);
     const [conductores, setConductores] = useState([]);
     const [transportadoras, setTransportadoras] = useState([]);
+    const [productos, setProductos] = useState([]);
     const timeOptions = useMemo(() => buildTimeOptions(1), []);
 
     const { tanques } = useTanques();
@@ -92,10 +93,11 @@ const IngresoDataRecepcionModal = ({
 
         const cargarDataMenuItemsSelect = async () => {
             try {
-                const [{ data: personalData }, { data: conductoresData }, { data: transportadorasData },] = await Promise.all([
+                const [{ data: personalData }, { data: conductoresData }, { data: transportadorasData }, { data: productosData  }] = await Promise.all([
                     axios.get("https://ambiocomserver.onrender.com/api/personal"),
                     axios.get("https://ambiocomserver.onrender.com/api/conductores"),
                     axios.get("https://ambiocomserver.onrender.com/api/transportadoraslogistica"),
+                    axios.get("https://ambiocomserver.onrender.com/api/alcoholesdespacho"),
                 ]);
 
                 const base = (Array.isArray(personalData) ? personalData : [])
@@ -140,16 +142,33 @@ const IngresoDataRecepcionModal = ({
                         value: nombre,
                         label: nombre,
                     }));
+
+                const listaProductos = (Array.isArray(productosData) ? productosData : [])
+                    .map((p) => {
+                        const nombre = String(
+                            p?.producto ?? p?.nombreProducto ?? p?.nombre ?? ""
+                        ).trim();
+
+                        return {
+                            value: nombre,
+                            label: nombre,
+                        };
+                    })
+                    .filter((x) => x.value)
+                    .sort((a, b) => a.label.localeCompare(b.label, "es"));
+
                 setColaboradoresLogistica(listaLogistica);
                 setColaboradoresLaboratorio(listaLaboratorio);
                 setConductores(listaConductores);
                 setTransportadoras(listaTransportadoras);
+                setProductos(listaProductos);
             } catch (error) {
                 console.error("Error cargando personal/conductores:", error);
                 setColaboradoresLogistica([]);
                 setColaboradoresLaboratorio([]);
                 setConductores([]);
                 setTransportadoras([]);
+                setProductos([]);
             }
         };
 
@@ -305,6 +324,11 @@ const IngresoDataRecepcionModal = ({
     const transportadoraSeleccionada =
         transportadoras.find(
             (t) => t.value === (form?.lecturas?.transportadora ?? "")
+        ) || null;
+
+    const productoSeleccionado =
+        productos.find(
+            (p) => p.value === (form?.lecturas?.producto ?? "")
         ) || null;
 
     const tanqueRecepcionSeleccionado =
@@ -622,7 +646,8 @@ const IngresoDataRecepcionModal = ({
                             const esErrorPeso = c.key === "error_en_peso";
                             const esErrorVolumen = c.key === "error_volumen";
                             const esEstadoVehiculo = c.key === "estado_vehiculo";
-                            const esFleteFacturado = c.key === FLETE_FACTURADO_KEY;
+                            const esFleteFacturado = c.key === "flete_facturado";
+                            const esProducto = c.key === "producto";
 
                             if (["nombre_conductor", "placa", "remolque", "transportadora", "tanque_recepcion"].includes(c.key)) {
                                 return null;
@@ -653,6 +678,56 @@ const IngresoDataRecepcionModal = ({
                                                     label={`${c.nombre}${esObligatorio ? " *" : ""}${c.unidad ? ` (${c.unidad})` : ""
                                                         }`}
                                                     placeholder="Selecciona analista de laboratorio"
+                                                />
+                                            )}
+                                        />
+                                    </Grid>
+                                );
+                            }
+
+                            if (esProducto) {
+                                return (
+                                    <Grid item {...size} key={c.key}>
+                                        <Autocomplete
+                                            options={productos}
+                                            value={productoSeleccionado}
+                                            inputValue={
+                                                form?.lecturas?.producto__input ??
+                                                form?.lecturas?.producto ??
+                                                ""
+                                            }
+                                            getOptionLabel={(option) => option?.label ?? ""}
+                                            isOptionEqualToValue={(option, value) =>
+                                                option.value === value.value
+                                            }
+                                            onChange={(event, newValue) =>
+                                                setForm((prev) => ({
+                                                    ...prev,
+                                                    lecturas: {
+                                                        ...(prev?.lecturas || {}),
+                                                        producto: newValue?.value ?? "",
+                                                        producto__input: newValue?.label ?? newValue?.value ?? "",
+                                                    },
+                                                }))
+                                            }
+                                            onInputChange={(event, newInputValue, reason) => {
+                                                setForm((prev) => ({
+                                                    ...prev,
+                                                    lecturas: {
+                                                        ...(prev?.lecturas || {}),
+                                                        producto__input: newInputValue,
+                                                        ...(reason === "clear"
+                                                            ? { producto: "" }
+                                                            : {}),
+                                                    },
+                                                }));
+                                            }}
+                                            renderInput={(params) => (
+                                                <TextField
+                                                    {...params}
+                                                    fullWidth
+                                                    label={`${c.nombre}${esObligatorio ? " *" : ""}`}
+                                                    placeholder="Selecciona producto"
                                                 />
                                             )}
                                         />
