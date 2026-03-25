@@ -93,14 +93,14 @@ const TanquesTK801AB = ({ tanquesContext, NivelesTanquesContext }) => {
   return (
     <Box
       display="flex"
-      gap="160px"
+      gap="130px"
       justifyContent="center"
       alignItems="flex-end"
       mt={26}
     >
       {tanques.map(
         (
-          { NombreTanque, ancho = 630, Disposicion, Factor, VolumenTotal },
+          { NombreTanque, ancho = 780, Disposicion, Factor, VolumenTotal },
           index
         ) => {
           // buscar el nivel correspondiente a este tanque
@@ -123,13 +123,13 @@ const TanquesTK801AB = ({ tanquesContext, NivelesTanquesContext }) => {
                 sx={{
                   position: "absolute",
                   top: 6,
-                  left: "10%",
+                  left: "13%",
                   transform: "translateX(-50%)",
                   width: "16px",
-                  height: "74%",
-                  backgroundColor: "#ddd",
+                  height: "64%",
+                  backgroundColor: "#af9f9f",
                   borderRadius: "5px",
-                  border: "1px solid #ccc",
+                  border: "1px solid #9b9595",
                   display: "flex",
                   flexDirection: "column-reverse",
                   overflow: "hidden",
@@ -138,10 +138,9 @@ const TanquesTK801AB = ({ tanquesContext, NivelesTanquesContext }) => {
               >
                 <Box
                   sx={{
-                    height: `${
-                      ((nivelTanqueObj.NivelTanque * Factor) / VolumenTotal) *
+                    height: `${((nivelTanqueObj.NivelTanque * Factor) / VolumenTotal) *
                       100
-                    }%`,
+                      }%`,
                     width: "100%",
                     backgroundColor:
                       nivelTanqueObj.NivelTanque > Number(VolumenTotal) / 2
@@ -152,12 +151,8 @@ const TanquesTK801AB = ({ tanquesContext, NivelesTanquesContext }) => {
                 />
               </Box>
 
-              <Typography variant="h6" style={{ marginBottom: "0px" }}>
-                V Total: {VolumenTotal} L
-              </Typography>
-              <Typography variant="h6" style={{ marginBottom: "0px" }}>
-                Factor: {Factor} L/m
-              </Typography>
+              <Typography sx={{ fontSize: '18px' }}><strong>Capacidad:</strong> {Number(VolumenTotal).toLocaleString('es-ES')}  L</Typography>
+              <Typography sx={{ fontSize: '18px' }}><strong>Factor: </strong>{Number(Factor).toLocaleString('es-ES')} L/m</Typography>
 
               <img
                 src={"/TanquesAlmacenamiento/tanque2.png"}
@@ -174,11 +169,12 @@ const TanquesTK801AB = ({ tanquesContext, NivelesTanquesContext }) => {
               {nivelTanqueObj && (
                 <>
                   <div style={{ marginTop: 8, zIndex: 3 }}>
-                    {nivelTanqueObj.NivelTanque * Factor} L
+                    <strong>Volumen:</strong> {Number(nivelTanqueObj.NivelTanque * Factor || 0).toLocaleString('es-ES', {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 1
+                    })} L
                   </div>
-                  <div style={{ marginTop: 5, zIndex: 3 }}>
-                    {nivelTanqueObj.NivelTanque} m
-                  </div>
+                  <div style={{ marginTop: 5 }}><strong>Nivel:</strong>: {nivelTanqueObj.NivelTanque} cm</div>
                 </>
               )}
               <input

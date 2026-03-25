@@ -90,144 +90,138 @@ const UnidadCienAlmacenamiento = ({
       <div
         style={{
           display: "flex",
-          gap: "200px",
+          gap: "130px",
           justifyContent: "center",
           alignItems: "flex-end",
-          marginTop: 220,
+          marginTop: 195,
         }}
       >
-        {tanques.map(({ NombreTanque, ancho=640, Disposicion, Factor, VolumenTotal },index) => {
-            // buscar el nivel correspondiente a este tanque
-            const nivelTanqueObj = tanquesNivelesFiltered.find(
-              (t) => t.NombreTanque === NombreTanque
-            );
-            return (
+        {tanques.map(({ NombreTanque, ancho = 750, Disposicion, Factor, VolumenTotal }, index) => {
+          // buscar el nivel correspondiente a este tanque
+          const nivelTanqueObj = tanquesNivelesFiltered.find(
+            (t) => t.NombreTanque === NombreTanque
+          );
+          return (
+            <div
+              key={index}
+              onDoubleClick={() => handleDobleClickTanque(NombreTanque)}
+              style={{
+                position: "relative",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                height: contenedorAltura,
+                width: ancho,
+                justifyContent: "flex-end",
+              }}
+            >
+              {/* Barra vertical posicionada absolute encima */}
               <div
-                key={index}
-                onDoubleClick={() => handleDobleClickTanque(NombreTanque)}
                 style={{
-                  position: "relative",
+                  position: "absolute",
+                  top: 16,
+                  left: "13%",
+                  transform: "translateX(-50%)",
+                  width: "16px",
+                  height: "62%",
+                  backgroundColor: "#bdadad",
+                  borderRadius: "5px",
+                  border: "1px solid #aa9d9d",
                   display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  height: contenedorAltura,
-                  width: ancho,
-                  justifyContent: "flex-end",
+                  flexDirection: "column-reverse",
+                  overflow: "hidden",
+                  zIndex: 2,
                 }}
               >
-                {/* Barra vertical posicionada absolute encima */}
                 <div
                   style={{
-                    position: "absolute",
-                    top: 5,
-                    left: "11%",
-                    transform: "translateX(-50%)",
-                    width: "16px",
-                    height: "77%",
-                    backgroundColor: "#ddd",
-                    borderRadius: "5px",
-                    border: "1px solid #ccc",
-                    display: "flex",
-                    flexDirection: "column-reverse",
-                    overflow: "hidden",
-                    zIndex: 2,
-                  }}
-                >
-                  <div
-                    style={{
-                      height: `${
-                        ((nivelTanqueObj.NivelTanque * Factor) / VolumenTotal) *
-                        100
+                    height: `${((nivelTanqueObj.NivelTanque * Factor) / VolumenTotal) *
+                      100
                       }%`,
-                      width: "100%",
-                      backgroundColor:
-                        nivelTanqueObj.NivelTanque > Number(VolumenTotal) / 2
-                          ? "blue"
-                          : "orange",
-                      transition: "height 0.5s ease",
-                    }}
-                  />
-                </div>
-
-                <Typography variant="h6" style={{ marginBottom: "0px" }}>
-                  V Total: {VolumenTotal} L
-                </Typography>
-                <Typography variant="h6" style={{ marginBottom: "0px" }}>
-                  Factor: {Factor} L/m
-                </Typography>
-
-                <img
-                  src={"/TanquesAlmacenamiento/tanque2.png"}
-                  alt={`Tanque ${NombreTanque}`}
-                  style={{
-                    width: `${ancho}px`,
-                    height: "auto",
-                    zIndex: 1,
-                    position: "relative",
-                  }}
-                />
-
-                {/* ✅ Mostrar el nivel correspondiente a este tanque */}
-                {nivelTanqueObj && (
-                  <>
-                    <div style={{ marginTop: 8, zIndex: 3 }}>
-                      {nivelTanqueObj.NivelTanque * Factor} L
-                    </div>
-                    <div style={{ marginTop: 5, zIndex: 3 }}>
-                      {nivelTanqueObj.NivelTanque} m
-                    </div>
-                  </>
-                )}
-
-                <input
-                  type="text"
-                  readOnly
-                  value={NombreTanque}
-                  style={{
-                    position: "absolute",
-                    top: "8%",
-                    left: "47%",
-                    transform: "translate(-50%, -50%)",
-                    fontSize: "23px",
-                    width: "100px",
-                    textAlign: "center",
-                    border: "1px solid #ccc",
-                    borderRadius: "4px",
-                    padding: "4px",
-                    backgroundColor: "rgba(255, 255, 255, 0.8)",
-                    cursor: "default",
-                    zIndex: 4,
-                  }}
-                />
-
-                <input
-                  type="text"
-                  value={Disposicion}
-                  style={{
-                    position: "absolute",
-                    top: "17%",
-                    left: "47%",
-                    transform: "translate(-50%, -50%)",
-                    fontSize: "23px",
-                    width: "200px",
-                    textAlign: "center",
-                    border: "1px solid #ccc",
-                    borderRadius: "4px",
-                    padding: "2px",
-                    backgroundColor: "rgba(255, 255, 255, 0.8)",
-                    cursor: "default",
-                    zIndex: 4,
+                    width: "100%",
+                    backgroundColor:
+                      nivelTanqueObj.NivelTanque > Number(VolumenTotal) / 2
+                        ? "blue"
+                        : "orange",
+                    transition: "height 0.5s ease",
                   }}
                 />
               </div>
-            );
-          }
+              <Typography sx={{ fontSize: '18px' }}><strong>Capacidad:</strong> {Number(VolumenTotal).toLocaleString('es-ES')}  L</Typography>
+              <Typography sx={{ fontSize: '18px' }}><strong>Factor: </strong>{Number(Factor).toLocaleString('es-ES')} L/m</Typography>
+              <img
+                src={"/TanquesAlmacenamiento/tanque2.png"}
+                alt={`Tanque ${NombreTanque}`}
+                style={{
+                  width: `${ancho}px`,
+                  height: "auto",
+                  zIndex: 1,
+                  position: "relative",
+                }}
+              />
+
+              {/* ✅ Mostrar el nivel correspondiente a este tanque */}
+              {nivelTanqueObj && (
+                <>
+                  <div style={{ marginTop: 8, zIndex: 3 }}>
+                    <strong>Volumen:</strong> {Number(nivelTanqueObj.NivelTanque * Factor || 0).toLocaleString('es-ES', {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 1
+                    })} L
+                  </div>
+                  <div style={{ marginTop: 5 }}><strong>Nivel:</strong>: {nivelTanqueObj.NivelTanque} cm</div>
+                </>
+              )}
+
+              <input
+                type="text"
+                readOnly
+                value={NombreTanque}
+                style={{
+                  position: "absolute",
+                  top: "10%",
+                  left: "47%",
+                  transform: "translate(-50%, -50%)",
+                  fontSize: "23px",
+                  width: "100px",
+                  textAlign: "center",
+                  border: "1px solid #ccc",
+                  borderRadius: "4px",
+                  padding: "4px",
+                  backgroundColor: "rgba(255, 255, 255, 0.8)",
+                  cursor: "default",
+                  zIndex: 4,
+                }}
+              />
+
+              <input
+                type="text"
+                value={Disposicion}
+                style={{
+                  position: "absolute",
+                  top: "19%",
+                  left: "47%",
+                  transform: "translate(-50%, -50%)",
+                  fontSize: "23px",
+                  width: "200px",
+                  textAlign: "center",
+                  border: "1px solid #ccc",
+                  borderRadius: "4px",
+                  padding: "2px",
+                  backgroundColor: "rgba(255, 255, 255, 0.8)",
+                  cursor: "default",
+                  zIndex: 4,
+                }}
+              />
+            </div>
+          );
+        }
         )}
-         <Typography
+        <Typography
           variant="body2"
           sx={{
             position: "absolute",
-            bottom: 15,
+            bottom: 20,
             left: "50%",
             transform: "translateX(-50%)",
             fontSize: "1.1rem",

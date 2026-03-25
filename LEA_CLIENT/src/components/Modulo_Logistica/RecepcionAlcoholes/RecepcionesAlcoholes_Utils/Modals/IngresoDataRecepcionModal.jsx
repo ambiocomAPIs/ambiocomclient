@@ -19,6 +19,10 @@ import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import Autocomplete from "@mui/material/Autocomplete";
 import { useTanques } from "../../../../../utils/Context/TanquesContext";
 
+const DENSIDAD_KEY = "densidad";
+const DENSIDAD_MIN = 0.7;
+const DENSIDAD_MAX = 0.9;
+
 const TIME_KEYS = ["hora_ingreso", "hora_salida"];
 const REQUIRED_FIELDS = ["fecha", "responsable", "observaciones"];
 const ANALISTA_KEYS = ["analista_laboratorio"];
@@ -85,6 +89,7 @@ const IngresoDataRecepcionModal = ({
     const [transportadoras, setTransportadoras] = useState([]);
     const [productos, setProductos] = useState([]);
     const timeOptions = useMemo(() => buildTimeOptions(1), []);
+    const [fieldErrors, setFieldErrors] = useState({});
 
     const { tanques } = useTanques();
 
@@ -93,7 +98,7 @@ const IngresoDataRecepcionModal = ({
 
         const cargarDataMenuItemsSelect = async () => {
             try {
-                const [{ data: personalData }, { data: conductoresData }, { data: transportadorasData }, { data: productosData  }] = await Promise.all([
+                const [{ data: personalData }, { data: conductoresData }, { data: transportadorasData }, { data: productosData }] = await Promise.all([
                     axios.get("https://ambiocomserver.onrender.com/api/personal"),
                     axios.get("https://ambiocomserver.onrender.com/api/conductores"),
                     axios.get("https://ambiocomserver.onrender.com/api/transportadoraslogistica"),
@@ -196,6 +201,21 @@ const IngresoDataRecepcionModal = ({
         });
     }, [open, isEdit, setForm]);
 
+    // funcion para validar el rango de la densidad y mostrar un helper
+    const validateDensidad = (value) => {
+        const text = String(value ?? "").trim();
+        if (!text) return "";
+
+        const n = Number(text.replace(",", "."));
+
+        if (!Number.isFinite(n)) return "La densidad debe ser numérica";
+        if (n < DENSIDAD_MIN || n > DENSIDAD_MAX) {
+            return `El rango debe estar entre ${DENSIDAD_MIN} y ${DENSIDAD_MAX}`;
+        }
+
+        return "";
+    };
+
     //memo para contexto de tanques 
     const tanquesArray = useMemo(() => {
         if (Array.isArray(tanques)) return tanques;
@@ -290,6 +310,18 @@ const IngresoDataRecepcionModal = ({
     };
 
     const handleGuardar = () => {
+        const errors = {};
+
+        const densidadError = validateDensidad(form?.lecturas?.[DENSIDAD_KEY]);
+        if (densidadError) {
+            errors[DENSIDAD_KEY] = densidadError;
+        }
+
+        if (Object.keys(errors).length > 0) {
+            setFieldErrors(errors);
+            return;
+        }
+
         const payload = {
             ...form,
             observaciones: String(form?.observaciones ?? "").trim(),
@@ -868,12 +900,29 @@ const IngresoDataRecepcionModal = ({
                                 <Grid item {...size} key={c.key}>
                                     <TextField
                                         fullWidth
-                                        label={`${c.nombre}${esObligatorio ? " *" : ""}${c.unidad ? ` (${c.unidad})` : ""
-                                            }`}
+                                        label={`${c.nombre}${esObligatorio ? " *" : ""}${c.unidad ? ` (${c.unidad})` : ""}`}
                                         type={esNumero ? "number" : "text"}
                                         value={form?.lecturas?.[c.key] ?? ""}
                                         disabled={esTiempoCalculado || esVolumenRecepcionado || esDiferenciaPeso || esDiferenciaVolumen || esErrorPeso || esErrorVolumen}
-                                        onChange={(e) => handleChangeLectura(c.key, e.target.value)}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            handleChangeLectura(c.key, value);
+
+                                            if (c.key === DENSIDAD_KEY) {
+                                                const msg = validateDensidad(value);
+
+                                                setFieldErrors((prev) => {
+                                                    const copy = { ...prev };
+                                                    if (msg) copy[c.key] = msg;
+                                                    else delete copy[c.key];
+                                                    return copy;
+                                                });
+                                            }
+                                        }}
+                                        error={!!fieldErrors[c.key]}
+                                        helperText={
+                                            fieldErrors[c.key]
+                                        }
                                         sx={{
                                             "& .MuiInputBase-root": {
                                                 backgroundColor: esTiempoCalculado || esVolumenRecepcionado || esDiferenciaPeso || esDiferenciaVolumen || esErrorPeso || esErrorVolumen
@@ -945,7 +994,7 @@ const IngresoDataRecepcionModal = ({
                         Limpiar
                     </Button>
 
-                    <Button variant="contained" onClick={handleGuardar}>
+                    <Button variant="contained" onClick={handleGuardar} disabled={Object.values(fieldErrors).some(Boolean)}>
                         {isEdit ? "Actualizar" : "Guardar"}
                     </Button>
                 </Box>

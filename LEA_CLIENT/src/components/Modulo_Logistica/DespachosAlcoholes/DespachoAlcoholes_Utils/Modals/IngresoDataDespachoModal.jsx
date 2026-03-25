@@ -35,6 +35,10 @@ const columnasBloqueadas = [
   "diferencia_recibo_cliente_vnetofacturado",
 ];
 
+const DENSIDAD_KEY = "densidadlab_alcohol_tanque";
+const DENSIDAD_MIN = 0.7;
+const DENSIDAD_MAX = 0.9;
+
 const PERSONAL_ANALISTA_KEY = "muestreador_analista_laboratorio"; // personal lab para el select
 const PERSONAL_LOGISTICA_KEYS = [
   "operario_auxiliar_logistica",
@@ -422,6 +426,21 @@ const IngresoDataDespachoModal = ({
   };
 
   // helper para validar digitacion en celdas con select
+
+  // campo para validr rango de densidad 
+  const validateDensidad = (value) => {
+    const text = String(value ?? "").trim();
+    if (!text) return "";
+
+    const n = Number(text.replace(",", "."));
+    if (!Number.isFinite(n)) return `La densidad debe ser numérica`;
+    if (n < DENSIDAD_MIN || n > DENSIDAD_MAX) {
+      return `El rango debe estar entre ${DENSIDAD_MIN} y ${DENSIDAD_MAX}`;
+    }
+
+    return "";
+  };
+
   const validateSelectValue = (key, inputValue, options) => {
     const text = String(inputValue ?? "").trim();
     if (!text) return "";
@@ -1080,6 +1099,7 @@ const IngresoDataDespachoModal = ({
                 const esNombreConductor = c.key === "nombre_conductor";
                 const esFleteFacturado = c.key === FLETE_FACTURADO_KEY;
                 const isRequired = (key) => REQUIRED_FIELDS.includes(key); // campos requeridos
+                const esDensidad = c.key === DENSIDAD_KEY;
 
                 const allowedByRole = canRoleEditColumn(c);
                 const isDisabled = !allowedByRole;
@@ -1342,7 +1362,7 @@ const IngresoDataDespachoModal = ({
                         )}
                       />
                     ) : esFleteFacturado ? (
-                      <Tooltip title={faltaRemisionFactura ? "Debe Registrar remisión o Factura asociada": ""}>
+                      <Tooltip title={faltaRemisionFactura ? "Debe Registrar remisión o Factura asociada" : ""}>
                         <Box
                           sx={{
                             border: "1px solid rgba(0,0,0,0.23)",
@@ -1417,10 +1437,30 @@ const IngresoDataDespachoModal = ({
                         value={form.lecturas?.[c.key] ?? ""}
                         onChange={(e) => {
                           if (isDisabled) return;
-                          handleChangeLectura(c.key, e.target.value);
+
+                          const value = e.target.value;
+                          handleChangeLectura(c.key, value);
+
+                          if (c.key === "densidadlab_alcohol_tanque") {
+                            const n = Number(String(value).replace(",", "."));
+
+                            if (value.trim() === "") {
+                              clearFieldError(c.key);
+                            } else if (!Number.isFinite(n)) {
+                              setFieldError(c.key, "La densidad debe ser numérica");
+                            } else if (n < 0.7 || n > 0.9) {
+                              setFieldError(c.key, "Debe estar entre 0.7 y 0.9");
+                            } else {
+                              clearFieldError(c.key);
+                            }
+                          }
                         }}
                         disabled={isDisabled}
                         sx={sxField}
+                        error={!!fieldErrors[c.key]}
+                        helperText={
+                          fieldErrors[c.key]
+                        }
                       />
                     )}
                   </Grid>
@@ -1468,6 +1508,12 @@ const IngresoDataDespachoModal = ({
             if (saving) return; // evita doble click
 
             const errors = {};
+
+            // validacion para que si no esta en el rango de densidad no se guarde
+            const densidadError = validateDensidad(form?.lecturas?.[DENSIDAD_KEY]);
+            if (densidadError) {
+              errors[DENSIDAD_KEY] = densidadError;
+            }
 
             if (!form.fecha) errors.fecha = "La fecha es obligatoria";
             if (!form.responsable) errors.responsable = "El responsable es obligatorio";

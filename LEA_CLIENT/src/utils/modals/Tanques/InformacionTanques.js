@@ -4,72 +4,72 @@ const InformacionTanques = {
       imagen: "/TanquesAlmacenamiento/tanque5.png",
       dimensiones: {
         material: "Acero Inoxidable",
-        altura: "12.5 m",
-        diametro: "4.2 m",
-        volumen: "173.6 m³",
+        altura: "7.62 m",
+        diametro: "6.03 m",
+        volumen: "217.11 m³",
       },
     },
     "302": {
       imagen: "/TanquesAlmacenamiento/tanque5.png",
       dimensiones: {
         material: "Acero Inoxidable",
-        altura: "12.5 m",
-        diametro: "4.2 m",
-        volumen: "173.6 m³",
+        altura: "7.62 m",
+        diametro: "6.03 m",
+        volumen: "217.11 m³",
       },
     },
     "303": {
       imagen: "/TanquesAlmacenamiento/tanque5.png",
       dimensiones: {
         material: "Acero Inoxidable",
-        altura: "12.5 m",
-        diametro: "4.2 m",
-        volumen: "173.6 m³",
+        altura: "7.62 m",
+        diametro: "6.03 m",
+        volumen: "217.11 m³",
       },
     },
     "304": {
       imagen: "/TanquesAlmacenamiento/tanque5.png",
       dimensiones: {
         material: "Acero Inoxidable",
-        altura: "12.5 m",
-        diametro: "4.2 m",
-        volumen: "173.6 m³",
+        altura: "7.62 m",
+        diametro: "6.03 m",
+        volumen: "217.11 m³",
       },
     },
     "305": {
       imagen: "/TanquesAlmacenamiento/tanque5.png",
       dimensiones: {
         material: "Acero Inoxidable",
-        altura: "12.5 m",
-        diametro: "4.2 m",
-        volumen: "173.6 m³",
+        altura: "7.62 m",
+        diametro: "6.03 m",
+        volumen: "202.65 m³",
       },
     },
     "350": {
       imagen: "/TanquesAlmacenamiento/tanque5.png",
       dimensiones: {
         material: "Acero Inoxidable",
-        altura: "12.5 m",
-        diametro: "4.2 m",
-        volumen: "173.6 m³",
+        altura: "7.32 m",
+        diametro: "3.7 m",
+        volumen: "78.73 m³",
       },
     },
     "300A": {
       imagen: "/TanquesAlmacenamiento/tanque5.png",
       dimensiones: {
         material: "Acero Inoxidable",
-        altura: "12.5 m",
-        diametro: "4.2 m",
-        volumen: "173.6 m³",
+        altura: "5.6 m",
+        diametro: "4.8 m",
+        volumen: "101.63 m³",
       },
     },
     "300B": {
       imagen: "/TanquesAlmacenamiento/tanque5.png",
       dimensiones: {
         material: "Acero Inoxidable",
-        altura: "12.5 m",
-        diametro: "4.2 m",
-        volumen: "173.6 m³",
+        altura: "4.5 m",
+        diametro: "3.02 m",
+        volumen: "32.14 m³",
       },
     },
     "401A": {
@@ -91,7 +91,7 @@ const InformacionTanques = {
       },
     },
     "402A": {
-      imagen: "/TanquesAlmacenamiento/jornaleroproductofinalsinfondo.png",
+      imagen: "/TanquesAlmacenamiento/tanque403best.png",
       dimensiones: {
         material: "Acero Inoxidable",
         altura: "12.5 m",
@@ -100,7 +100,7 @@ const InformacionTanques = {
       },
     },
     "402B": {
-      imagen: "/TanquesAlmacenamiento/jornaleroproductofinalsinfondo.png",
+      imagen: "/TanquesAlmacenamiento/tanque403best.png",
       dimensiones: {
         material: "Acero Inoxidable",
         altura: "12.5 m",
@@ -144,13 +144,49 @@ const InformacionTanques = {
         volumen: "173.6 m³",
       },
     },
-    "803": {
-      imagen: "/TanquesAlmacenamiento/tanque803.png",
+    "650": {
+      imagen: "/TanquesAlmacenamiento/tanque650.png",
       dimensiones: {
         material: "Acero Inoxidable",
         altura: "12.5 m",
         diametro: "4.2 m",
         volumen: "173.6 m³",
+      },
+    },
+    "600A": {
+      imagen: "/TanquesAlmacenamiento/tanque600A.png",
+      dimensiones: {
+        material: "Acero Inoxidable",
+        altura: "12.5 m",
+        diametro: "4.2 m",
+        volumen: "173.6 m³",
+      },
+    },
+    "600B": {
+      imagen: "/TanquesAlmacenamiento/tanque600B.png",
+      dimensiones: {
+        material: "Acero Inoxidable",
+        altura: "12.5 m",
+        diametro: "4.2 m",
+        volumen: "173.6 m³",
+      },
+    },
+    "670": {
+      imagen: "/TanquesAlmacenamiento/tanque670.png",
+      dimensiones: {
+        material: "Acero Inoxidable",
+        altura: "12.5 m",
+        diametro: "4.2 m",
+        volumen: "173.6 m³",
+      },
+    },
+    "803": {
+      imagen: "/TanquesAlmacenamiento/tanque803.png",
+      dimensiones: {
+        material: "Acero Inoxidable",
+        altura: "1.80 m",
+        diametro: "7.0 m",
+        volumen: "69 m³",
       },
     },
     "804": {

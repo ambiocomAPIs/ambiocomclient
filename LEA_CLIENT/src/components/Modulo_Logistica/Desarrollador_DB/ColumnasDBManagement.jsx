@@ -31,10 +31,11 @@ import SaveIcon from "@mui/icons-material/Save";
 import AddIcon from "@mui/icons-material/Add";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 
-const API_COLUMNAS = "https://ambiocomserver.onrender.com/api/columna-despacho-alcoholes";
+const API_COLUMNAS_DESPACHO = "https://ambiocomserver.onrender.com/api/columna-despacho-alcoholes";
+const API_COLUMNAS_RECEPCION = "https://ambiocomserver.onrender.com/api/columna-recepcion-alcoholes";
 const API_AUTH_VERIFY = "https://ambiocomserver.onrender.com/api/auth/verify-columns";
 
-//roles del select
+// roles del select para despacho
 const ROLES = [
   "developer",
   "liderlogistica",
@@ -44,7 +45,7 @@ const ROLES = [
   "gerente",
 ];
 
-const initialForm = {
+const initialFormDespacho = {
   nombre: "",
   key: "",
   unidad: "",
@@ -52,19 +53,33 @@ const initialForm = {
   rolesDigitables: ["developer"],
 };
 
-export default function GestionColumnasDespacho() {
-  const [columnas, setColumnas] = useState([]);
+const initialFormRecepcion = {
+  nombre: "",
+  key: "",
+  unidad: "",
+  totalizable: false,
+};
+
+export default function GestionColumnasAlcoholes() {
+  const [authStatus, setAuthStatus] = useState("checking");
   const [loading, setLoading] = useState(false);
 
-  const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState(initialForm);
+  // ==========================
+  // DESPACHO
+  // ==========================
+  const [columnasDespacho, setColumnasDespacho] = useState([]);
+  const [editingIdDespacho, setEditingIdDespacho] = useState(null);
+  const [formDespacho, setFormDespacho] = useState(initialFormDespacho);
+  const [qDespacho, setQDespacho] = useState("");
 
-  const [q, setQ] = useState("");
-  const [authStatus, setAuthStatus] = useState("checking"); // checking | authorized | denied
+  // ==========================
+  // RECEPCION
+  // ==========================
+  const [columnasRecepcion, setColumnasRecepcion] = useState([]);
+  const [editingIdRecepcion, setEditingIdRecepcion] = useState(null);
+  const [formRecepcion, setFormRecepcion] = useState(initialFormRecepcion);
+  const [qRecepcion, setQRecepcion] = useState("");
 
-  /* ===============================
-   * AUTH
-   * =============================== */
   const verifyCredentials = async (password) => {
     const { data } = await axios.post(API_AUTH_VERIFY, {
       rol: "developer",
@@ -130,39 +145,8 @@ export default function GestionColumnasDespacho() {
         setAuthStatus("denied");
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* ===============================
-   * API
-   * =============================== */
-  const fetchColumnas = async () => {
-    try {
-      setLoading(true);
-      const { data } = await axios.get(API_COLUMNAS); // GET /
-      setColumnas(Array.isArray(data) ? data : []);
-    } catch (e) {
-      console.error(e);
-      setColumnas([]);
-      Swal.fire("Error", "No se pudieron cargar las columnas", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (authStatus === "authorized") fetchColumnas();
-  }, [authStatus]);
-
-  /* ===============================
-   * Helpers (alineados con backend)
-   * =============================== */
-  const resetForm = () => {
-    setForm(initialForm);
-    setEditingId(null);
-  };
-
-  // Backend: key = key.toLowerCase().trim()
   const normalizarKey = (v) =>
     (v || "")
       .trim()
@@ -170,11 +154,45 @@ export default function GestionColumnasDespacho() {
       .replace(/\s+/g, "_")
       .slice(0, 60);
 
-  const columnasFiltradas = useMemo(() => {
-    const qq = (q || "").toLowerCase().trim();
-    if (!qq) return columnas;
+  // ==========================
+  // FETCH
+  // ==========================
+  const fetchColumnasDespacho = async () => {
+    const { data } = await axios.get(API_COLUMNAS_DESPACHO);
+    setColumnasDespacho(Array.isArray(data) ? data : []);
+  };
 
-    return columnas.filter((c) => {
+  const fetchColumnasRecepcion = async () => {
+    const { data } = await axios.get(API_COLUMNAS_RECEPCION);
+    setColumnasRecepcion(Array.isArray(data) ? data : []);
+  };
+
+  const fetchAll = async () => {
+    try {
+      setLoading(true);
+      await Promise.all([fetchColumnasDespacho(), fetchColumnasRecepcion()]);
+    } catch (e) {
+      console.error(e);
+      Swal.fire("Error", "No se pudieron cargar las columnas", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (authStatus === "authorized") {
+      fetchAll();
+    }
+  }, [authStatus]);
+
+  // ==========================
+  // FILTROS
+  // ==========================
+  const columnasDespachoFiltradas = useMemo(() => {
+    const qq = (qDespacho || "").toLowerCase().trim();
+    if (!qq) return columnasDespacho;
+
+    return columnasDespacho.filter((c) => {
       const roles = Array.isArray(c.rolesDigitables)
         ? c.rolesDigitables.join(" ")
         : "developer";
@@ -191,31 +209,67 @@ export default function GestionColumnasDespacho() {
 
       return haystack.includes(qq);
     });
-  }, [columnas, q]);
+  }, [columnasDespacho, qDespacho]);
 
-  /* ===============================
-   * CRUD
-   * =============================== */
-  const handleSubmit = async () => {
-    if (!form.nombre.trim()) {
+  const columnasRecepcionFiltradas = useMemo(() => {
+    const qq = (qRecepcion || "").toLowerCase().trim();
+    if (!qq) return columnasRecepcion;
+
+    return columnasRecepcion.filter((c) => {
+      const haystack = [
+        c.nombre,
+        c.key,
+        c.unidad,
+        c.totalizable ? "totalizable" : "no totalizable",
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(qq);
+    });
+  }, [columnasRecepcion, qRecepcion]);
+
+  // ==========================
+  // RESETS
+  // ==========================
+  const resetFormDespacho = () => {
+    setFormDespacho(initialFormDespacho);
+    setEditingIdDespacho(null);
+  };
+
+  const resetFormRecepcion = () => {
+    setFormRecepcion(initialFormRecepcion);
+    setEditingIdRecepcion(null);
+  };
+
+  // ==========================
+  // CRUD DESPACHO
+  // ==========================
+  const handleSubmitDespacho = async () => {
+    if (!formDespacho.nombre.trim()) {
       Swal.fire("Falta información", "El nombre es obligatorio", "warning");
       return;
     }
-    if (!form.key.trim()) {
+
+    if (!formDespacho.key.trim()) {
       Swal.fire("Falta información", "La key es obligatoria", "warning");
       return;
     }
-    if (!Array.isArray(form.rolesDigitables) || form.rolesDigitables.length === 0) {
+
+    if (
+      !Array.isArray(formDespacho.rolesDigitables) ||
+      formDespacho.rolesDigitables.length === 0
+    ) {
       Swal.fire("Falta información", "Asigna al menos un rol", "warning");
       return;
     }
 
     const payload = {
-      nombre: form.nombre.trim(),
-      key: normalizarKey(form.key),
-      unidad: (form.unidad || "").trim(),
-      totalizable: Boolean(form.totalizable),
-      rolesDigitables: form.rolesDigitables.map((r) =>
+      nombre: formDespacho.nombre.trim(),
+      key: normalizarKey(formDespacho.key),
+      unidad: (formDespacho.unidad || "").trim(),
+      totalizable: Boolean(formDespacho.totalizable),
+      rolesDigitables: formDespacho.rolesDigitables.map((r) =>
         String(r).toLowerCase().trim()
       ),
     };
@@ -223,28 +277,28 @@ export default function GestionColumnasDespacho() {
     try {
       setLoading(true);
 
-      if (editingId) {
-        await axios.put(`${API_COLUMNAS}/${editingId}`, payload); // PUT /:id
-        Swal.fire("Actualizado", "La columna se actualizó correctamente", "success");
+      if (editingIdDespacho) {
+        await axios.put(`${API_COLUMNAS_DESPACHO}/${editingIdDespacho}`, payload);
+        Swal.fire("Actualizado", "La columna de despacho se actualizó correctamente", "success");
       } else {
-        await axios.post(API_COLUMNAS, payload); // POST /
-        Swal.fire("Creada", "La columna se creó correctamente", "success");
+        await axios.post(API_COLUMNAS_DESPACHO, payload);
+        Swal.fire("Creada", "La columna de despacho se creó correctamente", "success");
       }
 
-      resetForm();
-      await fetchColumnas();
+      resetFormDespacho();
+      await fetchColumnasDespacho();
     } catch (e) {
       console.error(e);
-      const msg = e?.response?.data?.message || "No se pudo guardar la columna";
+      const msg = e?.response?.data?.message || "No se pudo guardar la columna de despacho";
       Swal.fire("Error", msg, "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEdit = (col) => {
-    setEditingId(col._id);
-    setForm({
+  const handleEditDespacho = (col) => {
+    setEditingIdDespacho(col._id);
+    setFormDespacho({
       nombre: col.nombre ?? "",
       key: col.key ?? "",
       unidad: col.unidad ?? "",
@@ -253,11 +307,13 @@ export default function GestionColumnasDespacho() {
         ? col.rolesDigitables
         : ["developer"],
     });
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleDelete = async (col) => {
+  const handleDeleteDespacho = async (col) => {
     const res = await Swal.fire({
-      title: "¿Desactivar columna?",
+      title: "¿Desactivar columna de despacho?",
       html: `<div style="text-align:left;">
         <b>Nombre:</b> ${col.nombre || ""}<br/>
         <b>Key:</b> ${col.key || ""}<br/><br/>
@@ -273,22 +329,228 @@ export default function GestionColumnasDespacho() {
 
     try {
       setLoading(true);
-      await axios.delete(`${API_COLUMNAS}/${col._id}`); // DELETE /:id (soft delete)
-      Swal.fire("OK", "Columna desactivada", "success");
-      await fetchColumnas();
-      if (editingId === col._id) resetForm();
+      await axios.delete(`${API_COLUMNAS_DESPACHO}/${col._id}`);
+      Swal.fire("OK", "Columna de despacho desactivada", "success");
+      await fetchColumnasDespacho();
+
+      if (editingIdDespacho === col._id) resetFormDespacho();
     } catch (e) {
       console.error(e);
-      const msg = e?.response?.data?.message || "No se pudo desactivar la columna";
+      const msg =
+        e?.response?.data?.message ||
+        "No se pudo desactivar la columna de despacho";
       Swal.fire("Error", msg, "error");
     } finally {
       setLoading(false);
     }
   };
 
-  /* ===============================
-   * BLOQUEO DE RENDER
-   * =============================== */
+  // ==========================
+  // CRUD RECEPCION
+  // ==========================
+  const handleSubmitRecepcion = async () => {
+    if (!formRecepcion.nombre.trim()) {
+      Swal.fire("Falta información", "El nombre es obligatorio", "warning");
+      return;
+    }
+
+    if (!formRecepcion.key.trim()) {
+      Swal.fire("Falta información", "La key es obligatoria", "warning");
+      return;
+    }
+
+    const payload = {
+      nombre: formRecepcion.nombre.trim(),
+      key: normalizarKey(formRecepcion.key),
+      unidad: (formRecepcion.unidad || "").trim(),
+      totalizable: Boolean(formRecepcion.totalizable),
+    };
+
+    try {
+      setLoading(true);
+
+      if (editingIdRecepcion) {
+        await axios.put(`${API_COLUMNAS_RECEPCION}/${editingIdRecepcion}`, payload);
+        Swal.fire("Actualizado", "La columna de recepción se actualizó correctamente", "success");
+      } else {
+        await axios.post(API_COLUMNAS_RECEPCION, payload);
+        Swal.fire("Creada", "La columna de recepción se creó correctamente", "success");
+      }
+
+      resetFormRecepcion();
+      await fetchColumnasRecepcion();
+    } catch (e) {
+      console.error(e);
+      const msg = e?.response?.data?.message || "No se pudo guardar la columna de recepción";
+      Swal.fire("Error", msg, "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditRecepcion = (col) => {
+    setEditingIdRecepcion(col._id);
+    setFormRecepcion({
+      nombre: col.nombre ?? "",
+      key: col.key ?? "",
+      unidad: col.unidad ?? "",
+      totalizable: Boolean(col.totalizable),
+    });
+
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  };
+
+  const handleDeleteRecepcion = async (col) => {
+    const res = await Swal.fire({
+      title: "¿Desactivar columna de recepción?",
+      html: `<div style="text-align:left;">
+        <b>Nombre:</b> ${col.nombre || ""}<br/>
+        <b>Key:</b> ${col.key || ""}<br/><br/>
+        Se marcará como <b>inactiva</b> (activo=false).
+      </div>`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, desactivar",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (!res.isConfirmed) return;
+
+    try {
+      setLoading(true);
+      await axios.delete(`${API_COLUMNAS_RECEPCION}/${col._id}`);
+      Swal.fire("OK", "Columna de recepción desactivada", "success");
+      await fetchColumnasRecepcion();
+
+      if (editingIdRecepcion === col._id) resetFormRecepcion();
+    } catch (e) {
+      console.error(e);
+      const msg =
+        e?.response?.data?.message ||
+        "No se pudo desactivar la columna de recepción";
+      Swal.fire("Error", msg, "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ==========================
+  // TABLAS
+  // ==========================
+  const renderTablaDespacho = () => (
+    <TableContainer component={Paper} elevation={2}>
+      <Table size="small" stickyHeader>
+        <TableHead>
+          <TableRow>
+            <TableCell><b>Nombre</b></TableCell>
+            <TableCell><b>Key</b></TableCell>
+            <TableCell><b>Unidad</b></TableCell>
+            <TableCell><b>Totalizable</b></TableCell>
+            <TableCell><b>Roles digitables</b></TableCell>
+            <TableCell align="center"><b>Acciones</b></TableCell>
+          </TableRow>
+        </TableHead>
+
+        <TableBody>
+          {columnasDespachoFiltradas.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={6} align="center">
+                {loading ? "Cargando..." : "No hay columnas de despacho"}
+              </TableCell>
+            </TableRow>
+          ) : (
+            columnasDespachoFiltradas.map((c) => (
+              <TableRow key={c._id} hover selected={editingIdDespacho === c._id}>
+                <TableCell>{c.nombre}</TableCell>
+                <TableCell><Chip size="small" label={c.key} /></TableCell>
+                <TableCell>{c.unidad || "—"}</TableCell>
+                <TableCell>
+                  {c.totalizable ? (
+                    <Chip size="small" label="Sí" />
+                  ) : (
+                    <Chip size="small" label="No" variant="outlined" />
+                  )}
+                </TableCell>
+                <TableCell>
+                  {Array.isArray(c.rolesDigitables) && c.rolesDigitables.length > 0
+                    ? c.rolesDigitables.join(", ")
+                    : "developer"}
+                </TableCell>
+                <TableCell align="center">
+                  <Tooltip title="Editar">
+                    <IconButton color="primary" onClick={() => handleEditDespacho(c)}>
+                      <EditIcon />
+                    </IconButton>
+                  </Tooltip>
+
+                  <Tooltip title="Desactivar">
+                    <IconButton color="error" onClick={() => handleDeleteDespacho(c)}>
+                      <DeleteIcon />
+                    </IconButton>
+                  </Tooltip>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+
+  const renderTablaRecepcion = () => (
+    <TableContainer component={Paper} elevation={2}>
+      <Table size="small" stickyHeader>
+        <TableHead>
+          <TableRow>
+            <TableCell><b>Nombre</b></TableCell>
+            <TableCell><b>Key</b></TableCell>
+            <TableCell><b>Unidad</b></TableCell>
+            <TableCell><b>Totalizable</b></TableCell>
+            <TableCell align="center"><b>Acciones</b></TableCell>
+          </TableRow>
+        </TableHead>
+
+        <TableBody>
+          {columnasRecepcionFiltradas.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={5} align="center">
+                {loading ? "Cargando..." : "No hay columnas de recepción"}
+              </TableCell>
+            </TableRow>
+          ) : (
+            columnasRecepcionFiltradas.map((c) => (
+              <TableRow key={c._id} hover selected={editingIdRecepcion === c._id}>
+                <TableCell>{c.nombre}</TableCell>
+                <TableCell><Chip size="small" label={c.key} /></TableCell>
+                <TableCell>{c.unidad || "—"}</TableCell>
+                <TableCell>
+                  {c.totalizable ? (
+                    <Chip size="small" label="Sí" />
+                  ) : (
+                    <Chip size="small" label="No" variant="outlined" />
+                  )}
+                </TableCell>
+                <TableCell align="center">
+                  <Tooltip title="Editar">
+                    <IconButton color="primary" onClick={() => handleEditRecepcion(c)}>
+                      <EditIcon />
+                    </IconButton>
+                  </Tooltip>
+
+                  <Tooltip title="Desactivar">
+                    <IconButton color="error" onClick={() => handleDeleteRecepcion(c)}>
+                      <DeleteIcon />
+                    </IconButton>
+                  </Tooltip>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+
   if (authStatus === "checking") {
     return (
       <Box p={2} mt={6}>
@@ -336,9 +598,6 @@ export default function GestionColumnasDespacho() {
     );
   }
 
-  /* ===============================
-   * Render módulo (autorizado)
-   * =============================== */
   return (
     <Box p={2} mt={6}>
       <Card elevation={4}>
@@ -351,214 +610,260 @@ export default function GestionColumnasDespacho() {
             flexWrap="wrap"
           >
             <Typography variant="h5" fontWeight="bold">
-              Gestión de Columnas (Despacho)
+              Gestión de Columnas de Alcoholes
             </Typography>
 
-            <Box display="flex" gap={1} alignItems="center">
-              <TextField
-                size="small"
-                label="Buscar"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                sx={{ minWidth: 220 }}
-              />
-              <Tooltip title="Recargar">
-                <IconButton onClick={fetchColumnas} disabled={loading}>
-                  <RestartAltIcon />
-                </IconButton>
-              </Tooltip>
-            </Box>
+            <Tooltip title="Recargar todo">
+              <IconButton onClick={fetchAll} disabled={loading}>
+                <RestartAltIcon />
+              </IconButton>
+            </Tooltip>
           </Box>
-
-          <Divider sx={{ my: 2 }} />
-
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Nombre visible"
-                name="nombre"
-                value={form.nombre}
-                onChange={(e) => setForm((p) => ({ ...p, nombre: e.target.value }))}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Key (ej: energia_con)"
-                name="key"
-                value={form.key}
-                onChange={(e) => setForm((p) => ({ ...p, key: e.target.value }))}
-                helperText={`Se guardará como: ${normalizarKey(form.key) || "—"}`}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={2}>
-              <TextField
-                fullWidth
-                label="Unidad"
-                name="unidad"
-                value={form.unidad}
-                onChange={(e) => setForm((p) => ({ ...p, unidad: e.target.value }))}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={2}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={form.totalizable}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, totalizable: e.target.checked }))
-                    }
-                  />
-                }
-                label="Totalizable"
-              />
-            </Grid>
-
-            {/* ✅ NUEVO: Roles digitables */}
-            <Grid item xs={12} md={4}>
-              <TextField
-                select
-                fullWidth
-                label="Roles que pueden digitar"
-                value={form.rolesDigitables}
-                SelectProps={{
-                  multiple: true,
-                  renderValue: (selected) =>
-                    selected?.length ? selected.join(", ") : "—",
-                }}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setForm((p) => ({
-                    ...p,
-                    rolesDigitables: Array.isArray(value) ? value : [],
-                  }));
-                }}
-                helperText="Selecciona 1 o más roles"
-              >
-                {ROLES.map((r) => (
-                  <MenuItem key={r} value={r}>
-                    {r}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Box display="flex" gap={2} flexWrap="wrap">
-                <Button
-                  variant="contained"
-                  color={editingId ? "warning" : "primary"}
-                  startIcon={editingId ? <SaveIcon /> : <AddIcon />}
-                  onClick={handleSubmit}
-                  disabled={loading}
-                >
-                  {editingId ? "Actualizar" : "Crear"}
-                </Button>
-
-                <Button variant="outlined" onClick={resetForm} disabled={loading}>
-                  {editingId ? "Cancelar edición" : "Limpiar"}
-                </Button>
-              </Box>
-            </Grid>
-          </Grid>
 
           <Divider sx={{ my: 3 }} />
 
-          <TableContainer component={Paper} elevation={2}>
-            <Table size="small" stickyHeader>
-              <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
-                <TableRow>
-                  <TableCell><b>Nombre</b></TableCell>
-                  <TableCell><b>Key</b></TableCell>
-                  <TableCell><b>Unidad</b></TableCell>
-                  <TableCell><b>Totalizable</b></TableCell>
-                  <TableCell><b>Roles</b></TableCell>
-                  <TableCell align="center"><b>Acciones</b></TableCell>
-                </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {columnasFiltradas.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center">
-                      {loading ? "Cargando..." : "No hay columnas"}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  columnasFiltradas.map((c) => {
-                    const roles = Array.isArray(c.rolesDigitables)
-                      ? c.rolesDigitables
-                      : ["developer"];
-
-                    return (
-                      <TableRow key={c._id} hover selected={editingId === c._id}>
-                        <TableCell>{c.nombre}</TableCell>
-
-                        <TableCell>
-                          <Chip size="small" label={c.key} />
-                        </TableCell>
-
-                        <TableCell>{c.unidad || "—"}</TableCell>
-
-                        <TableCell>
-                          {c.totalizable ? (
-                            <Chip size="small" label="Sí" />
-                          ) : (
-                            <Chip size="small" label="No" variant="outlined" />
-                          )}
-                        </TableCell>
-
-                        {/* ✅ roles */}
-                        <TableCell>
-                          {roles.map((r) => (
-                            <Chip
-                              key={`${c._id}-${r}`}
-                              size="small"
-                              label={r}
-                              variant="outlined"
-                              sx={{ mr: 0.5, mb: 0.5 }}
-                            />
-                          ))}
-                        </TableCell>
-
-                        <TableCell align="center">
-                          <Tooltip title="Editar">
-                            <IconButton color="primary" onClick={() => handleEdit(c)}>
-                              <EditIcon />
-                            </IconButton>
-                          </Tooltip>
-
-                          <Tooltip title="Desactivar">
-                            <IconButton color="error" onClick={() => handleDelete(c)}>
-                              <DeleteIcon />
-                            </IconButton>
-                          </Tooltip>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <Box
-            mt={1}
-            display="flex"
-            justifyContent="space-between"
-            flexWrap="wrap"
-            gap={1}
-          >
-            <Typography variant="caption" sx={{ opacity: 0.7 }}>
-              Total columnas: {columnas.length}
+          {/* ========================================= */}
+          {/* DESPACHO */}
+          {/* ========================================= */}
+          <Box mb={5}>
+            <Typography variant="h6" fontWeight="bold" mb={2}>
+              Columnas de despacho
             </Typography>
-            <Typography variant="caption" sx={{ opacity: 0.7 }}>
-              Mostrando: {columnasFiltradas.length}
+
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  label="Nombre visible"
+                  value={formDespacho.nombre}
+                  onChange={(e) =>
+                    setFormDespacho((p) => ({ ...p, nombre: e.target.value }))
+                  }
+                />
+              </Grid>
+
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  label="Key (ej: energia_con)"
+                  value={formDespacho.key}
+                  onChange={(e) =>
+                    setFormDespacho((p) => ({ ...p, key: e.target.value }))
+                  }
+                />
+              </Grid>
+
+              <Grid item xs={12} md={2}>
+                <TextField
+                  fullWidth
+                  label="Unidad"
+                  value={formDespacho.unidad}
+                  onChange={(e) =>
+                    setFormDespacho((p) => ({ ...p, unidad: e.target.value }))
+                  }
+                />
+              </Grid>
+
+              <Grid item xs={12} md={2}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formDespacho.totalizable}
+                      onChange={(e) =>
+                        setFormDespacho((p) => ({
+                          ...p,
+                          totalizable: e.target.checked,
+                        }))
+                      }
+                    />
+                  }
+                  label="Totalizable"
+                />
+              </Grid>
+
+              <Grid item xs={12} md={4}>
+                <TextField
+                  select
+                  fullWidth
+                  label="Roles que pueden digitar"
+                  value={formDespacho.rolesDigitables}
+                  SelectProps={{
+                    multiple: true,
+                    renderValue: (selected) =>
+                      selected?.length ? selected.join(", ") : "—",
+                  }}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormDespacho((p) => ({
+                      ...p,
+                      rolesDigitables: Array.isArray(value) ? value : [value],
+                    }));
+                  }}
+                >
+                  {ROLES.map((rol) => (
+                    <MenuItem key={rol} value={rol}>
+                      {rol}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Box display="flex" gap={2} flexWrap="wrap">
+                  <Button
+                    variant="contained"
+                    color={editingIdDespacho ? "warning" : "primary"}
+                    startIcon={editingIdDespacho ? <SaveIcon /> : <AddIcon />}
+                    onClick={handleSubmitDespacho}
+                    disabled={loading}
+                  >
+                    {editingIdDespacho ? "Actualizar despacho" : "Crear despacho"}
+                  </Button>
+
+                  <Button
+                    variant="outlined"
+                    onClick={resetFormDespacho}
+                    disabled={loading}
+                  >
+                    {editingIdDespacho ? "Cancelar edición" : "Limpiar"}
+                  </Button>
+                </Box>
+              </Grid>
+            </Grid>
+
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+              gap={2}
+              flexWrap="wrap"
+              mt={3}
+              mb={2}
+            >
+              <Typography variant="subtitle1" fontWeight="bold">
+                Listado de columnas de despacho
+              </Typography>
+
+              <TextField
+                size="small"
+                label="Buscar en despacho"
+                value={qDespacho}
+                onChange={(e) => setQDespacho(e.target.value)}
+                sx={{ minWidth: 240 }}
+              />
+            </Box>
+
+            {renderTablaDespacho()}
+          </Box>
+
+          <Divider sx={{ my: 4 }} />
+
+          {/* ========================================= */}
+          {/* RECEPCION */}
+          {/* ========================================= */}
+          <Box>
+            <Typography variant="h6" fontWeight="bold" mb={2}>
+              Columnas de recepción
             </Typography>
+
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  label="Nombre visible"
+                  value={formRecepcion.nombre}
+                  onChange={(e) =>
+                    setFormRecepcion((p) => ({ ...p, nombre: e.target.value }))
+                  }
+                />
+              </Grid>
+
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  label="Key (ej: densidad)"
+                  value={formRecepcion.key}
+                  onChange={(e) =>
+                    setFormRecepcion((p) => ({ ...p, key: e.target.value }))
+                  }
+                  helperText={`Se guardará como: ${normalizarKey(formRecepcion.key) || "—"}`}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={2}>
+                <TextField
+                  fullWidth
+                  label="Unidad"
+                  value={formRecepcion.unidad}
+                  onChange={(e) =>
+                    setFormRecepcion((p) => ({ ...p, unidad: e.target.value }))
+                  }
+                />
+              </Grid>
+
+              <Grid item xs={12} md={2}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formRecepcion.totalizable}
+                      onChange={(e) =>
+                        setFormRecepcion((p) => ({
+                          ...p,
+                          totalizable: e.target.checked,
+                        }))
+                      }
+                    />
+                  }
+                  label="Totalizable"
+                />
+              </Grid>
+
+              <Grid item xs={12}>
+                <Box display="flex" gap={2} flexWrap="wrap">
+                  <Button
+                    variant="contained"
+                    color={editingIdRecepcion ? "warning" : "primary"}
+                    startIcon={editingIdRecepcion ? <SaveIcon /> : <AddIcon />}
+                    onClick={handleSubmitRecepcion}
+                    disabled={loading}
+                  >
+                    {editingIdRecepcion ? "Actualizar recepción" : "Crear recepción"}
+                  </Button>
+
+                  <Button
+                    variant="outlined"
+                    onClick={resetFormRecepcion}
+                    disabled={loading}
+                  >
+                    {editingIdRecepcion ? "Cancelar edición" : "Limpiar"}
+                  </Button>
+                </Box>
+              </Grid>
+            </Grid>
+
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+              gap={2}
+              flexWrap="wrap"
+              mt={3}
+              mb={2}
+            >
+              <Typography variant="subtitle1" fontWeight="bold">
+                Listado de columnas de recepción
+              </Typography>
+
+              <TextField
+                size="small"
+                label="Buscar en recepción"
+                value={qRecepcion}
+                onChange={(e) => setQRecepcion(e.target.value)}
+                sx={{ minWidth: 240 }}
+              />
+            </Box>
+
+            {renderTablaRecepcion()}
           </Box>
         </CardContent>
       </Card>

@@ -991,6 +991,9 @@ const InformeAlcoholes = () => {
                         <TextField
                           size="small"
                           fullWidth
+                          multiline
+                          minRows={3}
+                          maxRows={8}
                           placeholder="Escribe un comentario para esta zona..."
                           value={comentarioTemp}
                           autoFocus

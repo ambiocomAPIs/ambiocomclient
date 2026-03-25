@@ -72,17 +72,17 @@ const TanquesUnidadTreCientos = ({ tanquesContext, NivelesTanquesContext }) => {
       setModalOpenGraficaTanque(true);
     }
   };
-  
+
   const handleNombreChange = (index, nuevoNombre) => {
     const nuevosTanques = [...tanques];
     nuevosTanques[index].diposicion = nuevoNombre;
     setTanques(nuevosTanques);
   };
 
-  const contenedorAltura = 320; // altura fija para alinear los tanques
+  const contenedorAltura = 305; // altura fija para alinear los tanques
 
   return (
-    <div style={{ marginTop: 80, textAlign: "center" }}>
+    <div style={{ marginTop: 70, textAlign: "center" }}>
       <Typography
         variant="h4"
         gutterBottom
@@ -105,134 +105,131 @@ const TanquesUnidadTreCientos = ({ tanquesContext, NivelesTanquesContext }) => {
         }}
       >
         {tanques.map(({ NombreTanque, Disposicion, Factor, VolumenTotal }, index) => {
-            const nivelTanqueObj = tanquesNivelesFiltered.find(
-              (t) => t.NombreTanque === NombreTanque
-            );
-            return (
+          const nivelTanqueObj = tanquesNivelesFiltered.find(
+            (t) => t.NombreTanque === NombreTanque
+          );
+          return (
+            <div
+              key={index}
+              onDoubleClick={() => handleDobleClickTanque(NombreTanque)}
+              style={{
+                position: "relative",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                height: contenedorAltura,
+                width: 250,
+                justifyContent: "flex-end",
+              }}
+            >
+              {/* Barra vertical posicionada absolute encima */}
               <div
-                key={index}
-                onDoubleClick={() => handleDobleClickTanque(NombreTanque)}
                 style={{
-                  position: "relative",
+                  position: "absolute",
+                  top: index === 0 ? "-18%" : "-29%",
+                  left: index === 0 ? "15%" : "13%",
+                  transform: "translateX(-50%)",
+                  width: "16px",
+                  height: index === 0 ? "88%" : "98%", // ocupará la altura completa del contenedor (mismo que la imagen)
+                  backgroundColor: "#ddd",
+                  borderRadius: "5px",
+                  border: "1px solid #ccc",
                   display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  height: contenedorAltura,
-                  width: 250,
-                  justifyContent: "flex-end",
+                  flexDirection: "column-reverse",
+                  overflow: "hidden",
+                  zIndex: 2,
                 }}
               >
-                {/* Barra vertical posicionada absolute encima */}
                 <div
                   style={{
-                    position: "absolute",
-                    top: index === 0 ? "-18%" : "-25%",
-                    left: index === 0 ? "15%" : "13%",
-                    transform: "translateX(-50%)",
-                    width: "16px",
-                    height: index === 0 ? "88%" : "95%", // ocupará la altura completa del contenedor (mismo que la imagen)
-                    backgroundColor: "#ddd",
-                    borderRadius: "5px",
-                    border: "1px solid #ccc",
-                    display: "flex",
-                    flexDirection: "column-reverse",
-                    overflow: "hidden",
-                    zIndex: 2,
-                  }}
-                >
-                  <div
-                    style={{
-                      height: `${
-                        ((nivelTanqueObj?.NivelTanque * Factor) /
-                          VolumenTotal) *
-                        100
+                    height: `${((nivelTanqueObj?.NivelTanque * Factor) /
+                      VolumenTotal) *
+                      100
                       }%`,
-                      width: "100%",
-                      backgroundColor:
-                        nivelTanqueObj?.NivelTanque > Number(VolumenTotal) / 2
-                          ? "blue"
-                          : "orange",
-                      transition: "height 0.5s ease",
-                    }}
-                  />
-                </div>
-                <Typography style={{ marginBottom: "0px", fontSize: "16px" }}>
-                  V total: {VolumenTotal} L
-                </Typography>
-                <Typography
-                  variant="h6"
-                  style={{ marginBottom: "-30px", fontSize: "15px" }}
-                >
-                  Factor: {Factor} L/m
-                </Typography>
-                <img
-                  src={"/TanquesAlmacenamiento/tanque5.png"}
-                  alt={`Tanque ${NombreTanque}`}
-                  style={{
-                    width: NombreTanque === "350" ? "100%" : "108%",
-                    height: "auto",
-                    zIndex: 1,
-                    position: "relative",
-                  }}
-                />
-
-                {/* ✅ Mostrar el nivel correspondiente a este tanque */}
-                {nivelTanqueObj && (
-                  <>
-                    <div style={{ marginTop: 8, zIndex: 3 }}>
-                      {nivelTanqueObj.NivelTanque * Factor} L
-                    </div>
-                    <div style={{ marginTop: 5, zIndex: 3 }}>
-                      {nivelTanqueObj.NivelTanque} m
-                    </div>
-                  </>
-                )}
-
-                <input
-                  type="text"
-                  readOnly
-                  value={NombreTanque}
-                  style={{
-                    position: "absolute",
-                    top: index === 0 ? "-6%" : "-15%",
-                    left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    fontSize: "15px",
-                    width: "100px",
-                    textAlign: "center",
-                    border: "1px solid #ccc",
-                    borderRadius: "4px",
-                    padding: "4px",
-                    backgroundColor: "rgba(255, 255, 255, 0.8)", // con transparencia para no tapar todo
-                    cursor: "default",
-                    zIndex: 4,
-                  }}
-                />
-                <input
-                  type="text"
-                  onChange={(e) => handleNombreChange(index, e.target.value)}
-                  value={Disposicion}
-                  style={{
-                    position: "absolute",
-                    top: index === 0 ? "3%" : "-5%",
-                    left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    fontSize: "15px",
-                    width: index === 0 ? "130px" : "150px",
-                    textAlign: "center",
-                    border: "1px solid #ccc",
-                    borderRadius: "4px",
-                    padding: "2px",
-                    backgroundColor: "rgba(255, 255, 255, 0.8)", // con transparencia para no tapar todo
-                    cursor: "default",
-                    zIndex: 500,
+                    width: "100%",
+                    backgroundColor:
+                      nivelTanqueObj?.NivelTanque > Number(VolumenTotal) / 2
+                        ? "blue"
+                        : "orange",
+                    transition: "height 0.5s ease",
                   }}
                 />
               </div>
-            );
-          }
+
+              <Typography sx={{ fontSize: '18px' }}><strong>Capacidad:</strong> {Number(VolumenTotal).toLocaleString('es-ES')}  L</Typography>
+              <Typography sx={{ fontSize: '18px' }}><strong>Factor: </strong>{Number(Factor).toLocaleString('es-ES')} L/m</Typography>
+
+              <img
+                src={"/TanquesAlmacenamiento/tanque5.png"}
+                alt={`Tanque ${NombreTanque}`}
+                style={{
+                  width: NombreTanque === "350" ? "100%" : "108%",
+                  height: "auto",
+                  zIndex: 1,
+                  position: "relative",
+                }}
+              />
+
+              {/* ✅ Mostrar el nivel correspondiente a este tanque */}
+              {nivelTanqueObj && (
+                <>
+                  <div style={{ marginTop: 8, zIndex: 3 }}>
+                    <strong>Volumen:</strong> {Number(nivelTanqueObj.NivelTanque * Factor || 0).toLocaleString('es-ES', {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 1
+                    })} L
+                  </div>
+                  <div style={{ marginTop: 5, zIndex: 3 }}>
+                    {nivelTanqueObj.NivelTanque} m
+                  </div>
+                </>
+              )}
+
+              <input
+                type="text"
+                readOnly
+                value={NombreTanque}
+                style={{
+                  position: "absolute",
+                  top: index === 0 ? "-6%" : "-15%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  fontSize: "15px",
+                  width: "100px",
+                  textAlign: "center",
+                  border: "1px solid #ccc",
+                  borderRadius: "4px",
+                  padding: "4px",
+                  backgroundColor: "rgba(255, 255, 255, 0.8)", // con transparencia para no tapar todo
+                  cursor: "default",
+                  zIndex: 4,
+                }}
+              />
+              <input
+                type="text"
+                onChange={(e) => handleNombreChange(index, e.target.value)}
+                value={Disposicion}
+                style={{
+                  position: "absolute",
+                  top: index === 0 ? "3%" : "-5%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  fontSize: "15px",
+                  width: index === 0 ? "130px" : "150px",
+                  textAlign: "center",
+                  border: "1px solid #ccc",
+                  borderRadius: "4px",
+                  padding: "2px",
+                  backgroundColor: "rgba(255, 255, 255, 0.8)", // con transparencia para no tapar todo
+                  cursor: "default",
+                  zIndex: 500,
+                }}
+              />
+            </div>
+          );
+        }
         )}
-         <Typography
+        <Typography
           variant="body2"
           sx={{
             position: "absolute",

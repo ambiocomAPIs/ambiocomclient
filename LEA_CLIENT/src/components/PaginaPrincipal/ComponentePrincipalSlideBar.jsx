@@ -54,6 +54,7 @@ import CubaDeFermentacion from '../TanquesVistaNiveles/CubasDeFermentacion';
 import TanquesUnidadCien from '../TanquesVistaNiveles/Unidad100';
 import UnidadOchoCientosAlmacenamiento from '../TanquesVistaNiveles/Unidad800'
 import Unidad400Component from '../TanquesVistaNiveles/Unidad400.jsx';
+import UnidadSeicientosComponent from '../TanquesVistaNiveles/Unidad600.jsx';
 //MODULO LOGISTICA
 import TablaRegistroCarbonMadera from '../Ingreso_MaderaCarbon/TablaRegistroIngresosCarbonMadera.jsx';
 import RecepcionAlcoholesLogisticaModels from '../Modulo_Logistica/RecepcionAlcoholes/RecepcionAlcoholesLogistica.jsx';
@@ -68,6 +69,7 @@ import ProgramacionDespachoDiariaPage from '../Modulo_Logistica/PlaneacionDiaria
 //MODULO LABORATORIO
 import TablaDespachosLogisticaReadOnly from "../Modulo_Laboratorio/Modulo_Despachos/Despachos_List/TablaDespachosLogisticaReadOnly.jsx"
 import ProgramacionDespachoReadOnlyPage from "../Modulo_Laboratorio/Modulo_Despachos/Despachos_List/ProgramacionDespachoReadOnlyPage.jsx"
+import TablaRecepcionVehiculosReadOnly from '../Modulo_Laboratorio/Modulo_Despachos/Recepciones_List/TablaRecepcionesLogisticaReadOnly.jsx';
 //empelados
 import EmpleadosManager from '../EmpleadosManager/EmpleadosAmbiocomList.jsx';
 //Medidores
@@ -87,7 +89,7 @@ import {
     tanqueIcon, factoryIcon, despachoIcon, despachoSalidaIcon, despachoRecepcionIcon, laboratoryIcon, inventoryIcon, rulerIcon, oilTankIcon, coalInventoryIcon,
     ptapIcon, GraphIcon, BarGraphIcon, BarGraphComparativeIcon, robotAssistanceIcon, bitacoraIcon, StopWatchIcon, PdfIcon, DatabaseAdministratorIcon, workerIcon,
     TankGraphIcon, CounterIcon, MoneyGraphIcon, EnergyIcon, EnergyDataIcon, InOutMaderaCarbonIcon, InformeIcon, TankWithLiquidIcon, ReportIcon,
-    Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon, PersonalIcons, plannerIconDate, logsIcon
+    Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon, PersonalIcons, plannerIconDate, logsIcon, VesselTkIcon, VesselTkIconChemical
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -95,7 +97,7 @@ import { useTanques } from "../../utils/Context/TanquesContext.jsx";
 import { useNivelesDiariosTanques } from '../../utils/Context/NivelesDiariosTanquesContext.jsx';
 import { useEmpleados } from '../../utils/Context/EmpleadosContext.jsx'
 
-const drawerWidth = 280;
+const drawerWidth = 320;
 
 export default function EmpresarialPrincipalSchedulerApp() {
 
@@ -214,6 +216,31 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'Inventario Combust', subKey: 'inventariodecarbonymadera', /* roles: ["admin","supervisor"], */ icon: <img src={coalInventoryIcon} alt="Tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
                 { text: 'Horas Extras', subKey: 'horasextrassupervisores', /* roles: ["admin","supervisor"], */ icon: <img src={StopWatchIcon} alt="horasextrassupervisores" style={{ width: 25, height: 25 }} /> },
                 { text: 'CRUD Tanques', subKey: 'tanquescrud', /* roles: ["admin"], */ icon: <img src={tanqueIcon} alt="tanquescrud" style={{ width: 25, height: 25 }} /> },
+                {
+                    text: 'Despachos y Recepciones',
+                    key: 'produccion-logistica',
+                    icon: <img src={despachoIcon} alt="Logistica" style={{ width: 25, height: 25 }} />,
+                    subItems: [
+                        {
+                            text: 'Planeacion Diaria',
+                            subKey: 'planeaciondiariadespachosreadonly',
+                            roles: ["admin", "laboratorio", "developer", "gerente"],
+                            icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} />
+                        },
+                        {
+                            text: 'Despachos',
+                            subKey: 'despachoalcoholeslogisticareadonly',
+                            roles: ["admin", "laboratorio", "developer", "gerente"],
+                            icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
+                        },
+                        {
+                            text: 'Recepción',
+                            subKey: 'recepcionalcoholeslogisticareadonly',
+                            roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"],
+                            icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
+                        }
+                    ]
+                }
             ],
         },
         {
@@ -241,11 +268,13 @@ export default function EmpresarialPrincipalSchedulerApp() {
             roles: ["admin", "developer"],
             icon: <img src={tanqueIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
             subItems: [
-                { text: 'UNIDAD 100', subKey: 'nivelesunidadcien', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={oilTankIcon} alt="nivelesunidadtrecien" style={{ width: 25, height: 25 }} /> },
-                { text: 'UNIDAD 300', subKey: 'nivelesunidadtrecientos', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={oilTankIcon} alt="nivelesunidadtrecientos" style={{ width: 25, height: 25 }} /> },
-                { text: 'UNIDAD 450', subKey: 'nivelesunidadcuatrocientos', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={oilTankIcon} alt="nivelesunidadcuatrocientos" style={{ width: 25, height: 25 }} /> },
-                { text: 'UNIDAD 800', subKey: 'nivelesunidadochocientos', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={oilTankIcon} alt="nivelesunidadochocientos" style={{ width: 25, height: 25 }} /> },
-                { text: 'Cuba Fermentac', subKey: 'cubadefermentacion', /* roles: ["admin","supervisor"], */ icon: <img src={oilTankIcon} alt="cubadefermentacion" style={{ width: 25, height: 25 }} /> },
+                { text: 'CRUD Tanques', subKey: 'tanquescrud', /* roles: ["admin"], */ icon: <img src={VesselTkIconChemical} alt="tanquescrud" style={{ width: 25, height: 25 }} /> },
+                { text: 'UNIDAD 100', subKey: 'nivelesunidadcien', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={VesselTkIcon} alt="nivelesunidadtrecien" style={{ width: 25, height: 25 }} /> },
+                { text: 'UNIDAD 300', subKey: 'nivelesunidadtrecientos', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={VesselTkIcon} alt="nivelesunidadtrecientos" style={{ width: 25, height: 25 }} /> },
+                { text: 'UNIDAD 450', subKey: 'nivelesunidadcuatrocientos', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={VesselTkIcon} alt="nivelesunidadcuatrocientos" style={{ width: 25, height: 25 }} /> },
+                { text: 'UNIDAD 600', subKey: 'nivelesunidadseicientos', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={VesselTkIcon} alt="nivelesunidadseicientos" style={{ width: 25, height: 25 }} /> },
+                { text: 'UNIDAD 800', subKey: 'nivelesunidadochocientos', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={VesselTkIcon} alt="nivelesunidadochocientos" style={{ width: 25, height: 25 }} /> },
+                { text: 'Cuba Fermentac', subKey: 'cubadefermentacion', /* roles: ["admin","supervisor"], */ icon: <img src={VesselTkIcon} alt="cubadefermentacion" style={{ width: 25, height: 25 }} /> },
             ],
         },
         {
@@ -257,20 +286,39 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'Grafica Niveles Tanques Jornaleros', subKey: 'nivelestanquesjornalerospagina', /* roles: ["admin","supervisor"], */ icon: <img src={TankGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
                 { text: 'Isumos Kg/L [OH]', subKey: 'comparativomensualinsumosquimicoscomponent', /* roles: ["admin","supervisor"], */ icon: <img src={BarGraphComparativeIcon} alt="comparativomensualinsumosquimicoscomponent" style={{ width: 25, height: 25 }} /> },
                 { text: 'Isumos $/L [OH]', subKey: 'Comparativomensualinsumosquimicoscostolitro', /* roles: ["admin","supervisor"], */ icon: <img src={MoneyGraphIcon} alt="Comparativomensualinsumosquimicoscostolitro" style={{ width: 25, height: 25 }} /> },
-                { text: 'Insumos/mes', subKey: 'nivelesunidadcien', /* roles: ["admin","supervisor"], */ icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
-                { text: 'Comparativo', subKey: 'comparativoIsumos/L[OH]', /* roles: ["admin","supervisor"], */ icon: <img src={BarGraphComparativeIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
-                { text: 'Agua/L[OH]', subKey: 'nivelesunidadtrecientos', /* roles: ["admin","supervisor"], */ icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
-                { text: 'Carbon/L[OH]', subKey: 'nivelesunidadcuatrocientos', /* roles: ["admin","supervisor"], */ icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
-                { text: 'Madera/L[OH]', subKey: 'nivelesunidadochocientos', /* roles: ["admin","supervisor"], */ icon: <img src={BarGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
+
             ],
         },
         {
             text: 'Laboratorio',
             roles: ["admin", "developer", "laboratorio"], icon: <img src={laboratoryIcon} alt="laboratorio" style={{ width: 25, height: 25 }} />, key: 'modulomantenimiento',
             subItems: [
-                { text: 'Planeacion Diaria', subKey: 'planeaciondiariadespachosreadonly', roles: ["admin", "laboratorio", "developer", "gerente"], icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} /> },
-                { text: 'Despachos', subKey: 'despachoalcoholeslogisticareadonly', roles: ["admin", "laboratorio", "developer", "gerente"], icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
-                { text: 'Recepción', subKey: 'recepcionalcoholeslogisticareadonly', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                // { text: 'Planeacion Diaria', subKey: 'planeaciondiariadespachosreadonly', roles: ["admin", "laboratorio", "developer", "gerente"], icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} /> },
+                {
+                    text: 'Despachos y Recepciones',
+                    key: 'produccion-logistica',
+                    icon: <img src={despachoIcon} alt="Logistica" style={{ width: 25, height: 25 }} />,
+                    subItems: [
+                        {
+                            text: 'Planeacion Diaria',
+                            subKey: 'planeaciondiariadespachosreadonly',
+                            roles: ["admin", "laboratorio", "developer", "gerente"],
+                            icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} />
+                        },
+                        {
+                            text: 'Despachos',
+                            subKey: 'despachoalcoholeslogisticareadonly',
+                            roles: ["admin", "laboratorio", "developer", "gerente"],
+                            icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
+                        },
+                        {
+                            text: 'Recepción',
+                            subKey: 'recepcionalcoholeslogisticareadonly',
+                            roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"],
+                            icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
+                        }
+                    ]
+                }
             ],
         },
         {
@@ -291,18 +339,22 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'Logs Traffic', subKey: 'logstraffic', roles: ["admin", "developer"], icon: <img src={logsIcon} alt="logstraffic" style={{ width: 25, height: 25 }} /> },
             ],
         },
-        
+
         { text: 'Assistance', roles: ["admin", "developer"], icon: <img src={robotAssistanceIcon} alt="robotassistance" style={{ width: 25, height: 25 }} />, key: 'robotassistance' },
     ];
 
-    const getRolesForMenuKey = (menuKey) => {
-        for (const item of menuItems) {
-            if (item.key === menuKey) return item.roles;
+    const getRolesForMenuKey = (menuKey, items = menuItems) => {
+        for (const item of items) {
+            if (item.key === menuKey || item.subKey === menuKey) {
+                return item.roles;
+            }
+
             if (item.subItems) {
-                const sub = item.subItems.find(s => s.subKey === menuKey);
-                if (sub) return sub.roles;
+                const found = getRolesForMenuKey(menuKey, item.subItems);
+                if (found) return found;
             }
         }
+
         return null;
     };
 
@@ -360,11 +412,13 @@ export default function EmpresarialPrincipalSchedulerApp() {
 
         switch (selectedMenu) {
             case 'paginadeinicio': return <InicioApp />;
+            //Tanques
             case 'Tanquesjornaleros': return <SeguimientoTKJornaleros NivelesTanquesContext={nivelesTanques} />;
             case 'Inventariodeinsumos': return <SGMRC />;
             case 'nivelesunidadcien': return <TanquesUnidadCien tanquesContext={tanques} NivelesTanquesContext={nivelesTanques} />;
             case 'nivelesunidadtrecientos': return <TanquesUnidadTreCientos tanquesContext={tanques} NivelesTanquesContext={nivelesTanques} />;
             case 'nivelesunidadcuatrocientos': return <Unidad400Component tanquesContext={tanques} NivelesTanquesContext={nivelesTanques} />;
+            case 'nivelesunidadseicientos': return <UnidadSeicientosComponent tanquesContext={tanques} NivelesTanquesContext={nivelesTanques} />;
             case 'nivelesunidadochocientos': return <UnidadOchoCientosAlmacenamiento tanquesContext={tanques} NivelesTanquesContext={nivelesTanques} />;
             case 'cubadefermentacion': return <CubaDeFermentacion tanquesContext={tanques} NivelesTanquesContext={nivelesTanques} />;
             case 'bitacoradeturnosupervisores': return <BitacoraDeSupervisores trabajadoresRegistradosContext={empleadosActivos} />;
@@ -395,7 +449,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             //laboratorio
             case 'despachoalcoholeslogisticareadonly': return <TablaDespachosLogisticaReadOnly />;
             case 'planeaciondiariadespachosreadonly': return <ProgramacionDespachoReadOnlyPage />;
-            case 'recepcionalcoholeslogisticareadonly': return <ModuloEnMantenimiento />;
+            case 'recepcionalcoholeslogisticareadonly': return <TablaRecepcionVehiculosReadOnly />;
             //Modulo Desarrollador
             case 'logstraffic': return <TrafficLogViewer />;
             //pagina mantenimiento
@@ -404,16 +458,86 @@ export default function EmpresarialPrincipalSchedulerApp() {
         }
     };
 
-    const getSelectedMenuText = () => {
-        for (const item of menuItems) {
-            if (item.subItems) {
-                const subItem = item.subItems.find(sub => sub.subKey === selectedMenu);
-                if (subItem) return subItem.text;
-            } else if (item.key === selectedMenu) {
+    const getSelectedMenuText = (items = menuItems) => {
+        for (const item of items) {
+            if (item.key === selectedMenu || item.subKey === selectedMenu) {
                 return item.text;
             }
+
+            if (item.subItems) {
+                const found = getSelectedMenuText(item.subItems);
+                if (found) return found;
+            }
         }
+
         return selectedMenu;
+    };
+
+    // funcion para renderizar submenus dentro de submenus
+    const renderMenuItems = (items, level = 0) => {
+        return items.map((item) => {
+            const itemKey = item.key || item.subKey;
+            const hasChildren = item.subItems && item.subItems.length > 0;
+
+            return (
+                <Box key={itemKey}>
+                    <ListItemButton
+                        disabled={!canAccess(item.roles)}
+                        selected={selectedMenu === itemKey}
+                        sx={{
+                            pl: 1.1 + level * 1,
+                            borderRadius: 2,
+                            mb: 0,
+                            mx: 1,
+                            '&.Mui-selected': {
+                                bgcolor: 'primary.main',
+                                color: 'white',
+                                fontWeight: 'bold',
+                                boxShadow: '0 0 8px rgba(33,150,243,0.4)',
+                                '& .MuiListItemIcon-root': { color: 'white' },
+                            },
+                        }}
+                        onClick={() => {
+                            if (!canAccess(item.roles)) return;
+
+                            if (hasChildren) {
+                                setOpenSubmenus(prev => ({
+                                    ...prev,
+                                    [itemKey]: !prev[itemKey]
+                                }));
+                            } else {
+                                setSelectedMenu(itemKey);
+                                if (isMobile) setMobileOpen(false);
+                            }
+                        }}
+                    >
+                        <ListItemIcon>{item.icon}</ListItemIcon>
+                        <Tooltip placement= "top" title={ (item.text).length < 18 ? "" : item.text}>
+                            <ListItemText
+                                primary={item.text}
+                                primaryTypographyProps={{
+                                    noWrap: true,
+                                    sx: {
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                    }
+                                }} />
+                        </Tooltip>
+                        {hasChildren && (
+                            openSubmenus[itemKey] ? <ExpandLess /> : <ExpandMore />
+                        )}
+                    </ListItemButton>
+
+                    {hasChildren && (
+                        <Collapse in={openSubmenus[itemKey]} timeout="auto" unmountOnExit>
+                            <List component="div" disablePadding>
+                                {renderMenuItems(item.subItems, level + 1)}
+                            </List>
+                        </Collapse>
+                    )}
+                </Box>
+            );
+        });
     };
 
     const drawer = (
@@ -424,67 +548,23 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 color: 'white',
                 mb: 1
             }}>
-                <Typography variant="h6" noWrap>Ambiocom s.a.s</Typography>
+                <Typography
+                    noWrap
+                    sx={{
+                        fontSize: 22,
+                        fontFamily: "'Open Sans', sans-serif",
+                        fontWeight: 350,
+                        letterSpacing: 1.4,
+                        // textTransform: "uppercase",
+                    }}
+                >
+                    Portal Coclí SM26
+                </Typography>
             </Toolbar>
             <Divider />
             <List sx={{ flexGrow: 1 }}>
-                {menuItems.map(({ text, icon, key, subItems, roles }) => (
-                    <Box key={key}>
-                        <ListItemButton
-                            disabled={!canAccess(roles)}
-                            onClick={() => {
-                                if (!canAccess(roles)) return;
+                {renderMenuItems(menuItems)}
 
-                                if (subItems) {
-                                    setOpenSubmenus(prev => ({ ...prev, [key]: !prev[key] }));
-                                } else {
-                                    setSelectedMenu(key);
-                                    if (isMobile) setMobileOpen(false);
-                                }
-                            }}
-                            selected={selectedMenu === key}
-                            sx={{
-                                borderRadius: 2,
-                                mb: 1,
-                                mx: 1,
-                                '&.Mui-selected': {
-                                    bgcolor: 'primary.main',
-                                    color: 'white',
-                                    fontWeight: 'bold',
-                                    boxShadow: '0 0 8px rgba(33,150,243,0.4)',
-                                    '& .MuiListItemIcon-root': { color: 'white' },
-                                },
-                            }}
-                        >
-                            <ListItemIcon>{icon}</ListItemIcon>
-                            <ListItemText primary={text} />
-                            {subItems && (openSubmenus[key] ? <ExpandLess /> : <ExpandMore />)}
-                        </ListItemButton>
-
-                        {subItems && (
-                            <Collapse in={openSubmenus[key]} timeout="auto" unmountOnExit>
-                                <List component="div" disablePadding>
-                                    {subItems.map(({ text: subText, subKey, icon: subIcon, roles: subRoles }) => (
-                                        <ListItemButton
-                                            key={subKey}
-                                            disabled={!canAccess(subRoles)}
-                                            sx={{ pl: 5 }}
-                                            selected={selectedMenu === subKey}
-                                            onClick={() => {
-                                                if (!canAccess(subRoles)) return;
-                                                setSelectedMenu(subKey);
-                                                if (isMobile) setMobileOpen(false);
-                                            }}
-                                        >
-                                            <ListItemIcon>{subIcon}</ListItemIcon>
-                                            <ListItemText primary={subText} />
-                                        </ListItemButton>
-                                    ))}
-                                </List>
-                            </Collapse>
-                        )}
-                    </Box>
-                ))}
             </List>
             <Box sx={{ p: 2, textAlign: 'center', color: 'text.secondary', fontSize: 12 }}>
                 © 2025 AMBIOCOM SAS. Todos los derechos reservados.
@@ -500,7 +580,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 elevation={4}
                 sx={{
                     width: { md: sidebarOpen ? `calc(100% - ${drawerWidth}px)` : '100%' },
-                    ml: { md: sidebarOpen ? `${drawerWidth}px` : 0 },
+                    ml: 0,
                     bgcolor: 'background.paper',
                     color: 'text.primary',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.1)',

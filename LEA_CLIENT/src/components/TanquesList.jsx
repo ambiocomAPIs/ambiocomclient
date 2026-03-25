@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Button,
@@ -13,13 +13,18 @@ import {
   Paper,
   Tooltip,
   TextField,
+  Chip,
+  Stack,
+  InputAdornment,
 } from "@mui/material";
-
 import {
   Edit,
   Delete,
   AddCircleOutline,
   SortByAlpha,
+  Visibility,
+  Search,
+  Opacity,
 } from "@mui/icons-material";
 import { Autocomplete } from "@mui/material";
 import axios from "axios";
@@ -34,7 +39,6 @@ const TanquesList = ({ tanquesContext }) => {
   const [visualModalOpen, setVisualModalOpen] = useState(false);
   const [tanqueSeleccionadoVisual, setTanqueSeleccionadoVisual] = useState("");
   const [operacionEjecutada, setOperacionEjecutada] = useState("");
-  // estado para filtro y orden
   const [search, setSearch] = useState("");
   const [ordenAsc, setOrdenAsc] = useState(true);
 
@@ -44,22 +48,30 @@ const TanquesList = ({ tanquesContext }) => {
     }
   }, [tanquesContext]);
 
-  // const fetchTanques = async () => {
-  //   try {
-  //     const res = await axios.get("https://ambiocomserver.onrender.com/api/tanques");
-  //     setTanques(res.data);
-  //   } catch (error) {
-  //     Swal.fire("Error", "No se pudieron cargar los tanques", "error");
-  //   }
-  // };
+  const fetchTanques = async () => {
+    try {
+      const res = await axios.get("https://ambiocomserver.onrender.com/api/tanques");
+      setTanques(Array.isArray(res.data) ? res.data : []);
+    } catch (error) {
+      Swal.fire("Error", "No se pudieron cargar los tanques", "error");
+    }
+  };
 
-  // useEffect(() => {
-  //   fetchTanques();
-  // }, []);
+  useEffect(() => {
+    if (!tanquesContext || tanquesContext.length === 0) {
+      fetchTanques();
+    }
+  }, [tanquesContext]);
 
   const handleCreate = () => {
     setSelectedTanque(null);
+    setOperacionEjecutada("create");
     setModalOpen(true);
+  };
+
+  const handleOpenVisual = (nombreTanque) => {
+    setTanqueSeleccionadoVisual(nombreTanque);
+    setVisualModalOpen(true);
   };
 
   const handleSubmit = async (data) => {
@@ -67,16 +79,32 @@ const TanquesList = ({ tanquesContext }) => {
       const { _id, ...dataLimpia } = data;
 
       if (data._id && operacionEjecutada === "update") {
-        await axios.put(`https://ambiocomserver.onrender.com/api/tanques/${data._id}`, data);
-        // Actualiza inmediatamente los estados
-        const nuevosTanques = tanques.map((t) =>
-          t._id === data._id ? data : t
+        const res = await axios.put(
+          `https://ambiocomserver.onrender.com/api/tanques/${data._id}`,
+          data
         );
-        setTanques(nuevosTanques);
-        // setTanquesContext(nuevosTanques); // 🔹 actualiza también el context
+
+        const tanqueActualizado = res?.data ?? data;
+
+        setTanques((prev) =>
+          prev.map((t) => (t._id === data._id ? tanqueActualizado : t))
+        );
+
         Swal.fire("Actualizado", "Tanque actualizado correctamente", "success");
       } else {
-        await axios.post("https://ambiocomserver.onrender.com/api/tanques", dataLimpia);
+        const res = await axios.post(
+          "https://ambiocomserver.onrender.com/api/tanques",
+          dataLimpia
+        );
+
+        const tanqueCreado = res?.data;
+
+        if (tanqueCreado?._id) {
+          setTanques((prev) => [...prev, tanqueCreado]);
+        } else {
+          await fetchTanques();
+        }
+
         Swal.fire("Creado", "Tanque registrado correctamente", "success");
       }
     } catch (error) {
@@ -87,6 +115,8 @@ const TanquesList = ({ tanquesContext }) => {
       }
     } finally {
       setModalOpen(false);
+      setSelectedTanque(null);
+      setOperacionEjecutada("");
     }
   };
 
@@ -105,66 +135,151 @@ const TanquesList = ({ tanquesContext }) => {
     if (confirm.isConfirmed) {
       try {
         await axios.delete(`https://ambiocomserver.onrender.com/api/tanques/${id}`);
+        setTanques((prev) => prev.filter((t) => t._id !== id));
         Swal.fire("Eliminado", "Tanque eliminado correctamente", "success");
-        fetchTanques();
       } catch (error) {
         Swal.fire("Error", "No se pudo eliminar el tanque", "error");
       }
     }
   };
 
-  // 🔹 Filtro + Ordenamiento
-  const tanquesFiltrados = tanques
-    .filter((t) => t.NombreTanque.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) =>
-      ordenAsc
-        ? a.NombreTanque.localeCompare(b.NombreTanque, "es", { numeric: true })
-        : b.NombreTanque.localeCompare(a.NombreTanque, "es", { numeric: true })
-    );
+  const tanquesFiltrados = useMemo(() => {
+    return [...tanques]
+      .filter((t) =>
+        String(t?.NombreTanque ?? "")
+          .toLowerCase()
+          .includes(search.toLowerCase())
+      )
+      .sort((a, b) =>
+        ordenAsc
+          ? a.NombreTanque.localeCompare(b.NombreTanque, "es", { numeric: true })
+          : b.NombreTanque.localeCompare(a.NombreTanque, "es", { numeric: true })
+      );
+  }, [tanques, search, ordenAsc]);
 
   return (
-    <Box p={4}>
-      {/* Header con título + acciones */}
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={3}
-        mt={5}
+    <Box p={{ xs: 2, md: 4 }}>
+      {/* Header */}
+      <Paper
+        elevation={0}
+        sx={{
+          p: 1.1,
+          mb: 1,
+          mt: 3.5,
+          borderRadius: 3,
+          border: "1px solid rgba(0,0,0,0.08)",
+          background:
+            "linear-gradient(135deg, rgba(227,242,253,0.95) 0%, rgba(248,250,252,1) 100%)",
+        }}
       >
-        <Typography variant="h4" fontWeight="bold" color="primary.dark">
-          Gestión de Tanques
-        </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddCircleOutline />}
-          onClick={handleCreate}
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          justifyContent="space-between"
+          alignItems={{ xs: "flex-start", md: "center" }}
+          spacing={2}
         >
-          Nuevo Tanque
-        </Button>
-      </Box>
+          <Box>
+            <Typography variant="h4" fontWeight="bold" color="primary.dark">
+              Gestión de Tanques
+            </Typography>
+            <Typography variant="body2" color="text.secondary" mt={0.5}>
+              Consulta, edición y visualización técnica de tanques
+            </Typography>
+          </Box>
 
-      {/* 🔹 Filtro y Orden */}
-      <Box display="flex" gap={2} alignItems="center" mb={3}>
-        <Autocomplete
-          options={tanques.map((t) => `TK-${t.NombreTanque}`)}
-          onInputChange={(e, value) => setSearch(value.replace("TK-", ""))}
-          renderInput={(params) => (
-            <TextField {...params} label="Buscar Tanque" variant="outlined" />
-          )}
-          sx={{ width: 300 }}
-        />
-        <Tooltip title={`Ordenar ${ordenAsc ? "Z → A" : "A → Z"}`}>
-          <IconButton
+          <Button
+            variant="contained"
             color="primary"
-            onClick={() => setOrdenAsc(!ordenAsc)}
-            sx={{ border: "1px solid #ccc" }}
+            startIcon={<AddCircleOutline />}
+            onClick={handleCreate}
+            sx={{
+              borderRadius: 2,
+              px: 2.2,
+              py: 1,
+              fontWeight: 700,
+              boxShadow: 2,
+            }}
           >
-            <SortByAlpha />
-          </IconButton>
-        </Tooltip>
-      </Box>
+            Nuevo Tanque
+          </Button>
+        </Stack>
+      </Paper>
+
+      {/* Filtro y orden */}
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          mb: 1,
+          borderRadius: 3,
+          border: "1px solid rgba(0,0,0,0.08)",
+          backgroundColor: "#fff",
+        }}
+      >
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={2}
+          alignItems={{ xs: "stretch", md: "center" }}
+          justifyContent="space-between"
+        >
+          <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+            <Autocomplete
+              options={tanques.map((t) => `TK-${t.NombreTanque}`)}
+              onInputChange={(e, value) =>
+                setSearch(String(value || "").replace("TK-", ""))
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Buscar tanque"
+                  variant="outlined"
+                  size="medium"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      height: 35,
+                    },
+                  }}
+                  InputProps={{
+                    ...params.InputProps,
+                    startAdornment: (
+                      <>
+                        <InputAdornment position="start">
+                          <Search fontSize="small" />
+                        </InputAdornment>
+                        {params.InputProps.startAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
+              sx={{ width: { xs: "100%", md: 320 } }}
+            />
+
+            <Tooltip title={`Ordenar ${ordenAsc ? "Z → A" : "A → Z"}`}>
+              <IconButton
+                color="primary"
+                onClick={() => setOrdenAsc(!ordenAsc)}
+                sx={{
+                  border: "1px solid rgba(0,0,0,0.12)",
+                  borderRadius: 2,
+                  height: 35,
+                  width: 45,
+                }}
+              >
+                <SortByAlpha />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+
+          <Chip
+            icon={<Opacity />}
+            label={`${tanquesFiltrados.length} tanque(s)`}
+            color="primary"
+            variant="outlined"
+            sx={{ fontWeight: 700, alignSelf: { xs: "flex-start", md: "center" } }}
+          />
+        </Stack>
+      </Paper>
 
       {/* Tabla */}
       <TableContainer
@@ -172,27 +287,83 @@ const TanquesList = ({ tanquesContext }) => {
         elevation={3}
         sx={{
           borderRadius: 3,
-          maxHeight: "calc(70vh - 0px)",
+          maxHeight: "calc(70vh - 25px)",
           overflow: "auto",
+          border: "1px solid rgba(0,0,0,0.08)",
         }}
       >
         <Table stickyHeader>
           <TableHead>
-            <TableRow sx={{ backgroundColor: "#e0e0e0" }}>
-              <TableCell align="center" colSpan={2}>
+            <TableRow>
+              <TableCell
+                align="center"
+                colSpan={2}
+                sx={{
+                  position: "sticky",
+                  top: 0,
+                  zIndex: 3,
+                  backgroundColor: "#e3f2fd",
+                }}
+              >
                 <strong>Información</strong>
               </TableCell>
-              <TableCell align="center" colSpan={2}>
+
+              <TableCell
+                align="center"
+                colSpan={2}
+                sx={{
+                  position: "sticky",
+                  top: 0,
+                  zIndex: 3,
+                  backgroundColor: "#f3e5f5",
+                }}
+              >
                 <strong>Factores</strong>
               </TableCell>
-              <TableCell align="center" colSpan={2}>
+
+              <TableCell
+                align="center"
+                colSpan={2}
+                sx={{
+                  position: "sticky",
+                  top: 0,
+                  zIndex: 3,
+                  backgroundColor: "#e8f5e9",
+                }}
+              >
                 <strong>Volumen</strong>
               </TableCell>
-              <TableCell align="center" rowSpan={2}>
+
+              <TableCell
+                align="center"
+                rowSpan={2}
+                sx={{
+                  position: "sticky",
+                  top: 0,
+                  zIndex: 4,
+                  backgroundColor: "#fff8e1",
+                  minWidth: 100,
+                }}
+              >
+                <strong>Visual</strong>
+              </TableCell>
+
+              <TableCell
+                align="center"
+                rowSpan={2}
+                sx={{
+                  position: "sticky",
+                  top: 0,
+                  zIndex: 4,
+                  backgroundColor: "#fce4ec",
+                  minWidth: 120,
+                }}
+              >
                 <strong>Acciones</strong>
               </TableCell>
             </TableRow>
-            <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+
+            <TableRow>
               {[
                 "Nombre del Tanque",
                 "Disposición [Uso Actual]",
@@ -201,7 +372,16 @@ const TanquesList = ({ tanquesContext }) => {
                 "Volumen Total [L]",
                 "Volumen Total [m³]",
               ].map((text, i) => (
-                <TableCell align="center" key={i}>
+                <TableCell
+                  align="center"
+                  key={i}
+                  sx={{
+                    position: "sticky",
+                    top: 56, // altura aproximada de la primera fila sticky
+                    zIndex: 2,
+                    backgroundColor: "#fafafa",
+                  }}
+                >
                   <strong>{text}</strong>
                 </TableCell>
               ))}
@@ -210,34 +390,60 @@ const TanquesList = ({ tanquesContext }) => {
 
           <TableBody>
             {tanquesFiltrados.map((t) => (
-              <TableRow key={t._id} hover>
-                <TableCell
-                  align="center"
-                  onDoubleClick={() => {
-                    setTanqueSeleccionadoVisual(t.NombreTanque);
-                    setVisualModalOpen(true);
-                  }}
-                  sx={{
-                    cursor: "pointer",
-                    color: "#1976d2",
-                    fontWeight: 600,
-                    textDecoration: "underline",
-                    "&:hover": { color: "#004ba0" },
-                  }}
-                >
-                  TK-{t.NombreTanque}
+              <TableRow
+                key={t._id}
+                hover
+                sx={{
+                  "&:hover": {
+                    backgroundColor: "rgba(25, 118, 210, 0.03)",
+                  },
+                }}
+              >
+                <TableCell align="center">
+                  <Chip
+                    label={`TK-${t.NombreTanque}`}
+                    color="primary"
+                    variant="outlined"
+                    sx={{ fontWeight: 700, minWidth: 90 }}
+                  />
                 </TableCell>
-                <TableCell align="center">{t.Disposicion}</TableCell>
-                <TableCell align="center">{t.Factor}</TableCell>
-                <TableCell align="center">{t.Factor / 100}</TableCell>
+
+                <TableCell align="center">{t.Disposicion || "N/A"}</TableCell>
+
+                <TableCell align="center">{t.Factor ?? "N/A"}</TableCell>
+
+                <TableCell align="center">
+                  {t.Factor ? (t.Factor / 100).toFixed(2) : "N/A"}
+                </TableCell>
+
                 <TableCell align="center">
                   {t.VolumenTotal ? `${t.VolumenTotal} L` : "N/A"}
                 </TableCell>
+
                 <TableCell align="center">
                   {t.VolumenTotal
                     ? `${(t.VolumenTotal / 1000).toFixed(2)} m³`
                     : "N/A"}
                 </TableCell>
+
+                <TableCell align="center">
+                  <Tooltip title={`Visualizar tanque TK-${t.NombreTanque}`}>
+                    <IconButton
+                      color="info"
+                      onClick={() => handleOpenVisual(t.NombreTanque)}
+                      sx={{
+                        border: "1px solid rgba(2,136,209,0.25)",
+                        backgroundColor: "rgba(2,136,209,0.06)",
+                        "&:hover": {
+                          backgroundColor: "rgba(2,136,209,0.14)",
+                        },
+                      }}
+                    >
+                      <Visibility />
+                    </IconButton>
+                  </Tooltip>
+                </TableCell>
+
                 <TableCell align="center">
                   <Tooltip title="Editar">
                     <IconButton
@@ -251,6 +457,7 @@ const TanquesList = ({ tanquesContext }) => {
                       <Edit />
                     </IconButton>
                   </Tooltip>
+
                   <Tooltip title="Eliminar">
                     <IconButton
                       color="error"
@@ -262,9 +469,10 @@ const TanquesList = ({ tanquesContext }) => {
                 </TableCell>
               </TableRow>
             ))}
+
             {tanquesFiltrados.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} align="center">
+                <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
                   <Typography variant="body1" color="text.secondary">
                     No se encontraron tanques.
                   </Typography>
@@ -278,10 +486,15 @@ const TanquesList = ({ tanquesContext }) => {
       {/* Modales */}
       <TanquesModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedTanque(null);
+          setOperacionEjecutada("");
+        }}
         onSubmit={handleSubmit}
         initialData={selectedTanque}
       />
+
       <TanqueVisualModal
         open={visualModalOpen}
         onClose={() => setVisualModalOpen(false)}

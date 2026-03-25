@@ -3,7 +3,7 @@ import { Box, Typography } from "@mui/material";
 
 import RenderizarGraficoDiarioPorTanque from "../SeguimientoTanquesJornaleros/utils_seguimientoTanquesJornaleros/modals_seguimientoTanquesJornaleros/RenderizarGraficoDiarioPorTanque";
 
-const contenedorAltura = 460;
+const contenedorAltura = 435;
 
 // Componente base reutilizable
 const RenderTanque = ({
@@ -27,77 +27,76 @@ const RenderTanque = ({
     width={ancho}
     justifyContent="flex-end"
   >
-    {console.log("nivel:", nivel)}
     {/* Indicador vertical */}
     <Box
       sx={{
         position: "absolute",
         top:
           index === 0
-            ? "15%"
+            ? "7%"
             : index === 1
-            ? "5%"
-            : index === 2
-            ? "5%"
-            : index === 3
-            ? "-8%"
-            : index === 4
-            ? "-8%"
-            : index === 5
-            ? "36%"
-            : index === 6
-            ? "36%"
-            : "51%",
+              ? "-5%"
+              : index === 2
+                ? "-5%"
+                : index === 3
+                  ? "-8%"
+                  : index === 4
+                    ? "-8%"
+                    : index === 5
+                      ? "30%"
+                      : index === 6
+                        ? "30%"
+                        : "45%",
         left:
           index === 0
-            ? "27%"
+            ? "22%"
             : index === 1
-            ? "24%"
-            : index === 2
-            ? "24%"
-            : index === 3
-            ? "16%"
-            : index === 4
-            ? "16%"
-            : index === 5
-            ? "21%"
-            : index === 6
-            ? "21%"
-            : "18%",
+              ? "20%"
+              : index === 2
+                ? "20%"
+                : index === 3
+                  ? "12%"
+                  : index === 4
+                    ? "12%"
+                    : index === 5
+                      ? "21%"
+                      : index === 6
+                        ? "21%"
+                        : "18%",
         transform: "translateX(-50%)",
         width:
           index === 0
-            ? "6%"
+            ? "5%"
             : index === 1
-            ? "6%"
-            : index === 2
-            ? "6%"
-            : index === 5
-            ? "5%"
-            : index === 6
-            ? "5%"
-            : index === 7
-            ? "6%"
-            : "16px",
+              ? "6%"
+              : index === 2
+                ? "6%"
+                : index === 5
+                  ? "5%"
+                  : index === 6
+                    ? "5%"
+                    : index === 7
+                      ? "6%"
+                      : "16px",
         height:
           index === 0
             ? "65%"
             : index === 1
-            ? "60%"
-            : index === 2
-            ? "60%"
-            : index === 3
-            ? "85%"
-            : index === 4
-            ? "85%"
-            : index === 5
-            ? "44%"
-            : index === 6
-            ? "44%"
-            : "30%",
-        backgroundColor: "#ddd",
+              ? "60%"
+              : index === 2
+                ? "60%"
+                : index === 3
+                  ? "82%"
+                  : index === 4
+                    ? "82%"
+                    : index === 5
+                      ? "44%"
+                      : index === 6
+                        ? "44%"
+                        : "30%",
+        backgroundColor: "#b3a5a5",
         borderRadius: "5px",
-        border: "1px solid #ccc",
+        border: "1px solid #a79a9a",
         display: "flex",
         flexDirection: "column-reverse",
         overflow: "hidden",
@@ -115,10 +114,9 @@ const RenderTanque = ({
     </Box>
 
     {/* Factor volumétrico */}
-    <Typography variant="h6">
-      V total: {volumenTotal.toLocaleString()}
-    </Typography>
-    <Typography variant="h6">Factor: {factor.toLocaleString()} L/m</Typography>
+
+    <Typography sx={{ fontSize: '18px' }}><strong>Capacidad:</strong> {Number(volumenTotal).toLocaleString('es-ES')}  L</Typography>
+    <Typography sx={{ fontSize: '18px' }}><strong>Factor: </strong>{Number(factor).toLocaleString('es-ES')} L/m</Typography>
 
     {/* Imagen */}
     <img
@@ -133,8 +131,12 @@ const RenderTanque = ({
     />
 
     {/* Litros y altura */}
-    <div style={{ marginTop: 8 }}>{(nivel * factor).toLocaleString()} L</div>
-    <div style={{ marginTop: 5 }}>{nivel} cm</div>
+    <strong>Volumen:</strong> {Number(nivel * factor || 0).toLocaleString('es-ES', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 1
+    })} L
+    <div style={{ marginTop: 5 }}><strong>Nivel:</strong>: {nivel} cm</div>
+
 
     {/* Nombre del tanque */}
     <input
@@ -145,34 +147,34 @@ const RenderTanque = ({
         position: "absolute",
         top:
           index === 0
-            ? "42%"
+            ? "40%"
             : index === 1
-            ? "10%"
-            : index === 2
-            ? "10%"
-            : index === 3
-            ? "5%"
-            : index === 4
-            ? "5%"
-            : index === 5
-            ? "68%"
-            : index === 6
-            ? "68%"
-            : "74%",
-        left: index === 0 ? "56%" : "52%",
+              ? "10%"
+              : index === 2
+                ? "10%"
+                : index === 3
+                  ? "6%"
+                  : index === 4
+                    ? "6%"
+                    : index === 5
+                      ? "68%"
+                      : index === 6
+                        ? "68%"
+                        : "74%",
+        left: index === 0 ? "53%" : "52%",
         transform: "translate(-50%, -50%)",
         fontSize:
           index === 1
             ? "15px"
             : index === 2
-            ? "15px"
-            : index === 5
-            ? "15px"
-            : index === 6
-            ? "15px"
-            : index === 7
-            ? "15px"
-            : "23px",
+              ? "15px"
+              : index === 5
+                ? "15px"
+                : index === 6
+                  ? "15px"
+                  : index === 7
+                    ? "15px"
+                    : "23px",
         width: index === 7 ? "70px" : "100px",
         textAlign: "center",
         border: "1px solid #ccc",
@@ -181,10 +183,10 @@ const RenderTanque = ({
           index === 5
             ? "2px"
             : index === 6
-            ? "2px"
-            : index === 7
-            ? "2px"
-            : "4px",
+              ? "2px"
+              : index === 7
+                ? "2px"
+                : "4px",
         backgroundColor: "rgba(255, 255, 255, 0.8)",
         cursor: "default",
         zIndex: 4,
@@ -198,33 +200,33 @@ const RenderTanque = ({
         position: "absolute",
         top:
           index === 0
-            ? "50%"
+            ? "48%"
             : index === 1
-            ? "15%"
-            : index === 2
-            ? "15%"
-            : index === 3
-            ? "13%"
-            : index === 4
-            ? "13%"
-            : index === 5
-            ? "74%"
-            : index === 6
-            ? "74%"
-            : "79%",
-        left: index === 0 ? "56%" : "52%",
+              ? "15%"
+              : index === 2
+                ? "15%"
+                : index === 3
+                  ? "15%"
+                  : index === 4
+                    ? "15%"
+                    : index === 5
+                      ? "74%"
+                      : index === 6
+                        ? "74%"
+                        : "79%",
+        left: index === 0 ? "53%" : "52%",
         transform: "translate(-50%, -50%)",
         fontSize: "15px",
         width:
           index === 0
             ? "120px"
             : index === 1
-            ? "100px"
-            : index === 2
-            ? "100px"
-            : index === 7
-            ? "70px"
-            : "120px",
+              ? "100px"
+              : index === 2
+                ? "100px"
+                : index === 7
+                  ? "70px"
+                  : "120px",
         textAlign: "center",
         border: "1px solid #ccc",
         borderRadius: "4px",
@@ -333,7 +335,7 @@ const Unidad400Component = ({ tanquesContext, NivelesTanquesContext }) => {
       {/* Tanques alineados abajo */}
       <Box
         display="flex"
-        gap="14px"
+        gap="11px"
         justifyContent="center"
         alignItems="flex-end"
         mt={26}
@@ -353,23 +355,23 @@ const Unidad400Component = ({ tanquesContext, NivelesTanquesContext }) => {
                 tanque.NombreTanque === "405"
                   ? "/TanquesAlmacenamiento/tanqueFDE.png"
                   : tanque.NombreTanque.includes("401")
-                  ? "/TanquesAlmacenamiento/tanquejornalerotafias.png"
-                  : tanque.NombreTanque.includes("402")
-                  ? "/TanquesAlmacenamiento/tanque403best.png"
-                  : tanque.NombreTanque.includes("403")
-                  ? "/TanquesAlmacenamiento/jornaleroindustrial.png"
-                  : "/TanquesAlmacenamiento/jornalerofusel.png"
+                    ? "/TanquesAlmacenamiento/tanquejornalerotafias.png"
+                    : tanque.NombreTanque.includes("402")
+                      ? "/TanquesAlmacenamiento/tanque403best.png"
+                      : tanque.NombreTanque.includes("403")
+                        ? "/TanquesAlmacenamiento/jornaleroindustrial.png"
+                        : "/TanquesAlmacenamiento/jornalerofusel.png"
               }
               ancho={
                 tanque.NombreTanque === "405"
-                  ? 250
+                  ? 240
                   : tanque.NombreTanque.includes("401")
-                  ? 210
-                  : tanque.NombreTanque.includes("402")
-                  ? 280
-                  : tanque.NombreTanque.includes("403")
-                  ? 220
-                  : 150
+                    ? 194
+                    : tanque.NombreTanque.includes("402")
+                      ? 285
+                      : tanque.NombreTanque.includes("403")
+                        ? 220
+                        : 150
               }
               factor={tanque.Factor}
               volumenTotal={tanque.VolumenTotal}

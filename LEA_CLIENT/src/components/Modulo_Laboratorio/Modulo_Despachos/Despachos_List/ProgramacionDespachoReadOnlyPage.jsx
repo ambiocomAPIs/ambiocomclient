@@ -182,7 +182,7 @@ const ProgramacionDespachoReadOnlyPage = () => {
     const filtrados = rowsFiltrados.length;
 
     return (
-        <Box p={{ xs: 2, md: 4 }} mt={5}>
+        <Box p={{ xs: 0, md: 0 }} mt={8}>
             <Card elevation={4} sx={{ borderRadius: 3 }}>
                 <CardContent>
                     <Box
@@ -391,7 +391,7 @@ const ProgramacionDespachoReadOnlyPage = () => {
                         <Table stickyHeader size="small">
                             <TableHead>
                                 <TableRow>
-                                    <TableCell><strong>Fecha</strong></TableCell>
+                                    <TableCell sx={{width:140}}><strong>Fecha</strong></TableCell>
                                     <TableCell><strong>Placa</strong></TableCell>
                                     <TableCell><strong>Trailer</strong></TableCell>
                                     <TableCell><strong>Conductor</strong></TableCell>

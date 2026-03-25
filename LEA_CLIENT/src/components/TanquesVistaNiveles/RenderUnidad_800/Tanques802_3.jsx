@@ -31,14 +31,14 @@ const RenderTanque = ({
     <Box
       sx={{
         position: "absolute",
-        top: index === 0 ? "-5%" : index === 1 ? "18%" : "-8%",
-        left: index === 0 ? "20%" : index === 1 ? "10%" : "22%",
+        top: index === 0 ? "-8%" : index === 1 ? "18%" : "-10%",
+        left: index === 0 ? "23%" : index === 1 ? "9%" : "22%",
         transform: "translateX(-50%)",
         width: "16px",
-        height: index === 0 ? "80%" : index === 1 ? "55%" : "62%",
-        backgroundColor: "#ddd",
+        height: index === 0 ? "80%" : index === 1 ? "50%" : "62%",
+        backgroundColor: "#ccc3c0",
         borderRadius: "5px",
-        border: "1px solid #ccc",
+        border: "1px solid #afabab",
         display: "flex",
         flexDirection: "column-reverse",
         overflow: "hidden",
@@ -56,9 +56,8 @@ const RenderTanque = ({
     </Box>
 
     {/* Factor volumétrico */}
-    <Typography variant="h6">V Total: {volumenTotal}</Typography>
-    <Typography variant="h6">Factor: {factor.toLocaleString()}</Typography>
-
+    <Typography sx={{ fontSize: '18px' }}><strong>Capacidad:</strong> {Number(volumenTotal).toLocaleString('es-ES')}  L</Typography>
+    <Typography sx={{ fontSize: '18px' }}><strong>Factor: </strong>{Number(factor).toLocaleString('es-ES')} L/m</Typography>
     {/* Imagen */}
     <img
       src={imagen}
@@ -72,8 +71,11 @@ const RenderTanque = ({
     />
 
     {/* Litros y altura */}
-    <div style={{ marginTop: 8 }}>{(nivel * factor).toLocaleString()} L</div>
-    <div style={{ marginTop: 5 }}>{nivel} cm</div>
+    <strong>Volumen:</strong> {Number(nivel * factor || 0).toLocaleString('es-ES', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 1
+    })} L
+    <div style={{ marginTop: 5 }}><strong>Nivel:</strong>: {nivel} cm</div>
 
     {/* Nombre del tanque */}
     <input
@@ -169,7 +171,7 @@ const Tanques802_3 = ({ tanquesContext, NivelesTanquesContext }) => {
       setTanquesNivelesFiltered(tanquesUltimos);
     }
   }, [tanquesContext, NivelesTanquesContext]);
-  
+
   const handleDobleClickTanque = (nombreTanque) => {
     const tanque = tanques.find((t) => t.NombreTanque === nombreTanque);
     // setTanqueSeleccionado(nombreTanque);
@@ -210,19 +212,19 @@ const Tanques802_3 = ({ tanquesContext, NivelesTanquesContext }) => {
               tanque.NombreTanque === "802"
                 ? "/TanquesAlmacenamiento/tanque802.png"
                 : tanque.NombreTanque.includes("803")
-                ? "/TanquesAlmacenamiento/tanque803.png"
-                : tanque.NombreTanque.includes("804")
-                ? "/TanquesAlmacenamiento/tanque800Fusel.png"
-                : ""
+                  ? "/TanquesAlmacenamiento/tanque803.png"
+                  : tanque.NombreTanque.includes("804")
+                    ? "/TanquesAlmacenamiento/tanque800Fusel.png"
+                    : ""
             }
             ancho={
               tanque.NombreTanque === "802"
-                ? 230
+                ? 370
                 : tanque.NombreTanque.includes("803")
-                ? 700
-                : tanque.NombreTanque.includes("804")
-                ? 260
-                : 150
+                  ? 700
+                  : tanque.NombreTanque.includes("804")
+                    ? 260
+                    : 150
             }
             factor={tanque.Factor}
             volumenTotal={tanque.VolumenTotal}

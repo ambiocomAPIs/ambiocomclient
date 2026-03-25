@@ -15,51 +15,51 @@ const CubaDeFermentacion = ({ tanquesContext, NivelesTanquesContext }) => {
   const [factorSeleccionado, setFactorSeleccionado] = useState(null);
 
   useEffect(() => {
-      if (tanquesContext?.length > 0 && NivelesTanquesContext?.length > 0) {
-        // 1. Filtrar solo los tanques que quieras (ej: 102A y 102B)
-        const tanquesFiltrados = tanquesContext.filter(
-          (tanque) =>
-            tanque.NombreTanque === "300A" || tanque.NombreTanque === "300B"
-        );
-        setTanques(tanquesFiltrados);
-  
-        // 2. Buscar en NivelesTanquesContext el último registro por cada tanque fijo
-        const tanquesUltimos = tanquesFiltrados
-          .map((tanque) => {
-            const registrosPorTanque = NivelesTanquesContext.filter(
-              (nivel) => nivel.NombreTanque === tanque.NombreTanque
-            );
-  
-            if (registrosPorTanque.length === 0) return null;
-  
-            // 3. Seleccionar el último por FechaRegistro
-            const ultimo = registrosPorTanque.reduce((prev, curr) => {
-              const fechaPrev = new Date(prev.FechaRegistro);
-              const fechaCurr = new Date(curr.FechaRegistro);
-              return fechaCurr > fechaPrev ? curr : prev;
-            });
-  
-            setUltimoRegistroGlobal(ultimo.FechaRegistro);
-  
-            return ultimo;
-          })
-          .filter(Boolean); // eliminar nulls
-  
-        // 4. Guardar en el estado los niveles filtrados
-        setTanquesNivelesFiltered(tanquesUltimos);
-      }
-    }, [tanquesContext, NivelesTanquesContext]);
+    if (tanquesContext?.length > 0 && NivelesTanquesContext?.length > 0) {
+      // 1. Filtrar solo los tanques que quieras (ej: 102A y 102B)
+      const tanquesFiltrados = tanquesContext.filter(
+        (tanque) =>
+          tanque.NombreTanque === "300A" || tanque.NombreTanque === "300B"
+      );
+      setTanques(tanquesFiltrados);
 
-    const handleDobleClickTanque = (nombreTanque) => {
-      const tanque = tanques.find((t) => t.NombreTanque === nombreTanque);
-      // setTanqueSeleccionado(nombreTanque);
-      // setModalOpenGraficaTanque(true);
-      if (tanque) {
-        setTanqueSeleccionado(nombreTanque);
-        setFactorSeleccionado(tanque.Factor);
-        setModalOpenGraficaTanque(true);
-      }
-    };
+      // 2. Buscar en NivelesTanquesContext el último registro por cada tanque fijo
+      const tanquesUltimos = tanquesFiltrados
+        .map((tanque) => {
+          const registrosPorTanque = NivelesTanquesContext.filter(
+            (nivel) => nivel.NombreTanque === tanque.NombreTanque
+          );
+
+          if (registrosPorTanque.length === 0) return null;
+
+          // 3. Seleccionar el último por FechaRegistro
+          const ultimo = registrosPorTanque.reduce((prev, curr) => {
+            const fechaPrev = new Date(prev.FechaRegistro);
+            const fechaCurr = new Date(curr.FechaRegistro);
+            return fechaCurr > fechaPrev ? curr : prev;
+          });
+
+          setUltimoRegistroGlobal(ultimo.FechaRegistro);
+
+          return ultimo;
+        })
+        .filter(Boolean); // eliminar nulls
+
+      // 4. Guardar en el estado los niveles filtrados
+      setTanquesNivelesFiltered(tanquesUltimos);
+    }
+  }, [tanquesContext, NivelesTanquesContext]);
+
+  const handleDobleClickTanque = (nombreTanque) => {
+    const tanque = tanques.find((t) => t.NombreTanque === nombreTanque);
+    // setTanqueSeleccionado(nombreTanque);
+    // setModalOpenGraficaTanque(true);
+    if (tanque) {
+      setTanqueSeleccionado(nombreTanque);
+      setFactorSeleccionado(tanque.Factor);
+      setModalOpenGraficaTanque(true);
+    }
+  };
 
   const handleNombreChange = (index, nuevoNombre) => {
     const nuevosTanques = [...tanques];
@@ -85,11 +85,11 @@ const CubaDeFermentacion = ({ tanquesContext, NivelesTanquesContext }) => {
           gap: "280px",
           justifyContent: "center",
           alignItems: "flex-end",
-          marginTop: 280,
+          marginTop: 250,
         }}
       >
         {tanques.map(
-          ({ NombreTanque, ancho = 370, Disposicion, Factor = 1, VolumenTotal = 1000 }, index) => {
+          ({ NombreTanque, ancho = 365, Disposicion, Factor = 1, VolumenTotal = 1000 }, index) => {
             const nivelObj = tanquesNivelesFiltered[index];
             const nivel = nivelObj?.NivelTanque ?? 0;
 
@@ -111,14 +111,14 @@ const CubaDeFermentacion = ({ tanquesContext, NivelesTanquesContext }) => {
                 <div
                   style={{
                     position: "absolute",
-                    top: "-15%",
-                    left: "15%",
+                    top: "-19%",
+                    left: "11%",
                     transform: "translateX(-50%)",
                     width: "16px",
                     height: "95%",
-                    backgroundColor: "#ddd",
+                    backgroundColor: "#d6c8c8",
                     borderRadius: "5px",
-                    border: "1px solid #ccc",
+                    border: "1px solid #918d8d",
                     display: "flex",
                     flexDirection: "column-reverse",
                     overflow: "hidden",
@@ -135,18 +135,20 @@ const CubaDeFermentacion = ({ tanquesContext, NivelesTanquesContext }) => {
                     }}
                   />
                 </div>
-
-                <Typography variant="h6">VT: {VolumenTotal} L</Typography>
-                <Typography variant="h6">F: {Factor} L/m</Typography>
-
+                <Typography sx={{ fontSize: '18px' }}><strong>Capacidad:</strong> {Number(VolumenTotal).toLocaleString('es-ES')}  L</Typography>
+                <Typography sx={{ fontSize: '18px' }}><strong>Factor: </strong>{Number(Factor).toLocaleString('es-ES')} L/m</Typography>
                 <img
                   src={"/TanquesAlmacenamiento/tanque5.png"}
                   alt={`Tanque ${NombreTanque}`}
                   style={{ width: `${ancho}px`, height: "auto", zIndex: 1 }}
                 />
 
-                <div>{nivel * Factor} L</div>
-                <div>{nivel} cm</div>
+                <div>   <strong>Volumen:</strong> {Number(nivel * Factor || 0).toLocaleString('es-ES', {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 1
+                })} L
+                </div>
+                <div style={{ marginTop: 5 }}><strong>Nivel:</strong>: {nivel} cm</div>
 
                 <input
                   type="text"
@@ -171,7 +173,7 @@ const CubaDeFermentacion = ({ tanquesContext, NivelesTanquesContext }) => {
                   value={Disposicion ?? ""}
                   style={{
                     position: "absolute",
-                    top: "0%",
+                    top: "-2%",
                     left: "50%",
                     transform: "translate(-50%, -50%)",
                     fontSize: "15px",
