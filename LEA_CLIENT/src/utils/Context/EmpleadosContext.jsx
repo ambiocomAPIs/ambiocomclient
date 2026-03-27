@@ -1,11 +1,13 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { useAuth } from "./AuthContext/AuthContext";
 
 // Crear contexto
 const EmpleadosContext = createContext([]);
+
 // Hook
 export const useEmpleados = () => useContext(EmpleadosContext);
+
 // Provider
 export const EmpleadosProvider = ({ children }) => {
   const [empleados, setEmpleados] = useState([]);
@@ -13,47 +15,63 @@ export const EmpleadosProvider = ({ children }) => {
 
   const { user, isAuth, loadingAuth, rol } = useAuth();
 
-  useEffect(() => {
-    const fetchEmpleados = async () => {
-      try {
-        setLoadingEmpleados(true);
+  const limpiarEstado = useCallback(() => {
+    setEmpleados([]);
+    setLoadingEmpleados(false);
+  }, []);
 
-        const res = await axios.get(
-          "https://ambiocomserver.onrender.com/api/empleadosambiocom",
-          { withCredentials: true }
-        );
+  const usuarioValido =
+    !!user &&
+    typeof user === "object" &&
+    Object.keys(user).length > 0 &&
+    !!(user.id || user._id || user.email);
 
-        setEmpleados(res.data || []);
-      } catch (error) {
-        console.error("Error cargando empleados:", error);
-        setEmpleados([]);
-      } finally {
-        setLoadingEmpleados(false);
-      }
-    };
+  const autenticadoValido = isAuth === true && usuarioValido;
 
-    // Esperar a que auth termine
-    if (loadingAuth) return;
-
-    // Si no hay sesión, no consultar
-    if (!isAuth || !user) {
-      setEmpleados([]);
+  const fetchEmpleados = useCallback(async () => {
+    if (!autenticadoValido) {
+      limpiarEstado();
       return;
     }
 
-    // 🔐 (opcional) validar rol
+    try {
+      setLoadingEmpleados(true);
+
+      const res = await axios.get(
+        "https://ambiocomserver.onrender.com/api/empleadosambiocom",
+        { withCredentials: true }
+      );
+
+      setEmpleados(Array.isArray(res.data) ? res.data : []);
+    } catch (error) {
+      console.error("Error cargando empleados:", error);
+      setEmpleados([]);
+    } finally {
+      setLoadingEmpleados(false);
+    }
+  }, [autenticadoValido, limpiarEstado]);
+
+  useEffect(() => {
+    if (loadingAuth) return;
+
+    if (!autenticadoValido) {
+      limpiarEstado();
+      return;
+    }
+
+    // 🔐 opcional: validar rol
     // if (rol !== "developer") {
-    //   setEmpleados([]);
+    //   limpiarEstado();
     //   return;
     // }
 
     fetchEmpleados();
-  }, [loadingAuth, isAuth, user, rol]);
+  }, [loadingAuth, autenticadoValido, fetchEmpleados, limpiarEstado, rol]);
 
-  const empleadosActivos = empleados.filter(emp => emp.activo);
+  const empleadosActivos = empleados.filter((emp) => emp.activo);
 
   return (
-    <EmpleadosContext.Provider value={{ empleadosActivos, loadingEmpleados }}>
+    <EmpleadosContext.Provider value={{ empleadosActivos, loadingEmpleados, fetchEmpleados }}>
       {children}
     </EmpleadosContext.Provider>
   );
