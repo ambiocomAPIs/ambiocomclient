@@ -76,8 +76,9 @@ import EmpleadosManager from '../EmpleadosManager/EmpleadosAmbiocomList.jsx';
 import TablaMedicionesAgua from '../PTAP/TablaMedicionesAgua.jsx';
 //energia
 import TablaMedicionesDiariaEnergia from '../Energia_CON/TablaMedicionesEnergia.jsx'
-//Modulo DB
+//Modulo DEV
 import ConsultasHttpDb from '../DB_Consultas_View/ConsultasHttpDb.jsx';
+import TaskRequerimentDev from '../DB_Consultas_View/TaskRequerimentDevComponent.jsx';
 //modulo inventario
 import SGMRC from '../Insumos_Modulo/SGMRC.jsx';
 //pagina mantenimiento de modulo y desarrollo
@@ -89,7 +90,7 @@ import {
     tanqueIcon, factoryIcon, despachoIcon, despachoSalidaIcon, despachoRecepcionIcon, laboratoryIcon, inventoryIcon, rulerIcon, oilTankIcon, coalInventoryIcon,
     ptapIcon, GraphIcon, BarGraphIcon, BarGraphComparativeIcon, robotAssistanceIcon, bitacoraIcon, StopWatchIcon, PdfIcon, DatabaseAdministratorIcon, workerIcon,
     TankGraphIcon, CounterIcon, MoneyGraphIcon, EnergyIcon, EnergyDataIcon, InOutMaderaCarbonIcon, InformeIcon, TankWithLiquidIcon, ReportIcon,
-    Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon, PersonalIcons, plannerIconDate, logsIcon, VesselTkIcon, VesselTkIconChemical
+    Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon, PersonalIcons, plannerIconDate, logsIcon, VesselTkIcon, VesselTkIconChemical, ListToDoIcon
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -333,8 +334,9 @@ export default function EmpresarialPrincipalSchedulerApp() {
         },
         { text: 'Registro Trabajadores', roles: ["admin", "developer"], icon: <img src={workerIcon} alt="empleadosambiocom" style={{ width: 25, height: 25 }} />, key: 'empleadosambiocom' },
         {
-            text: 'Administrator DEV', roles: ["admin", "developer"], icon: <img src={DevIcon} alt="basededatos" style={{ width: 25, height: 25 }} />, key: 'basededatos',
+            text: 'Administrator DEV', roles: ["admin", "developer"], icon: <img src={DevIcon} alt="basededatos" style={{ width: 25, height: 25 }} />, key: 'basededatoscomponent',
             subItems: [
+                { text: 'Task & Reqeriments', subKey: 'taskandrequeriments', roles: ["admin", "developer"], icon: <img src={ListToDoIcon} alt="taskandrequeriments" style={{ width: 25, height: 25 }} /> },
                 { text: 'Base de datos', subKey: 'basededatos', roles: ["admin", "developer"], icon: <img src={DatabaseAdministratorIcon} alt="basededatos" style={{ width: 25, height: 25 }} /> },
                 { text: 'Logs Traffic', subKey: 'logstraffic', roles: ["admin", "developer"], icon: <img src={logsIcon} alt="logstraffic" style={{ width: 25, height: 25 }} /> },
             ],
@@ -424,7 +426,6 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'bitacoradeturnosupervisores': return <BitacoraDeSupervisores trabajadoresRegistradosContext={empleadosActivos} />;
             case 'horasextrassupervisores': return <PanelHoras />;
             case 'inventariodecarbonymadera': return <InventarioCarbonMadera />;
-            case 'basededatos': return <ConsultasHttpDb />;
             case 'robotassistance': return <ChatBox />;
             case 'tanquescrud': return <TanquesList tanquesContext={tanques} />;
             case 'empleadosambiocom': return <EmpleadosManager />;
@@ -451,6 +452,8 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'planeaciondiariadespachosreadonly': return <ProgramacionDespachoReadOnlyPage />;
             case 'recepcionalcoholeslogisticareadonly': return <TablaRecepcionVehiculosReadOnly />;
             //Modulo Desarrollador
+            case 'taskandrequeriments': return <TaskRequerimentDev />;
+            case 'basededatos': return <ConsultasHttpDb />;
             case 'logstraffic': return <TrafficLogViewer />;
             //pagina mantenimiento
             case 'modulomantenimiento': return <ModuloEnMantenimiento />;
@@ -512,7 +515,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                         }}
                     >
                         <ListItemIcon>{item.icon}</ListItemIcon>
-                        <Tooltip placement= "top" title={ (item.text).length < 18 ? "" : item.text}>
+                        <Tooltip placement="top" title={(item.text).length < 18 ? "" : item.text}>
                             <ListItemText
                                 primary={item.text}
                                 primaryTypographyProps={{

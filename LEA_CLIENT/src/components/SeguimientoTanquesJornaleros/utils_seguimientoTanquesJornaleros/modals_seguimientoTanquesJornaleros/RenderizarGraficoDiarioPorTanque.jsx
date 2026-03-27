@@ -1,10 +1,47 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import Modal from "react-modal";
 import { Line } from "react-chartjs-2";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import Papa from "papaparse";
 import axios from "axios";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Box,
+  Paper,
+  Stack,
+  Grid,
+  Typography,
+  Chip,
+  Button,
+  Alert,
+  CircularProgress,
+  Tabs,
+  Tab,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TextField,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Divider,
+} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+import TableChartIcon from "@mui/icons-material/TableChart";
+import ShowChartIcon from "@mui/icons-material/ShowChart";
+import DownloadIcon from "@mui/icons-material/Download";
+import TuneIcon from "@mui/icons-material/Tune";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import Inventory2Icon from "@mui/icons-material/Inventory2";
+import InsightsIcon from "@mui/icons-material/Insights";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -24,28 +61,22 @@ ChartJS.register(
   Legend
 );
 
-Modal.setAppElement("#root");
-
 const RenderizarGraficoDiarioPorTanque = ({
   modalIsOpen,
   onClose,
   nombreTanque,
   factorTanque,
 }) => {
-  // console.log("nombre tanque llega:", nombreTanque);
-  console.log("factorTanque tanque llega:", factorTanque);
-
   const [registros, setRegistros] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  // trae los usurios del sesio storage
+
   const [usuario, setUsuario] = useState(null);
-  // Boton ver y no ver grafica
   const [datasetsHidden, setDatasetsHidden] = useState(false);
-  // Boton ver en niveles o volumen
   const [datasetsPluggins, setDatasetsPluggins] = useState(false);
-  // Plugin de la grafica para diferencias entre puntos
   const [pluginActivo, setPluginActivo] = useState("deltaPlugin");
+  const [vistaActiva, setVistaActiva] = useState("grafica");
+
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
@@ -56,14 +87,30 @@ const RenderizarGraficoDiarioPorTanque = ({
 
   const chartRef = useRef(null);
 
-  // este useEffect me inicia las graficas ocultas
+  const usuarioAutorizado = ["gerente", "supervisor", "developer"].includes(
+    usuario?.rol
+  );
+
+  const palette = [
+    "#2563eb",
+    "#16a34a",
+    "#dc2626",
+    "#9333ea",
+    "#ea580c",
+    "#0891b2",
+    "#4f46e5",
+    "#ca8a04",
+    "#be123c",
+    "#0f766e",
+  ];
+
   useEffect(() => {
     if (modalIsOpen) {
-      setDatasetsHidden(true); // Reinicia ocultas cuando se abre el modal
-      setDatasetsPluggins(true); // true para ver niveles primero
+      setDatasetsHidden(true);
+      setDatasetsPluggins(true);
+      setVistaActiva("grafica");
     }
   }, [modalIsOpen]);
-  // TERMINA-- este useEffect me inicia las gracias ocultas
 
   useEffect(() => {
     if (chartRef.current) {
@@ -85,6 +132,8 @@ const RenderizarGraficoDiarioPorTanque = ({
   useEffect(() => {
     if (modalIsOpen) {
       setIsLoading(true);
+      setError(null);
+
       axios
         .get(
           "https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros"
@@ -94,6 +143,7 @@ const RenderizarGraficoDiarioPorTanque = ({
             setRegistros(response.data);
           } else {
             console.error("Respuesta inesperada del backend");
+            setRegistros([]);
           }
           setIsLoading(false);
         })
@@ -145,16 +195,19 @@ const RenderizarGraficoDiarioPorTanque = ({
     });
 
     const datasets = Object.entries(groupedByTankAndDay).map(
-      ([nombre, dataPorDia]) => {
+      ([nombre, dataPorDia], index) => {
         const data = dayLabels.map((dia) => dataPorDia[dia] ?? null);
         return {
           label: nombre,
           data,
-          borderColor: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+          borderColor: palette[index % palette.length],
           backgroundColor: "transparent",
           fill: false,
           tension: 0.3,
           hidden: nombre !== nombreTanque,
+          pointRadius: nombre === nombreTanque ? 4 : 2,
+          pointHoverRadius: nombre === nombreTanque ? 6 : 4,
+          borderWidth: nombre === nombreTanque ? 3 : 1.5,
         };
       }
     );
@@ -173,7 +226,41 @@ const RenderizarGraficoDiarioPorTanque = ({
       },
       rawData,
     };
-  }, [registros, selectedMonth]);
+  }, [registros, selectedMonth, nombreTanque]);
+
+  const rawDataTanqueSeleccionado = useMemo(() => {
+    return rawData.filter((row) => row.Tanque === nombreTanque);
+  }, [rawData, nombreTanque]);
+
+  const estadisticasTanque = useMemo(() => {
+    const niveles = rawDataTanqueSeleccionado
+      .map((row) => Number(row.Nivel))
+      .filter((v) => !Number.isNaN(v));
+
+    if (!niveles.length) {
+      return {
+        totalRegistros: 0,
+        minimo: "-",
+        maximo: "-",
+        promedio: "-",
+      };
+    }
+
+    const min = Math.min(...niveles);
+    const max = Math.max(...niveles);
+    const promedio = niveles.reduce((acc, val) => acc + val, 0) / niveles.length;
+    const factor = Number(factorTanque || 1);
+
+    return {
+      totalRegistros: niveles.length,
+      minimo: min.toFixed(2),
+      maximo: max.toFixed(2),
+      promedio: promedio.toFixed(2),
+
+      volumenPromedio: (promedio * factor).toFixed(2),
+      volumenMaximo: (max * factor).toFixed(2),
+    };
+  }, [rawDataTanqueSeleccionado]);
 
   const exportToCSV = () => {
     const csv = Papa.unparse(rawData);
@@ -227,842 +314,1224 @@ const RenderizarGraficoDiarioPorTanque = ({
     setDatasetsPluggins(!datasetsPluggins);
   };
 
-  // calcula la diferencia entre punto y punto...
-  const differences = chartData.datasets.map((dataset) => {
-    const diffs = [];
-    for (let i = 1; i < dataset.data.length; i++) {
-      const prev = dataset.data[i - 1];
-      const curr = dataset.data[i];
-      if (prev !== null && curr !== null) {
-        diffs.push({ index1: i - 1, index2: i, value: Math.abs(curr - prev) });
-      }
-    }
-    return diffs;
-  });
-
-  // plugin de chartjs para visualizar tendencias y diferencias
   const deltaPlugin = {
     id: "deltaPlugin",
-    afterDatasetsDraw(chart) {
+    afterDatasetsDraw(chart, args, pluginOptions) {
       const ctx = chart.ctx;
-      const tanqueSeleccionado = chart.options.nombreTanque; // 👈 filtro
+      const tanqueSeleccionado =
+        pluginOptions?.nombreTanque ?? chart.options?.nombreTanque;
 
-      chart.data.datasets.forEach((dataset, datasetIndex) => {
-        if (dataset.label !== tanqueSeleccionado) return; // 👈 solo dibuja si coincide
+      if (!tanqueSeleccionado) return;
 
-        for (let i = 1; i < dataset.data.length; i++) {
-          const prev = dataset.data[i - 1];
-          const curr = dataset.data[i];
-          if (prev !== null && curr !== null) {
-            const meta = chart.getDatasetMeta(datasetIndex);
-            const prevPoint = meta.data[i - 1];
-            const currPoint = meta.data[i];
+      const placedLabels = [];
 
-            const x1 = prevPoint.x;
-            const y1 = prevPoint.y;
-            const x2 = currPoint.x;
-            const y2 = currPoint.y;
+      const mostrarNiveles = chart.options.datasetsPluggins ?? true;
 
-            const diff = Math.abs(curr - prev);
+      const options = {
+        lineColor: pluginOptions?.lineColor || "rgba(220, 38, 38, 0.9)",
+        textColor: pluginOptions?.textColor || "#111",
+        backgroundColor:
+          pluginOptions?.backgroundColor || "rgba(255, 255, 255, 0.9)",
+        borderColor: pluginOptions?.borderColor || "rgba(220, 38, 38, 0.9)",
+        font: pluginOptions?.font || "12px Arial",
+        paddingX: pluginOptions?.paddingX ?? 6,
+        paddingY: pluginOptions?.paddingY ?? 4,
+        labelOffset: pluginOptions?.labelOffset ?? 8,
+        minLabelSpacing: pluginOptions?.minLabelSpacing ?? 4,
+        showGuideLine: pluginOptions?.showGuideLine ?? true,
+        locale: pluginOptions?.locale || "es-CO",
+        valueType:
+          pluginOptions?.valueType ?? (mostrarNiveles ? "nivel" : "volumen"),
+      };
 
-            ctx.save();
+      const chartArea = chart.chartArea;
 
-            // Línea vertical como "llave"
-            ctx.strokeStyle = "red";
-            ctx.beginPath();
-            ctx.moveTo(x1, y1);
-            ctx.lineTo(x1, y2);
-            ctx.lineTo(x2, y2);
-            ctx.stroke();
+      function formatNivel(value) {
+        return new Intl.NumberFormat(options.locale, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+          useGrouping: true,
+        }).format(value);
+      }
 
-            // Texto de diferencia
-            ctx.fillStyle = "red";
-            ctx.font = "12px Arial";
-            ctx.fillText(diff.toFixed(2), (x1 + x2) / 2, y2 - 5);
+      function formatVolumen(value) {
+        return new Intl.NumberFormat(options.locale, {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+          useGrouping: true,
+        }).format(value);
+      }
 
-            ctx.restore();
-          }
+      function formatDelta(diff) {
+        const isVolumen = options.valueType === "volumen";
+        const formatted = isVolumen ? formatVolumen(diff) : formatNivel(diff);
+        return `${formatted}${isVolumen ? " L" : " m"}`;
+      }
+
+      function boxesOverlap(a, b, spacing = 0) {
+        return !(
+          a.x + a.w + spacing < b.x ||
+          b.x + b.w + spacing < a.x ||
+          a.y + a.h + spacing < b.y ||
+          b.y + b.h + spacing < a.y
+        );
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function findBestLabelPosition(baseX, baseY, labelW, labelH) {
+        const candidateOffsets = [
+          { dx: 0, dy: -18 },
+          { dx: 0, dy: 18 },
+          { dx: 12, dy: -18 },
+          { dx: -12, dy: -18 },
+          { dx: 12, dy: 18 },
+          { dx: -12, dy: 18 },
+          { dx: 0, dy: -34 },
+          { dx: 0, dy: 34 },
+          { dx: 18, dy: 0 },
+          { dx: -18, dy: 0 },
+        ];
+
+        for (const offset of candidateOffsets) {
+          const x = clamp(
+            baseX + offset.dx - labelW / 2,
+            chartArea.left + 2,
+            chartArea.right - labelW - 2
+          );
+
+          const y = clamp(
+            baseY + offset.dy - labelH / 2,
+            chartArea.top + 2,
+            chartArea.bottom - labelH - 2
+          );
+
+          const candidate = { x, y, w: labelW, h: labelH };
+
+          const collision = placedLabels.some((box) =>
+            boxesOverlap(candidate, box, options.minLabelSpacing)
+          );
+
+          if (!collision) return candidate;
         }
-      });
-    },
-  };
 
-  const deltaPluginLegible = {
-    id: "deltaPluginLegible",
-    afterDatasetsDraw(chart) {
-      const ctx = chart.ctx;
-      const tanqueSeleccionado = chart.options.nombreTanque; // 👈 filtro
+        return {
+          x: clamp(
+            baseX - labelW / 2,
+            chartArea.left + 2,
+            chartArea.right - labelW - 2
+          ),
+          y: clamp(
+            baseY - labelH / 2,
+            chartArea.top + 2,
+            chartArea.bottom - labelH - 2
+          ),
+          w: labelW,
+          h: labelH,
+        };
+      }
 
-      chart.data.datasets.forEach((dataset, datasetIndex) => {
-        if (dataset.label !== tanqueSeleccionado) return; // 👈 solo dibuja si coincide
-
-        const meta = chart.getDatasetMeta(datasetIndex);
-
-        for (let i = 1; i < dataset.data.length; i++) {
-          const prev = dataset.data[i - 1];
-          const curr = dataset.data[i];
-          if (prev !== null && curr !== null) {
-            const prevPoint = meta.data[i - 1];
-            const currPoint = meta.data[i];
-
-            const x1 = prevPoint.x;
-            const y1 = prevPoint.y;
-            const x2 = currPoint.x;
-            const y2 = currPoint.y;
-
-            const diff = Math.abs(curr - prev);
-
-            ctx.save();
-
-            // Línea punteada horizontal
-            ctx.strokeStyle = "rgba(255,0,0,0.6)";
-            ctx.setLineDash([4, 4]);
-            ctx.beginPath();
-            ctx.moveTo(x1, y2 - 15); // 15px arriba del punto final
-            ctx.lineTo(x2, y2 - 15);
-            ctx.stroke();
-
-            // Fondo blanco detrás del texto
-            const text = diff.toFixed(2);
-            ctx.font = "12px Arial";
-            const textWidth = ctx.measureText(text).width;
-            const textX = (x1 + x2) / 2 - textWidth / 2;
-            const textY = y2 - 18;
-            ctx.fillStyle = "white";
-            ctx.fillRect(textX - 2, textY - 10, textWidth + 4, 14);
-
-            // Texto de la diferencia
-            ctx.fillStyle = "red";
-            ctx.fillText(text, textX, textY);
-
-            ctx.restore();
-          }
-        }
-      });
-    },
-  };
-
-  const deltaPluginClaro = {
-    id: "deltaPluginClaro",
-    afterDatasetsDraw(chart) {
-      const ctx = chart.ctx;
-      const tanqueSeleccionado = chart.options.nombreTanque; // 👈 filtro
-
-      chart.data.datasets.forEach((dataset, datasetIndex) => {
-        if (dataset.label !== tanqueSeleccionado) return; // 👈 solo el tanque activo
-
-        const meta = chart.getDatasetMeta(datasetIndex);
-
-        for (let i = 1; i < dataset.data.length; i++) {
-          const prev = dataset.data[i - 1];
-          const curr = dataset.data[i];
-          if (prev !== null && curr !== null) {
-            const prevPoint = meta.data[i - 1];
-            const currPoint = meta.data[i];
-
-            const x1 = prevPoint.x;
-            const y1 = prevPoint.y;
-            const x2 = currPoint.x;
-            const y2 = currPoint.y;
-
-            const diff = Math.abs(curr - prev).toFixed(2);
-
-            ctx.save();
-
-            // Línea vertical pequeña para conectar puntos
-            const midX = (x1 + x2) / 2;
-            const midY = (y1 + y2) / 2;
-            const lineHeight = 15; // altura de la línea
-
-            ctx.strokeStyle = "rgba(255,0,0,0.8)";
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.moveTo(midX, midY - lineHeight / 2);
-            ctx.lineTo(midX, midY + lineHeight / 2);
-            ctx.stroke();
-
-            // Texto de la diferencia
-            ctx.font = "12px Arial";
-            const textWidth = ctx.measureText(diff).width;
-            ctx.fillStyle = "white";
-            ctx.fillRect(
-              midX - textWidth / 2 - 2,
-              midY - lineHeight / 2 - 12,
-              textWidth + 4,
-              14
-            );
-
-            ctx.fillStyle = "red";
-            ctx.fillText(diff, midX - textWidth / 2, midY - lineHeight / 2 - 2);
-
-            ctx.restore();
-          }
-        }
-      });
-    },
-  };
-
-  const deltaPluginLineaPunteada = {
-    id: "deltaPluginLineaPunteada",
-    afterDatasetsDraw(chart) {
-      const ctx = chart.ctx;
-      const tanqueSeleccionado = chart.options.nombreTanque; // 👈 filtro por tanque seleccionado
-
-      chart.data.datasets.forEach((dataset, datasetIndex) => {
-        // solo dibuja si coincide el label con el tanque seleccionado
-        if (dataset.label !== tanqueSeleccionado) return;
-
-        const meta = chart.getDatasetMeta(datasetIndex);
-
-        for (let i = 1; i < dataset.data.length; i++) {
-          const prev = dataset.data[i - 1];
-          const curr = dataset.data[i];
-
-          if (prev !== null && curr !== null) {
-            const prevPoint = meta.data[i - 1];
-            const currPoint = meta.data[i];
-
-            const x1 = prevPoint.x;
-            const y1 = prevPoint.y;
-            const x2 = currPoint.x;
-            const y2 = currPoint.y;
-
-            const diff = Math.abs(curr - prev).toFixed(2);
-
-            ctx.save();
-            // línea punteada azul arriba del punto final
-            ctx.strokeStyle = "rgba(0,123,255,0.8)";
-            ctx.setLineDash([4, 4]);
-            ctx.beginPath();
-            ctx.moveTo(x1, y2 - 15);
-            ctx.lineTo(x2, y2 - 15);
-            ctx.stroke();
-
-            // fondo blanco para el texto
-            ctx.font = "12px Arial";
-            const textWidth = ctx.measureText(diff).width;
-            const textX = (x1 + x2) / 2 - textWidth / 2;
-            const textY = y2 - 18;
-
-            ctx.fillStyle = "white";
-            ctx.fillRect(textX - 2, textY - 10, textWidth + 4, 14);
-
-            // texto azul
-            ctx.fillStyle = "blue";
-            ctx.fillText(diff, textX, textY);
-
-            ctx.restore();
-          }
-        }
-      });
-    },
-  };
-
-  const deltaPluginArco = {
-    id: "deltaPluginArco",
-    afterDatasetsDraw(chart) {
-      const ctx = chart.ctx;
-      const tanqueSeleccionado = chart.options.nombreTanque; // <- le pasas el tanque seleccionado
-
-      chart.data.datasets.forEach((dataset, datasetIndex) => {
-        // solo dibuja si coincide con el tanque seleccionado
-        if (dataset.label !== tanqueSeleccionado) return;
-
-        const meta = chart.getDatasetMeta(datasetIndex);
-        for (let i = 1; i < dataset.data.length; i++) {
-          const prev = dataset.data[i - 1];
-          const curr = dataset.data[i];
-          if (prev !== null && curr !== null) {
-            const prevPoint = meta.data[i - 1];
-            const currPoint = meta.data[i];
-
-            const x1 = prevPoint.x,
-              y1 = prevPoint.y;
-            const x2 = currPoint.x,
-              y2 = currPoint.y;
-            const diff = Math.abs(curr - prev).toFixed(2);
-
-            ctx.save();
-            // arco naranja
-            ctx.strokeStyle = "rgba(255,165,0,0.8)";
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.moveTo(x1, y1);
-            ctx.quadraticCurveTo((x1 + x2) / 2, Math.min(y1, y2) - 20, x2, y2);
-            ctx.stroke();
-
-            // texto en el centro del arco
-            ctx.font = "12px Arial";
-            const textWidth = ctx.measureText(diff).width;
-            const midX = (x1 + x2) / 2;
-            const midY = Math.min(y1, y2) - 22;
-
-            ctx.fillStyle = "white";
-            ctx.fillRect(
-              midX - textWidth / 2 - 2,
-              midY - 10,
-              textWidth + 4,
-              14
-            );
-
-            ctx.fillStyle = "orange";
-            ctx.fillText(diff, midX - textWidth / 2, midY);
-
-            ctx.restore();
-          }
-        }
-      });
-    },
-  };
-
-  const deltaPluginFlotante = {
-    id: "deltaPluginFlotante",
-    afterDatasetsDraw(chart) {
-      const ctx = chart.ctx;
-      const tanqueSeleccionado = chart.options.nombreTanque; // <- se lo pasas en options
-
-      chart.data.datasets.forEach((dataset, datasetIndex) => {
-        // Solo dibujar si el dataset corresponde al tanque seleccionado
-        if (dataset.label !== tanqueSeleccionado) return;
-
-        const meta = chart.getDatasetMeta(datasetIndex);
-        for (let i = 1; i < dataset.data.length; i++) {
-          const prev = dataset.data[i - 1];
-          const curr = dataset.data[i];
-          if (prev !== null && curr !== null) {
-            const currPoint = meta.data[i];
-            const diff = Math.abs(curr - prev).toFixed(2);
-
-            ctx.save();
-            ctx.font = "12px Arial";
-            const textWidth = ctx.measureText(diff).width;
-
-            // Fondo blanco
-            ctx.fillStyle = "white";
-            ctx.fillRect(currPoint.x + 3, currPoint.y - 10, textWidth + 4, 14);
-
-            // Texto en verde
-            ctx.fillStyle = "green";
-            ctx.fillText(diff, currPoint.x + 3, currPoint.y);
-            ctx.restore();
-          }
-        }
-      });
-    },
-  };
-
-  const deltaPluginNodos = {
-    id: "deltaPluginNodos",
-    afterDatasetsDraw(chart) {
-      const ctx = chart.ctx;
-      const tanqueSeleccionado = chart.options.nombreTanque;
+      function roundRect(ctx, x, y, width, height, radius) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+      }
 
       chart.data.datasets.forEach((dataset, datasetIndex) => {
         if (dataset.label !== tanqueSeleccionado) return;
 
         const meta = chart.getDatasetMeta(datasetIndex);
-        const nodos = [];
+        if (!meta || meta.hidden) return;
 
-        // 🔹 1. Forzar el primer nodo
-        nodos.push({
-          tipo: "inicio",
-          index: 0,
-          value: dataset.data[0],
-          point: meta.data[0],
-        });
-
-        // 🔹 2. Detectar picos y valles intermedios
-        for (let i = 1; i < dataset.data.length - 1; i++) {
+        for (let i = 1; i < dataset.data.length; i++) {
           const prev = dataset.data[i - 1];
           const curr = dataset.data[i];
-          const next = dataset.data[i + 1];
 
-          if (curr > prev && curr > next) {
-            nodos.push({
-              tipo: "pico",
-              index: i,
-              value: curr,
-              point: meta.data[i],
-            });
-          }
-          if (curr < prev && curr < next) {
-            nodos.push({
-              tipo: "valle",
-              index: i,
-              value: curr,
-              point: meta.data[i],
-            });
-          }
-        }
+          if (prev == null || curr == null) continue;
 
-        // 🔹 3. Forzar el último nodo
-        const lastIdx = dataset.data.length - 1;
-        nodos.push({
-          tipo: "fin",
-          index: lastIdx,
-          value: dataset.data[lastIdx],
-          point: meta.data[lastIdx],
-        });
+          const prevPoint = meta.data[i - 1];
+          const currPoint = meta.data[i];
 
-        // 🔹 4. Medir amplitud entre nodo-valle consecutivos
-        for (let j = 1; j < nodos.length; j++) {
-          const a = nodos[j - 1];
-          const b = nodos[j];
+          if (!prevPoint || !currPoint) continue;
 
-          if (a.tipo === b.tipo) continue; // evitar unir dos iguales pico-pico o valle-valle
+          const x1 = prevPoint.x;
+          const y1 = prevPoint.y;
+          const x2 = currPoint.x;
+          const y2 = currPoint.y;
 
-          const diff = Math.abs(b.value - a.value).toFixed(2);
+          const diff = Math.abs(curr - prev);
+          const label = formatDelta(diff);
+
+          const midX = (x1 + x2) / 2;
+          const midY = (y1 + y2) / 2;
 
           ctx.save();
-          ctx.strokeStyle = a.value < b.value ? "red" : "green"; // subida = rojo, bajada = verde
+
+          ctx.strokeStyle = options.lineColor;
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 3]);
           ctx.beginPath();
-          ctx.moveTo(a.point.x, a.point.y);
-          ctx.lineTo(b.point.x, b.point.y);
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x1, y2);
+          ctx.lineTo(x2, y2);
           ctx.stroke();
 
-          // Texto en el medio de la línea
-          ctx.fillStyle = "black";
-          ctx.font = "12px Arial";
-          ctx.fillText(
-            `${diff}`,
-            (a.point.x + b.point.x) / 2,
-            (a.point.y + b.point.y) / 2 - 5
-          );
+          ctx.setLineDash([]);
+          ctx.font = options.font;
+
+          const textMetrics = ctx.measureText(label);
+          const textW = textMetrics.width;
+          const textH = 12;
+
+          const labelW = textW + options.paddingX * 2;
+          const labelH = textH + options.paddingY * 2;
+
+          const baseY =
+            curr > prev
+              ? midY - options.labelOffset
+              : midY + options.labelOffset;
+
+          const box = findBestLabelPosition(midX, baseY, labelW, labelH);
+
+          if (options.showGuideLine) {
+            ctx.strokeStyle = "rgba(120, 120, 120, 0.5)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(midX, midY);
+            ctx.lineTo(box.x + box.w / 2, box.y + box.h / 2);
+            ctx.stroke();
+          }
+
+          ctx.fillStyle = options.backgroundColor;
+          ctx.strokeStyle = options.borderColor;
+          ctx.lineWidth = 1;
+          roundRect(ctx, box.x, box.y, box.w, box.h, 4);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = options.textColor;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(label, box.x + box.w / 2, box.y + box.h / 2 + 0.5);
+
+          placedLabels.push(box);
           ctx.restore();
         }
       });
     },
   };
 
-  // 🔹 1. Pendientes (Slope Analyzer)
   const slopePlugin = {
     id: "slopePlugin",
-    afterDatasetsDraw(chart) {
+
+    afterDatasetsDraw(chart, args, pluginOptions) {
       const ctx = chart.ctx;
-      const tanqueSeleccionado = chart.options.nombreTanque;
+      const tanqueSeleccionado =
+        pluginOptions?.nombreTanque ?? chart.options?.nombreTanque;
+
+      if (!tanqueSeleccionado) return;
+
+      const placedLabels = [];
+      const mostrarNiveles = chart.options.datasetsPluggins ?? true;
+
+      const options = {
+        locale: pluginOptions?.locale || "es-CO",
+        valueType:
+          pluginOptions?.valueType ?? (mostrarNiveles ? "nivel" : "volumen"),
+        decimals: pluginOptions?.decimals ?? 2,
+        font: pluginOptions?.font || "11px Arial",
+        paddingX: pluginOptions?.paddingX ?? 5,
+        paddingY: pluginOptions?.paddingY ?? 3,
+        labelOffset: pluginOptions?.labelOffset ?? 8,
+        minLabelSpacing: pluginOptions?.minLabelSpacing ?? 4,
+        showGuideLine: pluginOptions?.showGuideLine ?? false,
+        positiveColor: pluginOptions?.positiveColor || "rgba(22, 163, 74, 0.95)",
+        negativeColor: pluginOptions?.negativeColor || "rgba(220, 38, 38, 0.95)",
+        zeroColor: pluginOptions?.zeroColor || "rgba(100, 116, 139, 0.95)",
+        textColor: pluginOptions?.textColor || "#111",
+        backgroundColor:
+          pluginOptions?.backgroundColor || "rgba(255, 255, 255, 0.95)",
+        borderWidth: pluginOptions?.borderWidth ?? 1,
+        showPlusSign: pluginOptions?.showPlusSign ?? true,
+        hideZero: pluginOptions?.hideZero ?? false,
+        skipIfShortSegment: pluginOptions?.skipIfShortSegment ?? true,
+        minSegmentPx: pluginOptions?.minSegmentPx ?? 18,
+      };
+
+      const chartArea = chart.chartArea;
+
+      const nivelFormatter = new Intl.NumberFormat(options.locale, {
+        minimumFractionDigits: options.decimals,
+        maximumFractionDigits: options.decimals,
+        useGrouping: true,
+      });
+
+      const volumenFormatter = new Intl.NumberFormat(options.locale, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+        useGrouping: true,
+      });
+
+      function formatSignedDiff(rawDiff) {
+        const absValue = Math.abs(rawDiff);
+        const isVolumen = options.valueType === "volumen";
+        const unidad = isVolumen ? " L" : " m";
+
+        const formatted = isVolumen
+          ? volumenFormatter.format(absValue)
+          : nivelFormatter.format(absValue);
+
+        if (rawDiff > 0) {
+          return `${options.showPlusSign ? "+" : ""}${formatted}${unidad}`;
+        }
+
+        if (rawDiff < 0) {
+          return `-${formatted}${unidad}`;
+        }
+
+        return `${formatted}${unidad}`;
+      }
+
+      function getStrokeColor(rawDiff) {
+        if (rawDiff > 0) return options.positiveColor;
+        if (rawDiff < 0) return options.negativeColor;
+        return options.zeroColor;
+      }
+
+      function boxesOverlap(a, b, spacing = 0) {
+        return !(
+          a.x + a.w + spacing < b.x ||
+          b.x + b.w + spacing < a.x ||
+          a.y + a.h + spacing < b.y ||
+          b.y + b.h + spacing < a.y
+        );
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function findBestLabelPosition(baseX, baseY, labelW, labelH) {
+        const candidateOffsets = [
+          { dx: 0, dy: -18 },
+          { dx: 0, dy: 18 },
+          { dx: 12, dy: -18 },
+          { dx: -12, dy: -18 },
+          { dx: 12, dy: 18 },
+          { dx: -12, dy: 18 },
+          { dx: 0, dy: -32 },
+          { dx: 0, dy: 32 },
+          { dx: 18, dy: 0 },
+          { dx: -18, dy: 0 },
+        ];
+
+        for (const offset of candidateOffsets) {
+          const x = clamp(
+            baseX + offset.dx - labelW / 2,
+            chartArea.left + 2,
+            chartArea.right - labelW - 2
+          );
+
+          const y = clamp(
+            baseY + offset.dy - labelH / 2,
+            chartArea.top + 2,
+            chartArea.bottom - labelH - 2
+          );
+
+          const candidate = { x, y, w: labelW, h: labelH };
+
+          const collision = placedLabels.some((box) =>
+            boxesOverlap(candidate, box, options.minLabelSpacing)
+          );
+
+          if (!collision) return candidate;
+        }
+
+        return {
+          x: clamp(
+            baseX - labelW / 2,
+            chartArea.left + 2,
+            chartArea.right - labelW - 2
+          ),
+          y: clamp(
+            baseY - labelH / 2,
+            chartArea.top + 2,
+            chartArea.bottom - labelH - 2
+          ),
+          w: labelW,
+          h: labelH,
+        };
+      }
+
+      function roundRect(ctx, x, y, width, height, radius) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+      }
 
       chart.data.datasets.forEach((dataset, datasetIndex) => {
         if (dataset.label !== tanqueSeleccionado) return;
 
         const meta = chart.getDatasetMeta(datasetIndex);
+        if (!meta || meta.hidden) return;
+
         for (let i = 1; i < dataset.data.length; i++) {
           const prev = dataset.data[i - 1];
           const curr = dataset.data[i];
-          if (prev !== null && curr !== null) {
-            const prevPoint = meta.data[i - 1];
-            const currPoint = meta.data[i];
-            const diff = (curr - prev).toFixed(2);
 
-            ctx.save();
-            ctx.font = "11px Arial";
-            ctx.fillStyle = diff >= 0 ? "green" : "red";
-            ctx.fillText(
-              diff > 0 ? `+${diff}` : diff,
-              (prevPoint.x + currPoint.x) / 2,
-              (prevPoint.y + currPoint.y) / 2 - 5
-            );
-            ctx.restore();
+          if (prev == null || curr == null) continue;
+
+          const prevNum = Number(prev);
+          const currNum = Number(curr);
+
+          if (!Number.isFinite(prevNum) || !Number.isFinite(currNum)) continue;
+
+          const prevPoint = meta.data[i - 1];
+          const currPoint = meta.data[i];
+
+          if (!prevPoint || !currPoint) continue;
+
+          const x1 = prevPoint.x;
+          const y1 = prevPoint.y;
+          const x2 = currPoint.x;
+          const y2 = currPoint.y;
+
+          if (options.skipIfShortSegment) {
+            const segmentPx = Math.hypot(x2 - x1, y2 - y1);
+            if (segmentPx < options.minSegmentPx) continue;
           }
-        }
-      });
-    },
-  };
 
-  // 🔹 2. Máximos y mínimos globales
-  const extremaPlugin = {
-    id: "extremaPlugin",
-    afterDatasetsDraw(chart) {
-      const ctx = chart.ctx;
-      const tanqueSeleccionado = chart.options.nombreTanque;
+          const rawDiff = currNum - prevNum;
 
-      chart.data.datasets.forEach((dataset, datasetIndex) => {
-        if (dataset.label !== tanqueSeleccionado) return;
+          if (options.hideZero && rawDiff === 0) continue;
 
-        const meta = chart.getDatasetMeta(datasetIndex);
+          const label = formatSignedDiff(rawDiff);
+          const color = getStrokeColor(rawDiff);
 
-        const values = dataset.data.filter((v) => v !== null);
-        const max = Math.max(...values);
-        const min = Math.min(...values);
+          const midX = (x1 + x2) / 2;
+          const midY = (y1 + y2) / 2;
 
-        dataset.data.forEach((v, i) => {
-          if (v === max || v === min) {
-            const point = meta.data[i];
-            ctx.save();
+          ctx.save();
+          ctx.font = options.font;
+
+          const textMetrics = ctx.measureText(label);
+          const textW = textMetrics.width;
+          const textH = 11;
+
+          const labelW = textW + options.paddingX * 2;
+          const labelH = textH + options.paddingY * 2;
+
+          // Ubicación base: arriba si la línea sube visualmente, abajo si baja
+          const baseY = y2 < y1 ? midY - options.labelOffset : midY + options.labelOffset;
+
+          const box = findBestLabelPosition(midX, baseY, labelW, labelH);
+
+          if (options.showGuideLine) {
+            ctx.strokeStyle = "rgba(120, 120, 120, 0.45)";
+            ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
-            ctx.fillStyle = v === max ? "blue" : "orange";
-            ctx.fill();
-
-            const valorAGraficar = datasetsPluggins
-              ? v
-              : (v * Number(factorTanque)).toFixed(2);
-
-            ctx.fillStyle = "black";
-            ctx.font = "12px Arial";
-            ctx.fillText(
-              v === max ? `Max: ${valorAGraficar}` : `Min: ${valorAGraficar}`,
-              point.x + 8,
-              point.y - 8
-            );
-            ctx.restore();
+            ctx.moveTo(midX, midY);
+            ctx.lineTo(box.x + box.w / 2, box.y + box.h / 2);
+            ctx.stroke();
           }
-        });
+
+          ctx.fillStyle = options.backgroundColor;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = options.borderWidth;
+          roundRect(ctx, box.x, box.y, box.w, box.h, 4);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = color;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(label, box.x + box.w / 2, box.y + box.h / 2 + 0.5);
+
+          placedLabels.push(box);
+          ctx.restore();
+        }
       });
     },
   };
 
-  // Higher-order plugin wrapper
-function withScaling(basePlugin) {
-  return {
-    ...basePlugin,
-    afterDatasetsDraw(chart, ...args) {
-      const mostrarNiveles = chart.options.datasetsPluggins ?? true;
-      const factor = chart.options.factorTanque ?? 1;
+const extremaPlugin = {
+  id: "extremaPlugin",
 
-      // Determinar unidad
-      const unidad = mostrarNiveles ? "m" : "L";
+  afterDatasetsDraw(chart, args, pluginOptions) {
+    const ctx = chart.ctx;
+    const tanqueSeleccionado =
+      pluginOptions?.nombreTanque ?? chart.options?.nombreTanque;
 
-      // Sobrescribimos temporalmente los valores ajustados
-      const originalData = chart.data.datasets.map(ds => [...ds.data]);
+    if (!tanqueSeleccionado) return;
 
-      chart.data.datasets.forEach(ds => {
-        ds.data = ds.data.map(v => {
-          if (v === null) return null;
-          return mostrarNiveles ? v : v * factor;
-        });
-      });
+    const mostrarNiveles = chart.options.datasetsPluggins ?? true;
+    const factorTanque = Number(chart.options.factorTanque ?? 1);
 
-      // Creamos una función para reemplazar el fillText y agregar unidad
-      const ctxOriginal = chart.ctx;
-      const originalFillText = ctxOriginal.fillText.bind(ctxOriginal);
+    const options = {
+      locale: pluginOptions?.locale || "es-CO",
+      valueType:
+        pluginOptions?.valueType ??
+        (mostrarNiveles ? "nivel" : "volumen"),
+      valuesAlreadyScaled:
+        pluginOptions?.valuesAlreadyScaled ?? !mostrarNiveles,
+      font: pluginOptions?.font || "12px Arial",
+      textColor: pluginOptions?.textColor || "#111",
+      maxPointColor: pluginOptions?.maxPointColor || "blue",
+      minPointColor: pluginOptions?.minPointColor || "orange",
+      pointRadius: pluginOptions?.pointRadius ?? 6,
+      labelOffsetX: pluginOptions?.labelOffsetX ?? 8,
+      labelOffsetY: pluginOptions?.labelOffsetY ?? -8,
+      paddingX: pluginOptions?.paddingX ?? 6,
+      paddingY: pluginOptions?.paddingY ?? 4,
+      backgroundColor:
+        pluginOptions?.backgroundColor || "rgba(255,255,255,0.92)",
+      borderColor: pluginOptions?.borderColor || "rgba(0,0,0,0.2)",
+      minLabelSpacing: pluginOptions?.minLabelSpacing ?? 4,
+    };
 
-      ctxOriginal.fillText = (text, x, y, maxWidth) => {
-        let textoConUnidad = text;
+    const placedLabels = [];
+    const chartArea = chart.chartArea;
 
-        // Solo si el texto es un número
-        const num = parseFloat(text);
-        if (!isNaN(num)) {
-          textoConUnidad = `${num} ${unidad}`;
-        }
-
-        originalFillText(textoConUnidad, x, y, maxWidth);
-      };
-
-      // Ejecutamos el plugin base
-      basePlugin.afterDatasetsDraw(chart, ...args);
-
-      // Restauramos los valores originales y fillText
-      chart.data.datasets.forEach((ds, i) => {
-        ds.data = originalData[i];
-      });
-      ctxOriginal.fillText = originalFillText;
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
     }
-  };
-}
+
+    function boxesOverlap(a, b, spacing = 0) {
+      return !(
+        a.x + a.w + spacing < b.x ||
+        b.x + b.w + spacing < a.x ||
+        a.y + a.h + spacing < b.y ||
+        b.y + b.h + spacing < a.y
+      );
+    }
+
+    function roundRect(ctx, x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    }
+
+    function formatNivel(value) {
+      return new Intl.NumberFormat(options.locale, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+        useGrouping: true,
+      }).format(value);
+    }
+
+    function formatVolumen(value) {
+      return new Intl.NumberFormat(options.locale, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+        useGrouping: true,
+      }).format(value);
+    }
+
+    function getDisplayedValue(rawValue) {
+      if (options.valueType !== "volumen") {
+        return rawValue;
+      }
+
+      return options.valuesAlreadyScaled
+        ? rawValue
+        : rawValue * factorTanque;
+    }
+
+    function formatDisplayedValue(rawValue) {
+      const displayedValue = getDisplayedValue(rawValue);
+      const isVolumen = options.valueType === "volumen";
+      const formatted = isVolumen
+        ? formatVolumen(displayedValue)
+        : formatNivel(displayedValue);
+
+      return `${formatted}${isVolumen ? " L" : " m"}`;
+    }
+
+    function findBestLabelPosition(baseX, baseY, labelW, labelH) {
+      const candidateOffsets = [
+        { dx: 0, dy: 0 },
+        { dx: 0, dy: -18 },
+        { dx: 0, dy: 18 },
+        { dx: 12, dy: -12 },
+        { dx: 12, dy: 12 },
+        { dx: -12, dy: -12 },
+        { dx: -12, dy: 12 },
+        { dx: 18, dy: 0 },
+        { dx: -18, dy: 0 },
+      ];
+
+      for (const offset of candidateOffsets) {
+        const x = clamp(
+          baseX + offset.dx,
+          chartArea.left + 2,
+          chartArea.right - labelW - 2
+        );
+
+        const y = clamp(
+          baseY + offset.dy,
+          chartArea.top + 2,
+          chartArea.bottom - labelH - 2
+        );
+
+        const candidate = { x, y, w: labelW, h: labelH };
+
+        const collision = placedLabels.some((box) =>
+          boxesOverlap(candidate, box, options.minLabelSpacing)
+        );
+
+        if (!collision) return candidate;
+      }
+
+      return {
+        x: clamp(baseX, chartArea.left + 2, chartArea.right - labelW - 2),
+        y: clamp(baseY, chartArea.top + 2, chartArea.bottom - labelH - 2),
+        w: labelW,
+        h: labelH,
+      };
+    }
+
+    chart.data.datasets.forEach((dataset, datasetIndex) => {
+      if (dataset.label !== tanqueSeleccionado) return;
+
+      const meta = chart.getDatasetMeta(datasetIndex);
+      if (!meta || meta.hidden) return;
+
+      const validPoints = dataset.data
+        .map((v, i) => ({
+          num: Number(v),
+          index: i,
+        }))
+        .filter((item) => Number.isFinite(item.num));
+
+      if (validPoints.length === 0) return;
+
+      const max = Math.max(...validPoints.map((p) => p.num));
+      const min = Math.min(...validPoints.map((p) => p.num));
+
+      validPoints.forEach(({ num, index }) => {
+        if (num !== max && num !== min) return;
+
+        const point = meta.data[index];
+        if (!point) return;
+
+        const isMax = num === max;
+        const label = `${isMax ? "Max" : "Min"}: ${formatDisplayedValue(num)}`;
+
+        ctx.save();
+
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, options.pointRadius, 0, 2 * Math.PI);
+        ctx.fillStyle = isMax ? options.maxPointColor : options.minPointColor;
+        ctx.fill();
+
+        ctx.font = options.font;
+        const textMetrics = ctx.measureText(label);
+        const textW = textMetrics.width;
+        const textH = 12;
+
+        const labelW = textW + options.paddingX * 2;
+        const labelH = textH + options.paddingY * 2;
+
+        const baseX = point.x + options.labelOffsetX;
+        const baseY = point.y + options.labelOffsetY - labelH / 2;
+
+        const box = findBestLabelPosition(baseX, baseY, labelW, labelH);
+
+        ctx.fillStyle = options.backgroundColor;
+        ctx.strokeStyle = options.borderColor;
+        ctx.lineWidth = 1;
+        roundRect(ctx, box.x, box.y, box.w, box.h, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = options.textColor;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(
+          label,
+          box.x + options.paddingX,
+          box.y + box.h / 2 + 0.5
+        );
+
+        placedLabels.push(box);
+        ctx.restore();
+      });
+    });
+  },
+};
+
+  function withScaling(basePlugin) {
+    return {
+      ...basePlugin,
+      afterDatasetsDraw(chart, ...args) {
+        const mostrarNiveles = chart.options.datasetsPluggins ?? true;
+        const factor = chart.options.factorTanque ?? 1;
+
+        const originalData = chart.data.datasets.map((ds) => [...ds.data]);
+
+        chart.data.datasets.forEach((ds) => {
+          ds.data = ds.data.map((v) => {
+            if (v === null) return null;
+            return mostrarNiveles ? v : v * factor;
+          });
+        });
+
+        basePlugin.afterDatasetsDraw(chart, ...args);
+
+        chart.data.datasets.forEach((ds, i) => {
+          ds.data = originalData[i];
+        });
+      },
+    };
+  }
 
   const pluginsMap = {
     deltaPlugin: withScaling(deltaPlugin),
-    deltaPluginLegible: withScaling(deltaPluginLegible),
-    deltaPluginClaro: withScaling(deltaPluginClaro),
-    deltaPluginLineaPunteada: withScaling(deltaPluginLineaPunteada),
-    deltaPluginArco: withScaling(deltaPluginArco),
-    deltaPluginFlotante: withScaling(deltaPluginFlotante),
-    deltaPluginNodos: withScaling(deltaPluginNodos),
     slopePlugin: withScaling(slopePlugin),
     extremaPlugin: withScaling(extremaPlugin),
   };
 
-  console.log("plugin seleccionado [pluginsMap[pluginActivo]]:", [
-    pluginsMap[pluginActivo],
-  ]);
-  const activePlugin = pluginsMap[pluginActivo] ?? deltaPlugin;
+  const activePlugin = pluginsMap[pluginActivo] ?? pluginsMap.deltaPlugin;
 
   return (
-    <Modal
-      isOpen={modalIsOpen}
-      onRequestClose={onClose}
-      style={{
-        content: {
-          top: "53%",
-          left: "50%",
-          right: "auto",
-          bottom: "auto",
-          transform: "translate(-50%, -50%)",
-          width: "93vw",
-          maxHeight: "90vh",
-          padding: "30px",
-          borderRadius: "12px",
-          border: "none",
-          overflow: "auto",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-        },
-        overlay: {
-          backgroundColor: "rgba(0, 0, 0, 0.6)",
-          zIndex: 1000,
+    <Dialog
+      open={modalIsOpen}
+      onClose={onClose}
+      fullWidth
+      maxWidth={false}
+      PaperProps={{
+        sx: {
+          width: "94vw",
+          maxWidth: "1500px",
+          height: "92vh",
+          maxHeight: "92vh",
+          borderRadius: 4,
+          background:
+            "linear-gradient(180deg, #f8fbff 0%, #f8fafc 28%, #ffffff 100%)",
+          overflow: "hidden",
         },
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 20,
-        }}
-      >
-        <div
-          style={{ display: "flex", justifyContent: "center", width: "100%" }}
-        >
-          <h2 style={{ margin: 0 }}>
-            Niveles del Tanque
-            <span style={{ fontWeight: "bold", color: "blue" }}>
-              TK-{nombreTanque}
-            </span>{" "}
-            para la fecha:
-            <span style={{ fontWeight: "bold", color: "blue" }}>
-              {" "}
-              {selectedMonth}
-            </span>
-          </h2>
-        </div>
-        <button
-          onClick={onClose}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: "#d32f2f",
-            color: "white",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-            fontWeight: "bold",
+      <DialogTitle sx={{ p: 0, }}>
+        <Box
+          sx={{
+            px: 3,
+            py: 2.0,
+            borderBottom: "1px solid",
+            borderColor: "divider",
+            backgroundColor: "background.paper",
+            background: "linear-gradient(135deg, rgba(175, 235, 168, 0.65) 0%, rgba(187,222,251,0.95) 100%)",
           }}
         >
-          Cerrar
-        </button>
-      </div>
-      <div style={{ marginBottom: "20px" }}>
-        <input
-          type="month"
-          value={selectedMonth}
-          onChange={(e) => setSelectedMonth(e.target.value)}
-          style={{
-            padding: "8px",
-            borderRadius: "5px",
-            border: "1px solid #ccc",
-            marginLeft: "60px",
-          }}
-        />
-      </div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "10px",
-          marginBottom: "20px",
-        }}
-      >
-        {/* Botones Ocultar/Mostrar a la izquierda */}
-        {/* Botones y Select en fila */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "16px",
-            marginLeft: "60px",
-          }}
-        >
-          {/* Botón Ocultar/Mostrar */}
-          <button
-            style={{
-              padding: "8px 16px",
-              backgroundColor: !["gerente", "supervisor", "developer"].includes(
-                usuario?.rol
-              )
-                ? "gray"
-                : "#0288d1",
-              color: "white",
-              border: "none",
-              borderRadius: "5px",
-              cursor: "pointer",
-            }}
-            onClick={toggleAll}
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={2}
+            justifyContent="space-between"
+            alignItems={{ xs: "flex-start", md: "flex-start" }}
           >
-            {datasetsHidden ? "👁️ Mostrar todas" : "👁️ Ocultar todas"}
-          </button>
+            <Box sx={{
+              flex: 1, minWidth: 0,
+            }}>
 
-          {/* Select para elegir plugin */}
-          <select
-            value={pluginActivo}
-            onChange={(e) => setPluginActivo(e.target.value)}
-            style={{
-              padding: "8px 12px",
-              borderRadius: "5px",
-              border: "1px solid #ccc",
-              cursor: "pointer",
-              backgroundColor: "white",
-              marginLeft: "12px",
-            }}
-          >
-            <option value="deltaPlugin">Delta Escalonado ⭐</option>
-            <option value="deltaPluginNodos">Delta Nodos ⭐</option>
-            <option value="deltaPluginArco">Delta Arco ⭐</option>
-            <option value="slopePlugin">Delta Ingreso_Salida ⭐</option>
-            <option value="deltaPluginLegible">Delta Legible</option>
-            <option value="extremaPlugin">Delta MaxMin</option>
-            <option value="deltaPluginClaro">Delta Llaves</option>
-            <option value="deltaPluginLineaPunteada">Delta Punteada</option>
-            <option value="deltaPluginFlotante">Delta Flotante</option>
-          </select>
+              <Typography variant="h5" sx={{ fontWeight: 750, lineHeight: 1.15 }}>
+                Monitoreo diario del tanque{" "}
+                <Box component="span" sx={{ color: "primary.main" }}>
+                  TK-{nombreTanque}
+                </Box>
+              </Typography>
+            </Box>
 
-          <button
-            style={{
-              padding: "8px 16px",
-              backgroundColor: !["gerente", "supervisor", "developer"].includes(
-                usuario?.rol
-              )
-                ? "gray"
-                : "#0288d1",
-              color: "white",
-              border: "none",
-              borderRadius: "5px",
-              cursor: "pointer",
-            }}
-            onClick={setVisualizacionNivelesOVolumen}
-          >
-            {datasetsPluggins ? "Niveles" : "Volumen"}
-          </button>
-        </div>
+            <Button
+              onClick={onClose}
+              variant="contained"
+              color="error"
+              startIcon={<CloseIcon />}
+              sx={{ borderRadius: 2, alignSelf: { xs: "stretch", md: "auto" } }}
+            >
+              Cerrar
+            </Button>
+          </Stack>
+        </Box>
+      </DialogTitle>
 
-        {/* Botones Exportar a la derecha */}
-        <div>
-          <button
-            onClick={exportToCSV}
-            disabled={
-              !["gerente", "supervisor", "developer"].includes(usuario?.rol)
-            }
-            style={{
-              padding: "8px 16px",
-              backgroundColor: !["gerente", "supervisor", "developer"].includes(
-                usuario?.rol
-              )
-                ? "gray"
-                : "#5ccb28",
-              color: "white",
-              border: "none",
-              borderRadius: "5px",
-              cursor: "pointer",
-              marginRight: "5px",
+      <DialogContent sx={{ p: 3, mt: 1, overflow: "auto" }}>
+        <Stack spacing={2.5}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 1.5,
+              borderRadius: 2.5,
+              border: "1px solid",
+              borderColor: "divider",
             }}
           >
-            Exportar CSV
-          </button>
-          <button
-            onClick={exportToPDF}
-            disabled={
-              !["gerente", "supervisor", "developer"].includes(usuario?.rol)
-            }
-            style={{
-              padding: "8px 16px",
-              backgroundColor: !["gerente", "supervisor", "developer"].includes(
-                usuario?.rol
-              )
-                ? "gray"
-                : "#f07d38",
-              color: "white",
-              border: "none",
-              borderRadius: "5px",
-              cursor: "pointer",
-            }}
-          >
-            Exportar PDF
-          </button>
-        </div>
-      </div>
+            <Grid container spacing={1.25} alignItems="center">
+              <Grid item xs={12} md={3}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Mes de consulta"
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
 
-      {isLoading ? (
-        <p>Cargando datos...</p>
-      ) : error ? (
-        <p>{error}</p>
-      ) : chartData && chartData.labels.length > 0 ? (
-        <>
-          <div style={{ height: "600px", marginBottom: "30px", width: "88vw" }}>
-            <Line
-              key={`${nombreTanque}-${pluginActivo}-${selectedMonth}`}
-              data={chartData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                nombreTanque: nombreTanque,
-                datasetsPluggins: datasetsPluggins,
-                factorTanque: factorTanque,
-                scales: {
-                  y: {
-                    beginAtZero: true,
-                    suggestedMax: (() => {
-                      // calcula el máximo valor del dataset seleccionado
-                      const dataset = chartData.datasets.find(d => d.label === nombreTanque);
-                      if (!dataset) return undefined;
-            
-                      const maxVal = Math.max(...dataset.data.filter(v => v !== null));
-                      return Math.ceil(maxVal * 1.1); // 10% extra arriba
-                    })(),
-                  },
-                },
-              }}
-              plugins={[pluginsMap[pluginActivo]]}
-              // width={1800}
-              // height={600}
-              ref={chartRef}
-            />
-          </div>
-          <div
-            style={{ marginTop: "20px", maxHeight: "300px", overflowY: "auto" }}
-          >
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                fontSize: "14px",
-                textAlign: "left",
+              <Grid item xs={12} md={3}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Anotación visual</InputLabel>
+                  <Select
+                    value={pluginActivo}
+                    label="Anotación visual"
+                    onChange={(e) => setPluginActivo(e.target.value)}
+                  >
+                    <MenuItem value="deltaPlugin">Delta Escalonado ⭐</MenuItem>
+                    <MenuItem value="slopePlugin">Delta Ingreso_Salida ⭐</MenuItem>
+                    <MenuItem value="extremaPlugin">Delta MaxMin</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} md={3}>
+                <Button
+                  fullWidth
+                  onClick={toggleAll}
+                  disabled={!usuarioAutorizado}
+                  variant="contained"
+                  startIcon={
+                    datasetsHidden ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />
+                  }
+                  sx={{
+                    height: 40,
+                    borderRadius: 1.5,
+                    textTransform: "none",
+                    fontWeight: 600,
+                    boxShadow: "none",
+                  }}
+                >
+                  {datasetsHidden ? "Mostrar todas" : "Ocultar todas"}
+                </Button>
+              </Grid>
+
+              <Grid item xs={12} md={3}>
+                <Button
+                  fullWidth
+                  onClick={setVisualizacionNivelesOVolumen}
+                  disabled={!usuarioAutorizado}
+                  variant="outlined"
+                  sx={{
+                    height: 40,
+                    borderRadius: 1.5,
+                    textTransform: "none",
+                    fontWeight: 600,
+                  }}
+                >
+                  {datasetsPluggins ? "Ver en volumen" : "Ver en niveles"}
+                </Button>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Divider sx={{ my: 0.15 }} />
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Box
+                  sx={{
+                    p: 0.4,
+                    borderRadius: 2.5,
+                    bgcolor: "grey.100",
+                    border: "1px solid",
+                    borderColor: "divider",
+                  }}
+                >
+                  <Tabs
+                    value={vistaActiva}
+                    onChange={(_, value) => setVistaActiva(value)}
+                    variant="fullWidth"
+                    sx={{
+                      minHeight: 40,
+                      "& .MuiTabs-indicator": {
+                        display: "none",
+                      },
+                      "& .MuiTab-root": {
+                        minHeight: 40,
+                        borderRadius: 1.5,
+                        textTransform: "none",
+                        fontWeight: 700,
+                        fontSize: 12.5,
+                        color: "text.secondary",
+                        px: 1,
+                        py: 0.5,
+                      },
+                      "& .Mui-selected": {
+                        bgcolor: "background.paper",
+                        color: "primary.main",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                      },
+                    }}
+                  >
+                    <Tab
+                      value="grafica"
+                      icon={<ShowChartIcon sx={{ fontSize: 17 }} />}
+                      iconPosition="start"
+                      label="Gráfica"
+                    />
+                    <Tab
+                      value="tabla"
+                      icon={<TableChartIcon sx={{ fontSize: 17 }} />}
+                      iconPosition="start"
+                      label="Tabla"
+                    />
+                  </Tabs>
+                </Box>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Button
+                    fullWidth
+                    onClick={exportToCSV}
+                    disabled={!usuarioAutorizado}
+                    variant="contained"
+                    color="success"
+                    startIcon={<DownloadIcon sx={{ fontSize: 18 }} />}
+                    sx={{
+                      height: 40,
+                      borderRadius: 1.5,
+                      textTransform: "none",
+                      fontWeight: 700,
+                      boxShadow: "none",
+                    }}
+                  >
+                    CSV
+                  </Button>
+
+                  <Button
+                    fullWidth
+                    onClick={exportToPDF}
+                    disabled={!usuarioAutorizado}
+                    variant="contained"
+                    color="warning"
+                    startIcon={<DownloadIcon sx={{ fontSize: 18 }} />}
+                    sx={{
+                      height: 40,
+                      borderRadius: 1.5,
+                      textTransform: "none",
+                      fontWeight: 700,
+                      boxShadow: "none",
+                    }}
+                  >
+                    PDF
+                  </Button>
+                </Stack>
+              </Grid>
+            </Grid>
+          </Paper>
+
+          {!usuarioAutorizado && (
+            <Alert severity="warning" sx={{ borderRadius: 3 }}>
+              Tu rol actual no tiene permisos para algunas acciones como exportar,
+              mostrar u ocultar todas las series o cambiar ciertos modos.
+            </Alert>
+          )}
+
+          {isLoading ? (
+            <Paper
+              elevation={0}
+              sx={{
+                p: 6,
+                borderRadius: 3,
+                border: "1px solid",
+                borderColor: "divider",
+                textAlign: "center",
               }}
             >
-              <thead style={{ backgroundColor: "#f0f0f0" }}>
-                <tr>
-                  <th style={{ padding: "10px", border: "1px solid #ccc" }}>
-                    Tanque
-                  </th>
-                  <th style={{ padding: "10px", border: "1px solid #ccc" }}>
-                    Día
-                  </th>
-                  <th style={{ padding: "10px", border: "1px solid #ccc" }}>
-                    Nivel
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {rawData
-                 .filter((row) => row.Tanque === nombreTanque)
-                .map((row, index) => (
-                  <tr key={index}>
-                    <td style={{ padding: "8px", border: "1px solid #eee" }}>
-                      {row.Tanque}
-                    </td>
-                    <td style={{ padding: "8px", border: "1px solid #eee" }}>
-                      {row.Día}
-                    </td>
-                    <td style={{ padding: "8px", border: "1px solid #eee" }}>
-                      {row.Nivel}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      ) : (
-        <p>No hay datos disponibles para este mes.</p>
-      )}
-    </Modal>
+              <CircularProgress />
+              <Typography sx={{ mt: 2, fontWeight: 700 }}>
+                Cargando datos del tanque...
+              </Typography>
+            </Paper>
+          ) : error ? (
+            <Alert severity="error" sx={{ borderRadius: 3 }}>
+              {error}
+            </Alert>
+          ) : chartData && chartData.labels.length > 0 ? (
+            <>
+              {vistaActiva === "grafica" && (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2.25,
+                    borderRadius: 3,
+                    border: "1px solid",
+                    borderColor: "divider",
+                  }}
+                >
+                  <Stack
+                    direction={{ xs: "column", md: "row" }}
+                    justifyContent="space-between"
+                    spacing={1.5}
+                    sx={{ mb: 2 }}
+                  >
+                    <Box>
+                      <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        Gráfica diaria / <span style={{ fontSize: 14 }}>Serie principal destacada para TK-{nombreTanque} y
+                          visualización mensual completa.</span>
+                      </Typography>
+                    </Box>
+
+                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                      <Chip label={`Plugin: ${pluginActivo}`} color="primary" variant="outlined" />
+                      <Chip label={`Factor tanque: ${factorTanque}`} variant="outlined" />
+                    </Stack>
+                  </Stack>
+
+                  <Box
+                    sx={{
+                      height: 680,
+                      p: 1.5,
+                      borderRadius: 3,
+                      border: "1px solid",
+                      borderColor: "divider",
+                      backgroundColor: "background.paper",
+                    }}
+                  >
+                    <Line
+                      key={`${nombreTanque}-${pluginActivo}-${selectedMonth}`}
+                      data={chartData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        nombreTanque: nombreTanque,
+                        datasetsPluggins: datasetsPluggins,
+                        factorTanque: factorTanque,
+                        interaction: {
+                          mode: "nearest",
+                          intersect: false,
+                        },
+                        plugins: {
+                          legend: {
+                            position: "top",
+                            labels: {
+                              boxWidth: 14,
+                              usePointStyle: true,
+                              padding: 12,
+                            },
+                          },
+                          tooltip: {
+                            backgroundColor: "rgba(15, 23, 42, 0.92)",
+                            titleColor: "#fff",
+                            bodyColor: "#fff",
+                            padding: 12,
+                            cornerRadius: 10,
+                            displayColors: true,
+
+                            callbacks: {
+                              title: function () {
+                                return "";
+                              },
+
+                              label: function (context) {
+                                const nivel = context.raw;
+                                if (nivel === null) return "";
+
+                                const factor = Number(context.chart.options.factorTanque || 1);
+                                const volumen = nivel * factor;
+
+                                const nivelFormateado = Number(nivel).toLocaleString("es-CO", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                });
+
+                                const volumenFormateado = Number(volumen).toLocaleString("es-CO", {
+                                  minimumFractionDigits: 1,
+                                  maximumFractionDigits: 1,
+                                });
+
+                                return [
+                                  ` ${new Date(context.label).toLocaleDateString("es-CO")}`,
+                                  `📏 Nivel: ${nivelFormateado} m`,
+                                  `🛢️ Volumen: ${volumenFormateado} L`,
+                                ];
+                              },
+                            },
+                          },
+                        },
+                        scales: {
+                          x: {
+                            grid: {
+                              color: "rgba(148, 163, 184, 0.18)",
+                            },
+                            ticks: {
+                              maxRotation: 0,
+                              autoSkip: true,
+                              maxTicksLimit: 12,
+                            },
+                          },
+                          y: {
+                            beginAtZero: true,
+                            grid: {
+                              color: "rgba(148, 163, 184, 0.18)",
+                            },
+                            suggestedMax: (() => {
+                              const dataset = chartData.datasets.find(
+                                (d) => d.label === nombreTanque
+                              );
+                              if (!dataset) return undefined;
+
+                              const valores = dataset.data.filter((v) => v !== null);
+                              if (!valores.length) return undefined;
+
+                              const maxVal = Math.max(...valores);
+                              return Math.ceil(maxVal * 1.1);
+                            })(),
+                          },
+                        },
+                      }}
+                      plugins={[activePlugin]}
+                      ref={chartRef}
+                    />
+                  </Box>
+                </Paper>
+              )}
+
+              {vistaActiva === "tabla" && (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2.25,
+                    borderRadius: 3,
+                    border: "1px solid",
+                    borderColor: "divider",
+                  }}
+                >
+                  <Stack
+                    direction={{ xs: "column", md: "row" }}
+                    justifyContent="space-between"
+                    spacing={1.5}
+                    sx={{ mb: 2 }}
+                  >
+                    <Box>
+                      <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        Tabla de niveles
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Registros del tanque seleccionado en una vista separada y
+                        más cómoda.
+                      </Typography>
+                    </Box>
+
+                    <Chip
+                      label={`Filas visibles: ${rawDataTanqueSeleccionado.length}`}
+                      variant="outlined"
+                    />
+                  </Stack>
+
+                  <TableContainer
+                    component={Paper}
+                    elevation={0}
+                    sx={{
+                      maxHeight: 680,
+                      borderRadius: 3,
+                      border: "1px solid",
+                      borderColor: "divider",
+                    }}
+                  >
+                    <Table stickyHeader size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 800, textAlign: "center" }}>Tanque</TableCell>
+                          <TableCell sx={{ fontWeight: 800, textAlign: "center" }}>Día</TableCell>
+                          <TableCell sx={{ fontWeight: 800, textAlign: "center" }}>Nivel m</TableCell>
+                          <TableCell sx={{ fontWeight: 800, textAlign: "center" }}>Volumen L</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {rawDataTanqueSeleccionado.map((row, index) => (
+                          <TableRow
+                            key={index}
+                            hover
+                            sx={{
+                              "&:nth-of-type(even)": {
+                                backgroundColor: "action.hover",
+                              },
+                            }}
+                          >
+                            <TableCell sx={{ fontWeight: 700, textAlign: "center" }}>
+                              {row.Tanque}
+                            </TableCell>
+                            <TableCell sx={{ fontWeight: 700, textAlign: "center" }}>{row.Día}</TableCell>
+                            <TableCell sx={{ fontWeight: 700, textAlign: "center" }}>
+                              {row.Nivel}
+                            </TableCell>
+                            <TableCell sx={{ fontWeight: 700, textAlign: "center" }}>
+                              {(Number(row.Nivel || 0) * Number(factorTanque || 1)).toLocaleString("es-CO", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}{" "}
+                              L
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Paper>
+              )}
+            </>
+          ) : (
+            <Paper
+              elevation={0}
+              sx={{
+                p: 6,
+                borderRadius: 3,
+                border: "1px solid",
+                borderColor: "divider",
+                textAlign: "center",
+              }}
+            >
+              <Typography variant="h3" sx={{ mb: 1 }}>
+                📉
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                No hay datos disponibles para este mes
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Cambia el periodo o verifica si existen registros cargados para el
+                tanque seleccionado.
+              </Typography>
+            </Paper>
+          )}
+        </Stack>
+      </DialogContent>
+    </Dialog>
   );
 };
 

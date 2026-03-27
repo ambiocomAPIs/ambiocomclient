@@ -13,12 +13,20 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import { Autocomplete, TextField } from '@mui/material';
+import {
+  Autocomplete,
+  TextField,
+  Button,
+  Typography,
+  Box,
+  Paper,
+  Stack,
+  Divider,
+} from '@mui/material';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
-const GraficoNivelesTanquesPorDiaPageComponente = ({NivelesTanquesContext}) => {
-
+const GraficoNivelesTanquesPorDiaPageComponente = ({ NivelesTanquesContext }) => {
   const [registros, setRegistros] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -45,31 +53,11 @@ const GraficoNivelesTanquesPorDiaPageComponente = ({NivelesTanquesContext}) => {
     }
   }, []);
 
-     useEffect(() => {
-      if (NivelesTanquesContext.length > 0) {
-        setRegistros(NivelesTanquesContext);
-        // setFilteredTanques(NivelesTanquesContext);
-      }
-    }, [NivelesTanquesContext]);
-
-  // useEffect(() => {
-  //   setIsLoading(true);
-  //   axios
-  //     .get('https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros')
-  //     .then((response) => {
-  //       if (Array.isArray(response.data)) {
-  //         setRegistros(response.data);
-  //       } else {
-  //         console.error('Respuesta inesperada del backend');
-  //       }
-  //       setIsLoading(false);
-  //     })
-  //     .catch((err) => {
-  //       console.error('Error al cargar los datos:', err);
-  //       setError('No se pudieron cargar los datos');
-  //       setIsLoading(false);
-  //     });
-  // }, [selectedMonth]);
+  useEffect(() => {
+    if (NivelesTanquesContext.length > 0) {
+      setRegistros(NivelesTanquesContext);
+    }
+  }, [NivelesTanquesContext]);
 
   const getDaysInMonth = (year, month) => {
     const date = new Date(year, month - 1, 1);
@@ -112,15 +100,50 @@ const GraficoNivelesTanquesPorDiaPageComponente = ({NivelesTanquesContext}) => {
       groupedByTankAndDay[nombre][fechaStr] = nivel;
     });
 
-    const datasets = Object.entries(groupedByTankAndDay).map(([nombre, dataPorDia]) => {
-      const data = dayLabels.map((dia) => dataPorDia[dia] ?? null);
+    const palette = [
+      '#2563eb',
+      '#7c3aed',
+      '#059669',
+      '#ea580c',
+      '#dc2626',
+      '#0891b2',
+      '#4f46e5',
+      '#65a30d',
+    ];
+
+    const datasets = Object.entries(groupedByTankAndDay).map(([nombre, dataPorDia], index) => {
+
+      const data = dayLabels.map((dia) => {
+        const nivel = dataPorDia[dia] ?? null;
+
+        const registro = registros.find(
+          r => r.FechaRegistro === dia && r.NombreTanque === nombre
+        );
+
+        let factor = 0;
+        if (registro?.Factor) {
+          factor = typeof registro.Factor === 'string'
+            ? parseFloat(registro.Factor.replace(',', '.'))
+            : Number(registro.Factor);
+        }
+
+        return {
+          x: dia,
+          y: nivel,
+          factor: factor
+        };
+      });
+
       return {
         label: nombre,
         data,
-        borderColor: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+        borderColor: palette[index % palette.length],
         backgroundColor: 'transparent',
         fill: false,
-        tension: 0.3,
+        tension: 0.35,
+        borderWidth: 2.2,
+        pointRadius: 2,
+        pointHoverRadius: 5,
       };
     });
 
@@ -149,19 +172,17 @@ const GraficoNivelesTanquesPorDiaPageComponente = ({NivelesTanquesContext}) => {
     };
   }, [registros, selectedMonth]);
 
-  // 🔹 reset automático de fecha cuando cambia mes
   useEffect(() => {
     if (registrosFiltrados.length > 0) {
       const fechas = registrosFiltrados.map(r => r.FechaRegistro).sort();
       if (!fechas.includes(selectedDate)) {
-        setSelectedDate(fechas[fechas.length - 1]); // última fecha válida
+        setSelectedDate(fechas[fechas.length - 1]);
       }
     } else {
       setSelectedDate("");
     }
   }, [registrosFiltrados, selectedDate]);
 
-  // Exportar CSV con headers bonitos
   const exportToCSV = () => {
     const headers = [
       { label: 'Fecha', key: 'Fecha' },
@@ -190,7 +211,6 @@ const GraficoNivelesTanquesPorDiaPageComponente = ({NivelesTanquesContext}) => {
     document.body.removeChild(link);
   };
 
-  // Exportar PDF con headers bonitos
   const exportToPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(16);
@@ -209,7 +229,7 @@ const GraficoNivelesTanquesPorDiaPageComponente = ({NivelesTanquesContext}) => {
         row.Responsable,
       ]),
       styles: { halign: 'right' },
-      headStyles: { fillColor: [33, 150, 243], textColor: 255 },
+      headStyles: { fillColor: [37, 99, 235], textColor: 255 },
     });
 
     const chartCanvas = chartRef.current;
@@ -246,181 +266,393 @@ const GraficoNivelesTanquesPorDiaPageComponente = ({NivelesTanquesContext}) => {
   }, [registrosFiltrados, selectedTank, selectedDate]);
 
   return (
-    <div style={{
-      width: '96vw',
-      maxHeight: '89vh',
-      padding: '30px',
-      borderRadius: '12px',
-      border: 'none',
-      overflow: 'auto',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-      margin: '0 auto',
-      marginTop: '3%',
-    }}>
+    <Box
+      sx={{
+        width: '100%',
+        height: 'calc(100vh - 70px)',
+        px: 2,
+        py: 1.5,
+        boxSizing: 'border-box',
+        overflow: 'hidden',
+        background: 'linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%)',
+      }}
+    >
+      <Paper
+        elevation={0}
+        sx={{
+          height: '100%',
+          borderRadius: 4,
+          p: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          border: '1px solid #e5e7eb',
+          boxShadow: '0 10px 30px rgba(15, 23, 42, 0.08)',
+          backgroundColor: '#ffffff',
+        }}
+      >
+        {/* Header */}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', lg: '1fr auto auto' },
+            gap: 2,
+            alignItems: 'center',
+            mb: 2,
+          }}
+        >
+          <Box>
+            <Typography
+              variant="h5"
+              sx={{ fontWeight: 700, color: '#0f172a', mb: 0.4 }}
+            >
+              Niveles de Tanques
+            </Typography>
+            {/* <Typography
+              variant="body2"
+              sx={{ color: '#64748b' }}
+            >
+              Visualización mensual de registros y detalle por tanque
+            </Typography> */}
+          </Box>
 
-      {/* Barra superior */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-        <div>
-          <input
-            type="month"
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            style={{
-              padding: '8px',
-              borderRadius: '5px',
-              border: '1px solid #ccc',
-              marginRight: '15px'
-            }}
-          />
-          <button
-            onClick={() => setViewMode(viewMode === "grafico" ? "tabla" : "grafico")}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#673ab7',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer'
-            }}
-          >
-            {viewMode === "grafico" ? "📊 Ver Tabla" : "📈 Ver Gráfico"}
-          </button>
-        </div>
+          <Stack direction="row" spacing={1.2} flexWrap="wrap" useFlexGap>
+            <TextField
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              size="small"
+              sx={{
+                minWidth: 180,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2.5,
+                  backgroundColor: '#fff',
+                },
+              }}
+            />
 
-        <h2 style={{ margin: 0 }}>Niveles de Tanques - {selectedMonth}</h2>
-
-        <div>
-          <button
-            onClick={exportToCSV}
-            disabled={!['gerente', 'supervisor', 'developer'].includes(usuario?.rol)}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#5ccb28',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              marginRight: '5px'
-            }}
-          >
-            Exportar CSV
-          </button>
-          <button
-            onClick={exportToPDF}
-            disabled={!['gerente', 'supervisor', 'developer'].includes(usuario?.rol)}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#f07d38',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-            }}
-          >
-            Exportar PDF
-          </button>
-        </div>
-      </div>
-
-      {/* Renderizado condicional */}
-      {isLoading ? (
-        <p>Cargando datos...</p>
-      ) : error ? (
-        <p>{error}</p>
-      ) : viewMode === "grafico" ? (
-        chartData && chartData.labels.length > 0 ? (
-          <>
-            <button
-              onClick={toggleAll}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#0288d1',
-                color: 'white',
-                border: 'none',
-                borderRadius: '5px',
-                marginBottom: '20px'
+            <Button
+              variant="contained"
+              onClick={() => setViewMode(viewMode === "grafico" ? "tabla" : "grafico")}
+              sx={{
+                borderRadius: 2.5,
+                px: 2,
+                fontWeight: 600,
+                textTransform: 'none',
+                boxShadow: 'none',
+                backgroundColor: '#6d28d9',
+                '&:hover': { backgroundColor: '#5b21b6', boxShadow: 'none' },
               }}
             >
-              {datasetsHidden ? '👁️ Mostrar todas' : '👁️ Ocultar todas'}
-            </button>
-            <div style={{ height: '600px', marginBottom: '30px', width: '88vw' }}>
-              <Line
-                data={chartData}
-                options={{ responsive: true, maintainAspectRatio: false }}
-                ref={chartRef}
-              />
-            </div>
-          </>
-        ) : (
-          <p>No hay datos disponibles para este mes.</p>
-        )
-      ) : (
-        <div>
-          {/* Filtro por tanque y fecha */}
-          <div style={{ display: "flex", gap: "15px", marginBottom: "15px", alignItems: "center" }}>
-            <Autocomplete
-              options={["Todos", ...uniqueTanks]}
-              value={selectedTank}
-              onChange={(e, newValue) => setSelectedTank(newValue || "Todos")}
-              renderInput={(params) => (
-                <TextField {...params} label="Filtrar por tanque" variant="outlined" size="small" />
-              )}
-              style={{ width: "200px" }}
-            />
+              {viewMode === "grafico" ? "Ver Tabla de Niveles" : "Ver Gráfico"}
+            </Button>
+          </Stack>
 
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              min={`${selectedMonth}-01`}
-              max={`${selectedMonth}-${String(
-                getLastDayOfMonth(
-                  Number(selectedMonth.split("-")[0]),
-                  Number(selectedMonth.split("-")[1])
-                )
-              ).padStart(2, "0")}`}
-              style={{
-                padding: "8px",
-                borderRadius: "5px",
-                border: "1px solid #ccc",
+          <Stack direction="row" spacing={1.2} justifyContent="flex-end" flexWrap="wrap" useFlexGap>
+            <Button
+              onClick={exportToCSV}
+              disabled={!['gerente', 'supervisor', 'developer'].includes(usuario?.rol)}
+              variant="contained"
+              sx={{
+                borderRadius: 2.5,
+                px: 2,
+                fontWeight: 600,
+                textTransform: 'none',
+                boxShadow: 'none',
+                backgroundColor: '#16a34a',
+                '&:hover': { backgroundColor: '#15803d', boxShadow: 'none' },
               }}
-            />
-          </div>
+            >
+              Exportar CSV
+            </Button>
 
-          <div style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-            <table style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              fontSize: '14px',
-              textAlign: 'left',
-            }}>
-              <thead style={{ backgroundColor: '#f0f0f0' }}>
-                <tr>
-                  <th style={{ padding: '10px', border: '1px solid #ccc' }}>Fecha</th>
-                  <th style={{ padding: '10px', border: '1px solid #ccc' }}>Tanque</th>
-                  <th style={{ padding: '10px', border: '1px solid #ccc' }}>Nivel [m]</th>
-                  <th style={{ padding: '10px', border: '1px solid #ccc' }}>Factor [L/m]</th>
-                  <th style={{ padding: '10px', border: '1px solid #ccc' }}>Disposición</th>
-                  <th style={{ padding: '10px', border: '1px solid #ccc' }}>Observaciones</th>
-                  <th style={{ padding: '10px', border: '1px solid #ccc' }}>Responsable</th>
-                </tr>
-              </thead>
-              <tbody>
-                {registrosTabla.map((row, index) => (
-                  <tr key={index}>
-                    <td style={{ padding: '8px', border: '1px solid #eee' }}>{row.FechaRegistro}</td>
-                    <td style={{ padding: '8px', border: '1px solid #eee' }}>{row.NombreTanque}</td>
-                    <td style={{ padding: '8px', border: '1px solid #eee' }}>{row.NivelTanque}</td>
-                    <td style={{ padding: '8px', border: '1px solid #eee' }}>{row.Factor}</td>
-                    <td style={{ padding: '8px', border: '1px solid #eee' }}>{row.Disposicion}</td>
-                    <td style={{ padding: '8px', border: '1px solid #eee' }}>{row.Observaciones}</td>
-                    <td style={{ padding: '8px', border: '1px solid #eee' }}>{row.Responsable}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-    </div>
+            <Button
+              onClick={exportToPDF}
+              disabled={!['gerente', 'supervisor', 'developer'].includes(usuario?.rol)}
+              variant="contained"
+              sx={{
+                borderRadius: 2.5,
+                px: 2,
+                fontWeight: 600,
+                textTransform: 'none',
+                boxShadow: 'none',
+                backgroundColor: '#ea580c',
+                '&:hover': { backgroundColor: '#c2410c', boxShadow: 'none' },
+              }}
+            >
+              Exportar PDF
+            </Button>
+            <Button
+              onClick={toggleAll}
+              variant="outlined"
+              sx={{
+                borderRadius: 2.5,
+                px: 2,
+                fontWeight: 600,
+                textTransform: 'none',
+                borderColor: '#0ea5e9',
+                color: '#0284c7',
+                '&:hover': {
+                  borderColor: '#0284c7',
+                  backgroundColor: '#f0f9ff',
+                },
+              }}
+            >
+              {datasetsHidden ? 'Mostrar todas' : 'Ocultar todas'}
+            </Button>
+          </Stack>
+        </Box>
+
+        <Divider sx={{ mb: 2 }} />
+
+        {/* Contenido principal sin scroll general */}
+        <Box
+          sx={{
+            flex: 1,
+            mt: -1.1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+        >
+          {isLoading ? (
+            <Box sx={{ display: 'grid', placeItems: 'center', flex: 1 }}>
+              <Typography sx={{ color: '#475569', fontWeight: 500 }}>
+                Cargando datos...
+              </Typography>
+            </Box>
+          ) : error ? (
+            <Box sx={{ display: 'grid', placeItems: 'center', flex: 1 }}>
+              <Typography sx={{ color: '#dc2626', fontWeight: 500 }}>
+                {error}
+              </Typography>
+            </Box>
+          ) : viewMode === "grafico" ? (
+            chartData && chartData.labels.length > 0 ? (
+              <>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    flex: 1,
+                    minHeight: 0,
+                    borderRadius: 3,
+                    border: '1px solid #e2e8f0',
+                    p: 2,
+                    backgroundColor: '#fcfdff',
+                  }}
+                >
+                  <Box sx={{ width: '100%', height: '100%' }}>
+                    <Line
+                      ref={chartRef}
+                      data={chartData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                          mode: 'nearest',
+                          intersect: false,
+                        },
+                        plugins: {
+                          legend: {
+                            position: 'top',
+                            labels: {
+                              boxWidth: 12,
+                              usePointStyle: true,
+                              padding: 16,
+                            },
+                          },
+                          tooltip: {
+                            position: 'nearest',
+                            backgroundColor: '#0f172a',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            padding: 10,
+                            callbacks: {
+                              label: function (context) {
+                                const nivel = context.raw?.y ?? context.raw;
+                                const factor = context.raw?.factor ?? 0;
+                                const volumen = nivel && factor ? nivel * factor : 0;
+
+                                return [
+                                  `Tanque: ${context.dataset.label}`,
+                                  `Nivel: ${nivel?.toFixed(2) ?? 0} m`,
+                                  `Volumen: ${volumen.toLocaleString('es-CO', {
+                                    minimumFractionDigits: 1,
+                                    maximumFractionDigits: 1
+                                  })} L`
+                                ];
+                              }
+                            }
+                          }
+                        },
+                        scales: {
+                          x: {
+                            grid: {
+                              display: false,
+                            },
+                            ticks: {
+                              color: '#64748b',
+                              maxRotation: 0,
+                              autoSkip: true,
+                            },
+                          },
+                          y: {
+                            grid: {
+                              color: '#e5e7eb',
+                            },
+                            ticks: {
+                              color: '#64748b',
+                            },
+                          },
+                        },
+                      }}
+                    />
+                  </Box>
+                </Paper>
+              </>
+            ) : (
+              <Box sx={{ display: 'grid', placeItems: 'center', flex: 1 }}>
+                <Typography sx={{ color: '#64748b', fontWeight: 500 }}>
+                  No hay datos disponibles para este mes.
+                </Typography>
+              </Box>
+            )
+          ) : (
+            <>
+              {/* Filtros tabla */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  gap: 1.5,
+                  mb: 1.5,
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <Autocomplete
+                  options={["Todos", ...uniqueTanks]}
+                  value={selectedTank}
+                  onChange={(e, newValue) => setSelectedTank(newValue || "Todos")}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Filtrar por tanque"
+                      variant="outlined"
+                      size="small"
+                    />
+                  )}
+                  sx={{
+                    width: 240,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2.5,
+                      backgroundColor: '#fff',
+                    },
+                  }}
+                />
+
+                <TextField
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  size="small"
+                  inputProps={{
+                    min: `${selectedMonth}-01`,
+                    max: `${selectedMonth}-${String(
+                      getLastDayOfMonth(
+                        Number(selectedMonth.split("-")[0]),
+                        Number(selectedMonth.split("-")[1])
+                      )
+                    ).padStart(2, "0")}`,
+                  }}
+                  sx={{
+                    width: 180,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2.5,
+                      backgroundColor: '#fff',
+                    },
+                  }}
+                />
+              </Box>
+
+              {/* Tabla */}
+              <Paper
+                elevation={0}
+                sx={{
+                  flex: 1,
+                  minHeight: 0,
+                  overflow: 'auto',
+                  borderRadius: 3,
+                  border: '1px solid #e2e8f0',
+                  backgroundColor: '#fff',
+                }}
+              >
+                <table
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'separate',
+                    borderSpacing: 0,
+                    fontSize: '14px',
+                  }}
+                >
+                  <thead
+                    style={{
+                      position: 'sticky',
+                      top: 0,
+                      zIndex: 2,
+                      background: '#f8fafc',
+                    }}
+                  >
+                    <tr>
+                      {['Fecha', 'Tanque', 'Nivel [m]', 'Factor [L/m]', 'Disposición', 'Observaciones', 'Responsable'].map((title) => (
+                        <th
+                          key={title}
+                          style={{
+                            padding: '14px 12px',
+                            borderBottom: '1px solid #e2e8f0',
+                            textAlign: 'left',
+                            color: '#0f172a',
+                            fontWeight: 700,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {title}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {registrosTabla.map((row, index) => (
+                      <tr
+                        key={index}
+                        style={{
+                          backgroundColor: index % 2 === 0 ? '#ffffff' : '#f8fafc',
+                          transition: 'background-color 0.2s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#eef6ff';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+                        }}
+                      >
+                        <td style={{ padding: '12px', borderBottom: '1px solid #eef2f7', color: '#334155' }}>{row.FechaRegistro}</td>
+                        <td style={{ padding: '12px', borderBottom: '1px solid #eef2f7', color: '#334155', fontWeight: 600 }}>{row.NombreTanque}</td>
+                        <td style={{ padding: '12px', borderBottom: '1px solid #eef2f7', color: '#334155' }}>{row.NivelTanque}</td>
+                        <td style={{ padding: '12px', borderBottom: '1px solid #eef2f7', color: '#334155' }}>{row.Factor}</td>
+                        <td style={{ padding: '12px', borderBottom: '1px solid #eef2f7', color: '#334155' }}>{row.Disposicion}</td>
+                        <td style={{ padding: '12px', borderBottom: '1px solid #eef2f7', color: '#334155' }}>{row.Observaciones}</td>
+                        <td style={{ padding: '12px', borderBottom: '1px solid #eef2f7', color: '#334155' }}>{row.Responsable}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Paper>
+            </>
+          )}
+        </Box>
+      </Paper>
+    </Box>
   );
 };
 
