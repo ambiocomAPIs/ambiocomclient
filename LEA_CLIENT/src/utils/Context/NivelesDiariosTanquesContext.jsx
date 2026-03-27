@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useAuth } from "./AuthContext/AuthContext";
+
 const NivelesDiariosTanquesContext = createContext();
 NivelesDiariosTanquesContext.displayName = "NivelesDiariosTanquesContext";
 
@@ -10,7 +11,25 @@ export const NivelesDiariosTanquesProvider = ({ children }) => {
 
   const { user, isAuth, loadingAuth, rol } = useAuth();
 
-  const fetchNivelesTanques = async () => {
+  const limpiarEstado = useCallback(() => {
+    setNivelesTanques([]);
+    setNivelesTanquesLoading(false);
+  }, []);
+
+  const usuarioValido =
+    !!user &&
+    typeof user === "object" &&
+    Object.keys(user).length > 0 &&
+    !!(user.id || user._id || user.email);
+
+  const autenticadoValido = isAuth === true && usuarioValido;
+
+  const fetchNivelesTanques = useCallback(async () => {
+    if (!autenticadoValido) {
+      limpiarEstado();
+      return;
+    }
+
     try {
       setNivelesTanquesLoading(true);
 
@@ -21,31 +40,31 @@ export const NivelesDiariosTanquesProvider = ({ children }) => {
         }
       );
 
-      setNivelesTanques(res.data || []);
+      setNivelesTanques(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       console.error("❌ Error al cargar niveles diarios de tanques:", error);
       setNivelesTanques([]);
     } finally {
       setNivelesTanquesLoading(false);
     }
-  };
+  }, [autenticadoValido, limpiarEstado]);
 
   useEffect(() => {
     if (loadingAuth) return;
 
-    if (!isAuth || !user) {
-      setNivelesTanques([]);
+    if (!autenticadoValido) {
+      limpiarEstado();
       return;
     }
 
     // opcional: validar rol
     // if (rol !== "developer") {
-    //   setNivelesTanques([]);
+    //   limpiarEstado();
     //   return;
     // }
 
     fetchNivelesTanques();
-  }, [loadingAuth, isAuth, user, rol]);
+  }, [loadingAuth, autenticadoValido, fetchNivelesTanques, limpiarEstado, rol]);
 
   return (
     <NivelesDiariosTanquesContext.Provider
