@@ -1,7 +1,6 @@
-// src/utils/Context/TanquesContext.jsx
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { useAuth } from "./AuthContext/AuthContext"; // ajusta la ruta si cambia
+import { useAuth } from "./AuthContext/AuthContext";
 
 const TanquesContext = createContext();
 TanquesContext.displayName = "TanquesContext";
@@ -12,31 +11,54 @@ export const TanquesProvider = ({ children }) => {
 
   const { user, isAuth, loadingAuth } = useAuth();
 
-  const fetchTanques = async () => {
+  const limpiarEstado = useCallback(() => {
+    setTanques([]);
+    setLoading(false);
+  }, []);
+
+  const usuarioValido =
+    !!user &&
+    typeof user === "object" &&
+    Object.keys(user).length > 0 &&
+    !!(user.id || user._id || user.email);
+
+  const autenticadoValido = isAuth === true && usuarioValido;
+
+  const fetchTanques = useCallback(async () => {
+    if (!autenticadoValido) {
+      limpiarEstado();
+      return;
+    }
+
     try {
       setLoading(true);
 
-      const res = await axios.get("https://ambiocomserver.onrender.com/api/tanques", {
-        withCredentials: true,
-      });
+      const res = await axios.get(
+        "https://ambiocomserver.onrender.com/api/tanques",
+        {
+          withCredentials: true,
+        }
+      );
 
-      setTanques(res.data);
+      setTanques(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       console.error("❌ Error al cargar tanques:", error);
+      setTanques([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [autenticadoValido, limpiarEstado]);
 
   useEffect(() => {
-    // Espera a que termine la validación de sesión
     if (loadingAuth) return;
 
-    // Si no está autenticado, no hagas la consulta
-    if (!isAuth || !user) return;
+    if (!autenticadoValido) {
+      limpiarEstado();
+      return;
+    }
 
     fetchTanques();
-  }, [loadingAuth, isAuth, user]);
+  }, [loadingAuth, autenticadoValido, fetchTanques, limpiarEstado]);
 
   return (
     <TanquesContext.Provider
