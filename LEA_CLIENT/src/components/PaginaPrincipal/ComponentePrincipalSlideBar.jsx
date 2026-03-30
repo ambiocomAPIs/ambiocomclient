@@ -225,19 +225,19 @@ export default function EmpresarialPrincipalSchedulerApp() {
                         {
                             text: 'Planeacion Diaria',
                             subKey: 'planeaciondiariadespachosreadonly',
-                            roles: ["admin", "laboratorio", "developer", "gerente"],
+                            roles: ["admin", "laboratorio", "developer", "gerente","supervisor"],
                             icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} />
                         },
                         {
                             text: 'Despachos',
                             subKey: 'despachoalcoholeslogisticareadonly',
-                            roles: ["admin", "laboratorio", "developer", "gerente"],
+                            roles: ["admin", "laboratorio", "developer", "gerente","supervisor"],
                             icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
                         },
                         {
                             text: 'Recepción',
                             subKey: 'recepcionalcoholeslogisticareadonly',
-                            roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"],
+                            roles: ["admin", "developer", "laboratorio", "supervisor"],
                             icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
                         }
                     ]
