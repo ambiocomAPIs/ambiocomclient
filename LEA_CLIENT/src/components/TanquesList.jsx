@@ -121,6 +121,38 @@ const TanquesList = ({ tanquesContext }) => {
   };
 
   const handleDelete = async (id) => {
+    const CLAVE_ELIMINAR = import.meta.env.VITE_DELETE_PASSWORD;
+console.log(CLAVE_ELIMINAR);
+    const { value: password } = await Swal.fire({
+      title: "Eliminar tanque",
+      text: "Ingresa la contraseña para continuar",
+      icon: "warning",
+      input: "password",
+      inputPlaceholder: "Escribe la contraseña",
+      inputAttributes: {
+        autocapitalize: "off",
+        autocorrect: "off",
+      },
+      showCancelButton: true,
+      confirmButtonText: "Validar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      reverseButtons: true,
+      focusCancel: true,
+      inputValidator: (value) => {
+        if (!value) {
+          return "Debes ingresar la contraseña";
+        }
+        if (value !== CLAVE_ELIMINAR) {
+          return "La contraseña es incorrecta";
+        }
+        return null;
+      },
+    });
+
+    if (!password || password !== CLAVE_ELIMINAR) return;
+
     const confirm = await Swal.fire({
       title: "¿Estás seguro?",
       text: "Esta acción no se puede deshacer",

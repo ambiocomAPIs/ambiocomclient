@@ -23,6 +23,8 @@ import {
   Stack,
   Divider,
 } from '@mui/material';
+import ExcelDownloadButton from '../../../utils/Export_Data_General/ExcelDownloadData.jsx';
+import { getLineColors } from '../../../utils/ChartsUtils/chartColors.js';  //colores aleatorios para las graficas
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
@@ -100,16 +102,17 @@ const GraficoNivelesTanquesPorDiaPageComponente = ({ NivelesTanquesContext }) =>
       groupedByTankAndDay[nombre][fechaStr] = nivel;
     });
 
-    const palette = [
-      '#2563eb',
-      '#7c3aed',
-      '#059669',
-      '#ea580c',
-      '#dc2626',
-      '#0891b2',
-      '#4f46e5',
-      '#65a30d',
-    ];
+    // const palette = [
+    //   '#2563eb',
+    //   '#7c3aed',
+    //   '#059669',
+    //   '#524c49',
+    //   '#dc2626',
+    //   '#0891b2',
+    //   '#4f46e5',
+    //   '#65a30d',
+    // ];
+    const palette = getLineColors(12);  // funcion js que genera colores para evitar la paleta de colores
 
     const datasets = Object.entries(groupedByTankAndDay).map(([nombre, dataPorDia], index) => {
 
@@ -147,17 +150,45 @@ const GraficoNivelesTanquesPorDiaPageComponente = ({ NivelesTanquesContext }) =>
       };
     });
 
+    // const rawData = [];
+    // Object.entries(groupedByTankAndDay).forEach(([nombre, dataPorDia]) => {
+    //   Object.entries(dataPorDia).forEach(([dia, nivel]) => {
+    //     rawData.push({
+    //       Fecha: dia,
+    //       Tanque: nombre,
+    //       Disposición: registros.find(r => r.FechaRegistro === dia && r.NombreTanque === nombre)?.Disposicion || "",
+    //       Factor: registros.find(r => r.FechaRegistro === dia && r.NombreTanque === nombre)?.Factor || "",
+    //       Nivel: nivel,
+    //       Observaciones: registros.find(r => r.FechaRegistro === dia && r.NombreTanque === nombre)?.Observaciones || "",
+    //       Responsable: registros.find(r => r.FechaRegistro === dia && r.NombreTanque === nombre)?.Responsable || "",
+    //     });
+    //   });
+    // });
+
     const rawData = [];
     Object.entries(groupedByTankAndDay).forEach(([nombre, dataPorDia]) => {
       Object.entries(dataPorDia).forEach(([dia, nivel]) => {
+        const registro = registros.find(
+          r => r.FechaRegistro === dia && r.NombreTanque === nombre
+        );
+
+        let factor = 0;
+        if (typeof registro?.Factor === 'string') factor = parseFloat(registro.Factor.replace(',', '.')) || 0;
+        else if (typeof registro?.Factor === 'number') factor = registro.Factor;
+        else if (registro?.Factor?.$numberDecimal) factor = parseFloat(registro.Factor.$numberDecimal) || 0;
+        else if (registro?.Factor?.$numberInt) factor = parseFloat(registro.Factor.$numberInt) || 0;
+
+        const volumen = Number((nivel * factor).toFixed(2));
+
         rawData.push({
           Fecha: dia,
           Tanque: nombre,
-          Disposición: registros.find(r => r.FechaRegistro === dia && r.NombreTanque === nombre)?.Disposicion || "",
-          Factor: registros.find(r => r.FechaRegistro === dia && r.NombreTanque === nombre)?.Factor || "",
+          Disposición: registro?.Disposicion || "",
+          Factor: factor,
           Nivel: nivel,
-          Observaciones: registros.find(r => r.FechaRegistro === dia && r.NombreTanque === nombre)?.Observaciones || "",
-          Responsable: registros.find(r => r.FechaRegistro === dia && r.NombreTanque === nombre)?.Responsable || "",
+          Volumen: volumen,
+          Observaciones: registro?.Observaciones || "",
+          Responsable: registro?.Responsable || "",
         });
       });
     });
@@ -190,6 +221,7 @@ const GraficoNivelesTanquesPorDiaPageComponente = ({ NivelesTanquesContext }) =>
       { label: 'Disposición', key: 'Disposición' },
       { label: 'Factor', key: 'Factor' },
       { label: 'Nivel', key: 'Nivel' },
+      { label: 'Volumen', key: 'Volumen' },
       { label: 'Observaciones', key: 'Observaciones' },
       { label: 'Responsable', key: 'Responsable' },
     ];
@@ -218,13 +250,14 @@ const GraficoNivelesTanquesPorDiaPageComponente = ({ NivelesTanquesContext }) =>
 
     autoTable(doc, {
       startY: 20,
-      head: [['Fecha', 'Tanque', 'Disposición', 'Factor', 'Nivel', 'Observaciones', 'Responsable']],
+      head: [['Fecha', 'Tanque', 'Disposición', 'Factor', 'Nivel', 'Volumen', 'Observaciones', 'Responsable']],
       body: rawData.map(row => [
         row.Fecha,
         row.Tanque,
         row.Disposición,
         row.Factor,
         row.Nivel,
+        row.Volumen,
         row.Observaciones,
         row.Responsable,
       ]),
@@ -269,7 +302,7 @@ const GraficoNivelesTanquesPorDiaPageComponente = ({ NivelesTanquesContext }) =>
     <Box
       sx={{
         width: '100%',
-        height: 'calc(100vh - 70px)',
+        height: 'calc(99vh - 35px)',
         px: 2,
         py: 1.5,
         boxSizing: 'border-box',
@@ -280,8 +313,9 @@ const GraficoNivelesTanquesPorDiaPageComponente = ({ NivelesTanquesContext }) =>
       <Paper
         elevation={0}
         sx={{
-          height: '100%',
+          height: '96%',
           borderRadius: 4,
+          mt:-1,
           p: 2,
           display: 'flex',
           flexDirection: 'column',
@@ -298,7 +332,7 @@ const GraficoNivelesTanquesPorDiaPageComponente = ({ NivelesTanquesContext }) =>
             gridTemplateColumns: { xs: '1fr', lg: '1fr auto auto' },
             gap: 2,
             alignItems: 'center',
-            mb: 2,
+            mb: 1.5,
           }}
         >
           <Box>
@@ -308,12 +342,6 @@ const GraficoNivelesTanquesPorDiaPageComponente = ({ NivelesTanquesContext }) =>
             >
               Niveles de Tanques
             </Typography>
-            {/* <Typography
-              variant="body2"
-              sx={{ color: '#64748b' }}
-            >
-              Visualización mensual de registros y detalle por tanque
-            </Typography> */}
           </Box>
 
           <Stack direction="row" spacing={1.2} flexWrap="wrap" useFlexGap>
@@ -382,6 +410,13 @@ const GraficoNivelesTanquesPorDiaPageComponente = ({ NivelesTanquesContext }) =>
             >
               Exportar PDF
             </Button>
+            <ExcelDownloadButton
+              data={rawData}
+              filename={`niveles_tanques_dia_${selectedMonth}.xlsx`}
+              sheetName="NivelesTanques"
+              buttonText="Exportar Excel"
+              disabled={!['gerente', 'supervisor', 'developer'].includes(usuario?.rol)}
+            />
             <Button
               onClick={toggleAll}
               variant="outlined"
@@ -604,7 +639,7 @@ const GraficoNivelesTanquesPorDiaPageComponente = ({ NivelesTanquesContext }) =>
                     }}
                   >
                     <tr>
-                      {['Fecha', 'Tanque', 'Nivel [m]', 'Factor [L/m]', 'Disposición', 'Observaciones', 'Responsable'].map((title) => (
+                      {['Fecha', 'Tanque', 'Nivel [m]', 'Factor [L/m]', 'Volumen [L]', 'Disposición', 'Observaciones', 'Responsable'].map((title) => (
                         <th
                           key={title}
                           style={{
@@ -640,6 +675,15 @@ const GraficoNivelesTanquesPorDiaPageComponente = ({ NivelesTanquesContext }) =>
                         <td style={{ padding: '12px', borderBottom: '1px solid #eef2f7', color: '#334155', fontWeight: 600 }}>{row.NombreTanque}</td>
                         <td style={{ padding: '12px', borderBottom: '1px solid #eef2f7', color: '#334155' }}>{row.NivelTanque}</td>
                         <td style={{ padding: '12px', borderBottom: '1px solid #eef2f7', color: '#334155' }}>{row.Factor}</td>
+                        <td style={{ padding: '12px', borderBottom: '1px solid #eef2f7', color: '#334155' }}>
+                          {(
+                            (typeof row.NivelTanque === 'string' ? parseFloat(row.NivelTanque.replace(',', '.')) : Number(row.NivelTanque) || 0) *
+                            (typeof row.Factor === 'string' ? parseFloat(row.Factor.replace(',', '.')) : Number(row.Factor) || 0)
+                          ).toLocaleString('es-CO', {
+                            minimumFractionDigits: 1,
+                            maximumFractionDigits: 1,
+                          })} L
+                        </td>
                         <td style={{ padding: '12px', borderBottom: '1px solid #eef2f7', color: '#334155' }}>{row.Disposicion}</td>
                         <td style={{ padding: '12px', borderBottom: '1px solid #eef2f7', color: '#334155' }}>{row.Observaciones}</td>
                         <td style={{ padding: '12px', borderBottom: '1px solid #eef2f7', color: '#334155' }}>{row.Responsable}</td>

@@ -77,7 +77,9 @@ const ClientesDespachoPageDB = () => {
   // ===============================
   const fetchClientes = async () => {
     try {
-      const res = await axios.get(API_URL);
+      const res = await axios.get(API_URL, {
+        withCredentials: true,
+      });
       setClientes(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       console.error("Error al obtener clientes:", error);

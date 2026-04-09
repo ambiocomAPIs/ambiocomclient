@@ -81,14 +81,14 @@ import ObservacionEstadoModal from "../utils_Logistica/Logistica_Modals/Observac
 import IngresoDataDespachoModal from "./DespachoAlcoholes_Utils/Modals/IngresoDataDespachoModal.jsx";
 import ChecklistDespachosModal from "./DespachoAlcoholes_Utils/Modals/ProgramacionDespachoCheckListModal.jsx";
 
+// componente para validar comparaciones en la tabla y resaltar alertas
+import { getCellValidation } from "./DespachoAlcoholes_Utils/Functions/validacionesDespacho.js";
 // Contexto usuario por roles
 import { useAuth } from "../../../utils/Context/AuthContext/AuthContext.jsx";
 
 /* ================= ENDPOINTS ================= */
-const API_DESPACHOS =
-  "https://ambiocomserver.onrender.com/api/despacho-alcoholes";
-const API_COLUMNAS =
-  "https://ambiocomserver.onrender.com/api/columna-despacho-alcoholes";
+const API_DESPACHOS = "https://ambiocomserver.onrender.com/api/despacho-alcoholes";
+const API_COLUMNAS = "https://ambiocomserver.onrender.com/api/columna-despacho-alcoholes";
 
 export default function TablaDespachosLogistica() {
   //refs del componente
@@ -238,7 +238,7 @@ export default function TablaDespachosLogistica() {
 
   //Verifica acceso al rol
   const canAccess = (roles) => {
-    if (loadingAuth) return true;
+    if (loadingAuth) return false;
     if (!roles) return true;
     if (roles.includes("*")) return true;
 
@@ -326,9 +326,19 @@ export default function TablaDespachosLogistica() {
     }
   };
 
+  // const obtenerMediciones = async () => {
+  //   const { data } = await axios.get(API_DESPACHOS);
+  //   setMediciones(data);
+  // };
+
   const obtenerMediciones = async () => {
-    const { data } = await axios.get(API_DESPACHOS);
-    setMediciones(data);
+    try {
+      const { data } = await axios.get(API_DESPACHOS);
+      setMediciones(data);
+    } catch (e) {
+      console.error(e);
+      Swal.fire("Error", "No se pudieron cargar los despachos", "error");
+    }
   };
 
   /* ================= CRUD MEDICIONES ================= */
@@ -358,18 +368,39 @@ export default function TablaDespachosLogistica() {
     obtenerMediciones();
   };
 
+  // const eliminarMedicion = async (id) => {
+  //   Swal.fire({
+  //     title: "¿Eliminar este ingreso?",
+  //     icon: "warning",
+  //     showCancelButton: true,
+  //     confirmButtonText: "Sí, eliminar",
+  //     cancelButtonText: "Cancelar",
+  //   }).then((result) => {
+  //     if (!result.isConfirmed) return;
+  //     axios.delete(`${API_DESPACHOS}/${id}`);
+  //     obtenerMediciones();
+  //   });
+  // };
+
   const eliminarMedicion = async (id) => {
-    Swal.fire({
+    const result = await Swal.fire({
       title: "¿Eliminar este ingreso?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Sí, eliminar",
       cancelButtonText: "Cancelar",
-    }).then((result) => {
-      if (!result.isConfirmed) return;
-      axios.delete(`${API_DESPACHOS}/${id}`);
-      obtenerMediciones();
     });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await axios.delete(`${API_DESPACHOS}/${id}`);
+      await obtenerMediciones();
+      Swal.fire("Eliminado", "El registro fue eliminado correctamente", "success");
+    } catch (error) {
+      console.error(error);
+      Swal.fire("Error", "No se pudo eliminar el registro", "error");
+    }
   };
 
   const parseHora = (h) => {
@@ -380,11 +411,24 @@ export default function TablaDespachosLogistica() {
   };
 
   /* ================= CRUD COLUMNAS ================= */
+  // const guardarColumna = async () => {
+  //   await axios.post(API_COLUMNAS, nuevaColumna);
+  //   setNuevaColumna({ nombre: "", key: "", unidad: "", totalizable: false });
+  //   setOpenColumna(false);
+  //   obtenerColumnas();
+  // };
+
   const guardarColumna = async () => {
-    await axios.post(API_COLUMNAS, nuevaColumna);
-    setNuevaColumna({ nombre: "", key: "", unidad: "", totalizable: false });
-    setOpenColumna(false);
-    obtenerColumnas();
+    try {
+      await axios.post(API_COLUMNAS, nuevaColumna);
+      setNuevaColumna({ nombre: "", key: "", unidad: "", totalizable: false });
+      setOpenColumna(false);
+      await obtenerColumnas();
+      Swal.fire("Éxito", "Columna creada correctamente", "success");
+    } catch (error) {
+      console.error(error);
+      Swal.fire("Error", "No se pudo crear la columna", "error");
+    }
   };
 
   function stringToDate(fechaStr) {
@@ -1617,6 +1661,21 @@ export default function TablaDespachosLogistica() {
                     .map((c) => {
                       const valor = row.lecturas?.[c.key] ?? "";
 
+                      const validacion = getCellValidation({
+                        key: c.key,
+                        Densidad: row.lecturas?.densidadlab_alcohol_tanque,
+                        volumenFacturado: row.lecturas?.volumen_despachar,
+                        volumenDespachado: row.lecturas?.volumen_ambiocom_contador,
+                        volumenDespachadoGravimetrico: row.lecturas?.volumen_contador_gravimetrico,
+                        volumenRecibidoCliente: row.lecturas?.cantidad_recibida_cliente,
+                        pesoAmbiocomContador: row.lecturas?.peso_neto_contador_ambiocom,
+                        pesoAmbiocomBascula: row.lecturas?.peso_neto_bascula_ambiocom,
+                        pesoBasculaCliente: row.lecturas?.kilos_peso_neto,
+                      });
+
+                      // console.log("key:", c.key);
+                      // console.log("row.lecturas?.volumen_facturado:", row.lecturas?.volumen_despachar);
+
                       return (
                         <TableCell
                           key={c.key}
@@ -1624,9 +1683,26 @@ export default function TablaDespachosLogistica() {
                           sx={{
                             whiteSpace: "nowrap",
                             width: "1%",
+                            ...(validacion?.sx || {}),
                           }}
                         >
-                          {c.key === "flete_facturado" ? (
+                          <Tooltip
+                            title={validacion?.mensaje || ""}
+                            placement="top"
+                            arrow
+                            disableHoverListener={!validacion?.mensaje}
+                            componentsProps={{
+                              tooltip: {
+                                sx: {
+                                  fontSize: "12px",
+                                  padding: "8px 12px",
+                                  backgroundColor: "#263238",
+                                  color: "#fff",
+                                  borderRadius: "6px",
+                                },
+                              },
+                            }}
+                          >
                             <Box
                               sx={{
                                 display: "flex",
@@ -1635,15 +1711,17 @@ export default function TablaDespachosLogistica() {
                                 width: "100%",
                               }}
                             >
-                              {valor ? (
-                                <CheckCircleIcon sx={{ color: "#2e7d32" }} />
+                              {c.key === "flete_facturado" ? (
+                                valor ? (
+                                  <CheckCircleIcon sx={{ color: "#2e7d32" }} />
+                                ) : (
+                                  <CancelIcon sx={{ color: "#d32f2f" }} />
+                                )
                               ) : (
-                                <CancelIcon sx={{ color: "#d32f2f" }} />
+                                valor ?? ""
                               )}
                             </Box>
-                          ) : (
-                            valor ?? ""
-                          )}
+                          </Tooltip>
                         </TableCell>
                       );
                     })}
@@ -1716,7 +1794,7 @@ export default function TablaDespachosLogistica() {
           tooltipTitle="Descargar plantilla Excel"
           onClick={() => {
             window.open(
-              "https://ambiocomserver.onrender.com/api/recepcion-alcoholes/plantilla-excel",
+              "https://ambiocomserver.onrender.com/api/despacho-alcoholes/plantilla-excel",
               "_blank"
             );
           }}

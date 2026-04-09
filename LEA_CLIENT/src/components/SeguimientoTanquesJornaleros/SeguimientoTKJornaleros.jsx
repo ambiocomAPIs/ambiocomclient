@@ -38,6 +38,8 @@ import ExcelStyleFooter from "../../utils/Footers/ExcelStyleFooter";
 import ReportarNivelesTanquesJornaleros from "./utils_seguimientoTanquesJornaleros/modals_seguimientoTanquesJornaleros/ReportarNivelesTanquesJornaleros";
 import DetallesMovimientosDeTanquesJornaleros from "./utils_seguimientoTanquesJornaleros/modals_seguimientoTanquesJornaleros/DetallesMovimientosDeTanquesJornaleros";
 import GraficoNivelesTanquesPorDiaModal from "../TanquesVistaNiveles/GraficaNivelesDiariosPorMes/GraficaNivelesDiarioTanquesJornalerosComponente";
+// loading component
+import EnterpriseLoadingScreen from "../../utils/Loaders_Component/EnterpriseLoadingScreen";
 
 const styleModal = {
   position: "absolute",
@@ -75,7 +77,7 @@ const cardStyle = {
 };
 
 function SeguimientoTKJornaleros({ NivelesTanquesContext }) {
-  console.log("tanques context:", NivelesTanquesContext);
+  // console.log("tanques context:", NivelesTanquesContext);  
 
   const [tipoMovimiento, setTipoMovimiento] = useState("");
   const [tanqueOrigen, setTanqueOrigen] = useState("");
@@ -89,7 +91,9 @@ function SeguimientoTKJornaleros({ NivelesTanquesContext }) {
   const [filteredTanques, setFilteredTanques] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [fechaFiltro, setFechaFiltro] = useState("");
-  const [tanquesPlanta, setTanquesPlanta] = useState([]); // viene de tanque list, lista de tanques CRUD
+  const [loading, setLoadingData] = useState("");
+  const [tanquesPlanta, setInfoDetailsTanquesPlanta] = useState([]); // viene de tanque list, lista de tanques CRUD
+
   const [
     modalVerRegistrarMovimientoTanqueJornaleroIsOpen,
     setModalVerRegistrarMovimientoTanqueJornaleroIsOpen,
@@ -142,10 +146,10 @@ function SeguimientoTKJornaleros({ NivelesTanquesContext }) {
     const fetchTanques = async () => {
       try {
         const res = await axios.get("https://ambiocomserver.onrender.com/api/tanques");
-        setTanquesPlanta(res.data || []);
+        setInfoDetailsTanquesPlanta(res.data || []);
       } catch (error) {
         console.error("Error al consultar tanques:", error);
-        setTanquesPlanta([]);
+        setInfoDetailsTanquesPlanta([]);
       }
     };
 
@@ -167,6 +171,22 @@ function SeguimientoTKJornaleros({ NivelesTanquesContext }) {
       setFilteredTanques(NivelesTanquesContext);
     }
   }, [NivelesTanquesContext]);
+
+  useEffect(() => {
+    if (Array.isArray(filteredTanques) && filteredTanques.length > 0) {
+      setLoadingData(false);
+    } else {
+      setLoadingData(true);
+    }
+  }, [filteredTanques]);
+
+  useEffect(() => {
+    if (Array.isArray(tanques) && tanques.length > 0) {
+      setLoadingData(false);
+    } else {
+      setLoadingData(true);
+    }
+  }, [tanques]);
 
   useEffect(() => {
     const filtered = tanques.filter((t) => {
@@ -248,7 +268,6 @@ function SeguimientoTKJornaleros({ NivelesTanquesContext }) {
     axios
       .post("https://ambiocomserver.onrender.com/api/reportar/operacionesdetanques", data)
       .then((response) => {
-        console.log("Movimiento registrado:", response.data);
         setSnackbarOpen(true);
         setTimeout(() => {
           window.location.reload();
@@ -453,7 +472,9 @@ function SeguimientoTKJornaleros({ NivelesTanquesContext }) {
       </Paper>
 
       <Stack spacing={2}>
-        {filteredTanques.length > 0 ? (
+        {loading ? (
+          <EnterpriseLoadingScreen size={100} />
+        ) : filteredTanques.length > 0 ? (
           filteredTanques.map((tanque, index) => {
             // const infoTanque = InformacionTanques[tanque.NombreTanque];
             // if (!infoTanque) return null;
@@ -467,8 +488,7 @@ function SeguimientoTKJornaleros({ NivelesTanquesContext }) {
             // );
 
             const infoTanque = tanquesMap[tanque.NombreTanque];
-            console.log("infotanque:", infoTanque);
-
+            // console.log("infotanque:", infoTanque);
             if (!infoTanque) return null;
 
             const nivel = Number(tanque.NivelTanque || 0);
@@ -871,7 +891,7 @@ function SeguimientoTKJornaleros({ NivelesTanquesContext }) {
                 alignItems: "center",
                 borderBottom: "1px solid #e2e8f0",
                 bgcolor: "#fff",
-                background:"linear-gradient(135deg, rgba(175, 235, 168, 0.65) 0%, rgba(187,222,251,0.95) 100%)",
+                background: "linear-gradient(135deg, rgba(175, 235, 168, 0.65) 0%, rgba(187,222,251,0.95) 100%)",
               }}
             >
               <Typography variant="h5" fontWeight={900}>
@@ -888,7 +908,7 @@ function SeguimientoTKJornaleros({ NivelesTanquesContext }) {
               </Button>
             </Box>
 
-            <Box sx={{ height: "calc(100% - 72px)" }}>
+            <Box sx={{ height: "calc(100% - 50px)" }}>
               <GraficoNivelesTanquesPorDiaModal
                 NivelesTanquesContext={NivelesTanquesContext}
               />

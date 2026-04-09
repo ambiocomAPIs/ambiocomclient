@@ -34,6 +34,7 @@
     "html-to-image": "^1.11.13",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
+    "lucide-react": "^1.7.0",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.16",
     "papaparse": "^5.5.2",

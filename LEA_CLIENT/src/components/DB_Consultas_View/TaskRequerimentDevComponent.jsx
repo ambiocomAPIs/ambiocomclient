@@ -246,7 +246,7 @@ export default function ListaAcordeon() {
                 Gestor de tareas y hallazgos
             </Typography> */}
 
-            <Typography variant="body2" sx={{ mt:5, mb: 1, color: "text.secondary" }}>
+            <Typography variant="body2" sx={{ mt: 5, mb: 1, color: "text.secondary" }}>
                 Mostrando por defecto registros del mes actual y del mes anterior
             </Typography>
 
@@ -429,7 +429,9 @@ export default function ListaAcordeon() {
                                 overflow: "hidden",
                                 boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
                                 "&:before": { display: "none" },
-                                opacity: item.completado ? 0.85 : 1,
+                                opacity: item.completado ? 0.9 : 1,
+                                backgroundColor: item.completado ? "#e8f5e9" : "#fff", // verde suave
+                                border: item.completado ? "1px solid #c8e6c9" : "1px solid #e0e0e0",
                             }}
                         >
                             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -480,12 +482,21 @@ export default function ListaAcordeon() {
                                             fontWeight: 500,
                                         }}
                                     />
-
+                                    <Typography
+                                        variant="caption"
+                                        sx={{
+                                            color: "text.secondary",
+                                            ml: "auto",
+                                            fontSize: "0.88rem",
+                                        }}
+                                    >
+                                        {formatearFecha(item.creadoEn)}
+                                    </Typography>
                                     <Chip
                                         label={item.completado ? "Hecho" : "Pendiente"}
                                         color={item.completado ? "success" : "default"}
                                         size="small"
-                                        sx={{ ml: "auto" }}
+                                        // sx={{ ml: "auto" }}
                                     />
                                 </Box>
                             </AccordionSummary>

@@ -85,12 +85,15 @@ import SGMRC from '../Insumos_Modulo/SGMRC.jsx';
 import ModuloEnMantenimiento from '../PaginaMantenimientoYDesarrollo/PaginaMantenimientoYDesarrollo.jsx';
 // modulo captura de trafico logs
 import TrafficLogViewer from '../System/TrafficLogViewer.jsx'
+//pausas activas
+import Trivia from '../Pausa_Activa/Trivia/Trivia.jsx'
+import Snake from '../Pausa_Activa/Snake/snake.jsx'
 //importacion de iconos
 import {
     tanqueIcon, factoryIcon, despachoIcon, despachoSalidaIcon, despachoRecepcionIcon, laboratoryIcon, inventoryIcon, rulerIcon, oilTankIcon, coalInventoryIcon,
     ptapIcon, GraphIcon, BarGraphIcon, BarGraphComparativeIcon, robotAssistanceIcon, bitacoraIcon, StopWatchIcon, PdfIcon, DatabaseAdministratorIcon, workerIcon,
     TankGraphIcon, CounterIcon, MoneyGraphIcon, EnergyIcon, EnergyDataIcon, InOutMaderaCarbonIcon, InformeIcon, TankWithLiquidIcon, ReportIcon,
-    Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon, PersonalIcons, plannerIconDate, logsIcon, VesselTkIcon, VesselTkIconChemical, ListToDoIcon
+    Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon, PersonalIcons, plannerIconDate, logsIcon, VesselTkIcon, VesselTkIconChemical, ListToDoIcon, ArcadeIcon
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -225,19 +228,19 @@ export default function EmpresarialPrincipalSchedulerApp() {
                         {
                             text: 'Planeacion Diaria',
                             subKey: 'planeaciondiariadespachosreadonly',
-                            roles: ["admin", "laboratorio", "developer", "gerente","supervisor"],
+                            roles: ["admin", "developer", "gerente", "supervisor"],
                             icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} />
                         },
                         {
                             text: 'Despachos',
                             subKey: 'despachoalcoholeslogisticareadonly',
-                            roles: ["admin", "laboratorio", "developer", "gerente","supervisor"],
+                            roles: ["admin", "developer", "gerente", "supervisor"],
                             icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
                         },
                         {
                             text: 'Recepción',
                             subKey: 'recepcionalcoholeslogisticareadonly',
-                            roles: ["admin", "developer", "laboratorio", "supervisor"],
+                            roles: ["admin", "developer", "supervisor"],
                             icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
                         }
                     ]
@@ -342,6 +345,13 @@ export default function EmpresarialPrincipalSchedulerApp() {
             ],
         },
 
+        {
+            text: 'Pausa Activa', roles: ["admin", "developer"], icon: <img src={ArcadeIcon} alt="pausaactiva" style={{ width: 25, height: 25 }} />, key: 'pausaactiva', 
+            subItems: [
+                { text: 'Trivia SM26', roles: ["admin", "developer"], icon: <img src={ArcadeIcon} alt="trivia" style={{ width: 25, height: 25 }} />, key: 'trivia' },
+                { text: 'SNAKE', roles: ["admin", "developer"], icon: <img src={ArcadeIcon} alt="snake" style={{ width: 25, height: 25 }} />, key: 'snake' },
+            ],
+        },
         { text: 'Assistance', roles: ["admin", "developer"], icon: <img src={robotAssistanceIcon} alt="robotassistance" style={{ width: 25, height: 25 }} />, key: 'robotassistance' },
     ];
 
@@ -401,7 +411,6 @@ export default function EmpresarialPrincipalSchedulerApp() {
         }
     };
 
-
     const renderContent = () => {
 
         // rolesAllowed debe calcularse acá (antes lo estabas usando sin definir)
@@ -457,6 +466,9 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'logstraffic': return <TrafficLogViewer />;
             //pagina mantenimiento
             case 'modulomantenimiento': return <ModuloEnMantenimiento />;
+            //pausa activa
+            case 'trivia': return <Trivia />;
+            case 'snake': return <Snake />;
             default: return null;
         }
     };

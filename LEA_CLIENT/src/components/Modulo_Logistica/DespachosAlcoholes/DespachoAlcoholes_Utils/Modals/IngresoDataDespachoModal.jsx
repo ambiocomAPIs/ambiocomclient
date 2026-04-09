@@ -604,6 +604,26 @@ const IngresoDataDespachoModal = ({
     }
   };
 
+
+  const CAMPOS_PERMITEN_DECIMALES = ["densidadlab_alcohol_tanque", "grado_alcoholico_lab", "observaciones",]
+
+  // funcion bloquea . ,
+  const bloquearPegado = (key) => (e) => {
+    if (CAMPOS_PERMITEN_DECIMALES.includes(key)) return;
+    const texto = e.clipboardData.getData("text");
+    if (texto.includes(".") || texto.includes(",")) {
+      e.preventDefault();
+    }
+  };
+
+  const bloquearPuntoYComa = (key) => (e) => {
+    if (CAMPOS_PERMITEN_DECIMALES.includes(key)) return;
+
+    if (e.key === "." || e.key === ",") {
+      e.preventDefault();
+    }
+  };
+
   const mapProductosToOptions = (arr) =>
     (arr ?? []).map((p) => ({
       value: String(p?.tipoProducto ?? ""),
@@ -1455,6 +1475,8 @@ const IngresoDataDespachoModal = ({
                             }
                           }
                         }}
+                        onKeyDown={bloquearPuntoYComa(c.key)} // bloquea techas . y , 
+                        onPaste={bloquearPegado(c.key)} // si copian un valor con . y , no permite los caracteres
                         disabled={isDisabled}
                         sx={sxField}
                         error={!!fieldErrors[c.key]}

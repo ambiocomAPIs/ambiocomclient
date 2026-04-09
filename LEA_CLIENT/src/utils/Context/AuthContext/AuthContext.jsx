@@ -55,7 +55,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    console.log("ROL CONTEXT:", user?.rol);
+    // console.log("ROL CONTEXT:", user?.rol);
   }, [user, loadingAuth]);
 
   const logout = async () => {

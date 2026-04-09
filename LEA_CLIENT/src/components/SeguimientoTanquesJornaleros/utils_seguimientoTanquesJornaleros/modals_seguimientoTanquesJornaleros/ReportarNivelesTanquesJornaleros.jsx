@@ -15,6 +15,8 @@ import {
 import Swal from "sweetalert2";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import SortByAlphaIcon from "@mui/icons-material/SortByAlpha";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import ModalClonarDia from "./ModalClonarDia";
 
 import useNetworkStatus from "../../../../Hooks/NetworkStatus/useNetworkStatus"    // verificador de conexion a red
 
@@ -33,6 +35,17 @@ const styleModal = {
   flexDirection: "column",
 };
 
+
+// configuracion swal para que se muestre sobre el modal
+const swalTop = (options) =>
+  Swal.fire({
+    ...options,
+    didOpen: () => {
+      const el = document.querySelector(".swal2-container");
+      if (el) el.style.zIndex = "20000";
+    },
+  });
+
 const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
   const [loadingButton, setLoadingButton] = React.useState(false);
   const LOCAL_STORAGE_KEY = "nivelesTanquesJornalerosDraft";
@@ -48,6 +61,9 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
 
   const [modoEdicion, setModoEdicion] = useState(false);
   const [cargandoFecha, setCargandoFecha] = useState(false);
+
+  const [openModalClonar, setOpenModalClonar] = useState(false);
+  const [loadingClonar, setLoadingClonar] = useState(false);
 
   // ===================== Verificador de Redes ===========================
   const {
@@ -118,7 +134,6 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
 
   const handleChangeFecha = async (e) => {
     const fechaSeleccionada = e.target.value;
-    console.log("Fecha seleccionada:", fechaSeleccionada); // 👈 DEBUG
     setFecha(fechaSeleccionada);
     setLoadingButton(false);
     setCargandoFecha(true);
@@ -151,6 +166,92 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
       setModoEdicion(false);
     } finally {
       setCargandoFecha(false);
+    }
+  };
+
+  const handleClonarDia = async (fechaOrigen, fechaDestino) => {
+    if (!isConnected) {
+      Swal.fire("Sin conexión", "No hay conexión a internet o al servidor.", "warning");
+      return;
+    }
+
+    if (fechaOrigen === fechaDestino) {
+      Swal.fire("Error", "La fecha origen y destino no pueden ser iguales.", "error");
+      return;
+    }
+
+    setLoadingClonar(true);
+
+    try {
+      // 1. Buscar registros del día origen
+      const resOrigen = await axios.get(
+        `https://ambiocomserver.onrender.com/api/tanquesjornaleros/porfecha/${fechaOrigen}`
+      );
+
+      if (!resOrigen.data || resOrigen.data.length === 0) {
+        Swal.fire("Sin datos", "No existe información en la fecha origen seleccionada.", "info");
+        return;
+      }
+
+      // 2. Verificar si ya existe información en la fecha destino
+      const resDestino = await axios.get(
+        `https://ambiocomserver.onrender.com/api/tanquesjornaleros/porfecha/${fechaDestino}`
+      );
+
+      if (resDestino.data && resDestino.data.length > 0) {
+        Swal.fire(
+          "Error",
+          "Ya existen registros en la fecha destino. No se puede clonar sobre una fecha ocupada.",
+          "error"
+        );
+        return;
+      }
+
+      // 3. Construir payload copiando datos del origen, pero con nueva fecha
+      const payload = resOrigen.data.map((item) => ({
+        NombreTanque: item.NombreTanque,
+        NivelTanque: Number(item.NivelTanque || 0),
+        Responsable: item.Responsable || "",
+        Observaciones: item.Observaciones || "",
+        Factor: item.Factor,
+        Disposicion: item.Disposicion,
+        FechaRegistro: fechaDestino,
+      }));
+
+      // 4. Guardar clon
+      await axios.post(
+        "https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros",
+        payload
+      );
+
+      setOpenModalClonar(false);
+      swalTop({
+        title: "Éxito",
+        text: "El día fue clonado correctamente.",
+        icon: "success",
+      });
+      // Opcional: cargar en pantalla la fecha clonada
+      setFecha(fechaDestino);
+
+      const data = {};
+      payload.forEach((r) => {
+        data[r.NombreTanque] = r.NivelTanque;
+      });
+
+      setInputs(data);
+      setResponsable(payload[0]?.Responsable || "");
+      setObservaciones(payload[0]?.Observaciones || "");
+      setModoEdicion(true);
+    } catch (err) {
+      // console.error("Error al clonar día:", err);
+      swalTop({
+        title: "Error",
+        text: "No se pudo clonar el registro.",
+        icon: "error",
+      });
+
+    } finally {
+      setLoadingClonar(false);
     }
   };
 
@@ -262,164 +363,182 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
     : [...tanquesOrdenadosAZ].reverse();
 
   return (
-    <Modal open={open} onClose={onClose}>
-      <Box sx={styleModal}>
-        {/* Header con botón ordenar */}
-        <Box
-          sx={{
-            px: 3,
-            pt: 2,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Typography
-            variant="h5"
-            textAlign="center"
-            fontWeight="bold"
-            color="primary"
+    <>
+
+      <Modal open={open} onClose={onClose}>
+        <Box sx={styleModal}>
+          {/* Header con botón ordenar */}
+          <Box
+            sx={{
+              px: 3,
+              pt: 2,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
           >
-            Reporte de Niveles de Tanques
-          </Typography>
-
-          <Tooltip title={ordenAsc ? "Ordenar Z-A" : "Ordenar A-Z"}>
-            <IconButton color="primary" onClick={() => setOrdenAsc(!ordenAsc)}>
-              <SortByAlphaIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-
-        <Divider sx={{ my: 2 }} />
-
-        {/* Contenido scrollable */}
-        <Box sx={{ flex: 1, overflowY: "auto", px: 3, pb: 2 }}>
-          {!fecha && (
-            <Typography color="error" sx={{ mb: 2 }}>
-              ⚠️ Debes seleccionar una fecha para habilitar el formulario
-            </Typography>
-          )}
-
-          {!isConnected && (
-            <Typography color="error" sx={{ mb: 2 }}>
-              ⚠️ Sin conexión. No puedes guardar el reporte en este momento.
-            </Typography>
-          )}
-
-          {listaParaMostrar.length === 0 ? (
-            <Typography color="text.secondary">
-              No hay datos de tanques disponibles.
-            </Typography>
-          ) : (
-            <Grid container spacing={2} sx={{ mt: "1px" }}>
-              {listaParaMostrar.map((tanque) => (
-                <Grid item xs={12} sm={6} md={4} key={tanque.NombreTanque}>
-                  <TextField
-                    label={"Tanque " + tanque.NombreTanque}
-                    type="number"
-                    fullWidth
-                    size="small"
-                    value={inputs[tanque.NombreTanque] || ""}
-                    onChange={(e) =>
-                      handleInputChange(tanque.NombreTanque, e.target.value)
-                    }
-                    disabled={!fecha}
-                  />
-                </Grid>
-              ))}
-            </Grid>
-          )}
-
-          <Divider sx={{ my: 3 }} />
-
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={3}>
-              <TextField
-                label="Responsable"
-                fullWidth
-                size="small"
-                value={responsable}
-                onChange={(e) => setResponsable(e.target.value)}
-                disabled={!fecha}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={9}>
-              <TextField
-                label="Observaciones"
-                fullWidth
-                size="small"
-                value={observaciones}
-                onChange={(e) => setObservaciones(e.target.value)}
-                disabled={!fecha}
-              />
-            </Grid>
-          </Grid>
-        </Box>
-
-        {/* Footer fijo */}
-        <Divider />
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            px: 3,
-            py: 2,
-            bgcolor: "grey.50",
-            borderBottomLeftRadius: "16px",
-            borderBottomRightRadius: "16px",
-          }}
-        >
-          <Button variant="outlined" color="secondary" onClick={onClose}>
-            Cancelar
-          </Button>
-
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <input
-              type="date"
-              value={fecha}
-              onChange={handleChangeFecha}
-              max={new Date().toLocaleDateString("en-CA")}
-              style={{
-                padding: "8px 12px",
-                fontSize: "14px",
-                borderRadius: "8px",
-                border: "1px solid #ccc",
-                backgroundColor: "#fff",
-                color: "#333",
-              }}
-            />
-            {cargandoFecha && (
-              <CircularProgress size={20} sx={{ ml: 1 }} />
-            )}
-
-            <Button
-              variant="contained"
-              disabled={loadingButton || !fecha || !isConnected}
-              color={modoEdicion ? "warning" : "primary"}
-              onClick={handleSubmit}
-              endIcon={loadingButton ? <CircularProgress size={20} color="inherit" /> : null}
+            <Typography
+              variant="h5"
+              textAlign="center"
+              fontWeight="bold"
+              color="primary"
             >
-              {modoEdicion ? "Actualizar" : "Reportar"}
-            </Button>
+              Reporte de Niveles de Tanques
+            </Typography>
 
-
-            <Tooltip title="Eliminar Registro" enterDelay={100}>
-              <span>
-                <IconButton
-                  color="error"
-                  onClick={handleEliminarPorFecha}
-                  disabled={!["developer", "gerente"].includes(usuario?.rol)}
-                >
-                  <DeleteForeverIcon />
-                </IconButton>
-              </span>
+            <Tooltip title={ordenAsc ? "Ordenar Z-A" : "Ordenar A-Z"}>
+              <IconButton color="primary" onClick={() => setOrdenAsc(!ordenAsc)}>
+                <SortByAlphaIcon />
+              </IconButton>
             </Tooltip>
           </Box>
+
+          <Divider sx={{ my: 2 }} />
+
+          {/* Contenido scrollable */}
+          <Box sx={{ flex: 1, overflowY: "auto", px: 3, pb: 2 }}>
+            {!fecha && (
+              <Typography color="error" sx={{ mb: 2 }}>
+                ⚠️ Debes seleccionar una fecha para habilitar el formulario
+              </Typography>
+            )}
+
+            {!isConnected && (
+              <Typography color="error" sx={{ mb: 2 }}>
+                ⚠️ Sin conexión. No puedes guardar el reporte en este momento.
+              </Typography>
+            )}
+
+            {listaParaMostrar.length === 0 ? (
+              <Typography color="text.secondary">
+                No hay datos de tanques disponibles.
+              </Typography>
+            ) : (
+              <Grid container spacing={2} sx={{ mt: "1px" }}>
+                {listaParaMostrar.map((tanque) => (
+                  <Grid item xs={12} sm={6} md={4} key={tanque.NombreTanque}>
+                    <TextField
+                      label={"Tanque " + tanque.NombreTanque}
+                      type="number"
+                      fullWidth
+                      size="small"
+                      value={inputs[tanque.NombreTanque] || ""}
+                      onChange={(e) =>
+                        handleInputChange(tanque.NombreTanque, e.target.value)
+                      }
+                      disabled={!fecha}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+
+            <Divider sx={{ my: 3 }} />
+
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={3}>
+                <TextField
+                  label="Responsable"
+                  fullWidth
+                  size="small"
+                  value={responsable}
+                  onChange={(e) => setResponsable(e.target.value)}
+                  disabled={!fecha}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={9}>
+                <TextField
+                  label="Observaciones"
+                  fullWidth
+                  size="small"
+                  value={observaciones}
+                  onChange={(e) => setObservaciones(e.target.value)}
+                  disabled={!fecha}
+                />
+              </Grid>
+            </Grid>
+          </Box>
+
+          {/* Footer fijo */}
+          <Divider />
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              px: 3,
+              py: 2,
+              bgcolor: "grey.50",
+              borderBottomLeftRadius: "16px",
+              borderBottomRightRadius: "16px",
+            }}
+          >
+            <Button variant="outlined" color="secondary" onClick={onClose}>
+              Cancelar
+            </Button>
+
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <input
+                type="date"
+                value={fecha}
+                onChange={handleChangeFecha}
+                max={new Date().toLocaleDateString("en-CA")}
+                style={{
+                  padding: "8px 12px",
+                  fontSize: "14px",
+                  borderRadius: "8px",
+                  border: "1px solid #ccc",
+                  backgroundColor: "#fff",
+                  color: "#333",
+                }}
+              />
+              {cargandoFecha && (
+                <CircularProgress size={20} sx={{ ml: 1 }} />
+              )}
+
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={() => setOpenModalClonar(true)}
+                startIcon={<ContentCopyIcon />}
+              >
+                Clonar día
+              </Button>
+              <Button
+                variant="contained"
+                disabled={loadingButton || !fecha || !isConnected}
+                color={modoEdicion ? "warning" : "primary"}
+                onClick={handleSubmit}
+                endIcon={loadingButton ? <CircularProgress size={20} color="inherit" /> : null}
+              >
+                {modoEdicion ? "Actualizar" : "Reportar"}
+              </Button>
+
+
+              <Tooltip title="Eliminar Registro" enterDelay={100}>
+                <span>
+                  <IconButton
+                    color="error"
+                    onClick={handleEliminarPorFecha}
+                    disabled={!["developer", "gerente"].includes(usuario?.rol)}
+                  >
+                    <DeleteForeverIcon />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Box>
+          </Box>
         </Box>
-      </Box>
-    </Modal>
+      </Modal>
+      <ModalClonarDia
+        open={openModalClonar}
+        onClose={() => setOpenModalClonar(false)}
+        onConfirm={handleClonarDia}
+        loading={loadingClonar}
+      />
+    </>
+
   );
 };
 
