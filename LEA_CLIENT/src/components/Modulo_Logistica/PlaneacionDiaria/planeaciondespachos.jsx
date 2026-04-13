@@ -212,7 +212,7 @@ const ProgramacionDespachoDiariaPage = () => {
         resTransportadoras,
       ] = await Promise.allSettled([
         axios.get(API_CONDUCTORES),
-        axios.get(API_CLIENTES),
+        axios.get(API_CLIENTES, {withCredentials: true}),
         axios.get(API_PRODUCTOS),
         axios.get(API_DESTINOS),
         axios.get(API_TRANSPORTADORAS),
