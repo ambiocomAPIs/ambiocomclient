@@ -329,7 +329,7 @@ const ClientesDespachoPageDB = () => {
                     <IconButton
                       size="small"
                       onClick={() => setSearch("")}
-                      aria-label="Limpiar búsqueda"
+                      aria-label="Limpiar búsqueda" 
                     >
                       <ClearIcon fontSize="small" />
                     </IconButton>
