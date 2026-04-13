@@ -154,9 +154,13 @@ const ClientesDespachoPageDB = () => {
       });
 
       if (editingId) {
-        await axios.put(`${API_URL}/${editingId}`, payload);
+        await axios.put(`${API_URL}/${editingId}`, payload, {
+          withCredentials: true,
+        });
       } else {
-        await axios.post(API_URL, payload);
+        await axios.post(API_URL, payload, {
+          withCredentials: true,
+        });
       }
 
       Swal.close();
@@ -223,8 +227,9 @@ const ClientesDespachoPageDB = () => {
         didOpen: () => Swal.showLoading(),
       });
 
-      await axios.delete(`${API_URL}/${id}`);
-
+      await axios.delete(`${API_URL}/${id}`, {
+        withCredentials: true
+      });
       Swal.close();
 
       await Swal.fire({
