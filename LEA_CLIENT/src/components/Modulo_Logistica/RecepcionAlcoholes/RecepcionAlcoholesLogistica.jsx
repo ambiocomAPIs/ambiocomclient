@@ -310,8 +310,27 @@ export default function TablaIngresoRecepcionesLogistica() {
   };
 
   const obtenerMediciones = async () => {
-    const { data } = await axios.get(API_RECEPCIONES);
-    setMediciones(data);
+    try {
+      const { data } = await axios.get(API_RECEPCIONES, {
+        withCredentials: true,
+      });
+
+      setMediciones(data);
+    } catch (error) {
+      console.error("Error obteniendo mediciones:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
+
+      Swal.fire(
+        "Error",
+        error.response?.data?.message || "No se pudieron cargar los datos",
+        "error"
+      );
+
+      setMediciones([]);
+    }
   };
 
   /* ================= CRUD MEDICIONES ================= */
@@ -329,13 +348,15 @@ export default function TablaIngresoRecepcionesLogistica() {
   };
 
   const guardarMedicion = async () => {
-    await axios.post(API_RECEPCIONES, form);
+    await axios.post(API_RECEPCIONES, form,{
+        withCredentials: true,
+      });
     setOpenFila(false);
     obtenerMediciones();
   };
 
   const actualizarMedicion = async () => {
-    await axios.put(`${API_RECEPCIONES}/${editId}`, form);
+    await axios.put(`${API_RECEPCIONES}/${editId}`, form, {withCredentials:true});
     setOpenEditar(false);
     obtenerMediciones();
   };
@@ -349,7 +370,7 @@ export default function TablaIngresoRecepcionesLogistica() {
       cancelButtonText: "Cancelar",
     }).then((result) => {
       if (!result.isConfirmed) return;
-      axios.delete(`${API_RECEPCIONES}/${id}`);
+      axios.delete(`${API_RECEPCIONES}/${id}`,{withCredentials:true});
       obtenerMediciones();
     });
   };
@@ -1339,9 +1360,9 @@ export default function TablaIngresoRecepcionesLogistica() {
                         }}
                       >
                         {/* <Tooltip placement="top" title="Doble click para ver observación"> */}
-                          <Box sx={{ display: "flex", alignItems: "center" }}>
-                            {renderEstadoVehiculoIcon(row.lecturas?.estado_vehiculo)}
-                          </Box>
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          {renderEstadoVehiculoIcon(row.lecturas?.estado_vehiculo)}
+                        </Box>
                         {/* </Tooltip> */}
                       </Box>
                     </Box>

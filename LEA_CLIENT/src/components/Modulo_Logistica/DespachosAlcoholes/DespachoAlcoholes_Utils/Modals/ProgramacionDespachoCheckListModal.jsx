@@ -77,7 +77,8 @@ const ChecklistDespachosModal = ({ open, onClose }) => {
         params: {
           from: customRange.from,
           to: customRange.to,
-        },
+        },  
+        withCredentials: true,
       });
 
       setRows(Array.isArray(res.data) ? res.data : []);

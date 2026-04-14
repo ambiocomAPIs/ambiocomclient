@@ -21,7 +21,7 @@ import PanelHoras from "./components/PanelHoras";
 import LoginPrivateAccess from "../src/Login/LoginPrivateAccess";
 import ComponentePrincipalSlidebar from "./components/PaginaPrincipal/ComponentePrincipalSlideBar";
 import { Typography } from "@mui/material";
-import CargarMasivaTanquesDiariosExcel from "./utils/Functions/CargaMasivaNivelesTanques/CargaMasivaNivelesTanquesJornaleros";
+import CargarMasivaTanquesDiariosExcel from "./components/SeguimientoTanquesJornaleros/utils_seguimientoTanquesJornaleros/utils_seguimientoTanquesJornaleros/CargaMasivaNivelesTanquesJornaleros";
 
 import DataAnalisysProgramacionDespacho from "./Pages/Logistica_Pages/DataAnalisysProgramacionDespacho"
 

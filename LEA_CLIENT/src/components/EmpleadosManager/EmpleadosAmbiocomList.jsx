@@ -19,7 +19,7 @@ function PaperDraggable(props) {
 }
 
 function EmpleadosManager() {
-  const [empleados, setEmpleados] = useState([]); // siempre inicializar como []
+  const [empleados, setEmpleados] = useState([]);
   const [open, setOpen] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [empleadoActual, setEmpleadoActual] = useState({
@@ -37,7 +37,7 @@ function EmpleadosManager() {
 
   const fetchEmpleados = async () => {
     try {
-      const { data } = await axios.get('https://ambiocomserver.onrender.com/api/empleadosambiocom');
+      const { data } = await axios.get('https://ambiocomserver.onrender.com/api/empleadosambiocom', {withCredentials:true });
       setEmpleados(data);
     } catch (error) {
       console.error('Error al cargar empleados:', error);
@@ -101,10 +101,10 @@ function EmpleadosManager() {
   const guardarEmpleado = async () => {
     try {
       if (modoEdicion) {
-        await axios.put(`https://ambiocomserver.onrender.com/api/empleadosambiocom/${empleadoActual._id}`, empleadoActual);
+        await axios.put(`https://ambiocomserver.onrender.com/api/empleadosambiocom/${empleadoActual._id}`,{withCredentials:true}, empleadoActual);
         Swal.fire('Actualizado', 'Empleado actualizado correctamente', 'success');
       } else {
-        await axios.post('https://ambiocomserver.onrender.com/api/empleadosambiocom', empleadoActual);
+        await axios.post('https://ambiocomserver.onrender.com/api/empleadosambiocom',{withCredentials:true}, empleadoActual);
         Swal.fire('Registrado', 'Empleado registrado correctamente', 'success');
       }
       fetchEmpleados();
@@ -133,7 +133,7 @@ function EmpleadosManager() {
 
     if (confirmar.isConfirmed) {
       try {
-        await axios.delete(`https://ambiocomserver.onrender.com/api/empleadosambiocom/${id}`);
+        await axios.delete(`https://ambiocomserver.onrender.com/api/empleadosambiocom/${id}`,{withCredentials:true},);
         fetchEmpleados();
         Swal.fire('Eliminado', 'Empleado eliminado exitosamente', 'success');
       } catch (error) {

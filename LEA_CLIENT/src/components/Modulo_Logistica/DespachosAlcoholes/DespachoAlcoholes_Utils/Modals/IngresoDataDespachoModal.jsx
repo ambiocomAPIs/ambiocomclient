@@ -476,7 +476,7 @@ const IngresoDataDespachoModal = ({
       const [conductoresRaw, clientesRaw, transportadorasRaw] =
         await Promise.all([
           axios.get("https://ambiocomserver.onrender.com/api/conductores"),
-          axios.get(CLIENTES_URL, {withCredentials: true}),
+          axios.get(CLIENTES_URL,{withCredentials:true}),
           axios.get(TRANSPORTADORAS_URL),
         ]);
 

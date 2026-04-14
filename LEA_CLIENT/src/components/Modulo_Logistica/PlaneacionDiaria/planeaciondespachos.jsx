@@ -212,7 +212,7 @@ const ProgramacionDespachoDiariaPage = () => {
         resTransportadoras,
       ] = await Promise.allSettled([
         axios.get(API_CONDUCTORES),
-        axios.get(API_CLIENTES, {withCredentials: true}),
+        axios.get(API_CLIENTES,{withCredentials:true}),
         axios.get(API_PRODUCTOS),
         axios.get(API_DESTINOS),
         axios.get(API_TRANSPORTADORAS),
@@ -333,6 +333,7 @@ const ProgramacionDespachoDiariaPage = () => {
 
       const res = await axios.get(`${API_URL}/rango`, {
         params: { from, to },
+        withCredentials: true,
       });
 
       const list = Array.isArray(res.data) ? res.data : [];
@@ -611,9 +612,9 @@ const ProgramacionDespachoDiariaPage = () => {
       });
 
       if (editingId) {
-        await axios.put(`${API_URL}/${editingId}`, payload);
+        await axios.put(`${API_URL}/${editingId}`, payload, {withCredentials:true});
       } else {
-        await axios.post(API_URL, payload);
+        await axios.post(API_URL, payload , {withCredentials:true});
       }
 
       Swal.close();
@@ -687,7 +688,7 @@ const ProgramacionDespachoDiariaPage = () => {
         didOpen: () => Swal.showLoading(),
       });
 
-      await axios.delete(`${API_URL}/${id}`);
+      await axios.delete(`${API_URL}/${id}`,{withCredentials:true});
 
       Swal.close();
 
@@ -785,51 +786,51 @@ const ProgramacionDespachoDiariaPage = () => {
   }, [rows, filters, debouncedSearch, sortOrder]);
 
   const copiarTablaPortapapeles = async () => {
-  try {
-    const headers = [
-      "Fecha",
-      "Placa",
-      "Trailer",
-      "Conductor",
-      "Transportadora",
-      "Cliente",
-      "Destino",
-      "Producto",
-      "Cantidad",
-      "Checked",
-    ];
+    try {
+      const headers = [
+        "Fecha",
+        "Placa",
+        "Trailer",
+        "Conductor",
+        "Transportadora",
+        "Cliente",
+        "Destino",
+        "Producto",
+        "Cantidad",
+        "Checked",
+      ];
 
-    const rows = rowsFiltrados.map((r) => [
-      normalizeText(r.fecha),
-      normalizeText(r.placa),
-      normalizeText(r.trailer),
-      normalizeText(r.conductor),
-      normalizeText(r.transportadora),
-      normalizeText(r.cliente),
-      normalizeText(r.destino),
-      normalizeText(r.producto),
-      String(r.cantidad ?? ""),
-      r?.cumplido ? "SI" : "NO",
-    ]);
+      const rows = rowsFiltrados.map((r) => [
+        normalizeText(r.fecha),
+        normalizeText(r.placa),
+        normalizeText(r.trailer),
+        normalizeText(r.conductor),
+        normalizeText(r.transportadora),
+        normalizeText(r.cliente),
+        normalizeText(r.destino),
+        normalizeText(r.producto),
+        String(r.cantidad ?? ""),
+        r?.cumplido ? "SI" : "NO",
+      ]);
 
-    const texto =
-      headers.join("\t") +
-      "\n" +
-      rows.map((r) => r.join("\t")).join("\n");
+      const texto =
+        headers.join("\t") +
+        "\n" +
+        rows.map((r) => r.join("\t")).join("\n");
 
-    await navigator.clipboard.writeText(texto);
+      await navigator.clipboard.writeText(texto);
 
-    Swal.fire({
-      icon: "success",
-      title: "Tabla copiada",
-      text: "Puedes pegarla directamente en Excel",
-      timer: 1500,
-      showConfirmButton: false,
-    });
-  } catch (error) {
-    console.error(error);
-  }
-};
+      Swal.fire({
+        icon: "success",
+        title: "Tabla copiada",
+        text: "Puedes pegarla directamente en Excel",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   // INDICADORES (chips)
   const total = rows.length;
@@ -1506,11 +1507,11 @@ const ProgramacionDespachoDiariaPage = () => {
           <Divider sx={{ my: 3 }} />
 
           {/* TABLA */}
-          <TableContainer component={Paper} elevation={2} sx={{ borderRadius: 2 }} 
-           onContextMenu={(e) => {
-            e.preventDefault();
-            copiarTablaPortapapeles();
-          }}>
+          <TableContainer component={Paper} elevation={2} sx={{ borderRadius: 2 }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              copiarTablaPortapapeles();
+            }}>
             <Table stickyHeader size="small">
               <TableHead>
                 <TableRow>

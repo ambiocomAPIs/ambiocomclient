@@ -59,7 +59,7 @@ const ModalClonarDia = ({ open, onClose, onConfirm, loading }) => {
       setLoadingOrigen(true);
       try {
         const res = await axios.get(
-          `https://ambiocomserver.onrender.com/api/tanquesjornaleros/porfecha/${fechaOrigen}`
+          `https://ambiocomserver.onrender.com/api/tanquesjornaleros/porfecha/${fechaOrigen}`,{withCredentials:true}
         );
 
         setOrigenDisponible(res.data?.length > 0);
@@ -89,7 +89,7 @@ const ModalClonarDia = ({ open, onClose, onConfirm, loading }) => {
       setLoadingDestino(true);
       try {
         const res = await axios.get(
-          `https://ambiocomserver.onrender.com/api/tanquesjornaleros/porfecha/${fechaDestino}`
+          `https://ambiocomserver.onrender.com/api/tanquesjornaleros/porfecha/${fechaDestino}`,{withCredentials:true}
         );
 
         setDestinoDisponible(!(res.data?.length > 0));

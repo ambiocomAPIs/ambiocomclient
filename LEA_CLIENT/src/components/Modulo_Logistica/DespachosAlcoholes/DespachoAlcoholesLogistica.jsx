@@ -333,7 +333,7 @@ export default function TablaDespachosLogistica() {
 
   const obtenerMediciones = async () => {
     try {
-      const { data } = await axios.get(API_DESPACHOS);
+      const { data } = await axios.get(API_DESPACHOS,{withCredentials:true});
       setMediciones(data);
     } catch (e) {
       console.error(e);
@@ -357,13 +357,13 @@ export default function TablaDespachosLogistica() {
   };
 
   const guardarMedicion = async () => {
-    await axios.post(API_DESPACHOS, form);
+    await axios.post(API_DESPACHOS, form, {withCredentials:true});
     setOpenFila(false);
     obtenerMediciones();
   };
 
   const actualizarMedicion = async () => {
-    await axios.put(`${API_DESPACHOS}/${editId}`, form);
+    await axios.put(`${API_DESPACHOS}/${editId}`, form, {withCredentials:true});
     setOpenEditar(false);
     obtenerMediciones();
   };
@@ -394,7 +394,7 @@ export default function TablaDespachosLogistica() {
     if (!result.isConfirmed) return;
 
     try {
-      await axios.delete(`${API_DESPACHOS}/${id}`);
+      await axios.delete(`${API_DESPACHOS}/${id}`,{withCredentials:true});
       await obtenerMediciones();
       Swal.fire("Eliminado", "El registro fue eliminado correctamente", "success");
     } catch (error) {

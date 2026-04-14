@@ -39,7 +39,7 @@ import InicioApp from '../pagina_Inicio/InicioApp.jsx';
 import InformeAlcoholes from '../Modulo_Informes/InformeAlcoholes.jsx';
 //Modulo Produccion
 import SeguimientoTKJornaleros from '../SeguimientoTanquesJornaleros/SeguimientoTKJornaleros.jsx';
-import TanquesList from '../TanquesList.jsx'
+import TanquesList from '../TanquesInfo/TanquesList.jsx'
 import ChatBox from '../IA/ChatBox';
 import BitacoraDeSupervisores from '../Bitacora/BitacoraComponentesProduccion'
 import PanelHoras from '../PanelHoras';
@@ -66,10 +66,12 @@ import ColumnasDBManagement from "../Modulo_Logistica/Desarrollador_DB/ColumnasD
 import ColaboradoresAmbiocom from "../Modulo_Logistica/ColaboradoresDB/ColaboradoresDespachosDB.jsx"
 import ClientesDespachoPageDB from "../Modulo_Logistica/ClientesDB/ClientesAmbiocomDB.jsx"
 import ProgramacionDespachoDiariaPage from '../Modulo_Logistica/PlaneacionDiaria/planeaciondespachos.jsx';
+//MODULO LOGISTICA ReadOnly
+import TablaDespachosLogisticaReadOnly from "../Modulo_Logistica/ReadOnlyComponents/Despachos_List_ReadOnly/TablaDespachosLogisticaReadOnly.jsx"
+import ProgramacionDespachoReadOnlyPage from "../Modulo_Logistica/ReadOnlyComponents/Despachos_List_ReadOnly/ProgramacionDespachoReadOnlyPage.jsx"
+import TablaRecepcionVehiculosReadOnly from '../Modulo_Logistica/ReadOnlyComponents/Recepciones_List/TablaRecepcionesLogisticaReadOnly.jsx';
 //MODULO LABORATORIO
-import TablaDespachosLogisticaReadOnly from "../Modulo_Laboratorio/Modulo_Despachos/Despachos_List/TablaDespachosLogisticaReadOnly.jsx"
-import ProgramacionDespachoReadOnlyPage from "../Modulo_Laboratorio/Modulo_Despachos/Despachos_List/ProgramacionDespachoReadOnlyPage.jsx"
-import TablaRecepcionVehiculosReadOnly from '../Modulo_Laboratorio/Modulo_Despachos/Recepciones_List/TablaRecepcionesLogisticaReadOnly.jsx';
+
 //empelados
 import EmpleadosManager from '../EmpleadosManager/EmpleadosAmbiocomList.jsx';
 //Medidores
@@ -410,6 +412,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             });
         }
     };
+
 
     const renderContent = () => {
 

@@ -465,10 +465,12 @@ const AnalisisDespachosBIPage = () => {
     try {
       const resProg = await axios.get(`${API_PROGRAMACION}/rango`, {
         params: { from, to },
+        withCredentials: true,
       });
 
       const resDesp = await axios.get(`${API_DESPACHOS}/rango`, {
         params: { from, to },
+          withCredentials: true,
       });
 
       setProgramaciones(Array.isArray(resProg.data) ? resProg.data : []);
@@ -2616,7 +2618,7 @@ const AnalisisDespachosBIPage = () => {
                             >
                               <Chip
                                 size="medium"
-                                sx={{cursor: "pointer",}}
+                                sx={{ cursor: "pointer", }}
                                 onDoubleClick={(e) => { e.stopPropagation(); handleDblClickEstado(r); }}
                                 // label={r.estadoProgramacion}
                                 icon={
@@ -2711,14 +2713,6 @@ const AnalisisDespachosBIPage = () => {
             </Table>
           </TableContainer>
 
-          <Box mt={2}>
-            <Typography variant="body2" color="text.secondary">
-              Nota: este módulo asume que <b>programación</b> se consulta en{" "}
-              <code>{`${API_PROGRAMACION}/rango?from&to`}</code> y{" "}
-              <b>despachos</b> en{" "}
-              <code>{`${API_DESPACHOS}/rango?from&to`}</code>.
-            </Typography>
-          </Box>
         </CardContent>
       </Card>
 

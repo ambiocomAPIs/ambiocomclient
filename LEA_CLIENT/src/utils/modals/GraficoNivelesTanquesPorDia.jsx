@@ -52,29 +52,6 @@ const GraficoNivelesTanquesPorDiaModal = ({ modalIsOpen, onClose, NivelesTanques
     }
   }, [NivelesTanquesContext]);
 
-  // useEffect(() => {
-  //   if (modalIsOpen) {
-  //     setIsLoading(true);
-  //     axios
-  //       .get('https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros')
-  //       .then((response) => {
-  //         if (Array.isArray(response.data)) {
-  //           setRegistros(response.data);
-  //         } else {
-  //           console.error('Respuesta inesperada del backend');
-  //         }
-  //         setIsLoading(false);
-  //       })
-  //       .catch((err) => {
-  //         console.error('Error al cargar los datos:', err);
-  //         setError('No se pudieron cargar los datos');
-  //         setIsLoading(false);
-  //       });
-  //   } else {
-  //     setRegistros([]);
-  //   }
-  // }, [modalIsOpen, selectedMonth]);
-
   const getDaysInMonth = (year, month) => {
     const date = new Date(year, month - 1, 1);
     const days = [];
