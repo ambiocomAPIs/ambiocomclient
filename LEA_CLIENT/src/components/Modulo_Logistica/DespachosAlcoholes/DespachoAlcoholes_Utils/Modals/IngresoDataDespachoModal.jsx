@@ -407,6 +407,11 @@ const IngresoDataDespachoModal = ({
   const canRoleEditColumn = (col) => {
     // no auth / sin rol => bloquea todo
     if (!isAuth || !roleNorm) return false;
+    // CONTROL ESPECÍFICO PARA FLETE FACTURADO
+    if (col.key === FLETE_FACTURADO_KEY) {
+      const ROLES_FLETE_FACTURADO = ["developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica2"];
+      return ROLES_FLETE_FACTURADO.includes(roleNorm);
+    }
     // calculadas => siempre bloqueadas
     if (columnasBloqueadas.includes(col.key)) return false;
     // rolesDigitables viene de tu colección de columnas
@@ -476,7 +481,7 @@ const IngresoDataDespachoModal = ({
       const [conductoresRaw, clientesRaw, transportadorasRaw] =
         await Promise.all([
           axios.get("https://ambiocomserver.onrender.com/api/conductores"),
-          axios.get(CLIENTES_URL,{withCredentials:true}),
+          axios.get(CLIENTES_URL, { withCredentials: true }),
           axios.get(TRANSPORTADORAS_URL),
         ]);
 
