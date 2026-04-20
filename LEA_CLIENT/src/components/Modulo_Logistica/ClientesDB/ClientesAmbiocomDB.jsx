@@ -28,6 +28,8 @@ import {
   MenuItem,
 } from "@mui/material";
 
+import Autocomplete from "@mui/material/Autocomplete";
+
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SaveIcon from "@mui/icons-material/Save";
@@ -256,6 +258,24 @@ const ClientesDespachoPageDB = () => {
     }
   };
 
+  const comercialesOptions = useMemo(() => {
+    const unicos = [];
+    const vistos = new Set();
+
+    clientes.forEach((c) => {
+      const valorOriginal = String(c.comercial ?? "").trim();
+      if (!valorOriginal) return;
+
+      const clave = valorOriginal.toLowerCase();
+      if (!vistos.has(clave)) {
+        vistos.add(clave);
+        unicos.push(valorOriginal);
+      }
+    });
+
+    return unicos.sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+  }, [clientes]);
+
   // ===============================
   // FILTRO BUSCADOR (rápido)
   // ===============================
@@ -344,12 +364,39 @@ const ClientesDespachoPageDB = () => {
           {/* FORMULARIO */}
           <Grid container spacing={2}>
             <Grid item xs={12} md={3}>
-              <TextField
+              <Autocomplete
                 fullWidth
-                label="Comercial"
-                name="comercial"
-                value={form.comercial}
-                onChange={handleChange}
+                freeSolo
+                options={comercialesOptions}
+                value={form.comercial || ""}
+                onChange={(_, newValue) => {
+                  setForm((prev) => ({
+                    ...prev,
+                    comercial: typeof newValue === "string" ? newValue : "",
+                  }));
+                }}
+                onInputChange={(_, newInputValue, reason) => {
+                  if (reason === "input") {
+                    setForm((prev) => ({
+                      ...prev,
+                      comercial: newInputValue,
+                    }));
+                  }
+
+                  if (reason === "clear") {
+                    setForm((prev) => ({
+                      ...prev,
+                      comercial: "",
+                    }));
+                  }
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Comercial"
+                    name="comercial"
+                  />
+                )}
               />
             </Grid>
 
