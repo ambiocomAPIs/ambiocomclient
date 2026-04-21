@@ -20,12 +20,14 @@ import Autocomplete from "@mui/material/Autocomplete";
 import { useTanques } from "../../../../../utils/Context/TanquesContext";
 
 const DENSIDAD_KEY = "densidad";
+const DENSIDAD_PUERTO = "densidad_puerto";
 const DENSIDAD_MIN = 0.7;
 const DENSIDAD_MAX = 0.9;
 
 const TIME_KEYS = ["hora_ingreso", "hora_salida"];
 const REQUIRED_FIELDS = ["fecha", "responsable", "observaciones"];
 const ANALISTA_KEYS = ["analista_laboratorio"];
+const INTEGER_ONLY_KEYS = ["cantidad_recibida", "bascula_ambiocom", "peso_enviado_neto_puerto",];
 // const "flete_facturado" = "flete_facturado";
 
 //LABELS para estado de la recepcion
@@ -283,6 +285,16 @@ const IngresoDataRecepcionModal = ({
                 );
             }
 
+            const pesoProveedor = Number(nuevasLecturas?.peso_enviado_neto_puerto ?? 0);
+            const densidadPuerto = Number(nuevasLecturas?.densidad_puerto ?? 0);
+
+            if (["peso_enviado_neto_puerto", "densidad_puerto"].includes(key)) {
+                nuevasLecturas["volumen_gravimetrico_proveedor"] =
+                    densidadPuerto > 0
+                        ? Number((pesoProveedor / densidadPuerto).toFixed(3))
+                        : "";
+            }
+
             const volumenRecibidoAmbiocom = Number(nuevasLecturas?.Volumen_Recepcionado ?? 0);
             const VolumenRecibidoDelCliente = Number(nuevasLecturas?.cantidad_recibida ?? 0);
 
@@ -317,6 +329,11 @@ const IngresoDataRecepcionModal = ({
             errors[DENSIDAD_KEY] = densidadError;
         }
 
+        const densidadPuertoError = validateDensidad(form?.lecturas?.["densidad_puerto"]);
+        if (densidadPuertoError) {
+            errors["densidad_puerto"] = densidadPuertoError;
+        }
+
         if (Object.keys(errors).length > 0) {
             setFieldErrors(errors);
             return;
@@ -341,6 +358,10 @@ const IngresoDataRecepcionModal = ({
         if (key.includes("tiempo")) return { xs: 12, sm: 6, md: 4, lg: 3 };
 
         return { xs: 12, sm: 6, md: 4, lg: 3 };
+    };
+
+    const sanitizeIntegerInput = (value) => {
+        return String(value ?? "").replace(/\D/g, "");
     };
 
     const responsableSeleccionado =
@@ -673,6 +694,7 @@ const IngresoDataRecepcionModal = ({
                             const esAnalista = ANALISTA_KEYS.includes(c.key);
                             const size = getGridSize(c);
                             const esVolumenRecepcionado = c.key === "Volumen_Recepcionado";
+                            const esVolumenGravimetricoProveedor = c.key === "volumen_gravimetrico_proveedor";
                             const esDiferenciaPeso = c.key === "diferencia_peso";
                             const esDiferenciaVolumen = c.key === "diferencia_volumen";
                             const esErrorPeso = c.key === "error_en_peso";
@@ -903,12 +925,17 @@ const IngresoDataRecepcionModal = ({
                                         label={`${c.nombre}${esObligatorio ? " *" : ""}${c.unidad ? ` (${c.unidad})` : ""}`}
                                         type={esNumero ? "number" : "text"}
                                         value={form?.lecturas?.[c.key] ?? ""}
-                                        disabled={esTiempoCalculado || esVolumenRecepcionado || esDiferenciaPeso || esDiferenciaVolumen || esErrorPeso || esErrorVolumen}
+                                        disabled={esTiempoCalculado || esVolumenRecepcionado || esVolumenGravimetricoProveedor || esDiferenciaPeso || esDiferenciaVolumen || esErrorPeso || esErrorVolumen}
                                         onChange={(e) => {
-                                            const value = e.target.value;
+                                            let value = e.target.value;
+                                            value = value.replace(",", "."); // cambiar , por punto
+                                            if (INTEGER_ONLY_KEYS.includes(c.key)) {
+                                                value = sanitizeIntegerInput(value);
+                                            }
+
                                             handleChangeLectura(c.key, value);
 
-                                            if (c.key === DENSIDAD_KEY) {
+                                            if (c.key === DENSIDAD_KEY || c.key === DENSIDAD_PUERTO) {
                                                 const msg = validateDensidad(value);
 
                                                 setFieldErrors((prev) => {
@@ -925,7 +952,7 @@ const IngresoDataRecepcionModal = ({
                                         }
                                         sx={{
                                             "& .MuiInputBase-root": {
-                                                backgroundColor: esTiempoCalculado || esVolumenRecepcionado || esDiferenciaPeso || esDiferenciaVolumen || esErrorPeso || esErrorVolumen
+                                                backgroundColor: esTiempoCalculado || esVolumenRecepcionado || esVolumenGravimetricoProveedor || esDiferenciaPeso || esDiferenciaVolumen || esErrorPeso || esErrorVolumen
                                                     ? "rgba(0,0,0,0.03)"
                                                     : "#fff",
                                             },

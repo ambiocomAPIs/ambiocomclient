@@ -333,7 +333,7 @@ export default function TablaDespachosLogistica() {
 
   const obtenerMediciones = async () => {
     try {
-      const { data } = await axios.get(API_DESPACHOS,{withCredentials:true});
+      const { data } = await axios.get(API_DESPACHOS, { withCredentials: true });
       setMediciones(data);
     } catch (e) {
       console.error(e);
@@ -357,13 +357,13 @@ export default function TablaDespachosLogistica() {
   };
 
   const guardarMedicion = async () => {
-    await axios.post(API_DESPACHOS, form, {withCredentials:true});
+    await axios.post(API_DESPACHOS, form, { withCredentials: true });
     setOpenFila(false);
     obtenerMediciones();
   };
 
   const actualizarMedicion = async () => {
-    await axios.put(`${API_DESPACHOS}/${editId}`, form, {withCredentials:true});
+    await axios.put(`${API_DESPACHOS}/${editId}`, form, { withCredentials: true });
     setOpenEditar(false);
     obtenerMediciones();
   };
@@ -394,7 +394,7 @@ export default function TablaDespachosLogistica() {
     if (!result.isConfirmed) return;
 
     try {
-      await axios.delete(`${API_DESPACHOS}/${id}`,{withCredentials:true});
+      await axios.delete(`${API_DESPACHOS}/${id}`, { withCredentials: true });
       await obtenerMediciones();
       Swal.fire("Eliminado", "El registro fue eliminado correctamente", "success");
     } catch (error) {
@@ -1661,6 +1661,13 @@ export default function TablaDespachosLogistica() {
                     .map((c) => {
                       const valor = row.lecturas?.[c.key] ?? "";
 
+                      const isEmptyGeneral =
+                        valor === null ||
+                        valor === undefined ||
+                        valor === "" ||
+                        (typeof valor === "string" &&
+                          ["", "null", "undefined", "nan"].includes(valor.trim().toLowerCase()));
+
                       const validacion = getCellValidation({
                         key: c.key,
                         Densidad: row.lecturas?.densidadlab_alcohol_tanque,
@@ -1673,9 +1680,6 @@ export default function TablaDespachosLogistica() {
                         pesoBasculaCliente: row.lecturas?.kilos_peso_neto,
                       });
 
-                      // console.log("key:", c.key);
-                      // console.log("row.lecturas?.volumen_facturado:", row.lecturas?.volumen_despachar);
-
                       return (
                         <TableCell
                           key={c.key}
@@ -1683,14 +1687,22 @@ export default function TablaDespachosLogistica() {
                           sx={{
                             whiteSpace: "nowrap",
                             width: "1%",
+                            background: isEmptyGeneral
+                              ? "repeating-linear-gradient(45deg, rgba(255, 0, 76, 0.2), rgba(255,0,255,0.2) 10px, rgba(255,255,0,0.2) 10px, rgba(255,255,0,0.2) 20px)"
+                              : undefined,
+                            boxShadow: isEmptyGeneral ? "inset 0 0 0 1px #d32f2f" : undefined,
                             ...(validacion?.sx || {}),
                           }}
                         >
                           <Tooltip
-                            title={validacion?.mensaje || ""}
+                            title={
+                              isEmptyGeneral
+                                ? "Dato faltante"
+                                : validacion?.mensaje || ""
+                            }
                             placement="top"
                             arrow
-                            disableHoverListener={!validacion?.mensaje}
+                            disableHoverListener={!(isEmptyGeneral || validacion?.mensaje)}
                             componentsProps={{
                               tooltip: {
                                 sx: {
