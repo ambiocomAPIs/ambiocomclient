@@ -315,7 +315,7 @@ const GraficoNivelesTanquesPorDiaPageComponente = ({ NivelesTanquesContext }) =>
         sx={{
           height: '96%',
           borderRadius: 4,
-          mt:-1,
+          mt: -1,
           p: 2,
           display: 'flex',
           flexDirection: 'column',
@@ -488,7 +488,11 @@ const GraficoNivelesTanquesPorDiaPageComponente = ({ NivelesTanquesContext }) =>
                           mode: 'nearest',
                           intersect: false,
                         },
+
                         plugins: {
+                          datalabels: {
+                            display: false,
+                          },
                           legend: {
                             position: 'top',
                             labels: {

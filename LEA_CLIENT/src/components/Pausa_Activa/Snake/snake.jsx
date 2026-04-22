@@ -10,10 +10,15 @@ import {
   Typography,
 } from "@mui/material";
 
-const GRID_SIZE = 20;
+const GRID_COLUMNS = 28;
+const GRID_ROWS = 16;
+
 const INITIAL_SPEED = 140;
 const SPEED_STEP = 6;
 const MAX_SPEED = 65;
+
+// Ajusta esto al alto real de tu header fijo
+const HEADER_HEIGHT = 72;
 
 const directionMap = {
   UP: { x: 0, y: -1 },
@@ -32,8 +37,8 @@ const oppositeDirections = {
 const getRandomCell = (snake) => {
   while (true) {
     const cell = {
-      x: Math.floor(Math.random() * GRID_SIZE),
-      y: Math.floor(Math.random() * GRID_SIZE),
+      x: Math.floor(Math.random() * GRID_COLUMNS),
+      y: Math.floor(Math.random() * GRID_ROWS),
     };
 
     const overlapsSnake = snake.some(
@@ -45,10 +50,13 @@ const getRandomCell = (snake) => {
 };
 
 const createInitialState = () => {
+  const centerX = Math.floor(GRID_COLUMNS / 2);
+  const centerY = Math.floor(GRID_ROWS / 2);
+
   const snake = [
-    { x: 8, y: 10 },
-    { x: 7, y: 10 },
-    { x: 6, y: 10 },
+    { x: centerX, y: centerY },
+    { x: centerX - 1, y: centerY },
+    { x: centerX - 2, y: centerY },
   ];
 
   return {
@@ -71,6 +79,7 @@ export default function SnakeGame() {
   const setDirection = useCallback((nextDirection) => {
     setGame((prev) => {
       if (oppositeDirections[prev.direction] === nextDirection) return prev;
+
       return {
         ...prev,
         pendingDirection: nextDirection,
@@ -86,6 +95,7 @@ export default function SnakeGame() {
   const togglePause = useCallback(() => {
     setGame((prev) => {
       if (prev.isGameOver) return prev;
+
       return {
         ...prev,
         isRunning: !prev.isRunning,
@@ -133,9 +143,9 @@ export default function SnakeGame() {
 
         const hitsWall =
           nextHead.x < 0 ||
-          nextHead.x >= GRID_SIZE ||
+          nextHead.x >= GRID_COLUMNS ||
           nextHead.y < 0 ||
-          nextHead.y >= GRID_SIZE;
+          nextHead.y >= GRID_ROWS;
 
         const hitsSelf = prev.snake.some(
           (segment) => segment.x === nextHead.x && segment.y === nextHead.y
@@ -196,9 +206,9 @@ export default function SnakeGame() {
       : "";
     const foodKey = `${game.food.x}-${game.food.y}`;
 
-    return Array.from({ length: GRID_SIZE * GRID_SIZE }, (_, index) => {
-      const x = index % GRID_SIZE;
-      const y = Math.floor(index / GRID_SIZE);
+    return Array.from({ length: GRID_COLUMNS * GRID_ROWS }, (_, index) => {
+      const x = index % GRID_COLUMNS;
+      const y = Math.floor(index / GRID_COLUMNS);
       const key = `${x}-${y}`;
 
       return {
@@ -232,25 +242,34 @@ export default function SnakeGame() {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: 8 }}>
+    <Container
+      maxWidth={false}
+      sx={{
+        px: { xs: 1, sm: 2, md: 3 },
+        pt: `calc(${HEADER_HEIGHT}px + 12px)`,
+        pb: 2,
+      }}
+    >
       <Box
         sx={{
-          minHeight: "95vh",
+          minHeight: `calc(100vh - ${HEADER_HEIGHT}px - 24px)`,
           borderRadius: 6,
-          p: { xs: 2, md: 4 },
+          p: { xs: 1.5, md: 2.5 },
           background:
             "radial-gradient(circle at top, rgba(0,255,170,0.18), transparent 30%), linear-gradient(135deg, #07111f 0%, #0f172a 55%, #111827 100%)",
         }}
       >
         <Stack
-          direction={{ xs: "column", lg: "row" }}
-          spacing={3}
+          direction={{ xs: "column", xl: "row" }}
+          spacing={2}
           alignItems="stretch"
+          sx={{ minHeight: "100%" }}
         >
           <Card
             elevation={0}
             sx={{
-              width: { xs: "100%", lg: 340 },
+              width: { xs: "100%", xl: 340 },
+              flexShrink: 0,
               borderRadius: 5,
               color: "white",
               background: "rgba(255,255,255,0.06)",
@@ -258,8 +277,8 @@ export default function SnakeGame() {
               backdropFilter: "blur(12px)",
             }}
           >
-            <CardContent sx={{ p: 3 }}>
-              <Stack spacing={3}>
+            <CardContent sx={{ p: 3, height: "100%" }}>
+              <Stack spacing={3} sx={{ height: "100%" }}>
                 <Box>
                   <Typography
                     variant="overline"
@@ -377,6 +396,9 @@ export default function SnakeGame() {
             elevation={0}
             sx={{
               flex: 1,
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
               borderRadius: 5,
               color: "white",
               position: "relative",
@@ -387,7 +409,14 @@ export default function SnakeGame() {
               backdropFilter: "blur(12px)",
             }}
           >
-            <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+            <CardContent
+              sx={{
+                p: { xs: 2, md: 3 },
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
               <Stack
                 direction="row"
                 justifyContent="space-between"
@@ -425,9 +454,10 @@ export default function SnakeGame() {
                 sx={{
                   position: "relative",
                   width: "100%",
-                  maxWidth: 720,
+                  maxWidth: 1200,
                   mx: "auto",
-                  aspectRatio: "1 / 1",
+                  aspectRatio: `${GRID_COLUMNS} / ${GRID_ROWS}`,
+                  minHeight: { xs: 240, md: 360, xl: 420 },
                   borderRadius: 5,
                   p: 1.2,
                   bgcolor: "rgba(0,0,0,0.28)",
@@ -438,7 +468,8 @@ export default function SnakeGame() {
                 <Box
                   sx={{
                     display: "grid",
-                    gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
+                    gridTemplateColumns: `repeat(${GRID_COLUMNS}, 1fr)`,
+                    gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)`,
                     gap: "3px",
                     width: "100%",
                     height: "100%",
@@ -448,9 +479,10 @@ export default function SnakeGame() {
                   }}
                 >
                   {cells.map((cell, index) => {
-                    let background = index % 2 === 0
-                      ? "rgba(15,23,42,0.9)"
-                      : "rgba(30,41,59,0.75)";
+                    let background =
+                      index % 2 === 0
+                        ? "rgba(15,23,42,0.9)"
+                        : "rgba(30,41,59,0.75)";
 
                     let boxShadow = "none";
 
@@ -562,7 +594,7 @@ export default function SnakeGame() {
 
               <Box
                 sx={{
-                  mt: 3,
+                  mt: 2,
                   display: "grid",
                   gridTemplateColumns: {
                     xs: "repeat(2, 1fr)",

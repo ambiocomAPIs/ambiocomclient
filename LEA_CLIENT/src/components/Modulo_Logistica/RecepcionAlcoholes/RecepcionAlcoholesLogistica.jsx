@@ -348,15 +348,15 @@ export default function TablaIngresoRecepcionesLogistica() {
   };
 
   const guardarMedicion = async () => {
-    await axios.post(API_RECEPCIONES, form,{
-        withCredentials: true,
-      });
+    await axios.post(API_RECEPCIONES, form, {
+      withCredentials: true,
+    });
     setOpenFila(false);
     obtenerMediciones();
   };
 
   const actualizarMedicion = async () => {
-    await axios.put(`${API_RECEPCIONES}/${editId}`, form, {withCredentials:true});
+    await axios.put(`${API_RECEPCIONES}/${editId}`, form, { withCredentials: true });
     setOpenEditar(false);
     obtenerMediciones();
   };
@@ -370,7 +370,7 @@ export default function TablaIngresoRecepcionesLogistica() {
       cancelButtonText: "Cancelar",
     }).then((result) => {
       if (!result.isConfirmed) return;
-      axios.delete(`${API_RECEPCIONES}/${id}`,{withCredentials:true});
+      axios.delete(`${API_RECEPCIONES}/${id}`, { withCredentials: true });
       obtenerMediciones();
     });
   };
@@ -1301,55 +1301,90 @@ export default function TablaIngresoRecepcionesLogistica() {
               },
             }}
           >
-            {medicionesFiltradas.map((row) => (
-              <TableRow key={row._id}>
-                <TableCell
-                  align="center"
+            {medicionesFiltradas.map((row) => {
+              const columnasActivas = columnas.filter((c) =>
+                columnasVisibles.includes(c.key)
+              );
+
+              let faltantes = 0;
+
+              columnasActivas.forEach((c) => {
+                const valor = row.lecturas?.[c.key];
+
+                const isEmptyGeneral =
+                  valor === null ||
+                  valor === undefined ||
+                  valor === "" ||
+                  (typeof valor === "string" &&
+                    ["", "null", "undefined", "nan"].includes(
+                      valor.trim().toLowerCase()
+                    ));
+
+                if (isEmptyGeneral) faltantes++;
+              });
+
+              const porcentajeFaltante =
+                columnasActivas.length > 0 ? faltantes / columnasActivas.length : 0;
+
+              let colorFila = "inherit";
+
+              if (porcentajeFaltante > 0) {
+                if (porcentajeFaltante >= 0.8) colorFila = "rgba(255, 0, 0, 0.75)";
+                else if (porcentajeFaltante >= 0.5) colorFila = "rgba(255, 0, 0, 0.45)";
+                else if (porcentajeFaltante >= 0.3) colorFila = "rgba(255, 0, 0, 0.25)";
+                else colorFila = "rgba(238, 173, 173, 0.71)";
+              }
+
+              return (
+                <TableRow
+                  key={row._id}
                   sx={{
-                    position: "sticky",
-                    left: 0,
-                    zIndex: 4,
-                    backgroundColor: "#dad9d9e3",
-                    borderRight: "1px solid rgba(224,224,224,1)",
-                    minWidth: 110,
+                    backgroundColor:
+                      porcentajeFaltante > 0 ? colorFila : "inherit",
+                    transition: "background-color 0.3s ease",
                   }}
                 >
-                  <Box
+                  <TableCell
+                    align="center"
                     sx={{
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      gap: 0.5,
-                      width: "100%",
+                      position: "sticky",
+                      left: 0,
+                      zIndex: 4,
+                      backgroundColor:
+                        porcentajeFaltante > 0 ? colorFila : "#dad9d9e3",
+                      borderRight: "1px solid rgba(224,224,224,1)",
+                      minWidth: 110,
                     }}
                   >
-                    <IconButton
-                      onClick={() => {
-                        setEditId(row._id);
-                        setForm({
-                          ...row,
-                          fecha: row.fecha || "",
-                        });
-                        setOpenEditar(true);
-                      }}
-                    >
-                      <EditIcon />
-                    </IconButton>
-
-                    <IconButton
-                      color="error"
-                      onClick={() => eliminarMedicion(row._id)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
                     <Box
                       sx={{
                         display: "flex",
-                        alignItems: "center",
                         justifyContent: "center",
-                        gap: 1,
+                        alignItems: "center",
+                        gap: 0.5,
+                        width: "100%",
                       }}
                     >
+                      <IconButton
+                        onClick={() => {
+                          setEditId(row._id);
+                          setForm({
+                            ...row,
+                            fecha: row.fecha || "",
+                          });
+                          setOpenEditar(true);
+                        }}
+                      >
+                        <EditIcon />
+                      </IconButton>
+
+                      <IconButton
+                        color="error"
+                        onClick={() => eliminarMedicion(row._id)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+
                       <Box
                         onDoubleClick={() => abrirModalEstado(row)}
                         sx={{
@@ -1359,40 +1394,72 @@ export default function TablaIngresoRecepcionesLogistica() {
                           cursor: "pointer",
                         }}
                       >
-                        {/* <Tooltip placement="top" title="Doble click para ver observación"> */}
                         <Box sx={{ display: "flex", alignItems: "center" }}>
-                          {renderEstadoVehiculoIcon(row.lecturas?.estado_vehiculo)}
+                          {renderEstadoVehiculoIcon(
+                            row.lecturas?.estado_vehiculo
+                          )}
                         </Box>
-                        {/* </Tooltip> */}
                       </Box>
                     </Box>
-                  </Box>
-                </TableCell>
+                  </TableCell>
 
-                <TableCell align="center">{row.fecha}</TableCell>
+                  <TableCell align="center">{row.fecha}</TableCell>
 
-                {columnas
-                  .filter((c) => columnasVisibles.includes(c.key))
-                  .map((c) => {
-                    const valor = row.lecturas?.[c.key];
+                  {columnas
+                    .filter((c) => columnasVisibles.includes(c.key))
+                    .map((c) => {
+                      const valor = row.lecturas?.[c.key];
 
-                    return (
-                      <TableCell
-                        key={c.key}
-                        align="center"
-                        sx={{ whiteSpace: "nowrap", width: "1%" }}
-                      >
-                        {c.key === "flete_facturado"
-                          ? renderIconoFleteFacturado(valor)
-                          : valor ?? ""}
-                      </TableCell>
-                    );
-                  })}
+                      const isEmptyGeneral =
+                        valor === null ||
+                        valor === undefined ||
+                        valor === "" ||
+                        (typeof valor === "string" &&
+                          ["", "null", "undefined", "nan"].includes(
+                            valor.trim().toLowerCase()
+                          ));
 
-                <TableCell align="center">{row.observaciones}</TableCell>
-                <TableCell align="center">{row.responsable}</TableCell>
-              </TableRow>
-            ))}
+                      return (
+                        <TableCell
+                          key={c.key}
+                          align="center"
+                          sx={{
+                            whiteSpace: "nowrap",
+                            width: "1%",
+                            background: isEmptyGeneral
+                              ? "repeating-linear-gradient(45deg, rgba(255, 0, 76, 0.2), rgba(255,0,255,0.2) 10px, rgba(255,255,0,0.2) 10px, rgba(255,255,0,0.2) 20px)"
+                              : undefined,
+                            boxShadow: isEmptyGeneral ? "inset 0 0 0 1px #d32f2f" : undefined,
+                          }}
+                        >
+                          <Tooltip
+                            title={isEmptyGeneral ? "Dato faltante" : ""}
+                            placement="top"
+                            arrow
+                            disableHoverListener={!isEmptyGeneral}
+                          >
+                            <Box
+                              sx={{
+                                display: "flex",
+                                justifyContent: "center",
+                                alignItems: "center",
+                                width: "100%",
+                              }}
+                            >
+                              {c.key === "flete_facturado"
+                                ? renderIconoFleteFacturado(valor)
+                                : valor ?? ""}
+                            </Box>
+                          </Tooltip>
+                        </TableCell>
+                      );
+                    })}
+
+                  <TableCell align="center">{row.observaciones}</TableCell>
+                  <TableCell align="center">{row.responsable}</TableCell>
+                </TableRow>
+              );
+            })}
 
             {/* ================= ACUMULADO ================= */}
             <TableRow>

@@ -116,7 +116,6 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
     setProduccionActual(value.produccionActual);
     setProduccionAnterior(value.produccionAnterior);
 
-    // 👇 ajustar a arrays si es string
     setMesDeCierre(
       Array.isArray(value.mesDeCierre) ? value.mesDeCierre : [value.mesDeCierre]
     );
@@ -136,7 +135,6 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
     setConsumoTorreComp(value.consumoTorreComp);
   };
 
-  // Calcular sumatorias meses seleccionados (Actual)
   useEffect(() => {
     if (!mesDeCierre || mesDeCierre.length === 0) return;
     let cal = 0,

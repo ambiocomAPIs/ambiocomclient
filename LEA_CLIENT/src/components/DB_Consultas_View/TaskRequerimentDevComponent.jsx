@@ -170,6 +170,8 @@ export default function ListaAcordeon() {
                 return "info";
             case "Seguridad":
                 return "secondary";
+            case "Reportado":
+                return "error";
             default:
                 return "success";
         }
@@ -242,9 +244,6 @@ export default function ListaAcordeon() {
                 p: 2,
             }}
         >
-            {/* <Typography variant="h5" sx={{ mb: 2, fontWeight: 700 }}>
-                Gestor de tareas y hallazgos
-            </Typography> */}
 
             <Typography variant="body2" sx={{ mt: 5, mb: 1, color: "text.secondary" }}>
                 Mostrando por defecto registros del mes actual y del mes anterior
@@ -282,6 +281,7 @@ export default function ListaAcordeon() {
                         <MenuItem value="Hallazgo">Hallazgo</MenuItem>
                         <MenuItem value="Requerimiento">Requerimiento</MenuItem>
                         <MenuItem value="Seguridad">Seguridad</MenuItem>
+                        <MenuItem value="Reportado">Reportado</MenuItem>
                     </Select>
                 </FormControl>
 
@@ -374,6 +374,7 @@ export default function ListaAcordeon() {
                         <MenuItem value="Hallazgo">Hallazgo</MenuItem>
                         <MenuItem value="Requerimiento">Requerimiento</MenuItem>
                         <MenuItem value="Seguridad">Seguridad</MenuItem>
+                        <MenuItem value="Reportado">Reportado</MenuItem>
                     </Select>
                 </FormControl>
 
@@ -496,7 +497,7 @@ export default function ListaAcordeon() {
                                         label={item.completado ? "Hecho" : "Pendiente"}
                                         color={item.completado ? "success" : "default"}
                                         size="small"
-                                        // sx={{ ml: "auto" }}
+                                    // sx={{ ml: "auto" }}
                                     />
                                 </Box>
                             </AccordionSummary>
