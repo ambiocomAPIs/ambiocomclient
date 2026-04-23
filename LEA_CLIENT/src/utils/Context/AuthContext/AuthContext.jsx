@@ -1,4 +1,3 @@
-// src/auth/AuthContext.jsx
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
@@ -21,6 +20,7 @@ export function AuthProvider({ children }) {
       if (err?.response?.status === 401) {
         console.log("Token Expirado");
         setUser(null);
+        localStorage.removeItem("tutorial_modulo_despachos_visto");
 
         const inLogin = window.location.pathname === "/";
 
@@ -37,13 +37,15 @@ export function AuthProvider({ children }) {
           }).then(async () => {
             try {
               await axios.post("https://ambiocomserver.onrender.com/api/auth/logout", {}, { withCredentials: true });
+              localStorage.removeItem("tutorial_modulo_despachos_visto");
               window.location.replace("/")
-            } catch (e) {}
+            } catch (e) { }
             // window.location.replace("/");
           });
         }
       } else {
         setUser(null);
+        localStorage.removeItem("tutorial_modulo_despachos_visto");
       }
     } finally {
       setLoadingAuth(false);
@@ -61,6 +63,7 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     await axios.post("https://ambiocomserver.onrender.com/api/auth/logout", {}, { withCredentials: true });
     setUser(null);
+    localStorage.removeItem("tutorial_modulo_despachos_visto");
     sessionExpiredShownRef.current = false;
   };
 

@@ -33,6 +33,8 @@ import {
   List,
   ListItemButton,
   ListSubheader,
+  Popover,
+  Backdrop,
 } from "@mui/material";
 
 import UploadFileIcon from "@mui/icons-material/UploadFile";
@@ -76,6 +78,8 @@ import DownloadIcon from "@mui/icons-material/Download";
 import ExcelDownloadButton from "../utils_Logistica/ExcelDownloadButton";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import ChartBuilder from "../utils_Logistica/ChartBuilder";
+import TutorialModalList from "../../../utils/modals/Modals_Tutorial/ModalTutorialList.jsx";
+
 
 import ObservacionEstadoModal from "../utils_Logistica/Logistica_Modals/ObservacionEstadoModal.jsx";
 import IngresoDataDespachoModal from "./DespachoAlcoholes_Utils/Modals/IngresoDataDespachoModal.jsx";
@@ -94,6 +98,7 @@ export default function TablaDespachosLogistica() {
   //refs del componente
   const tablaRef = useRef(null);
   const excelUploadRef = useRef(null);
+  const youtubeBtnRef = useRef(null);
   //use del contexto
   const { rol, loadingAuth } = useAuth();
   /* ================= STATE ================= */
@@ -120,6 +125,8 @@ export default function TablaDespachosLogistica() {
   const [modoInteligenteScroll, setModoInteligenteScroll] = useState(false);
   const [openCharts, setOpenCharts] = useState(false);
   const [openChecklist, setOpenChecklist] = useState(false);  // modal checlist de programacion diaria
+  const [openTutorial, setOpenTutorial] = useState(false);
+  const [openIntroTutorial, setOpenIntroTutorial] = useState(false);
 
   const [form, setForm] = useState({
     fecha: "",
@@ -151,6 +158,18 @@ export default function TablaDespachosLogistica() {
   useEffect(() => {
     obtenerColumnas();
     obtenerMediciones();
+  }, []);
+
+  useEffect(() => {
+    const yaVisto = localStorage.getItem("tutorial_modulo_despachos_visto");
+
+    if (!yaVisto) {
+      const timer = setTimeout(() => {
+        setOpenIntroTutorial(true);
+      }, 700);
+
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   useEffect(() => {
@@ -314,6 +333,11 @@ export default function TablaDespachosLogistica() {
 
   const handleCloseContextMenu = () => {
     setContextMenu(null);
+  };
+
+  const handleCerrarIntroTutorial = () => {
+    localStorage.setItem("tutorial_modulo_despachos_visto", "true");
+    setOpenIntroTutorial(false);
   };
 
   /* ================= API ================= */
@@ -1212,8 +1236,9 @@ export default function TablaDespachosLogistica() {
             <Divider orientation="vertical" flexItem />
             <Tooltip title={"Ver Demo"}>
               <IconButton
+                ref={youtubeBtnRef}
                 size="small"
-                onClick={() => setModoInteligenteScroll((p) => !p)}
+                onClick={() => setOpenTutorial(true)}
                 sx={{
                   width: 34,
                   height: 34,
@@ -1226,9 +1251,21 @@ export default function TablaDespachosLogistica() {
                       ? "#c6ccd3"
                       : "#eef1f5",
                   },
+                  position: "relative",
+                  zIndex: openIntroTutorial ? 1401 : "auto",
+                  boxShadow: openIntroTutorial
+                    ? "0 0 0 4px rgba(255,255,255,0.95), 0 0 0 10px rgba(255,0,0,0.25)"
+                    : "none",
+                  transform: openIntroTutorial ? "scale(1.12)" : "scale(1)",
+                  transition: "all 0.25s ease",
                 }}
               >
-                <YouTubeIcon sx={{ color: "red", fontSize: "1.9rem" }} />
+                <YouTubeIcon
+                  sx={{
+                    color: openTutorial ? "#b71c1c" : "red",
+                    fontSize: "1.9rem",
+                  }}
+                />
               </IconButton>
             </Tooltip>
             {/* BUSQUEDA AVANZADA RENDER DE INPUT AQUI */}
@@ -2015,6 +2052,86 @@ export default function TablaDespachosLogistica() {
         url="https://ambiocomserver.onrender.com/api/despacho-alcoholes/carga-masiva"
         onSuccess={obtenerMediciones}
       />
+      {/* Modal tutoriales modulos*/}
+      <TutorialModalList
+        open={openTutorial}
+        onClose={() => setOpenTutorial(false)}
+        modulo="despachos"
+      />
+
+      {/* oscurecer componente y resaltar boton */}
+      <Backdrop
+        open={openIntroTutorial}
+        sx={{
+          zIndex: 1300,
+          backgroundColor: "rgba(0,0,0,0.72)",
+        }}
+        onClick={handleCerrarIntroTutorial}
+      />
+
+      <Popover
+        open={openIntroTutorial}
+        anchorEl={youtubeBtnRef.current}
+        slotProps={{
+          root: {
+            sx: {
+              zIndex: 2000,
+            },
+          },
+        }}
+        onClose={handleCerrarIntroTutorial}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "center",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "left",
+        }}
+        PaperProps={{
+          sx: {
+            zIndex: 1402,
+            mt: 1.5,
+            maxWidth: 320,
+            p: 2,
+            borderRadius: 2,
+            boxShadow: "0 8px 30px rgba(0,0,0,0.25)",
+            border: "1px solid rgba(0,0,0,0.08)",
+            position: "relative",
+            overflow: "visible",
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              top: -10,
+              left: 24,
+              width: 0,
+              height: 0,
+              borderLeft: "10px solid transparent",
+              borderRight: "10px solid transparent",
+              borderBottom: "10px solid white",
+            },
+          },
+        }}
+        disableRestoreFocus
+      >
+        <Typography sx={{ fontWeight: 700, fontSize: "0.98rem", mb: 1 }}>
+          Tutorial del módulo
+        </Typography>
+
+        <Typography sx={{ fontSize: "0.9rem", color: "#374151", mb: 2 }}>
+          Aquí puedes visualizar cómo funciona la API y ver tutoriales operativos del módulo.
+        </Typography>
+
+        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={handleCerrarIntroTutorial}
+          >
+            OK
+          </Button>
+        </Box>
+      </Popover>
     </Box>
   );
 }
