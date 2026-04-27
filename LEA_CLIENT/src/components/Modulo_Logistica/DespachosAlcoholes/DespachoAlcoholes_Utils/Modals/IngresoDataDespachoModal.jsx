@@ -409,7 +409,7 @@ const IngresoDataDespachoModal = ({
     if (!isAuth || !roleNorm) return false;
     // CONTROL ESPECÍFICO PARA FLETE FACTURADO
     if (col.key === FLETE_FACTURADO_KEY) {
-      const ROLES_FLETE_FACTURADO = ["developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica2"];
+      const ROLES_FLETE_FACTURADO = ["developer", "liderlogistica", "auxiliarlogistica2", "torrecontrollogistica"];
       return ROLES_FLETE_FACTURADO.includes(roleNorm);
     }
     // calculadas => siempre bloqueadas
