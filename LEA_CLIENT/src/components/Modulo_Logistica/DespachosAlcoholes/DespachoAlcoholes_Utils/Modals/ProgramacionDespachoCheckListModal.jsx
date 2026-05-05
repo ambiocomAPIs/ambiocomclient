@@ -77,7 +77,7 @@ const ChecklistDespachosModal = ({ open, onClose }) => {
         params: {
           from: customRange.from,
           to: customRange.to,
-        },  
+        },
         withCredentials: true,
       });
 
@@ -123,7 +123,10 @@ const ChecklistDespachosModal = ({ open, onClose }) => {
     try {
       await axios.patch(`${API_URL}/${row._id}/cumplido`, {
         cumplido: checked,
-      });
+      },
+        {
+          withCredentials: true,
+        });
 
       setSnackbar({
         open: true,
