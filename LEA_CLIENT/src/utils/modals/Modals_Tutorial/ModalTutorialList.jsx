@@ -26,7 +26,6 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 
-// Ajusta esta ruta según tu proyecto
 import { useAuth } from "../../Context/AuthContext/AuthContext.jsx";
 
 const API_TUTORIALES = "https://ambiocomserver.onrender.com/api/tutoriallist/tutorial";

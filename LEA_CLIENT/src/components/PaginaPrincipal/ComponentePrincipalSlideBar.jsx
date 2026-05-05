@@ -71,7 +71,8 @@ import TablaDespachosLogisticaReadOnly from "../Modulo_Logistica/ReadOnlyCompone
 import ProgramacionDespachoReadOnlyPage from "../Modulo_Logistica/ReadOnlyComponents/Despachos_List_ReadOnly/ProgramacionDespachoReadOnlyPage.jsx"
 import TablaRecepcionVehiculosReadOnly from '../Modulo_Logistica/ReadOnlyComponents/Recepciones_List/TablaRecepcionesLogisticaReadOnly.jsx';
 //MODULO LABORATORIO
-
+//MODULO AGUAS
+import TableFormatoRegeneracionResinas from '../PTAP/TableFormatoRegeneracionResinas.jsx'
 //empelados
 import EmpleadosManager from '../EmpleadosManager/EmpleadosAmbiocomList.jsx';
 //Medidores
@@ -95,7 +96,8 @@ import {
     tanqueIcon, factoryIcon, despachoIcon, despachoSalidaIcon, despachoRecepcionIcon, laboratoryIcon, inventoryIcon, rulerIcon, oilTankIcon, coalInventoryIcon,
     ptapIcon, GraphIcon, BarGraphIcon, BarGraphComparativeIcon, robotAssistanceIcon, bitacoraIcon, StopWatchIcon, PdfIcon, DatabaseAdministratorIcon, workerIcon,
     TankGraphIcon, CounterIcon, MoneyGraphIcon, EnergyIcon, EnergyDataIcon, InOutMaderaCarbonIcon, InformeIcon, TankWithLiquidIcon, ReportIcon,
-    Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon, PersonalIcons, plannerIconDate, logsIcon, VesselTkIcon, VesselTkIconChemical, ListToDoIcon, ArcadeIcon
+    Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon, PersonalIcons, plannerIconDate, logsIcon, VesselTkIcon, VesselTkIconChemical, ListToDoIcon, ArcadeIcon,
+    WaterTankIcon, VentasIcon
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -230,19 +232,19 @@ export default function EmpresarialPrincipalSchedulerApp() {
                         {
                             text: 'Planeacion Diaria',
                             subKey: 'planeaciondiariadespachosreadonly',
-                            roles: ["admin", "developer", "gerente", "supervisor"],
+                            roles:  ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
                             icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} />
                         },
                         {
                             text: 'Despachos',
                             subKey: 'despachoalcoholeslogisticareadonly',
-                            roles: ["admin", "developer", "gerente", "supervisor"],
+                            roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
                             icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
                         },
                         {
                             text: 'Recepción',
                             subKey: 'recepcionalcoholeslogisticareadonly',
-                            roles: ["admin", "developer", "supervisor"],
+                            roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
                             icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
                         }
                     ]
@@ -266,6 +268,72 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'Transportadora', subKey: 'transportadorasdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={TruckCompany} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Ingresos_M-C', subKey: 'moduloingresosmaderacarbon', roles: ["admin", "developer"], icon: <img src={InOutMaderaCarbonIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'DEV_Functions', subKey: 'gestiondecolumnasdesarrollador', roles: ["developer"], icon: <img src={DevIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+            ],
+        },
+        {
+            text: 'Laboratorio',
+            key: 'laboratorio',
+            roles: ["admin", "developer", "laboratorio"],
+            icon: <img src={laboratoryIcon} alt="laboratorio" style={{ width: 25, height: 25 }} />,
+            subItems: [
+                {
+                    text: 'Despachos y Recepciones',
+                    key: 'laboratorio-logistica',
+                    icon: <img src={despachoIcon} alt="Logistica" style={{ width: 25, height: 25 }} />,
+                    subItems: [
+                        {
+                            text: 'Planeacion Diaria',
+                            subKey: 'planeaciondiariadespachosreadonly',
+                            roles:  ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
+                            icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} />
+                        },
+                        {
+                            text: 'Despachos',
+                            subKey: 'despachoalcoholeslogisticareadonly',
+                            roles:  ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
+                            icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
+                        },
+                        {
+                            text: 'Recepción',
+                            subKey: 'recepcionalcoholeslogisticareadonly',
+                            roles:  ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
+                            icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
+                        }
+                    ]
+                }
+            ],
+        },
+        {
+            text: 'Comerciales',
+            key: 'comerciales',
+            roles: ["admin", "developer", "comercial", "gerente"],
+            icon: <img src={VentasIcon} alt="comerciales" style={{ width: 25, height: 25 }} />,
+            subItems: [
+                {
+                    text: 'Despachos y Recepciones',
+                    key: 'comerciales-logistica',
+                    icon: <img src={despachoIcon} alt="Logistica" style={{ width: 25, height: 25 }} />,
+                    subItems: [
+                        {
+                            text: 'Planeacion Diaria',
+                            subKey: 'planeaciondiariadespachosreadonly',
+                            roles:  ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
+                            icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} />
+                        },
+                        {
+                            text: 'Despachos',
+                            subKey: 'despachoalcoholeslogisticareadonly',
+                            roles:  ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
+                            icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
+                        },
+                        {
+                            text: 'Recepción',
+                            subKey: 'recepcionalcoholeslogisticareadonly',
+                            roles:  ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
+                            icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
+                        }
+                    ]
+                }
             ],
         },
         {
@@ -295,41 +363,11 @@ export default function EmpresarialPrincipalSchedulerApp() {
 
             ],
         },
-        {
-            text: 'Laboratorio',
-            roles: ["admin", "developer", "laboratorio"], icon: <img src={laboratoryIcon} alt="laboratorio" style={{ width: 25, height: 25 }} />, key: 'modulomantenimiento',
-            subItems: [
-                // { text: 'Planeacion Diaria', subKey: 'planeaciondiariadespachosreadonly', roles: ["admin", "laboratorio", "developer", "gerente"], icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} /> },
-                {
-                    text: 'Despachos y Recepciones',
-                    key: 'produccion-logistica',
-                    icon: <img src={despachoIcon} alt="Logistica" style={{ width: 25, height: 25 }} />,
-                    subItems: [
-                        {
-                            text: 'Planeacion Diaria',
-                            subKey: 'planeaciondiariadespachosreadonly',
-                            roles: ["admin", "laboratorio", "developer", "gerente"],
-                            icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} />
-                        },
-                        {
-                            text: 'Despachos',
-                            subKey: 'despachoalcoholeslogisticareadonly',
-                            roles: ["admin", "laboratorio", "developer", "gerente"],
-                            icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
-                        },
-                        {
-                            text: 'Recepción',
-                            subKey: 'recepcionalcoholeslogisticareadonly',
-                            roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"],
-                            icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
-                        }
-                    ]
-                }
-            ],
-        },
+
         {
             text: 'Planta de Aguas', roles: ["admin", "developer"], icon: <img src={ptapIcon} alt="plantadeaguas" style={{ width: 25, height: 25 }} />, key: 'plantadeaguas', subItems: [
                 { text: 'Medidores', subKey: 'registrodemedidores', /* roles: ["admin","ptap"], */ icon: <img src={CounterIcon} alt="Medidores" style={{ width: 25, height: 25 }} /> },
+                { text: 'Regeneracion', subKey: 'regeneracionresinas', /* roles: ["admin","ptap"], */ icon: <img src={WaterTankIcon} alt="regeneracionresinas" style={{ width: 35, height: 37 }} /> },
             ],
         },
         {
@@ -337,7 +375,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'Energia CON', subKey: 'energiaambiocom', /* roles: ["admin","energia"], */ icon: <img src={EnergyDataIcon} alt="Energia" style={{ width: 25, height: 25 }} /> },
             ],
         },
-        { text: 'Registro Trabajadores', roles: ["admin", "developer"], icon: <img src={workerIcon} alt="empleadosambiocom" style={{ width: 25, height: 25 }} />, key: 'empleadosambiocom' },
+        // { text: 'Registro Trabajadores', roles: ["admin", "developer"], icon: <img src={workerIcon} alt="empleadosambiocom" style={{ width: 25, height: 25 }} />, key: 'empleadosambiocom' },
         {
             text: 'Administrator DEV', roles: ["admin", "developer"], icon: <img src={DevIcon} alt="basededatos" style={{ width: 25, height: 25 }} />, key: 'basededatoscomponent',
             subItems: [
@@ -348,7 +386,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
         },
 
         {
-            text: 'Pausa Activa', roles: ["admin", "developer"], icon: <img src={ArcadeIcon} alt="pausaactiva" style={{ width: 25, height: 25 }} />, key: 'pausaactiva', 
+            text: 'Pausa Activa', roles: ["admin", "developer"], icon: <img src={ArcadeIcon} alt="pausaactiva" style={{ width: 25, height: 25 }} />, key: 'pausaactiva',
             subItems: [
                 { text: 'Trivia SM26', roles: ["admin", "developer"], icon: <img src={ArcadeIcon} alt="trivia" style={{ width: 25, height: 25 }} />, key: 'trivia' },
                 { text: 'SNAKE', roles: ["admin", "developer"], icon: <img src={ArcadeIcon} alt="snake" style={{ width: 25, height: 25 }} />, key: 'snake' },
@@ -463,6 +501,8 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'despachoalcoholeslogisticareadonly': return <TablaDespachosLogisticaReadOnly />;
             case 'planeaciondiariadespachosreadonly': return <ProgramacionDespachoReadOnlyPage />;
             case 'recepcionalcoholeslogisticareadonly': return <TablaRecepcionVehiculosReadOnly />;
+            //PTAP
+            case 'regeneracionresinas': return <TableFormatoRegeneracionResinas />;
             //Modulo Desarrollador
             case 'taskandrequeriments': return <TaskRequerimentDev />;
             case 'basededatos': return <ConsultasHttpDb />;

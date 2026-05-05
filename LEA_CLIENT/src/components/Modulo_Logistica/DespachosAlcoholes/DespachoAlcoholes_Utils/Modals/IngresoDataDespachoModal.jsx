@@ -70,13 +70,12 @@ const RESPONSABLE_RECIBO_ROLES = [
   "developer",
   "liderlogistica",
   "auxiliarlogistica2",
-]; // permisos para editar responsable
+]; 
 const LLEGADA_DESTINO_KEY = "llegada_destino";
-const LLEGADA_DESTINO_OPTIONS = ["PUNTUAL", "RETRASADO"]; // select para modal de registro de datos
-const REQUIRED_FIELDS = ["fecha", "responsable", "observaciones"]; // campos obligatorios minimos para crear un registro
+const LLEGADA_DESTINO_OPTIONS = ["PUNTUAL", "RETRASADO"];
+const REQUIRED_FIELDS = ["fecha", "responsable", "observaciones"];
 const FLETE_FACTURADO_KEY = "flete_facturado";
 
-// celdas que seran tipo select formato 8:00 15:30
 const loadCacheMeta = (key) => {
   try {
     const raw = localStorage.getItem(`${CACHE_PREFIX}${key}`);
