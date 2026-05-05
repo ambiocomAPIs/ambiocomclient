@@ -369,9 +369,9 @@ export default function EmpresarialPrincipalSchedulerApp() {
         },
 
         {
-            text: 'Planta de Aguas', roles: ["admin", "developer"], icon: <img src={ptapIcon} alt="plantadeaguas" style={{ width: 25, height: 25 }} />, key: 'plantadeaguas', subItems: [
-                { text: 'Medidores', subKey: 'registrodemedidores', /* roles: ["admin","ptap"], */ icon: <img src={CounterIcon} alt="Medidores" style={{ width: 25, height: 25 }} /> },
-                { text: 'Regeneracion', subKey: 'regeneracionresinas', /* roles: ["admin","ptap"], */ icon: <img src={WaterTankIcon} alt="regeneracionresinas" style={{ width: 35, height: 37 }} /> },
+            text: 'Planta de Aguas', roles: ["admin", "developer", "supervisor", "operarioaguas"], icon: <img src={ptapIcon} alt="plantadeaguas" style={{ width: 25, height: 25 }} />, key: 'plantadeaguas', subItems: [
+                { text: 'Medidores', subKey: 'registrodemedidores', roles: ["admin", "developer", "supervisor", "operarioaguas"], icon: <img src={CounterIcon} alt="Medidores" style={{ width: 25, height: 25 }} /> },
+                { text: 'Regeneracion', subKey: 'regeneracionresinas', roles: ["admin", "developer", "supervisor", "operarioaguas"], icon: <img src={WaterTankIcon} alt="regeneracionresinas" style={{ width: 35, height: 37 }} /> },
             ],
         },
         {
