@@ -77,6 +77,8 @@ import TableFormatoRegeneracionResinas from '../PTAP/TableFormatoRegeneracionRes
 import EmpleadosManager from '../EmpleadosManager/EmpleadosAmbiocomList.jsx';
 //Medidores
 import TablaMedicionesAgua from '../PTAP/TablaMedicionesAgua.jsx';
+//modulo comerciales
+import ConductoresReadOnlyPage from '../Modulo_Comerciales/ConductoresReadOnlyPage.jsx';
 //energia
 import TablaMedicionesDiariaEnergia from '../Energia_CON/TablaMedicionesEnergia.jsx'
 //Modulo DEV
@@ -232,7 +234,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                         {
                             text: 'Planeacion Diaria',
                             subKey: 'planeaciondiariadespachosreadonly',
-                            roles:  ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
+                            roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
                             icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} />
                         },
                         {
@@ -284,19 +286,19 @@ export default function EmpresarialPrincipalSchedulerApp() {
                         {
                             text: 'Planeacion Diaria',
                             subKey: 'planeaciondiariadespachosreadonly',
-                            roles:  ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
+                            roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
                             icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} />
                         },
                         {
                             text: 'Despachos',
                             subKey: 'despachoalcoholeslogisticareadonly',
-                            roles:  ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
+                            roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
                             icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
                         },
                         {
                             text: 'Recepción',
                             subKey: 'recepcionalcoholeslogisticareadonly',
-                            roles:  ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
+                            roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
                             icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
                         }
                     ]
@@ -306,7 +308,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
         {
             text: 'Comerciales',
             key: 'comerciales',
-            roles: ["admin", "developer", "comercial", "gerente"],
+            roles: ["admin", "developer", "comercial", "gerente", "gerente"],
             icon: <img src={VentasIcon} alt="comerciales" style={{ width: 25, height: 25 }} />,
             subItems: [
                 {
@@ -317,29 +319,31 @@ export default function EmpresarialPrincipalSchedulerApp() {
                         {
                             text: 'Planeacion Diaria',
                             subKey: 'planeaciondiariadespachosreadonly',
-                            roles:  ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
+                            roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
                             icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} />
                         },
                         {
                             text: 'Despachos',
                             subKey: 'despachoalcoholeslogisticareadonly',
-                            roles:  ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
+                            roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
                             icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
                         },
                         {
                             text: 'Recepción',
                             subKey: 'recepcionalcoholeslogisticareadonly',
-                            roles:  ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
+                            roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
                             icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
                         }
                     ]
-                }
+                },
+                { text: 'Grafica Niveles Tanques Jornaleros', subKey: 'nivelestanquesjornalerospaginavistacomercial', roles: ["admin", "supervisor", "gerente", "developer", "comercial"], icon: <img src={TankGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
+                { text: 'Conductores Info', subKey: 'conductoresreadonly', roles: ["admin", "supervisor", "gerente", "developer", "comercial"], icon: <img src={Driver} alt="conductoresreadonly" style={{ width: 25, height: 25 }} /> },
             ],
         },
         {
             text: 'Tanques',
             key: 'tanquesniveles',
-            roles: ["admin", "developer"],
+            roles: ["admin", "developer", "comercial"],
             icon: <img src={tanqueIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
             subItems: [
                 { text: 'CRUD Tanques', subKey: 'tanquescrud', /* roles: ["admin"], */ icon: <img src={VesselTkIconChemical} alt="tanquescrud" style={{ width: 25, height: 25 }} /> },
@@ -357,7 +361,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             roles: ["admin", "developer"],
             icon: <img src={GraphIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
             subItems: [
-                { text: 'Grafica Niveles Tanques Jornaleros', subKey: 'nivelestanquesjornalerospagina', /* roles: ["admin","supervisor"], */ icon: <img src={TankGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
+                { text: 'Grafica Niveles Tanques Jornaleros', subKey: 'nivelestanquesjornalerospagina', roles: ["admin", "supervisor", "gerente", "developer", "comercial"], icon: <img src={TankGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
                 { text: 'Isumos Kg/L [OH]', subKey: 'comparativomensualinsumosquimicoscomponent', /* roles: ["admin","supervisor"], */ icon: <img src={BarGraphComparativeIcon} alt="comparativomensualinsumosquimicoscomponent" style={{ width: 25, height: 25 }} /> },
                 { text: 'Isumos $/L [OH]', subKey: 'Comparativomensualinsumosquimicoscostolitro', /* roles: ["admin","supervisor"], */ icon: <img src={MoneyGraphIcon} alt="Comparativomensualinsumosquimicoscostolitro" style={{ width: 25, height: 25 }} /> },
 
@@ -503,6 +507,10 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'recepcionalcoholeslogisticareadonly': return <TablaRecepcionVehiculosReadOnly />;
             //PTAP
             case 'regeneracionresinas': return <TableFormatoRegeneracionResinas />;
+            // Comerciale
+            case 'nivelestanquesjornalerospaginavistacomercial': return <GraficoNivelesTanquesPorDiaPageComponente NivelesTanquesContext={nivelesTanques} />;
+            case 'conductoresreadonly': return <ConductoresReadOnlyPage />;
+
             //Modulo Desarrollador
             case 'taskandrequeriments': return <TaskRequerimentDev />;
             case 'basededatos': return <ConsultasHttpDb />;

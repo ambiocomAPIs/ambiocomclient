@@ -303,6 +303,7 @@ const GraficoNivelesTanquesPorDiaPageComponente = ({ NivelesTanquesContext }) =>
       sx={{
         width: '100%',
         height: 'calc(99vh - 35px)',
+        mt:7,
         px: 2,
         py: 1.5,
         boxSizing: 'border-box',

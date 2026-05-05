@@ -120,6 +120,26 @@ export default function GraficaConsumoDiarioPTAP({
     });
   }, [medicionesFiltradas, columnas]);
 
+  const maximos = useMemo(() => {
+    const result = {};
+
+    columnas.forEach((c) => {
+      let max = 0;
+      let fecha = null;
+
+      data.forEach((row) => {
+        if (row[c.key] > max) {
+          max = row[c.key];
+          fecha = row.fecha;
+        }
+      });
+
+      result[c.key] = { max, fecha };
+    });
+
+    return result;
+  }, [data, columnas]);
+
   /* ================= ACUMULADOS ================= */
   const acumulados = useMemo(() => {
     const totales = {};
@@ -228,12 +248,33 @@ export default function GraficaConsumoDiarioPTAP({
     pdf.save("consumo_diario.pdf");
   };
 
+  const renderDot = (props, key) => {
+    const { cx, cy, payload } = props;
+
+    const maxInfo = maximos[key];
+
+    if (payload.fecha === maxInfo.fecha && payload[key] === maxInfo.max) {
+      return (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={6}
+          fill="#C62828"
+          stroke="#FFF"
+          strokeWidth={2}
+        />
+      );
+    }
+
+    return null;
+  };
+
   /* ================= RENDER ================= */
   return (
     <Box
       ref={exportRef}
       sx={{
-        width: "90vw",
+        width: "95vw",
         height: "90vh",
         overflow: "hidden",
         display: "flex",
@@ -397,8 +438,9 @@ export default function GraficaConsumoDiarioPTAP({
                   name={c.nombre}
                   stroke={COLORS[index % COLORS.length]}
                   strokeWidth={2}
-                  dot={false}
-                />
+                  dot={(props) => renderDot(props, c.key)}
+                  activeDot={{ r: 6 }}
+                   />
               ) : null
             )}
           </LineChart>

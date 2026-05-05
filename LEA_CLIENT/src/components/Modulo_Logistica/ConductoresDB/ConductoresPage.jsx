@@ -25,7 +25,8 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem 
+  MenuItem,
+  Tooltip,
 } from "@mui/material";
 
 import EditIcon from "@mui/icons-material/Edit";
@@ -34,6 +35,8 @@ import SaveIcon from "@mui/icons-material/Save";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import PhoneIcon from "@mui/icons-material/Phone";
 
 const API_URL = "https://ambiocomserver.onrender.com/api/conductores";
 
@@ -62,6 +65,7 @@ const ConductoresPage = () => {
     placaVehiculo: "",
     empresa: "",
     carroseria: "",
+    contacto: "",
   });
 
   const getApiErrorMessage = (error) => {
@@ -95,7 +99,9 @@ const ConductoresPage = () => {
 
   const fetchTransportadoras = async () => {
     try {
-      const res = await axios.get("https://ambiocomserver.onrender.com/api/transportadoraslogistica");
+      const res = await axios.get(
+        "https://ambiocomserver.onrender.com/api/transportadoraslogistica"
+      );
       setTransportadoras(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       console.error("Error al obtener transportadoras:", error);
@@ -121,6 +127,7 @@ const ConductoresPage = () => {
       placaVehiculo: "",
       empresa: "",
       carroseria: "",
+      contacto: "",
     });
     setEditingId(null);
   };
@@ -136,6 +143,7 @@ const ConductoresPage = () => {
         placaVehiculo: (form.placaVehiculo ?? "").trim(),
         empresa: (form.empresa ?? "").trim(),
         carroseria: (form.carroseria ?? "").trim(),
+        contacto: (form.contacto ?? "").trim(),
       };
 
       // Validación mínima (como en los otros módulos)
@@ -193,6 +201,7 @@ const ConductoresPage = () => {
       placaVehiculo: conductor.placaVehiculo,
       empresa: conductor.empresa,
       carroseria: conductor.carroseria,
+      contacto: conductor.contacto || "",
     });
     setEditingId(conductor._id);
 
@@ -266,13 +275,15 @@ const ConductoresPage = () => {
       const placa = String(c.placaVehiculo ?? "").toLowerCase();
       const empresa = String(c.empresa ?? "").toLowerCase();
       const carroseria = String(c.carroseria ?? "").toLowerCase();
+      const contacto = String(c.contacto ?? "").toLowerCase();
 
       return (
         nombres.includes(q) ||
         apellidos.includes(q) ||
         placa.includes(q) ||
         empresa.includes(q) ||
-        carroseria.includes(q)
+        carroseria.includes(q) ||
+        contacto.includes(q)
       );
     });
   }, [conductores, debouncedSearch]);
@@ -340,10 +351,11 @@ const ConductoresPage = () => {
           <Divider sx={{ mb: 3, mt: 3 }} />
 
           {/* FORMULARIO */}
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
+          <Grid container spacing={1.2} alignItems="center">
+            <Grid item xs={12} sm={6} md={2}>
               <TextField
                 fullWidth
+                size="small"
                 label="Nombres"
                 name="nombres"
                 value={form.nombres}
@@ -351,9 +363,10 @@ const ConductoresPage = () => {
               />
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} sm={6} md={2}>
               <TextField
                 fullWidth
+                size="small"
                 label="Apellidos"
                 name="apellidos"
                 value={form.apellidos}
@@ -361,18 +374,19 @@ const ConductoresPage = () => {
               />
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} sm={6} md={1.5}>
               <TextField
                 fullWidth
-                label="Placa Vehículo"
+                size="small"
+                label="Placa"
                 name="placaVehiculo"
                 value={form.placaVehiculo}
                 onChange={handleChange}
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
+            <Grid item xs={12} sm={6} md={2.5}>
+              <FormControl fullWidth size="small">
                 <InputLabel id="empresa-label">Transportadora</InputLabel>
                 <Select
                   labelId="empresa-label"
@@ -382,7 +396,7 @@ const ConductoresPage = () => {
                   onChange={handleChange}
                 >
                   <MenuItem value="">
-                    <em>Seleccione una transportadora</em>
+                    <em>Seleccione</em>
                   </MenuItem>
 
                   {transportadoras.map((t) => (
@@ -394,9 +408,10 @@ const ConductoresPage = () => {
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} sm={6} md={2}>
               <TextField
                 fullWidth
+                size="small"
                 label="Carrocería"
                 name="carroseria"
                 value={form.carroseria}
@@ -404,13 +419,35 @@ const ConductoresPage = () => {
               />
             </Grid>
 
+            <Grid item xs={12} sm={6} md={2}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Contacto"
+                name="contacto"
+                value={form.contacto}
+                onChange={handleChange}
+                placeholder="3001234567"
+              />
+            </Grid>
+
             <Grid item xs={12}>
-              <Box display="flex" gap={2} flexWrap="wrap">
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 1,
+                  mt: 0.5,
+                  justifyContent: "flex-start",
+                  alignItems: "center",
+                }}
+              >
                 <Button
                   variant="contained"
+                  size="small"
                   color={editingId ? "warning" : "primary"}
                   startIcon={editingId ? <SaveIcon /> : <AddIcon />}
                   onClick={handleSubmit}
+                  sx={{ textTransform: "none", fontWeight: 700 }}
                 >
                   {editingId ? "Actualizar" : "Registrar"}
                 </Button>
@@ -418,6 +455,7 @@ const ConductoresPage = () => {
                 {editingId && (
                   <Button
                     variant="outlined"
+                    size="small"
                     onClick={async () => {
                       resetForm();
                       await Swal.fire({
@@ -427,6 +465,7 @@ const ConductoresPage = () => {
                         showConfirmButton: false,
                       });
                     }}
+                    sx={{ textTransform: "none" }}
                   >
                     Cancelar
                   </Button>
@@ -434,6 +473,7 @@ const ConductoresPage = () => {
 
                 <Button
                   variant="text"
+                  size="small"
                   onClick={async () => {
                     await fetchConductores();
                     Swal.fire({
@@ -444,6 +484,7 @@ const ConductoresPage = () => {
                       showConfirmButton: false,
                     });
                   }}
+                  sx={{ textTransform: "none" }}
                 >
                   Refrescar
                 </Button>
@@ -454,28 +495,45 @@ const ConductoresPage = () => {
           <Divider sx={{ my: 4 }} />
 
           {/* TABLA */}
-          <TableContainer component={Paper} elevation={3}>
-            <Table>
-              <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
+          <TableContainer
+            component={Paper}
+            elevation={0}
+            sx={{
+              maxHeight: "68vh",
+              borderRadius: 3,
+              border: "1px solid #DDE3EA",
+              overflow: "auto",
+              boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
+            }}
+          >
+            <Table stickyHeader size="small">
+              <TableHead>
                 <TableRow>
-                  <TableCell>
-                    <strong>Nombres</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Apellidos</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Placa</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Empresa</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Carrocería</strong>
-                  </TableCell>
-                  <TableCell align="center">
-                    <strong>Acciones</strong>
-                  </TableCell>
+                  {[
+                    "Conductor",
+                    "Placa",
+                    "Transportadora",
+                    "Carrocería",
+                    "Contacto",
+                    "Acciones",
+                  ].map((head) => (
+                    <TableCell
+                      key={head}
+                      align={head === "Acciones" ? "center" : "left"}
+                      sx={{
+                        backgroundColor: "#1A237E",
+                        color: "#FFFFFF",
+                        fontWeight: 800,
+                        textTransform: "uppercase",
+                        fontSize: "0.75rem",
+                        letterSpacing: "0.4px",
+                        py: 1.2,
+                        borderBottom: "none",
+                      }}
+                    >
+                      {head}
+                    </TableCell>
+                  ))}
                 </TableRow>
               </TableHead>
 
@@ -483,7 +541,7 @@ const ConductoresPage = () => {
                 {conductoresFiltrados.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
-                      <Typography fontWeight="bold">No hay resultados</Typography>
+                      <Typography fontWeight={800}>No hay resultados</Typography>
                       <Typography variant="body2" color="text.secondary">
                         {debouncedSearch
                           ? "Prueba cambiando el texto de búsqueda."
@@ -492,30 +550,121 @@ const ConductoresPage = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  conductoresFiltrados.map((c) => (
-                    <TableRow key={c._id}>
-                      <TableCell>{c.nombres}</TableCell>
-                      <TableCell>{c.apellidos}</TableCell>
-                      <TableCell>{c.placaVehiculo}</TableCell>
-                      <TableCell>{c.empresa}</TableCell>
-                      <TableCell>{c.carroseria}</TableCell>
-                      <TableCell align="center">
-                        <IconButton
-                          color="primary"
-                          onClick={() => handleEdit(c)}
-                        >
-                          <EditIcon />
-                        </IconButton>
+                  conductoresFiltrados.map((c) => {
+                    const nombreCompleto = `${c.nombres || ""} ${
+                      c.apellidos || ""
+                    }`.trim();
 
-                        <IconButton
-                          color="error"
-                          onClick={() => handleDelete(c._id)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                    return (
+                      <TableRow
+                        key={c._id}
+                        hover
+                        sx={{
+                          "&:nth-of-type(even)": {
+                            backgroundColor: "#F8FAFC",
+                          },
+                          "&:hover": {
+                            backgroundColor: "#EAF4FF",
+                          },
+                          "& td": {
+                            py: 1.1,
+                            borderBottom: "1px solid #ECEFF1",
+                          },
+                        }}
+                      >
+                        <TableCell>
+                          <Box>
+                            <Typography sx={{ fontWeight: 800 }}>
+                              {nombreCompleto || "-"}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              ID: {c._id?.slice(-6) || "-"}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+
+                        <TableCell>
+                          <Chip
+                            size="small"
+                            label={c.placaVehiculo || "-"}
+                            color="primary"
+                            variant="outlined"
+                            sx={{ fontWeight: 800 }}
+                          />
+                        </TableCell>
+
+                        <TableCell>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <LocalShippingIcon
+                              fontSize="small"
+                              sx={{ color: "#607D8B" }}
+                            />
+                            <Typography variant="body2">
+                              {c.empresa || "-"}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+
+                        <TableCell>{c.carroseria || "-"}</TableCell>
+
+                        <TableCell>
+                          {c.contacto ? (
+                            <Tooltip title="Contacto registrado">
+                              <Chip
+                                size="small"
+                                icon={<PhoneIcon />}
+                                label={c.contacto}
+                                color="success"
+                                variant="outlined"
+                                sx={{ fontWeight: 700 }}
+                              />
+                            </Tooltip>
+                          ) : (
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                            >
+                              Sin contacto
+                            </Typography>
+                          )}
+                        </TableCell>
+
+                        <TableCell align="center">
+                          <IconButton
+                            size="small"
+                            sx={{
+                              color: "#1565C0",
+                              backgroundColor: "#E3F2FD",
+                              mr: 0.8,
+                              "&:hover": {
+                                backgroundColor: "#BBDEFB",
+                              },
+                            }}
+                            onClick={() => handleEdit(c)}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+
+                          <IconButton
+                            size="small"
+                            sx={{
+                              color: "#C62828",
+                              backgroundColor: "#FFEBEE",
+                              "&:hover": {
+                                backgroundColor: "#FFCDD2",
+                              },
+                            }}
+                            onClick={() => handleDelete(c._id)}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

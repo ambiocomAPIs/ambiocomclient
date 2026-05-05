@@ -21,6 +21,9 @@ import {
   TextField,
   Button,
   IconButton,
+  Chip,
+  Stack,
+  Divider,
 } from "@mui/material";
 
 import EditIcon from "@mui/icons-material/Edit";
@@ -31,6 +34,7 @@ import ShowChartIcon from "@mui/icons-material/ShowChart";
 import WaterDropIcon from "@mui/icons-material/WaterDrop";
 
 import GraficaConsumoDiarioPTAP from "./utils_PTAP/GraficaConsumoDiario";
+import ModalIngresoMedicionContadoresAgua from "./utils_PTAP/Modal_PTAP/ModalIngresoMedicionContadoresAgua";
 
 import { styled } from "@mui/material/styles";
 import Tooltip, { tooltipClasses } from "@mui/material/Tooltip";
@@ -151,66 +155,34 @@ export default function TablaMedicionesAgua() {
     );
 
     if (fechaDesde) {
-      data = data.filter(
-        (m) => parseFecha(m.fecha) >= new Date(fechaDesde)
-      );
+      data = data.filter((m) => parseFecha(m.fecha) >= new Date(fechaDesde));
     }
+
     if (fechaHasta) {
-      data = data.filter(
-        (m) => parseFecha(m.fecha) <= new Date(fechaHasta)
-      );
+      data = data.filter((m) => parseFecha(m.fecha) <= new Date(fechaHasta));
     }
+
     return data;
   }, [mediciones, fechaDesde, fechaHasta]);
 
   /* ================= RENDER CONSUMO ================= */
-
-  // const renderConsumo = (row, index, key) => {
-  //   const actual = row.lecturas[key] ?? 0;
-  //   const anterior =
-  //     index === 0 ? 0 : medicionesOrdenadas[index - 1].lecturas[key] ?? 0;
-
-  //   const diff = actual - anterior;
-
-  //   const color =
-  //     diff === 0 ? "#757575" : diff > CONSUMO_ALTO ? "#C62828" : "#2E7D32";
-
-  //   if (!verConsumo) {
-  //     if (index === 0) return actual;
-  //     return (
-  //       <TooltipConsumo title={`Consumo diario: ${diff} m³`}>
-  //         <span>{actual}</span>
-  //       </TooltipConsumo>
-  //     );
-  //   }
-
-  //   return (
-  //     <Typography sx={{ fontWeight: 600, color }}>
-  //       {index === 0 ? 0 : diff}
-  //     </Typography>
-  //   );
-  // };
-
   const renderConsumo = (row, index, key) => {
     const actual = row.lecturas[key] ?? 0;
-  
-    // 🔴 si es el último día, no hay consumo
+
     if (index === medicionesOrdenadas.length - 1) {
       return verConsumo ? (
-        <Typography sx={{ fontWeight: 600, color: "#757575" }}>0</Typography>
+        <Typography sx={{ fontWeight: 700, color: "#757575" }}>0</Typography>
       ) : (
         actual
       );
     }
-  
-    const siguiente =
-      medicionesOrdenadas[index + 1].lecturas[key] ?? 0;
-  
+
+    const siguiente = medicionesOrdenadas[index + 1].lecturas[key] ?? 0;
     const diff = siguiente - actual;
-  
+
     const color =
       diff === 0 ? "#757575" : diff > CONSUMO_ALTO ? "#C62828" : "#2E7D32";
-  
+
     if (!verConsumo) {
       return (
         <TooltipConsumo title={`Consumo diario: ${diff} m³`}>
@@ -218,82 +190,222 @@ export default function TablaMedicionesAgua() {
         </TooltipConsumo>
       );
     }
-  
-    return (
-      <Typography sx={{ fontWeight: 600, color }}>
-        {diff}
-      </Typography>
-    );
+
+    return <Typography sx={{ fontWeight: 700, color }}>{diff}</Typography>;
   };
-  
+
   /* ================= ACUMULADO ================= */
   const calcularAcumulado = (key) => {
     let total = 0;
+
     medicionesOrdenadas.forEach((row, i) => {
       if (i === 0) return;
+
       const actual = row.lecturas[key] ?? 0;
       const anterior = medicionesOrdenadas[i - 1].lecturas[key] ?? 0;
       const diff = actual - anterior;
+
       if (diff > 0) total += diff;
     });
+
     return total;
   };
 
   /* ================= RENDER ================= */
   return (
-    <Box sx={{ p: 3 }}>
-      {/* ================= TITULO ================= */}
-      <Box
+    <Box
+      sx={{
+        mt: 1,
+        p: 1.1,
+        minHeight: "97vh",
+        backgroundColor: "#F4F6F8",
+      }}
+    >
+      {/* ================= HEADER ================= */}
+      <Paper
+        elevation={0}
         sx={{
           mt: 5,
-          mb: 3,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
+          mb: 1,
+          p: 2,
+          borderRadius: 4,
+          border: "1px solid #E0E0E0",
+          background:
+            "linear-gradient(135deg, #FFFFFF 0%, #F5FBFF 45%, #EAF7FF 100%)",
         }}
       >
-        <Typography variant="h4" sx={{ color: "#1A237E" }}>
-          Medición diaria de contadores de agua
-        </Typography>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: { xs: "flex-start", md: "center" },
+            gap: 1,
+            flexDirection: { xs: "column", md: "row" },
+          }}
+        >
+          <Box>
+            <Typography
+              variant="h4"
+              sx={{
+                color: "#1A237E",
+                fontWeight: 800,
+                letterSpacing: "-0.5px",
+                mt: -1
+              }}
+            >
+              Medición diaria de contadores de agua
+            </Typography>
 
-        <Box sx={{ display: "flex", gap: 1 }}>
-          <Button
-            variant={verConsumo ? "contained" : "outlined"}
-            startIcon={<WaterDropIcon />}
-            onClick={() => setVerConsumo(!verConsumo)}
-          >
-            {verConsumo ? "Ver lecturas" : "Ver consumo diario"}
-          </Button>
+            <Typography
+              variant="body2"
+              sx={{
+                mt: 0.6,
+                mb: -1.2,
+                color: "#607D8B",
+              }}
+            >
+              Registro, seguimiento y análisis diario de lecturas y consumos.
+            </Typography>
+          </Box>
 
-          <Button
-            variant="outlined"
-            startIcon={<ShowChartIcon />}
-            onClick={() => setOpenGrafica(true)}
-          >
-            Gráfica
-          </Button>
+          <Stack direction="row" spacing={1} flexWrap="wrap">
+            <Chip
+              label={`${medicionesOrdenadas.length} registros`}
+              color="primary"
+              variant="outlined"
+              sx={{ fontWeight: 700 }}
+            />
+
+            <Chip
+              label={`${columnas.length} medidores`}
+              color="info"
+              variant="outlined"
+              sx={{ fontWeight: 700 }}
+            />
+          </Stack>
         </Box>
-      </Box>
 
-      {/* ================= FILTROS ================= */}
-      <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-        <TextField
-          type="date"
-          label="Desde"
-          InputLabelProps={{ shrink: true }}
-          onChange={(e) => setFechaDesde(e.target.value)}
-        />
-        <TextField
-          type="date"
-          label="Hasta"
-          InputLabelProps={{ shrink: true }}
-          onChange={(e) => setFechaHasta(e.target.value)}
-        />
-      </Box>
+        <Divider sx={{ my: 2.5 }} />
+
+        {/* ================= FILTROS + ACCIONES ================= */}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            mt: -0.8,
+            mb: -0.6,
+            alignItems: { xs: "stretch", md: "center" },
+            gap: 2,
+            flexDirection: { xs: "column", md: "row" },
+          }}
+        >
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+            <TextField
+              type="date"
+              label="Desde"
+              size="small"
+              InputLabelProps={{ shrink: true }}
+              value={fechaDesde}
+              onChange={(e) => setFechaDesde(e.target.value)}
+              sx={{
+                backgroundColor: "#FFFFFF",
+                minWidth: 170,
+              }}
+            />
+
+            <TextField
+              type="date"
+              label="Hasta"
+              size="small"
+              InputLabelProps={{ shrink: true }}
+              value={fechaHasta}
+              onChange={(e) => setFechaHasta(e.target.value)}
+              sx={{
+                backgroundColor: "#FFFFFF",
+                minWidth: 170,
+              }}
+            />
+          </Stack>
+
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+            <Button
+              variant={verConsumo ? "contained" : "outlined"}
+              startIcon={<WaterDropIcon />}
+              onClick={() => setVerConsumo(!verConsumo)}
+              sx={{
+                borderRadius: 2,
+                fontWeight: 700,
+                textTransform: "none",
+              }}
+            >
+              {verConsumo ? "Ver lecturas" : "Ver consumo diario"}
+            </Button>
+
+            <Button
+              variant="outlined"
+              startIcon={<ShowChartIcon />}
+              onClick={() => setOpenGrafica(true)}
+              sx={{
+                borderRadius: 2,
+                fontWeight: 700,
+                textTransform: "none",
+                backgroundColor: "#FFFFFF",
+              }}
+            >
+              Gráfica
+            </Button>
+          </Stack>
+        </Box>
+      </Paper>
 
       {/* ================= TABLA ================= */}
-      <TableContainer component={Paper} elevation={3}>
-        <Table size="small" stickyHeader>
+      <TableContainer
+        component={Paper}
+        elevation={3}
+        sx={{
+          maxHeight: "68vh",
+          overflow: "auto",
+          borderRadius: 4,
+          border: "1px solid #DDE3EA",
+          boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
+        }}
+      >
+        <Table
+          size="small"
+          stickyHeader
+          sx={{
+            minWidth: 1200,
+
+            "& thead th": {
+              backgroundColor: "#1A237E",
+              color: "#FFFFFF",
+              fontWeight: 800,
+              fontSize: "0.76rem",
+              textTransform: "uppercase",
+              letterSpacing: "0.4px",
+              whiteSpace: "nowrap",
+              borderBottom: "none",
+              py: 1.4,
+              zIndex: 3,
+            },
+
+            "& tbody td": {
+              fontSize: "0.83rem",
+              whiteSpace: "nowrap",
+              borderBottom: "1px solid #ECEFF1",
+              color: "#263238",
+              py: 1,
+            },
+
+            "& tbody tr:nth-of-type(even)": {
+              backgroundColor: "#F8FAFC",
+            },
+
+            "& tbody tr:hover": {
+              backgroundColor: "#EAF4FF",
+            },
+          }}
+        >
           <TableHead>
             <TableRow>
               <TableCell align="center">Fecha</TableCell>
@@ -314,7 +426,10 @@ export default function TablaMedicionesAgua() {
           <TableBody>
             {medicionesOrdenadas.map((row, i) => (
               <TableRow key={row._id}>
-                <TableCell align="center">{row.fecha}</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 700 }}>
+                  {row.fecha}
+                </TableCell>
+
                 <TableCell align="center">{row.hora}</TableCell>
 
                 {columnas.map((c) => (
@@ -323,39 +438,78 @@ export default function TablaMedicionesAgua() {
                   </TableCell>
                 ))}
 
-                <TableCell align="center">{row.observaciones}</TableCell>
-                <TableCell align="center">{row.operador}</TableCell>
+                <TableCell
+                  align="center"
+                  sx={{
+                    maxWidth: 260,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {row.observaciones || "-"}
+                </TableCell>
+
+                <TableCell align="center">{row.operador || "-"}</TableCell>
 
                 <TableCell align="center">
                   <IconButton
+                    size="small"
+                    sx={{
+                      color: "#1565C0",
+                      backgroundColor: "#E3F2FD",
+                      mr: 0.8,
+                      "&:hover": {
+                        backgroundColor: "#BBDEFB",
+                      },
+                    }}
                     onClick={() => {
                       setEditId(row._id);
                       setForm(row);
                       setOpenEditar(true);
                     }}
                   >
-                    <EditIcon />
+                    <EditIcon fontSize="small" />
                   </IconButton>
 
                   <IconButton
-                    color="error"
+                    size="small"
+                    sx={{
+                      color: "#C62828",
+                      backgroundColor: "#FFEBEE",
+                      "&:hover": {
+                        backgroundColor: "#FFCDD2",
+                      },
+                    }}
                     onClick={() => eliminarMedicion(row._id)}
                   >
-                    <DeleteIcon />
+                    <DeleteIcon fontSize="small" />
                   </IconButton>
                 </TableCell>
               </TableRow>
             ))}
 
             {/* ================= ACUMULADO ================= */}
-            <TableRow>
-              <TableCell colSpan={2}>
-                <b>Consumo acumulado</b>
-              </TableCell>
+            <TableRow
+              sx={{
+                position: "sticky",
+                bottom: 0,
+                zIndex: 2,
+                backgroundColor: "#E3F2FD",
+
+                "& td": {
+                  fontWeight: 900,
+                  color: "#1A237E",
+                  borderTop: "2px solid #90CAF9",
+                  borderBottom: "none",
+                  py: 1.3,
+                },
+              }}
+            >
+              <TableCell colSpan={2}>Consumo acumulado</TableCell>
 
               {columnas.map((c) => (
                 <TableCell key={c.key} align="center">
-                  <b>{calcularAcumulado(c.key)} m³</b>
+                  {calcularAcumulado(c.key)} m³
                 </TableCell>
               ))}
 
@@ -368,7 +522,17 @@ export default function TablaMedicionesAgua() {
       {/* ================= SPEED DIAL ================= */}
       <SpeedDial
         ariaLabel="acciones"
-        sx={{ position: "fixed", bottom: 24, right: 24 }}
+        sx={{
+          position: "fixed",
+          bottom: 24,
+          right: 24,
+          "& .MuiFab-primary": {
+            backgroundColor: "#1A237E",
+            "&:hover": {
+              backgroundColor: "#0D164F",
+            },
+          },
+        }}
         icon={<SpeedDialIcon />}
       >
         <SpeedDialAction
@@ -385,6 +549,7 @@ export default function TablaMedicionesAgua() {
             setOpenFila(true);
           }}
         />
+
         <SpeedDialAction
           icon={<ViewColumnIcon />}
           tooltipTitle="Nuevo medidor"
@@ -392,96 +557,27 @@ export default function TablaMedicionesAgua() {
         />
       </SpeedDial>
 
-      {/* ================= MODAL MEDICION ================= */}
-      <Dialog open={openFila || openEditar} fullWidth maxWidth="sm">
-        <DialogTitle>
-          {openEditar ? "Editar medición" : "Nueva medición"}
-        </DialogTitle>
-
-        <DialogContent>
-          <TextField
-            type="date"
-            label="Fecha"
-            fullWidth
-            margin="dense"
-            InputLabelProps={{ shrink: true }}
-            onChange={(e) =>
-              setForm({ ...form, fecha: isoToDDMMYYYY(e.target.value) })
-            }
-          />
-
-          <TextField
-            label="Hora"
-            fullWidth
-            margin="dense"
-            value={form.hora}
-            onChange={(e) => setForm({ ...form, hora: e.target.value })}
-          />
-
-          {columnas.map((c) => (
-            <TextField
-              key={c.key}
-              label={`${c.nombre} (${c.unidad})`}
-              type="number"
-              fullWidth
-              margin="dense"
-              value={form.lecturas[c.key] || ""}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  lecturas: {
-                    ...form.lecturas,
-                    [c.key]: Number(e.target.value),
-                  },
-                })
-              }
-            />
-          ))}
-
-          <TextField
-            label="Observaciones"
-            fullWidth
-            margin="dense"
-            value={form.observaciones}
-            onChange={(e) =>
-              setForm({ ...form, observaciones: e.target.value })
-            }
-          />
-
-          <TextField
-            label="Operador"
-            fullWidth
-            margin="dense"
-            value={form.operador}
-            onChange={(e) =>
-              setForm({ ...form, operador: e.target.value })
-            }
-          />
-        </DialogContent>
-
-        <DialogActions>
-          <Button
-            onClick={() => {
-              setOpenFila(false);
-              setOpenEditar(false);
-            }}
-          >
-            Cancelar
-          </Button>
-          <Button
-            variant="contained"
-            onClick={openEditar ? actualizarMedicion : guardarMedicion}
-          >
-            Guardar
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* ================= MODAL MEDICIÓN ================= */}
+      <ModalIngresoMedicionContadoresAgua
+        open={openFila || openEditar}
+        openEditar={openEditar}
+        form={form}
+        setForm={setForm}
+        columnas={columnas}
+        onClose={() => {
+          setOpenFila(false);
+          setOpenEditar(false);
+        }}
+        onGuardar={openEditar ? actualizarMedicion : guardarMedicion}
+      />
 
       {/* ================= MODAL COLUMNA ================= */}
       <Dialog open={openColumna} fullWidth maxWidth="xs">
-        <DialogTitle>Nuevo medidor</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800, color: "#1A237E" }}>
+          Nuevo medidor
+        </DialogTitle>
 
-        <DialogContent>
+        <DialogContent dividers>
           <TextField
             label="Nombre visible"
             fullWidth
@@ -491,6 +587,7 @@ export default function TablaMedicionesAgua() {
               setNuevaColumna({ ...nuevaColumna, nombre: e.target.value })
             }
           />
+
           <TextField
             label="Clave (ej: pozo3)"
             fullWidth
@@ -500,6 +597,7 @@ export default function TablaMedicionesAgua() {
               setNuevaColumna({ ...nuevaColumna, key: e.target.value })
             }
           />
+
           <TextField
             label="Unidad"
             fullWidth
@@ -511,65 +609,85 @@ export default function TablaMedicionesAgua() {
           />
         </DialogContent>
 
-        <DialogActions>
-          <Button onClick={() => setOpenColumna(false)}>Cancelar</Button>
-          <Button variant="contained" onClick={guardarColumna}>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button
+            onClick={() => setOpenColumna(false)}
+            sx={{ textTransform: "none" }}
+          >
+            Cancelar
+          </Button>
+
+          <Button
+            variant="contained"
+            onClick={guardarColumna}
+            sx={{
+              textTransform: "none",
+              borderRadius: 2,
+              fontWeight: 700,
+              backgroundColor: "#1A237E",
+            }}
+          >
             Guardar
           </Button>
         </DialogActions>
       </Dialog>
-      {/* ================= MODAL GRAFICA ================= */}
+
+      {/* ================= MODAL GRÁFICA ================= */}
       <Dialog
         open={openGrafica}
         onClose={() => setOpenGrafica(false)}
-        fullScreen                 // 🔴 CLAVE: usa todo el viewport
+        fullScreen
         PaperProps={{
           sx: {
-            overflow: "hidden",     // ❌ sin scroll
-            backgroundColor: "#fff",
+            overflow: "hidden",
+            backgroundColor: "#FFFFFF",
           },
         }}
       >
-        {/* ===== HEADER CONTROLADO ===== */}
         <Box
           sx={{
-            height: 48,
+            height: 56,
             px: 2,
-            position: "relative",  
+            position: "relative",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",     
-            borderBottom: "1px solid #E0E0E0",
+            justifyContent: "center",
+            borderBottom: "1px solid #DDE3EA",
             flexShrink: 0,
-            backgroundColor:"#ACEEFC"
+            backgroundColor: "#E3F2FD",
           }}
         >
-          {/* TITULO CENTRADO */}
-          <Typography sx={{ fontWeight: 960 }}>
+          <Typography
+            sx={{
+              fontWeight: 900,
+              color: "#1A237E",
+              letterSpacing: "0.3px",
+            }}
+          >
             Gráfica de consumo diario
           </Typography>
 
-          {/* BOTON DERECHA */}
           <Button
             onClick={() => setOpenGrafica(false)}
             sx={{
               position: "absolute",
               right: 16,
+              textTransform: "none",
+              fontWeight: 700,
             }}
           >
             Cerrar
           </Button>
         </Box>
 
-
-        {/* ===== CONTENIDO SIN PADDING ===== */}
         <Box
           sx={{
             flexGrow: 1,
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            overflow: "hidden",      // 🔴 CLAVE
+            overflow: "hidden",
+            backgroundColor: "#FAFAFA",
           }}
         >
           <GraficaConsumoDiarioPTAP
@@ -578,7 +696,6 @@ export default function TablaMedicionesAgua() {
           />
         </Box>
       </Dialog>
-
     </Box>
   );
 }
