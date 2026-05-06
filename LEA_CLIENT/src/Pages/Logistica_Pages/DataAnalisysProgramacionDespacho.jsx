@@ -470,7 +470,7 @@ const AnalisisDespachosBIPage = () => {
 
       const resDesp = await axios.get(`${API_DESPACHOS}/rango`, {
         params: { from, to },
-          withCredentials: true,
+        withCredentials: true,
       });
 
       setProgramaciones(Array.isArray(resProg.data) ? resProg.data : []);
@@ -948,6 +948,21 @@ const AnalisisDespachosBIPage = () => {
       },
     ].filter((x) => x.value > 0);
   }, [comparativoFiltrado, tolerancia]);
+
+  const pieCumpleVsNoCumple = useMemo(() => {
+    const rows = comparativoFiltrado ?? [];
+
+    const cumple = rows.filter(
+      (r) => r.tieneProgramacion && r.tieneDespacho
+    ).length;
+
+    const noCumple = rows.length - cumple;
+
+    return [
+      { name: "Cumple", value: cumple, color: "#36b865" },
+      { name: "No cumple", value: noCumple, color: "#e53935" },
+    ].filter((x) => x.value > 0);
+  }, [comparativoFiltrado]);
 
   const hasAnyFilter =
     !!debouncedSearch ||
@@ -1672,22 +1687,24 @@ const AnalisisDespachosBIPage = () => {
                 />
                 <Grid container spacing={2} justifyContent="center">
                   {/* Pie 1 */}
-                  <Grid item xs={12} md={3}>
+                  <Grid item xs={12} md={6}>
                     <Typography
                       variant="body2"
                       sx={{ mb: 1, textAlign: "center" }}
                       fontWeight="bold"
                     >
-                      KPI cumplimiento por peso neto (Báscula Ambiocom vs Cliente) Según Tolerancia: ±{`${toleranciaKgCliente} Kg`}.
+                      KPI cumplimiento por peso neto (Báscula Ambiocom vs Cliente) Según
+                      Tolerancia: ±{`${toleranciaKgCliente} Kg`}.
                     </Typography>
 
                     <ResponsiveContainer width="100%" height={285}>
-                      <PieChart >
+                      <PieChart>
                         <Pie
                           data={pieCumplimientoPeso}
                           dataKey="value"
                           nameKey="name"
-                          outerRadius={83}
+                          innerRadius={55}
+                          outerRadius={90}
                           label={({ name, value, percent }) =>
                             `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
                           }
@@ -1703,31 +1720,61 @@ const AnalisisDespachosBIPage = () => {
                   </Grid>
 
                   {/* Pie 2 */}
-                  <Grid item xs={12} md={5}>
+                  <Grid item xs={12} md={6}>
                     <Typography
                       variant="body2"
                       sx={{ mb: 1, textAlign: "center" }}
                       fontWeight="bold"
                     >
-                      Resumen Cumplimiento de la programacion (Transportadoras)
+                      Distribución por transportadoras
                     </Typography>
 
-                    <ResponsiveContainer width="100%" height={285}>
+                    <ResponsiveContainer width="100%" height={330}>
                       <PieChart>
                         <Pie
                           data={pieTransportadoras}
                           dataKey="value"
                           nameKey="name"
+                          innerRadius={55}
                           outerRadius={90}
-                          // label={({ name, value }) => `${name}: ${value}`}
-                          label={({ name, value, percent }) =>
-                            `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
-                          }
+                          labelLine={{ stroke: "#999", strokeWidth: 1 }}
+                          label={({
+                            cx,
+                            cy,
+                            midAngle,
+                            outerRadius,
+                            percent,
+                            index,
+                            name,
+                            value,
+                          }) => {
+                            const RADIAN = Math.PI / 180;
+                            const radius = outerRadius + 22 + index * 10;
+                            const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                            const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+                            return (
+                              <text
+                                x={x}
+                                y={y}
+                                fill="#333"
+                                textAnchor={x > cx ? "start" : "end"}
+                                dominantBaseline="central"
+                                style={{
+                                  fontSize: "11px",
+                                  fontWeight: 500,
+                                }}
+                              >
+                                {`${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+                              </text>
+                            );
+                          }}
                         >
                           {pieTransportadoras.map((entry, idx) => (
                             <Cell key={`cell-2-${idx}`} fill={entry.color} />
                           ))}
                         </Pie>
+
                         <RTooltip />
                         <Legend />
                       </PieChart>
@@ -1735,14 +1782,14 @@ const AnalisisDespachosBIPage = () => {
                   </Grid>
 
                   {/* Pie 3 */}
-                  <Grid item xs={12} md={4}>
+                  <Grid item xs={12} md={6}>
                     <Typography
                       variant="body2"
                       sx={{ mb: 1, textAlign: "center" }}
                       fontWeight="bold"
                     >
-                      Estado de cumplimiento según tolerancia: ±{`${tolerancia} L`} (En Rango / por
-                      encima / Merma)
+                      Estado de cumplimiento según tolerancia: ±{`${tolerancia} L`} (En Rango /
+                      por encima / Merma)
                     </Typography>
 
                     <ResponsiveContainer width="100%" height={285}>
@@ -1751,6 +1798,7 @@ const AnalisisDespachosBIPage = () => {
                           data={pieToleranciaRango}
                           dataKey="value"
                           nameKey="name"
+                          innerRadius={55}
                           outerRadius={90}
                           label={({ name, value, percent }) =>
                             `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
@@ -1758,6 +1806,70 @@ const AnalisisDespachosBIPage = () => {
                         >
                           {pieToleranciaRango.map((entry, idx) => (
                             <Cell key={`cell-tol-${idx}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <RTooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </Grid>
+
+                  {/* Pie 4 */}
+                  <Grid item xs={12} md={6}>
+                    <Typography
+                      variant="body2"
+                      sx={{ mb: 1, textAlign: "center" }}
+                      fontWeight="bold"
+                    >
+                      Cumple vs No cumple Programado vs Despachado
+                    </Typography>
+
+                    <ResponsiveContainer width="100%" height={285}>
+                      <PieChart>
+                        <Pie
+                          data={pieCumpleVsNoCumple}
+                          dataKey="value"
+                          nameKey="name"
+                          innerRadius={55}
+                          outerRadius={90}
+                          label={({ name, value, percent }) =>
+                            `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
+                          }
+                        >
+                          {pieCumpleVsNoCumple.map((entry, idx) => (
+                            <Cell key={`cell-cumple-${idx}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <RTooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </Grid>
+
+                  {/* Pie 5 */}
+                  <Grid item xs={12} md={6}>
+                    <Typography
+                      variant="body2"
+                      sx={{ mb: 1, textAlign: "center" }}
+                      fontWeight="bold"
+                    >
+                      Cumple vs No cumple Programado vs Despachado
+                    </Typography>
+
+                    <ResponsiveContainer width="100%" height={285}>
+                      <PieChart>
+                        <Pie
+                          data={pieCumpleVsNoCumple}
+                          dataKey="value"
+                          nameKey="name"
+                          innerRadius={55}
+                          outerRadius={90}
+                          label={({ name, value, percent }) =>
+                            `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
+                          }
+                        >
+                          {pieCumpleVsNoCumple.map((entry, idx) => (
+                            <Cell key={`cell-cumple-5-${idx}`} fill={entry.color} />
                           ))}
                         </Pie>
                         <RTooltip />

@@ -186,6 +186,7 @@ const ProgramacionDespachoDiariaPage = () => {
     destino: "", // digitables
     producto: "",
     cantidad: "",
+    horaProgramada: "",
   });
 
   // OPCIONES DE SELECT (catálogos)
@@ -212,7 +213,7 @@ const ProgramacionDespachoDiariaPage = () => {
         resTransportadoras,
       ] = await Promise.allSettled([
         axios.get(API_CONDUCTORES),
-        axios.get(API_CLIENTES,{withCredentials:true}),
+        axios.get(API_CLIENTES, { withCredentials: true }),
         axios.get(API_PRODUCTOS),
         axios.get(API_DESTINOS),
         axios.get(API_TRANSPORTADORAS),
@@ -426,6 +427,7 @@ const ProgramacionDespachoDiariaPage = () => {
       destino: "",
       producto: "",
       cantidad: "",
+      horaProgramada: "",
     });
     setEditingId(null);
   };
@@ -592,6 +594,7 @@ const ProgramacionDespachoDiariaPage = () => {
     try {
       const payload = {
         fecha: normalizeText(form.fecha), // <- YYYY-MM-DD del date picker
+        horaProgramada: normalizeText(form.horaProgramada),
         placa: normalizeText(form.placa),
         trailer: normalizeText(form.trailer),
         conductor: normalizeText(form.conductor),
@@ -612,9 +615,9 @@ const ProgramacionDespachoDiariaPage = () => {
       });
 
       if (editingId) {
-        await axios.put(`${API_URL}/${editingId}`, payload, {withCredentials:true});
+        await axios.put(`${API_URL}/${editingId}`, payload, { withCredentials: true });
       } else {
-        await axios.post(API_URL, payload , {withCredentials:true});
+        await axios.post(API_URL, payload, { withCredentials: true });
       }
 
       Swal.close();
@@ -648,6 +651,7 @@ const ProgramacionDespachoDiariaPage = () => {
   const handleEdit = (item) => {
     setForm({
       fecha: item.fecha ?? "",
+      horaProgramada: item.horaProgramada ?? "",
       placa: item.placa ?? "",
       trailer: item.trailer ?? "",
       conductor: item.conductor ?? "",
@@ -688,7 +692,7 @@ const ProgramacionDespachoDiariaPage = () => {
         didOpen: () => Swal.showLoading(),
       });
 
-      await axios.delete(`${API_URL}/${id}`,{withCredentials:true});
+      await axios.delete(`${API_URL}/${id}`, { withCredentials: true });
 
       Swal.close();
 
@@ -789,6 +793,7 @@ const ProgramacionDespachoDiariaPage = () => {
     try {
       const headers = [
         "Fecha",
+        "Hora",
         "Placa",
         "Trailer",
         "Conductor",
@@ -802,6 +807,7 @@ const ProgramacionDespachoDiariaPage = () => {
 
       const rows = rowsFiltrados.map((r) => [
         normalizeText(r.fecha),
+        normalizeText(r.horaProgramada),
         normalizeText(r.placa),
         normalizeText(r.trailer),
         normalizeText(r.conductor),
@@ -1318,6 +1324,19 @@ const ProgramacionDespachoDiariaPage = () => {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
+            <Grid item xs={12} md={1}>
+              <TextField
+                fullWidth
+                size="small"
+                sx={INPUT_SX_COMPACT}
+                type="time"
+                label="Hora"
+                name="horaProgramada"
+                value={form.horaProgramada}
+                onChange={handleChange}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
 
             <Grid item xs={12} md={1}>
               <TextField
@@ -1515,24 +1534,47 @@ const ProgramacionDespachoDiariaPage = () => {
             <Table stickyHeader size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell><strong>Fecha</strong></TableCell>
-                  <TableCell><strong>Placa</strong></TableCell>
-                  <TableCell><strong>Trailer</strong></TableCell>
-                  <TableCell><strong>Conductor</strong></TableCell>
-                  <TableCell><strong>Transportadora</strong></TableCell>
-                  <TableCell><strong>Cliente</strong></TableCell>
-                  <TableCell><strong>Destino</strong></TableCell>
-                  <TableCell><strong>Producto</strong></TableCell>
-                  <TableCell align="right"><strong>Cantidad</strong></TableCell>
+                  <TableCell align="center"><strong>Fecha</strong></TableCell>
+                  <TableCell  align="center"><strong>Hora</strong></TableCell>
+                  <TableCell  align="center"><strong>Placa</strong></TableCell>
+                  <TableCell  align="center"><strong>Trailer</strong></TableCell>
+                  <TableCell  align="center"><strong>Conductor</strong></TableCell>
+                  <TableCell  align="center"><strong>Transportadora</strong></TableCell>
+                  <TableCell  align="center"><strong>Cliente</strong></TableCell>
+                  <TableCell  align="center"><strong>Destino</strong></TableCell>
+                  <TableCell  align="center"><strong>Producto</strong></TableCell>
+                  <TableCell align="center"><strong>Cantidad</strong></TableCell>
                   <TableCell align="center"><strong>Checked</strong></TableCell>
                   <TableCell align="center"><strong>Acciones</strong></TableCell>
                 </TableRow>
               </TableHead>
-
-              <TableBody>
+              <TableBody
+                sx={{
+                  "& .MuiTableRow-root": {
+                    transition: "background-color 0.18s ease",
+                    "&:nth-of-type(even)": {
+                      backgroundColor: "rgba(17, 24, 39, 0.025)",
+                    },
+                    "&:hover": {
+                      backgroundColor: "rgba(25, 118, 210, 0.08) !important",
+                    },
+                  },
+                  "& .MuiTableCell-root": {
+                    fontSize: "11.8px",
+                    py: 0.65,
+                    px: 1,
+                    borderBottom: "1px solid rgba(224, 224, 224, 0.8)",
+                    color: "text.primary",
+                    verticalAlign: "middle",
+                  },
+                  "& .MuiIconButton-root": {
+                    p: 0.45,
+                  },
+                }}
+              >
                 {rowsFiltrados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} align="center" sx={{ py: 5 }}>
+                    <TableCell colSpan={12} align="center" sx={{ py: 5 }}>
                       <Typography fontWeight="bold">No hay resultados</Typography>
                       <Typography variant="body2" color="text.secondary">
                         {hasAnyFilter
@@ -1544,73 +1586,102 @@ const ProgramacionDespachoDiariaPage = () => {
                 ) : (
                   rowsFiltrados.map((r) => (
                     <TableRow key={r._id} hover>
-                      <TableCell sx={{ minWidth: 110, whiteSpace: "nowrap" }} >{normalizeText(r.fecha)}</TableCell>
-                      <TableCell>{normalizeText(r.placa)}</TableCell>
-                      <TableCell>{normalizeText(r.trailer)}</TableCell>
+                      <TableCell sx={{ minWidth: 105, whiteSpace: "nowrap", fontWeight: 600 }}>
+                        {normalizeText(r.fecha)}
+                      </TableCell>
+
+                      <TableCell sx={{ whiteSpace: "nowrap", fontWeight: 600, color: "primary.main" }}>
+                        {normalizeText(r.horaProgramada) || "—"}
+                      </TableCell>
+
+                      <TableCell sx={{ whiteSpace: "nowrap", fontWeight: 700 }}>
+                        {normalizeText(r.placa) || "—"}
+                      </TableCell>
+
+                      <TableCell sx={{ whiteSpace: "nowrap" }}>
+                        {normalizeText(r.trailer) || "—"}
+                      </TableCell>
+
                       <TableCell
                         sx={{
-                          maxWidth: 260,
+                          maxWidth: 230,
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                         }}
                         title={normalizeText(r.conductor)}
                       >
-                        {normalizeText(r.conductor)}
+                        {normalizeText(r.conductor) || "—"}
                       </TableCell>
+
                       <TableCell
                         sx={{
-                          maxWidth: 220,
+                          maxWidth: 210,
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                         }}
                         title={normalizeText(r.transportadora)}
                       >
-                        {normalizeText(r.transportadora)}
+                        {normalizeText(r.transportadora) || "—"}
                       </TableCell>
+
                       <TableCell
                         sx={{
-                          maxWidth: 260,
+                          maxWidth: 240,
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
+                          fontWeight: 600,
                         }}
                         title={normalizeText(r.cliente)}
                       >
-                        {normalizeText(r.cliente)}
+                        {normalizeText(r.cliente) || "—"}
                       </TableCell>
-                      <TableCell>{normalizeText(r.destino)}</TableCell>
+
+                      <TableCell sx={{ whiteSpace: "nowrap" }}>
+                        {normalizeText(r.destino) || "—"}
+                      </TableCell>
+
                       <TableCell
                         sx={{
-                          maxWidth: 260,
+                          maxWidth: 230,
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                         }}
                         title={normalizeText(r.producto)}
                       >
-                        {normalizeText(r.producto)}
+                        {normalizeText(r.producto) || "—"}
                       </TableCell>
-                      <TableCell align="right">{formatNumber(r.cantidad)}</TableCell>
+
+                      <TableCell align="right" sx={{ whiteSpace: "nowrap", fontWeight: 700 }}>
+                        {formatNumber(r.cantidad)}
+                      </TableCell>
+
                       <TableCell align="center">
-                        <Tooltip placement="top" title={Boolean(r?.cumplido) ? "Despacho cumplido" : "Pendiente"}>
+                        <Tooltip
+                          placement="top"
+                          title={Boolean(r?.cumplido) ? "Despacho cumplido" : "Pendiente"}
+                        >
                           <CheckIcon
                             sx={{
-                              color: Boolean(r?.cumplido) ? "#64E899" : "grey.200",
-                              fontSize: 28,
-                              filter: Boolean(r?.cumplido) ? "drop-shadow(0px 2px 4px rgba(0,0,0,0.35))" : "inherit",
-
+                              color: Boolean(r?.cumplido) ? "#2e7d32" : "grey.300",
+                              fontSize: 22,
+                              filter: Boolean(r?.cumplido)
+                                ? "drop-shadow(0px 1px 2px rgba(0,0,0,0.25))"
+                                : "inherit",
                             }}
                           />
                         </Tooltip>
                       </TableCell>
-                      <TableCell align="center">
+
+                      <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>
                         <IconButton color="primary" onClick={() => handleEdit(r)}>
-                          <EditIcon />
+                          <EditIcon fontSize="small" />
                         </IconButton>
                         <IconButton color="error" onClick={() => handleDelete(r._id)}>
-                          <DeleteIcon />
+                          <DeleteIcon fontSize="small" />
                         </IconButton>
                       </TableCell>
                     </TableRow>

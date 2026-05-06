@@ -90,6 +90,8 @@ export default function TablaMedicionesAgua() {
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
 
+  const [ordenAZ, setOrdenAZ] = useState(false);
+
   const [form, setForm] = useState({
     fecha: "",
     hora: "",
@@ -150,9 +152,7 @@ export default function TablaMedicionesAgua() {
 
   /* ================= ORDEN + FILTRO ================= */
   const medicionesOrdenadas = useMemo(() => {
-    let data = [...mediciones].sort(
-      (a, b) => parseFecha(a.fecha) - parseFecha(b.fecha)
-    );
+    let data = [...mediciones];
 
     if (fechaDesde) {
       data = data.filter((m) => parseFecha(m.fecha) >= new Date(fechaDesde));
@@ -162,14 +162,31 @@ export default function TablaMedicionesAgua() {
       data = data.filter((m) => parseFecha(m.fecha) <= new Date(fechaHasta));
     }
 
+    data.sort((a, b) => {
+      const fechaA = parseFecha(a.fecha);
+      const fechaB = parseFecha(b.fecha);
+
+      return ordenAZ
+        ? fechaA - fechaB
+        : fechaB - fechaA;
+    });
+
     return data;
-  }, [mediciones, fechaDesde, fechaHasta]);
+  }, [mediciones, fechaDesde, fechaHasta, ordenAZ]);
 
   /* ================= RENDER CONSUMO ================= */
   const renderConsumo = (row, index, key) => {
     const actual = row.lecturas[key] ?? 0;
 
-    if (index === medicionesOrdenadas.length - 1) {
+    const medicionesCronologicas = [...medicionesOrdenadas].sort(
+      (a, b) => parseFecha(a.fecha) - parseFecha(b.fecha)
+    );
+
+    const indexCronologico = medicionesCronologicas.findIndex(
+      (m) => m._id === row._id
+    );
+
+    if (indexCronologico === 0) {
       return verConsumo ? (
         <Typography sx={{ fontWeight: 700, color: "#757575" }}>0</Typography>
       ) : (
@@ -177,8 +194,8 @@ export default function TablaMedicionesAgua() {
       );
     }
 
-    const siguiente = medicionesOrdenadas[index + 1].lecturas[key] ?? 0;
-    const diff = siguiente - actual;
+    const anterior = medicionesCronologicas[indexCronologico - 1].lecturas[key] ?? 0;
+    const diff = actual - anterior;
 
     const color =
       diff === 0 ? "#757575" : diff > CONSUMO_ALTO ? "#C62828" : "#2E7D32";
@@ -210,6 +227,12 @@ export default function TablaMedicionesAgua() {
 
     return total;
   };
+
+  const medicionesParaGrafica = useMemo(() => {
+    return [...medicionesOrdenadas].sort(
+      (a, b) => parseFecha(a.fecha) - parseFecha(b.fecha)
+    );
+  }, [medicionesOrdenadas]);
 
   /* ================= RENDER ================= */
   return (
@@ -328,6 +351,20 @@ export default function TablaMedicionesAgua() {
           </Stack>
 
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+            <Button
+              variant="outlined"
+              onClick={() => setOrdenAZ(!ordenAZ)}
+              sx={{
+                borderRadius: 2,
+                fontWeight: 700,
+                textTransform: "none",
+                backgroundColor: "#FFFFFF",
+              }}
+            >
+              {ordenAZ
+                ? "Orden: A-Z (Antiguas primero)"
+                : "Orden: Z-A (Recientes primero)"}
+            </Button>
             <Button
               variant={verConsumo ? "contained" : "outlined"}
               startIcon={<WaterDropIcon />}
@@ -691,7 +728,7 @@ export default function TablaMedicionesAgua() {
           }}
         >
           <GraficaConsumoDiarioPTAP
-            mediciones={medicionesOrdenadas}
+            mediciones={medicionesParaGrafica}
             columnas={columnas}
           />
         </Box>
