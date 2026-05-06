@@ -68,13 +68,28 @@ const parseFecha = (fecha) => {
   return new Date(y, m - 1, d);
 };
 
-const isoToDDMMYYYY = (iso) => {
-  if (!iso) return "";
-  const [y, m, d] = iso.split("-");
-  return `${d}-${m}-${y}`;
+const formatDateInput = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
+
+const obtenerRangoDefault = () => {
+  const hoy = new Date();
+
+  const desde = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+  const hasta = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+
+  return {
+    desde: formatDateInput(desde),
+    hasta: formatDateInput(hasta),
+  };
 };
 
 export default function TablaMedicionesAgua() {
+  const rangoDefault = obtenerRangoDefault();
+
   /* ================= STATE ================= */
   const [columnas, setColumnas] = useState([]);
   const [mediciones, setMediciones] = useState([]);
@@ -87,8 +102,9 @@ export default function TablaMedicionesAgua() {
   const [editId, setEditId] = useState(null);
   const [verConsumo, setVerConsumo] = useState(false);
 
-  const [fechaDesde, setFechaDesde] = useState("");
-  const [fechaHasta, setFechaHasta] = useState("");
+  const [fechaDesde, setFechaDesde] = useState(rangoDefault.desde);
+  const [fechaHasta, setFechaHasta] = useState(rangoDefault.hasta);
+  const [cargando, setCargando] = useState(false);
 
   const [ordenAZ, setOrdenAZ] = useState(false);
 
@@ -109,7 +125,9 @@ export default function TablaMedicionesAgua() {
   /* ================= CARGA INICIAL ================= */
   useEffect(() => {
     obtenerColumnas();
-    obtenerMediciones();
+
+    const rango = obtenerRangoDefault();
+    obtenerMediciones(rango.desde, rango.hasta);
   }, []);
 
   /* ================= API ================= */
@@ -118,9 +136,25 @@ export default function TablaMedicionesAgua() {
     setColumnas(data);
   };
 
-  const obtenerMediciones = async () => {
-    const { data } = await axios.get(API_MEDICIONES);
-    setMediciones(data);
+  const obtenerMediciones = async (
+    desde = fechaDesde,
+    hasta = fechaHasta
+  ) => {
+    setCargando(true);
+
+    try {
+      const { data } = await axios.get(API_MEDICIONES, {
+        params: {
+          desde,
+          hasta,
+        },
+        withCredentials: true,
+      });
+
+      setMediciones(data);
+    } finally {
+      setCargando(false);
+    }
   };
 
   /* ================= CRUD MEDICIONES ================= */
@@ -154,25 +188,15 @@ export default function TablaMedicionesAgua() {
   const medicionesOrdenadas = useMemo(() => {
     let data = [...mediciones];
 
-    if (fechaDesde) {
-      data = data.filter((m) => parseFecha(m.fecha) >= new Date(fechaDesde));
-    }
-
-    if (fechaHasta) {
-      data = data.filter((m) => parseFecha(m.fecha) <= new Date(fechaHasta));
-    }
-
     data.sort((a, b) => {
       const fechaA = parseFecha(a.fecha);
       const fechaB = parseFecha(b.fecha);
 
-      return ordenAZ
-        ? fechaA - fechaB
-        : fechaB - fechaA;
+      return ordenAZ ? fechaA - fechaB : fechaB - fechaA;
     });
 
     return data;
-  }, [mediciones, fechaDesde, fechaHasta, ordenAZ]);
+  }, [mediciones, ordenAZ]);
 
   /* ================= RENDER CONSUMO ================= */
   const renderConsumo = (row, index, key) => {
@@ -215,14 +239,21 @@ export default function TablaMedicionesAgua() {
   const calcularAcumulado = (key) => {
     let total = 0;
 
-    medicionesOrdenadas.forEach((row, i) => {
+    const medicionesCronologicas = [...medicionesOrdenadas].sort(
+      (a, b) => parseFecha(a.fecha) - parseFecha(b.fecha)
+    );
+
+    medicionesCronologicas.forEach((row, i) => {
       if (i === 0) return;
 
       const actual = row.lecturas[key] ?? 0;
-      const anterior = medicionesOrdenadas[i - 1].lecturas[key] ?? 0;
+      const anterior = medicionesCronologicas[i - 1].lecturas[key] ?? 0;
+
       const diff = actual - anterior;
 
-      if (diff > 0) total += diff;
+      if (diff > 0) {
+        total += diff;
+      }
     });
 
     return total;
@@ -348,6 +379,20 @@ export default function TablaMedicionesAgua() {
                 minWidth: 170,
               }}
             />
+            <Button
+              variant="contained"
+              onClick={() => obtenerMediciones()}
+              disabled={cargando || !fechaDesde || !fechaHasta}
+              sx={{
+                borderRadius: 2,
+                fontWeight: 700,
+                textTransform: "none",
+                backgroundColor: "#1A237E",
+                minWidth: 120,
+              }}
+            >
+              {cargando ? "Consultando..." : "Ejecutar"}
+            </Button>
           </Stack>
 
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
@@ -730,6 +775,8 @@ export default function TablaMedicionesAgua() {
           <GraficaConsumoDiarioPTAP
             mediciones={medicionesParaGrafica}
             columnas={columnas}
+            fechaDesde={fechaDesde}
+            fechaHasta={fechaHasta}
           />
         </Box>
       </Dialog>

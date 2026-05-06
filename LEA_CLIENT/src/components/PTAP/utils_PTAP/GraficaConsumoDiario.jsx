@@ -37,15 +37,15 @@ const parseFechaLabel = (fecha) => {
   return `${y}-${m}-${d}`;
 };
 
-const getPrimerDiaMesActual = () => {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), 1);
-};
+// const getPrimerDiaMesActual = () => {
+//   const now = new Date();
+//   return new Date(now.getFullYear(), now.getMonth(), 1);
+// };
 
-const getUltimoDiaMesActual = () => {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth() + 1, 0);
-};
+// const getUltimoDiaMesActual = () => {
+//   const now = new Date();
+//   return new Date(now.getFullYear(), now.getMonth() + 1, 0);
+// };
 
 /* ================= PALETA ================= */
 const COLORS = [
@@ -62,17 +62,15 @@ const COLORS = [
 export default function GraficaConsumoDiarioPTAP({
   mediciones,
   columnas,
+  fechaDesde: fechaDesdePadre,
+  fechaHasta: fechaHastaPadre,
   onClose,
 }) {
   /* ================= STATE ================= */
   const [seriesVisibles, setSeriesVisibles] = useState([]);
 
-  const [fechaDesde, setFechaDesde] = useState(
-    getPrimerDiaMesActual().toISOString().slice(0, 10)
-  );
-  const [fechaHasta, setFechaHasta] = useState(
-    getUltimoDiaMesActual().toISOString().slice(0, 10)
-  );
+  const [fechaDesdeGrafica, setFechaDesdeGrafica] = useState(fechaDesdePadre);
+  const [fechaHastaGrafica, setFechaHastaGrafica] = useState(fechaHastaPadre);
 
   /* ===== REF PARA EXPORTAR ===== */
   const exportRef = useRef();
@@ -80,19 +78,26 @@ export default function GraficaConsumoDiarioPTAP({
 
   /* ================= INIT ================= */
   useEffect(() => {
-    setSeriesVisibles(columnas.map((c) => c.key));
+    setFechaDesdeGrafica(fechaDesdePadre);
+    setFechaHastaGrafica(fechaHastaPadre);
+  }, [fechaDesdePadre, fechaHastaPadre]);
+
+  useEffect(() => {
+    if (columnas.length > 0) {
+      setSeriesVisibles(columnas.map((c) => c.key));
+    }
   }, [columnas]);
 
   /* ================= FILTRO FECHAS ================= */
   const medicionesFiltradas = useMemo(() => {
-    const desde = new Date(fechaDesde);
-    const hasta = new Date(fechaHasta);
+    const desde = new Date(`${fechaDesdeGrafica}T00:00:00`);
+    const hasta = new Date(`${fechaHastaGrafica}T23:59:59`);
 
     return mediciones.filter((m) => {
       const fecha = parseFechaToDate(m.fecha);
       return fecha >= desde && fecha <= hasta;
     });
-  }, [mediciones, fechaDesde, fechaHasta]);
+  }, [mediciones, fechaDesdeGrafica, fechaHastaGrafica]);
 
   /* ================= DATA ================= */
   const data = useMemo(() => {
@@ -340,8 +345,8 @@ export default function GraficaConsumoDiarioPTAP({
           size="small"
           label="Desde"
           InputLabelProps={{ shrink: true }}
-          value={fechaDesde}
-          onChange={(e) => setFechaDesde(e.target.value)}
+          value={fechaDesdeGrafica}
+          onChange={(e) => setFechaDesdeGrafica(e.target.value)}
         />
 
         <TextField
@@ -349,8 +354,8 @@ export default function GraficaConsumoDiarioPTAP({
           size="small"
           label="Hasta"
           InputLabelProps={{ shrink: true }}
-          value={fechaHasta}
-          onChange={(e) => setFechaHasta(e.target.value)}
+          value={fechaHastaGrafica}
+          onChange={(e) => setFechaHastaGrafica(e.target.value)}
         />
 
         <FormControl size="small" sx={{ minWidth: 220 }}>
@@ -440,7 +445,7 @@ export default function GraficaConsumoDiarioPTAP({
                   strokeWidth={2}
                   dot={(props) => renderDot(props, c.key)}
                   activeDot={{ r: 6 }}
-                   />
+                />
               ) : null
             )}
           </LineChart>

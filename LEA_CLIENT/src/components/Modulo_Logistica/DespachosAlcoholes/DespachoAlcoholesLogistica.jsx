@@ -72,6 +72,8 @@ import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt';
 import ChecklistIcon from '@mui/icons-material/Checklist';
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
+import FactoryIcon from '@mui/icons-material/Factory';
+import SentimentVerySatisfiedIcon from '@mui/icons-material/SentimentVerySatisfied';
 
 import ExcelUploadButton from "../utils_Logistica/ExcelUploadButton";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -672,22 +674,34 @@ export default function TablaDespachosLogistica() {
         <Tooltip title={title}>{icon}</Tooltip>
       </Box>
     );
-    if (valor === "SI") {
+    if (valor === "EN PLANTA") {
+      return commonWrapper(
+        <FactoryIcon sx={{ color: "#9616ff" }} />,
+        "Vehículo rechazado"
+      );
+    }
+    // if (valor === "SI") {
+    //   return commonWrapper(
+    //     <PersonRemoveAlt1Icon sx={{ color: "#9616ff" }} />,
+    //     "Vehículo rechazado"
+    //   );
+    // }
+    if (valor === "RECHAZADO AMBIOCOM") {
       return commonWrapper(
         <PersonRemoveAlt1Icon sx={{ color: "#9616ff" }} />,
         "Vehículo rechazado"
       );
     }
-    if (valor === "NO") {
+    // if (valor === "NO") {
+    //   return commonWrapper(
+    //     <ThumbUpAltIcon sx={{ color: "#47b69e" }} />,
+    //     "Vehículo aprobado para cargue"
+    //   );
+    // }
+    if (valor === "APROBADO AMBIOCOM") {
       return commonWrapper(
         <ThumbUpAltIcon sx={{ color: "#47b69e" }} />,
         "Vehículo aprobado para cargue"
-      );
-    }
-    if (valor === "EN TRANSITO") {
-      return commonWrapper(
-        <TimelapseIcon sx={{ color: "#ffb516" }} />,
-        "En Transito"
       );
     }
     if (valor === "EN CARGUE") {
@@ -696,6 +710,25 @@ export default function TablaDespachosLogistica() {
         "En Cargue"
       );
     }
+    if (valor === "EN TRANSITO") {
+      return commonWrapper(
+        <TimelapseIcon sx={{ color: "#ffb516" }} />,
+        "En Transito"
+      );
+    }
+    if (valor === "EN CLIENTE") {
+      return commonWrapper(
+        <HowToRegIcon sx={{ color: "#3ed423" }} />,
+        "Ya aprobado y en Destino"
+      );
+    }
+    if (valor === "APROBADO POR EL CLIENTE") {
+      return commonWrapper(
+        <SentimentVerySatisfiedIcon sx={{ color: "#3ed423" }} />,
+        "Ya aprobado y en Destino"
+      );
+    }
+
     if (valor === "APROBADO CON OBSERVACIONES") {
       return commonWrapper(
         <ReportIcon sx={{ color: "#ff2d16" }} />,
@@ -708,12 +741,7 @@ export default function TablaDespachosLogistica() {
         "Rechazado por el Cliente"
       );
     }
-    if (valor === "EN CLIENTE") {
-      return commonWrapper(
-        <HowToRegIcon sx={{ color: "#3ed423" }} />,
-        "Ya aprobado y en Destino"
-      );
-    }
+
 
     return null;
   };

@@ -27,6 +27,7 @@ import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import DonutSmallIcon from '@mui/icons-material/DonutSmall';
 import CleaningServicesIcon from '@mui/icons-material/CleaningServices';
 import RestoreIcon from '@mui/icons-material/Restore';
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
 import PersonRemoveAlt1Icon from "@mui/icons-material/PersonRemoveAlt1";
 import PlaylistRemoveIcon from "@mui/icons-material/PlaylistRemove";
@@ -106,14 +107,12 @@ const formatNumber = (n) => {
 const getEstadoVehiculo = (d) =>
   normalizeText(d?.lecturas?.vehiculo_rechazado).toUpperCase();
 
-const isAprobado = (estado) => ["NO", "APROBADO"].includes(estado);
-const isAprobadoConObs = (estado) =>
-  ["APROBADO CON OBSERVACIONES"].includes(estado);
-const isRechazado = (estado) => ["SI"].includes(estado); // RECHAZADO de planta
-const isRechazadoCliente = (estado) =>
-  ["RECHAZADO POR CLIENTE"].includes(estado);
-const isEnProceso = (estado) => ["EN TRANSITO", "EN CARGUE"].includes(estado);
-const isEnCliente = (estado) => ["EN CLIENTE"].includes(estado);
+const isAprobado = (estado) => ["APROBADO AMBIOCOM"].includes(estado);
+const isAprobadoConObs = (estado) => ["APROBADO CON OBSERVACIONES"].includes(estado);
+const isRechazado = (estado) => ["RECHAZADO AMBIOCOM"].includes(estado);
+const isRechazadoCliente = (estado) => ["RECHAZADO POR CLIENTE"].includes(estado);
+const isEnProceso = (estado) => ["EN PLANTA", "EN TRANSITO", "EN CARGUE", "EN CLIENTE"].includes(estado);
+const isAprobadocliente = (estado) => ["APROBADO POR EL CLIENTE"].includes(estado);
 
 const isValidDateISO = (s) => {
   const v = normalizeText(s);
@@ -260,7 +259,7 @@ const getDespachoInfo = (d) => {
     aprobadoConObs: isAprobadoConObs(estado),
 
     enProceso: isEnProceso(estado),
-    enCliente: isEnCliente(estado),
+    Aprobadocliente: isAprobadocliente(estado),
   };
 };
 
@@ -304,7 +303,7 @@ const buildComparativoBase = ({ programaciones, despachos }) => {
       const aprobado = d ? isAprobado(estadoVehiculo) : false;
       const aprobadoConObs = d ? isAprobadoConObs(estadoVehiculo) : false;
       const enProceso = d ? isEnProceso(estadoVehiculo) : false;
-      const enCliente = d ? isEnCliente(estadoVehiculo) : false;
+      const Aprobadocliente = d ? isAprobadocliente(estadoVehiculo) : false;
 
       const diffCantidad = cantidadRealPlanta - cantidadProgramada;
       const diffPlanta = Number(getDespachoDifPlanta(d) ?? 0);
@@ -348,7 +347,7 @@ const buildComparativoBase = ({ programaciones, despachos }) => {
         aprobado,
         aprobadoConObs,
         enProceso,
-        enCliente,
+        Aprobadocliente,
         estadoVehiculo,
       });
     }
@@ -535,9 +534,9 @@ const AnalisisDespachosBIPage = () => {
                   ? "Aprobado con observaciones"
                   : r.tieneProgramacion && r.tieneDespacho && r.aprobado
                     ? "Cumple"
-                    : r.tieneProgramacion && r.tieneDespacho && r.enProceso || !r.tieneProgramacion && r.tieneDespacho && r.enProceso
+                    : r.tieneProgramacion && r.tieneDespacho && r.enProceso  || !r.tieneProgramacion && r.tieneDespacho && r.enProceso 
                       ? "En proceso" :
-                      r.enCliente ? "En Cliente"
+                      r.Aprobadocliente ? "Aprobado En Cliente"
                         : "Sin datos";
 
       return {
@@ -850,28 +849,35 @@ const AnalisisDespachosBIPage = () => {
 
   const pieTransportadoras = useMemo(() => {
     const rows = comparativoFiltrado ?? [];
-    // solo programados
-    const prog = rows.filter((r) => (r.viajesProgramados ?? 0) > 0);
-    // Programados pendientes: programado y NO despachado
-    const pendientes = prog.filter(
-      (r) => (r.viajesRealizados ?? 0) === 0
-    ).length;
-    // Despachados programados: programado y despachado
-    const despProg = prog.filter((r) => (r.viajesRealizados ?? 0) > 0);
 
-    const cumplen = despProg.filter((r) => r.aprobado).length;
-    const conObs = despProg.filter((r) => r.aprobadoConObs).length;
-    const rechazados = despProg.filter((r) => r.rechazado).length;
-    const rechazadosCliente = despProg.filter((r) => r.rechazadoCliente).length;
-    const enProceso = despProg.filter((r) => r.enProceso).length;
+    const enProceso = rows.filter((r) =>
+      [
+        "EN PLANTA",
+        "APROBADO AMBIOCOM",
+        "EN CARGUE",
+        "EN TRANSITO",
+        "EN CLIENTE",
+      ].includes(r.estadoVehiculo)
+    ).length;
+
+    const rechazado = rows.filter((r) =>
+      [
+        "RECHAZADO POR CLIENTE",
+        "RECHAZADO AMBIOCOM",
+      ].includes(r.estadoVehiculo)
+    ).length;
+
+    const cumple = rows.filter((r) =>
+      [
+        "APROBADO POR EL CLIENTE",
+        "APROBADO CON OBSERVACIONES",
+      ].includes(r.estadoVehiculo)
+    ).length;
 
     return [
-      { name: "Programados (pendientes)", value: pendientes, color: "#1976d2" },
-      { name: "Cumple", value: cumplen, color: "#36b865" },
-      { name: "Aprobado con obs", value: conObs, color: "#F59E0B" },
-      { name: "Rechazado Ambiocom", value: rechazados, color: "#e53935" },
-      { name: "Rechazado por cliente", value: rechazadosCliente, color: "#6B7280", },
       { name: "En proceso", value: enProceso, color: "#8B5CF6" },
+      { name: "Rechazado", value: rechazado, color: "#e53935" },
+      { name: "Cumple", value: cumple, color: "#36b865" },
     ].filter((x) => x.value > 0);
   }, [comparativoFiltrado]);
 
@@ -1688,14 +1694,62 @@ const AnalisisDespachosBIPage = () => {
                 <Grid container spacing={2} justifyContent="center">
                   {/* Pie 1 */}
                   <Grid item xs={12} md={6}>
-                    <Typography
-                      variant="body2"
-                      sx={{ mb: 1, textAlign: "center" }}
-                      fontWeight="bold"
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 1,
+                        mb: 1,
+                      }}
                     >
-                      KPI cumplimiento por peso neto (Báscula Ambiocom vs Cliente) Según
-                      Tolerancia: ±{`${toleranciaKgCliente} Kg`}.
-                    </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ textAlign: "center" }}
+                        fontWeight="bold"
+                      >
+                        KPI cumplimiento por peso neto (Báscula Ambiocom vs Cliente)
+                        Según Tolerancia: ±{`${toleranciaKgCliente} Kg`}.
+                      </Typography>
+
+                      <Tooltip title="Información del gráfico">
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => {
+                            Swal.fire({
+                              icon: "info",
+                              title: "Cumplimiento por peso neto",
+                              html: `
+            <div style="text-align:left; line-height:1.7">
+              <b>Análisis de mermas :</b>
+              Este gráfico compara el peso neto registrado
+              por la báscula de Ambiocom frente al peso
+              recibido por el cliente.<br/><br/>
+
+              <b>Range:</b> Se encuentra dentro la tolerancia.<br/>
+              <b>Upper:</b> Diferencias por encima de la tolerancia.<br/>
+              <b>Low:</b> Diferencias por debajo de la tolerancia.
+
+            </div>
+          `,
+                              width: 500,
+                              confirmButtonText: "Entendido",
+                              confirmButtonColor: "#7b1fa2",
+                            });
+                          }}
+                          sx={{
+                            border: "1px solid #d1d5db",
+                            backgroundColor: "#f9fafb",
+                            "&:hover": {
+                              backgroundColor: "#ede9fe",
+                            },
+                          }}
+                        >
+                          <InfoOutlinedIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
 
                     <ResponsiveContainer width="100%" height={285}>
                       <PieChart>
@@ -1721,13 +1775,85 @@ const AnalisisDespachosBIPage = () => {
 
                   {/* Pie 2 */}
                   <Grid item xs={12} md={6}>
-                    <Typography
-                      variant="body2"
-                      sx={{ mb: 1, textAlign: "center" }}
-                      fontWeight="bold"
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 1,
+                        mb: 1,
+                      }}
                     >
-                      Distribución por transportadoras
-                    </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ textAlign: "center" }}
+                        fontWeight="bold"
+                      >
+                        Distribución por estados de despachos
+                      </Typography>
+
+                      <Tooltip title="Información del gráfico">
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => {
+                            Swal.fire({
+                              icon: "info",
+                              title: "Distribución de estados en Despachos",
+                              html: `
+<div style="text-align:left; line-height:1.8">
+  
+  <b>¿Qué muestra esta gráfica?</b><br/>
+  Representa el estado operativo actual de los despachos
+  registrados en el sistema según su flujo logístico.<br/><br/>
+
+  <b>Estados agrupados:</b>
+
+  <ul style="padding-left:18px">
+
+    <li>
+      <b>En proceso:</b>
+      Vehículos en estados:
+      <i>En planta, Aprobado Ambiocom, En cargue,
+      En tránsito o En cliente.</i>
+    </li>
+
+    <li>
+      <b>Rechazado:</b>
+      Vehículos rechazados en Ambiocom
+      o rechazados por el cliente.
+    </li>
+
+    <li>
+      <b>Cumple:</b>
+      Vehículos aprobados por el cliente
+      o aprobados con observaciones.
+    </li>
+
+  </ul>
+
+  <b>Nota:</b><br/>
+  Los porcentajes y cantidades cambian según
+  los filtros y rangos de fechas aplicados.
+</div>
+`,
+                              width: 650,
+                              confirmButtonText: "Entendido",
+                              confirmButtonColor: "#7b1fa2",
+                            });
+                          }}
+                          sx={{
+                            border: "1px solid #d1d5db",
+                            backgroundColor: "#f9fafb",
+                            "&:hover": {
+                              backgroundColor: "#ede9fe",
+                            },
+                          }}
+                        >
+                          <InfoOutlinedIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
 
                     <ResponsiveContainer width="100%" height={330}>
                       <PieChart>
@@ -1783,14 +1909,62 @@ const AnalisisDespachosBIPage = () => {
 
                   {/* Pie 3 */}
                   <Grid item xs={12} md={6}>
-                    <Typography
-                      variant="body2"
-                      sx={{ mb: 1, textAlign: "center" }}
-                      fontWeight="bold"
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 1,
+                        mb: 1,
+                      }}
                     >
-                      Estado de cumplimiento según tolerancia: ±{`${tolerancia} L`} (En Rango /
-                      por encima / Merma)
-                    </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ textAlign: "center" }}
+                        fontWeight="bold"
+                      >
+                        Estado de cumplimiento según tolerancia:
+                        ±{`${tolerancia} L`}
+                        (En rango / Exceso / Merma)
+                      </Typography>
+
+                      <Tooltip title="Información del gráfico">
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => {
+                            Swal.fire({
+                              icon: "info",
+                              title: "Cumplimiento Volumen por tolerancia 0.5%",
+                              html: `
+            <div style="text-align:left; line-height:1.7">
+              <b>Análisis de mermas :</b>
+              Este gráfico muestra la diferencia entre el
+              volumen programado o facturado y el volumen despachado en planta.<br/><br/>
+
+              <b>En rango:</b> Dentro de la tolerancia permitida de despacho.<br/>
+              <b>Por encima:</b> Volumen despachado superior al facturado.<br/>
+              <b>Merma:</b> Volumen despachado inferior al facturado.
+
+            </div>
+          `,
+                              width: 500,
+                              confirmButtonText: "Entendido",
+                              confirmButtonColor: "#7b1fa2",
+                            });
+                          }}
+                          sx={{
+                            border: "1px solid #d1d5db",
+                            backgroundColor: "#f9fafb",
+                            "&:hover": {
+                              backgroundColor: "#ede9fe",
+                            },
+                          }}
+                        >
+                          <InfoOutlinedIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
 
                     <ResponsiveContainer width="100%" height={285}>
                       <PieChart>
@@ -1816,13 +1990,58 @@ const AnalisisDespachosBIPage = () => {
 
                   {/* Pie 4 */}
                   <Grid item xs={12} md={6}>
-                    <Typography
-                      variant="body2"
-                      sx={{ mb: 1, textAlign: "center" }}
-                      fontWeight="bold"
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 1,
+                        mb: 1,
+                      }}
                     >
-                      Cumple vs No cumple Programado vs Despachado
-                    </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ textAlign: "center" }}
+                        fontWeight="bold"
+                      >
+                        Cumple vs No cumple Programado vs Despachado
+                      </Typography>
+
+                      <Tooltip title="Información del gráfico">
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => {
+                            Swal.fire({
+                              icon: "info",
+                              title: "Cumple vs No cumple Programacion",
+                              html: `
+            <div style="text-align:left; line-height:1.7">
+              Este gráfico compara los registros que tienen
+              programación y despacho real contra los que no cumplen
+              esa condición.<br/><br/>
+
+              <b>Cumple:</b> Tiene programación y despacho registrado.<br/>
+              <b>No cumple:</b> Falta programación o falta despacho.
+            </div>
+          `,
+                              width: 500,
+                              confirmButtonText: "Entendido",
+                              confirmButtonColor: "#7b1fa2",
+                            });
+                          }}
+                          sx={{
+                            border: "1px solid #d1d5db",
+                            backgroundColor: "#f9fafb",
+                            "&:hover": {
+                              backgroundColor: "#ede9fe",
+                            },
+                          }}
+                        >
+                          <InfoOutlinedIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
 
                     <ResponsiveContainer width="100%" height={285}>
                       <PieChart>
@@ -1853,7 +2072,7 @@ const AnalisisDespachosBIPage = () => {
                       sx={{ mb: 1, textAlign: "center" }}
                       fontWeight="bold"
                     >
-                      Cumple vs No cumple Programado vs Despachado
+                      Cumple vs No cumple Hora Programada
                     </Typography>
 
                     <ResponsiveContainer width="100%" height={285}>
@@ -2780,7 +2999,7 @@ const AnalisisDespachosBIPage = () => {
                                   ) : r.estadoProgramacion === "En proceso" ? (
                                     <LocalGasStationIcon sx={{ fontSize: 26, color: "#64A7CC !important", }}
                                     />
-                                  ) : r.estadoProgramacion === "En Cliente" ? (
+                                  ) : r.estadoProgramacion === "Aprobado En Cliente" ? (
                                     <Box
                                       sx={{
                                         position: "relative",

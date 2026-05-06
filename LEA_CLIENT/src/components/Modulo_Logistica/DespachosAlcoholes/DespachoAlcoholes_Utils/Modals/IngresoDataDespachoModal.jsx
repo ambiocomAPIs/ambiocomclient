@@ -57,14 +57,25 @@ const CACHE_PREFIX = "despacho_catalogo_";
 const FORM_CACHE_PREFIX = "despacho_form_draft_";
 const TIME_KEYS = ["hora_llegada", "hora_salida"];
 const VEHICULO_RECHAZADO_KEY = "vehiculo_rechazado";
+// const VEHICULO_RECHAZADO_OPTIONS = [
+//   "SI",
+//   "NO",
+//   "EN TRANSITO",
+//   "EN CLIENTE",
+//   "APROBADO CON OBSERVACIONES",
+//   "RECHAZADO POR CLIENTE",
+//   "EN CARGUE",
+// ];
 const VEHICULO_RECHAZADO_OPTIONS = [
-  "SI",
-  "NO",
+  "EN PLANTA",
+  "RECHAZADO AMBIOCOM",
+  "APROBADO AMBIOCOM",
+  "EN CARGUE",
   "EN TRANSITO",
   "EN CLIENTE",
+  "APROBADO POR EL CLIENTE",
   "APROBADO CON OBSERVACIONES",
   "RECHAZADO POR CLIENTE",
-  "EN CARGUE",
 ];
 const RESPONSABLE_RECIBO_ROLES = [
   "developer",
