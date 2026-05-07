@@ -74,6 +74,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import FactoryIcon from '@mui/icons-material/Factory';
 import SentimentVerySatisfiedIcon from '@mui/icons-material/SentimentVerySatisfied';
+import SearchIcon from "@mui/icons-material/Search";
 
 import ExcelUploadButton from "../utils_Logistica/ExcelUploadButton";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -96,7 +97,23 @@ import { useAuth } from "../../../utils/Context/AuthContext/AuthContext.jsx";
 const API_DESPACHOS = "https://ambiocomserver.onrender.com/api/despacho-alcoholes";
 const API_COLUMNAS = "https://ambiocomserver.onrender.com/api/columna-despacho-alcoholes";
 
+const getRangoDefault = () => {
+  const hoy = new Date();
+
+  const desde = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+  const hasta = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+
+  const toISO = (fecha) => fecha.toISOString().slice(0, 10);
+
+  return {
+    desde: toISO(desde),
+    hasta: toISO(hasta),
+  };
+};
+
 export default function TablaDespachosLogistica() {
+  const rangoDefault = getRangoDefault();
+
   //refs del componente
   const tablaRef = useRef(null);
   const excelUploadRef = useRef(null);
@@ -110,8 +127,8 @@ export default function TablaDespachosLogistica() {
   const [openEditar, setOpenEditar] = useState(false);
   const [openColumna, setOpenColumna] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [fechaDesde, setFechaDesde] = useState("");
-  const [fechaHasta, setFechaHasta] = useState("");
+  const [fechaDesde, setFechaDesde] = useState(rangoDefault.desde);
+  const [fechaHasta, setFechaHasta] = useState(rangoDefault.hasta);
   const [density, setDensity] = useState(1);
   const [columnasVisibles, setColumnasVisibles] = useState(
     columnas.map((c) => c.key)
@@ -357,9 +374,19 @@ export default function TablaDespachosLogistica() {
   //   setMediciones(data);
   // };
 
-  const obtenerMediciones = async () => {
+  const obtenerMediciones = async (
+    desde = fechaDesde,
+    hasta = fechaHasta
+  ) => {
     try {
-      const { data } = await axios.get(API_DESPACHOS, { withCredentials: true });
+      const { data } = await axios.get(`${API_DESPACHOS}/rango`, {
+        params: {
+          from: desde,
+          to: hasta,
+        },
+        withCredentials: true,
+      });
+
       setMediciones(data);
     } catch (e) {
       console.error(e);
@@ -480,15 +507,15 @@ export default function TablaDespachosLogistica() {
       return ordenFechaAsc ? fa - fb : fb - fa; // funciona con el estado segun orden que se requiera
     });
 
-    if (fechaDesde) {
-      const fd = stringToDate(fechaDesde);
-      data = data.filter((m) => stringToDate(m.fecha) >= fd);
-    }
+    // if (fechaDesde) {
+    //   const fd = stringToDate(fechaDesde);
+    //   data = data.filter((m) => stringToDate(m.fecha) >= fd);
+    // }
 
-    if (fechaHasta) {
-      const fh = stringToDate(fechaHasta);
-      data = data.filter((m) => stringToDate(m.fecha) <= fh);
-    }
+    // if (fechaHasta) {
+    //   const fh = stringToDate(fechaHasta);
+    //   data = data.filter((m) => stringToDate(m.fecha) <= fh);
+    // }
 
     // Aplica filtros de columnas
     Object.entries(filtrosColumna).forEach(([key, valorFiltro]) => {
@@ -680,24 +707,14 @@ export default function TablaDespachosLogistica() {
         "Vehículo rechazado"
       );
     }
-    // if (valor === "SI") {
-    //   return commonWrapper(
-    //     <PersonRemoveAlt1Icon sx={{ color: "#9616ff" }} />,
-    //     "Vehículo rechazado"
-    //   );
-    // }
+
     if (valor === "RECHAZADO AMBIOCOM") {
       return commonWrapper(
         <PersonRemoveAlt1Icon sx={{ color: "#9616ff" }} />,
         "Vehículo rechazado"
       );
     }
-    // if (valor === "NO") {
-    //   return commonWrapper(
-    //     <ThumbUpAltIcon sx={{ color: "#47b69e" }} />,
-    //     "Vehículo aprobado para cargue"
-    //   );
-    // }
+
     if (valor === "APROBADO AMBIOCOM") {
       return commonWrapper(
         <ThumbUpAltIcon sx={{ color: "#47b69e" }} />,
@@ -1440,6 +1457,7 @@ export default function TablaDespachosLogistica() {
               type="date"
               label="Desde"
               size="small"
+              value={fechaDesde}
               InputLabelProps={{ shrink: true }}
               sx={{
                 mt: 0.5,
@@ -1460,6 +1478,7 @@ export default function TablaDespachosLogistica() {
               type="date"
               label="Hasta"
               size="small"
+              value={fechaHasta}
               InputLabelProps={{ shrink: true }}
               sx={{
                 mt: 0.5,
@@ -1475,6 +1494,24 @@ export default function TablaDespachosLogistica() {
               }}
               onChange={(e) => setFechaHasta(e.target.value)}
             />
+            <Tooltip title="Ejecutar búsqueda">
+              <IconButton
+                size="small"
+                onClick={() => obtenerMediciones()}
+                sx={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 1,
+                  backgroundColor: "#f8f9f6",
+                  border: "1px solid rgba(39, 21, 235, 0.12)",
+                  "&:hover": {
+                    backgroundColor: "#f5f1ee",
+                  },
+                }}
+              >
+                <SearchIcon />
+              </IconButton>
+            </Tooltip>
           </Box>
         </Box>
       </Box>

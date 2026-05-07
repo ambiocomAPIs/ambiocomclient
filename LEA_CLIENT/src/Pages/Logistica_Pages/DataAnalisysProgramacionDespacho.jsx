@@ -1612,11 +1612,11 @@ const AnalisisDespachosBIPage = () => {
                       dataKey="programado"
                       stroke="#1976d2"
                       strokeWidth={2}
-                      label={{
-                        position: "top",
-                        fontSize: 12,
-                        formatter: (v) => formatNumber(v),
-                      }}
+                      // label={{
+                      //   position: "top",
+                      //   fontSize: 12,
+                      //   formatter: (v) => formatNumber(v),
+                      // }}
                       dot={{ r: 3 }}
                     />
                     <Line
@@ -1624,11 +1624,11 @@ const AnalisisDespachosBIPage = () => {
                       dataKey="real"
                       stroke="#2e7d32"
                       strokeWidth={4}
-                      label={{
-                        position: "top",
-                        fontSize: 12,
-                        formatter: (v) => formatNumber(v),
-                      }}
+                      // label={{
+                      //   position: "top",
+                      //   fontSize: 12,
+                      //   formatter: (v) => formatNumber(v),
+                      // }}
                       dot={{ r: 3 }}
                     />
                     <Line
@@ -1636,11 +1636,11 @@ const AnalisisDespachosBIPage = () => {
                       dataKey="diff"
                       stroke="#ed6c02"
                       strokeWidth={2}
-                      label={{
-                        position: "top",
-                        fontSize: 12,
-                        formatter: (v) => formatNumber(v),
-                      }}
+                      // label={{
+                      //   position: "top",
+                      //   fontSize: 12,
+                      //   formatter: (v) => formatNumber(v),
+                      // }}
                       dot={{ r: 3 }}
                     />
                   </LineChart>

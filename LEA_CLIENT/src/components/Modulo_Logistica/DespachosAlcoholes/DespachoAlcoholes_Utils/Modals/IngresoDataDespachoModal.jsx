@@ -81,7 +81,7 @@ const RESPONSABLE_RECIBO_ROLES = [
   "developer",
   "liderlogistica",
   "auxiliarlogistica2",
-]; 
+];
 const LLEGADA_DESTINO_KEY = "llegada_destino";
 const LLEGADA_DESTINO_OPTIONS = ["PUNTUAL", "RETRASADO"];
 const REQUIRED_FIELDS = ["fecha", "responsable", "observaciones"];
@@ -234,13 +234,13 @@ const FORMULAS = {
 
   peso_neto_contador_ambiocom: (L) =>
     round(
-      toNum(L.final_contador_ambiocom) - toNum(L.inicio_contador_ambiocom),
+      toNum(L.final_contador_ambiocom) - toNum(L.inicio_contador_ambiocom) + toNum(L.tanque_adicional_contador_ambiocom),
       3
     ),
 
   volumen_ambiocom_contador: (L) =>
     round(
-      toNum(L.final_volumen_ambiocom) - toNum(L.inicio_volumen_ambiocom),
+      toNum(L.final_volumen_ambiocom) - toNum(L.inicio_volumen_ambiocom) + toNum(L.tanque_adicional_volumen_ambiocom),
       3
     ),
 
@@ -843,10 +843,12 @@ const IngresoDataDespachoModal = ({
     "brazo_despacho",
     "inicio_contador_ambiocom",
     "final_contador_ambiocom",
+    "tanque_adicional_contador_ambiocom",
     "peso_neto_contador_ambiocom",
     "volumen_contador_gravimetrico",
     "inicio_volumen_ambiocom",
     "final_volumen_ambiocom",
+    "tanque_adicional_volumen_ambiocom",
     "volumen_ambiocom_contador",
     "temperatura_despacho_contador_ambiocom",
     "muestreador_analista_laboratorio",
