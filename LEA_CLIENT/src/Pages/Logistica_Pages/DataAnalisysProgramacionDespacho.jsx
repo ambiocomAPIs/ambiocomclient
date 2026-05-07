@@ -383,7 +383,7 @@ const AnalisisDespachosBIPage = () => {
   });
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 250);
-  const [tolerancia, setTolerancia] = useState(200);
+  const [tolerancia, setTolerancia] = useState(0.5);
   const [toleranciaDespacho, setToleranciaDespacho] = useState(30);
   const [toleranciaKgCliente, setToleranciaKgCliente] = useState(30);
   const [openRadarModal, setOpenRadarModal] = useState(false);
@@ -515,9 +515,11 @@ const AnalisisDespachosBIPage = () => {
         r.cantidadProgramada > 0 &&
         Math.abs(r.diffCantidad) <= Number(toleranciaDespacho ?? 0);
 
-      const cumplioCantidadCliente =
-        r.cantidadProgramada > 0 &&
-        Math.abs(r.diffCliente) <= Number(tolerancia ?? 0);
+      const toleranciaMermaCliente = Number(r.cantidadProgramada ?? 0) * 0.005;
+      const superaMerma = Math.abs(r.diffCliente) > toleranciaMermaCliente;
+      const cumplioCantidadCliente = r.cantidadProgramada > 0 && !superaMerma;
+
+      // const cumplioCantidadCliente = r.cantidadProgramada > 0 && Math.abs(r.diffCliente) <= Number(tolerancia ?? 0);
 
       const cumplioViaje = r.tieneProgramacion && r.tieneDespacho;
 
@@ -534,7 +536,7 @@ const AnalisisDespachosBIPage = () => {
                   ? "Aprobado con observaciones"
                   : r.tieneProgramacion && r.tieneDespacho && r.aprobado
                     ? "Cumple"
-                    : r.tieneProgramacion && r.tieneDespacho && r.enProceso  || !r.tieneProgramacion && r.tieneDespacho && r.enProceso 
+                    : r.tieneProgramacion && r.tieneDespacho && r.enProceso || !r.tieneProgramacion && r.tieneDespacho && r.enProceso
                       ? "En proceso" :
                       r.Aprobadocliente ? "Aprobado En Cliente"
                         : "Sin datos";
@@ -817,10 +819,12 @@ const AnalisisDespachosBIPage = () => {
         prev.rechazadosAmbiocom += 1;
       } else if (r.rechazadoCliente) {
         prev.rechazadosCliente += 1;
-      } else if (r.viajesRealizados > 0 && r.aprobado) {
+      } else if (r.tieneProgramacion && r.tieneDespacho) {
         prev.cumplidos += 1;
       }
-
+      // else if (r.viajesRealizados > 0 && r.aprobado) {
+      //   prev.cumplidos += 1;
+      // }
       m.set(key, prev);
     }
 
@@ -938,17 +942,17 @@ const AnalisisDespachosBIPage = () => {
 
     return [
       {
-        name: `En rango (-${formatNumber(tol)} a ${formatNumber(tol)})`,
+        name: `En rango (${formatNumber(tol)}%)`,
         value: inRange,
         color: "#36b865",
       },
       {
-        name: `Por encima (+>${formatNumber(tol)})`,
+        name: `Por encima (+>${formatNumber(tol)}%)`,
         value: above,
         color: "#ed6c02",
       },
       {
-        name: `Por debajo (<-${formatNumber(tol)})`,
+        name: `Por debajo (<-${formatNumber(tol)}%)`,
         value: below,
         color: "#e53935",
       },
@@ -965,8 +969,8 @@ const AnalisisDespachosBIPage = () => {
     const noCumple = rows.length - cumple;
 
     return [
-      { name: "Cumple", value: cumple, color: "#36b865" },
-      { name: "No cumple", value: noCumple, color: "#e53935" },
+      { name: "Cumple Programación", value: cumple, color: "#36b865" },
+      { name: "No cumple Programación", value: noCumple, color: "#e53935" },
     ].filter((x) => x.value > 0);
   }, [comparativoFiltrado]);
 
@@ -1035,7 +1039,7 @@ const AnalisisDespachosBIPage = () => {
       {
         subject: "Volumen en rango",
         value: Number(pctEnRangoVolumen ?? 0),
-        meta: `Dentro de ±${tolerancia} L`,
+        meta: `Dentro de ±${tolerancia} %`,
       },
       {
         subject: "Peso en rango",
@@ -1194,7 +1198,7 @@ const AnalisisDespachosBIPage = () => {
                   sx={{ fontSize: 16 }}
                 >
                   Rango: <b>{range.from}</b> → <b>{range.to}</b> · Tolerancia:{" "}
-                  <b>{formatNumber(tolerancia)}</b> L
+                  <b>{formatNumber(tolerancia)}</b> %
                 </Typography>
               </Box>
             </Box>
@@ -1415,7 +1419,7 @@ const AnalisisDespachosBIPage = () => {
 
               <TextField
                 size="small"
-                label="Tolerancia KPi (L)"
+                label="Tolerancia KPi (%)"
                 type="number"
                 value={tolerancia}
                 onChange={(e) => setTolerancia(Number(e.target.value))}
@@ -1923,8 +1927,8 @@ const AnalisisDespachosBIPage = () => {
                         sx={{ textAlign: "center" }}
                         fontWeight="bold"
                       >
-                        Estado de cumplimiento según tolerancia:
-                        ±{`${tolerancia} L`}
+                        Estado de cumplimiento del despacho según tolerancia:
+                        ±{`${tolerancia} %`}
                         (En rango / Exceso / Merma)
                       </Typography>
 
