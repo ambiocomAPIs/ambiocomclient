@@ -229,19 +229,19 @@ const FORMULAS = {
         ? 0.0001
         : toNum(L.peso_neto_contador_ambiocom) /
         toNum(L.densidadlab_alcohol_tanque),
-      3
+      2
     ),
 
   peso_neto_contador_ambiocom: (L) =>
     round(
       toNum(L.final_contador_ambiocom) - toNum(L.inicio_contador_ambiocom) + toNum(L.tanque_adicional_contador_ambiocom),
-      3
+      2
     ),
 
   volumen_ambiocom_contador: (L) =>
     round(
       toNum(L.final_volumen_ambiocom) - toNum(L.inicio_volumen_ambiocom) + toNum(L.tanque_adicional_volumen_ambiocom),
-      3
+      2
     ),
 
   tiempo_neto_cargue_despacho: (L) => {
@@ -260,7 +260,7 @@ const FORMULAS = {
     round(
       toNum(L.peso_neto_bascula_ambiocom) -
       toNum(L.peso_neto_contador_ambiocom),
-      3
+      2
     ),
 
   variación_volumen: (L) =>
@@ -271,7 +271,7 @@ const FORMULAS = {
       toNum(L.kilos_peso_inicial) -
       toNum(L.kilos_peso_final) -
       toNum(L.peso_neto_bascula_ambiocom),
-      3
+      2
     ),
 
   diferencia_recibo_cliente_vnetofacturado: (L) =>
@@ -284,7 +284,7 @@ const FORMULAS = {
         : toNum(L.cantidad_recibida_cliente) - toNum(L.peso_neto_contador_ambiocom) /
         toNum(L.densidadlab_alcohol_tanque)
       ,
-      3
+      2
     ),
 
   dif_v_netodif_v_desp_bascula_ambiocom: (L) =>
@@ -293,7 +293,7 @@ const FORMULAS = {
         ? 0.0001
         : toNum(L.volumen_ambiocom_contador) /
         toNum(L.cantidad_recibida_cliente),
-      3
+      2
     ),
 };
 
