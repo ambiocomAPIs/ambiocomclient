@@ -20,6 +20,8 @@ import {
 
 import Swal from 'sweetalert2'
 
+import DOMPurify from "dompurify";
+
 import {calcularDiferenciaEnMeses} from '../utils/Functions/CalcularDiferenciaFechas'
 import {ExportExcelWithTemplate} from '../utils/Functions/DownloadExcelData'
 import DataTablePieChartInsumosModal from '../utils/modals/DataTablePieChartInsumosModal'
@@ -553,7 +555,7 @@ const clickColumFixed = (columnClicked) => {
   const CierreMes = async () => {
     const { value: formValues } = await Swal.fire({
       title: 'Cierre de Mes',
-      html:
+      html:DOMPurify.sanitize(
         '<input id="swal-input1" class="swal2-input" placeholder="Contraseña">' +
         '<select id="swal-input2" class="swal2-input">' +
           '<option value="">Seleccionar Mes</option>' +
@@ -569,7 +571,7 @@ const clickColumFixed = (columnClicked) => {
           '<option value="Octubre">Octubre</option>' +
           '<option value="Noviembre">Noviembre</option>' +
           '<option value="Diciembre">Diciembre</option>' +
-        '</select>',
+        '</select>'),
       focusConfirm: false,
       preConfirm: () => {
         const password = document.getElementById('swal-input1').value;

@@ -3,6 +3,8 @@ import React, { forwardRef, useImperativeHandle, useRef } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 
+import DOMPurify from "dompurify";
+
 const ExcelUploadButton = forwardRef(
   (
     {
@@ -69,7 +71,7 @@ const ExcelUploadButton = forwardRef(
     const showProLoading = (file) => {
       Swal.fire({
         title: "Procesando carga masiva",
-        html: `
+        html: DOMPurify.sanitize(`
           <div style="text-align:left; margin-top:10px">
             <div style="margin-bottom:8px">
               📁 <b>Archivo:</b> ${file.name}
@@ -95,7 +97,7 @@ const ExcelUploadButton = forwardRef(
               Iniciando...
             </div>
           </div>
-        `,
+        `),
         allowOutsideClick: false,
         allowEscapeKey: false,
         showConfirmButton: false,
@@ -173,10 +175,10 @@ const ExcelUploadButton = forwardRef(
         await Swal.fire({
           icon: totalErrores ? "warning" : "success",
           title: totalErrores ? "Carga finalizada con errores" : "Carga exitosa",
-          html: buildResultHtml({
+          html: DOMPurify.sanitize( buildResultHtml({
             insertados: res.data?.insertados,
             errores,
-          }),
+          })),
           confirmButtonText: "Aceptar",
           showCancelButton: totalErrores > 0,
           cancelButtonText: "Ver detalle completo",
@@ -190,7 +192,7 @@ const ExcelUploadButton = forwardRef(
             await Swal.fire({
               icon: "info",
               title: "Detalle de errores",
-              html: `<pre style="text-align:left; white-space:pre-wrap; max-height:320px; overflow:auto; margin:0">${detalle}</pre>`,
+              html: DOMPurify.sanitize(`<pre style="text-align:left; white-space:pre-wrap; max-height:320px; overflow:auto; margin:0">${detalle}</pre>`),
               confirmButtonText: "Cerrar",
               width: 750,
             });

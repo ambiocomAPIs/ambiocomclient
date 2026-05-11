@@ -35,6 +35,9 @@ import PlaylistRemoveIcon from "@mui/icons-material/PlaylistRemove";
 import ResumenKpiRadarModal from "./utils_Logistica_Page/ResumenKpiRadarModal";
 import ObservacionEstadoModal from "../../components/Modulo_Logistica/utils_Logistica/Logistica_Modals/ObservacionEstadoModal";
 
+// purificacion del DOM en renderizado HTML
+import DOMPurify from "dompurify";
+
 import {
   ResponsiveContainer,
   LineChart,
@@ -65,6 +68,22 @@ const useDebouncedValue = (value, delay = 250) => {
 };
 
 // Helpers
+
+const parseHoraToMinutes = (hora) => {
+  const value = normalizeText(hora);
+  if (!value) return null;
+
+  const match = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(value);
+  if (!match) return null;
+
+  const h = Number(match[1]);
+  const m = Number(match[2]);
+
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+
+  return h * 60 + m;
+};
 
 //formato para eliminar decimales tipo 12334,99887778 y se vea 12334,9
 const formatNumber1D = (n) => {
@@ -321,6 +340,8 @@ const buildComparativoBase = ({ programaciones, despachos }) => {
         transportadora,
         cliente,
         producto,
+        horaProgramada: normalizeText(p?.horaProgramada),
+        horaLlegada: normalizeText(d?.lecturas?.hora_llegada ?? d?.hora_llegada),
         conductor: normalizeText(d?.lecturas?.nombre_conductor),
         observacion: normalizeText(
           d?.observaciones ??
@@ -971,6 +992,55 @@ const AnalisisDespachosBIPage = () => {
     return [
       { name: "Cumple Programación", value: cumple, color: "#36b865" },
       { name: "No cumple Programación", value: noCumple, color: "#e53935" },
+    ].filter((x) => x.value > 0);
+  }, [comparativoFiltrado]);
+
+  const pieCumpleVsNoCumpleHoraProgramada = useMemo(() => {
+    const rows = comparativoFiltrado ?? [];
+
+    const resumen = rows.reduce(
+      (acc, r) => {
+        const horaProgramadaMin = parseHoraToMinutes(r.horaProgramada);
+        const horaLlegadaMin = parseHoraToMinutes(r.horaLlegada);
+
+        if (horaProgramadaMin === null || horaLlegadaMin === null) {
+          acc.sinDatos += 1;
+          return acc;
+        }
+
+        const limite = horaProgramadaMin + 15;
+
+        if (horaLlegadaMin <= limite) {
+          acc.cumple += 1;
+        } else {
+          acc.noCumple += 1;
+        }
+
+        return acc;
+      },
+      {
+        cumple: 0,
+        noCumple: 0,
+        sinDatos: 0,
+      }
+    );
+
+    return [
+      {
+        name: "Cumple Hora Programada",
+        value: resumen.cumple,
+        color: "#36b865",
+      },
+      {
+        name: "No cumple Hora Programada",
+        value: resumen.noCumple,
+        color: "#e53935",
+      },
+      {
+        name: "Sin datos",
+        value: resumen.sinDatos,
+        color: "#9ca3af",
+      },
     ].filter((x) => x.value > 0);
   }, [comparativoFiltrado]);
 
@@ -1724,7 +1794,7 @@ const AnalisisDespachosBIPage = () => {
                             Swal.fire({
                               icon: "info",
                               title: "Cumplimiento por peso neto",
-                              html: `
+                              html: DOMPurify.sanitize(`
             <div style="text-align:left; line-height:1.7">
               <b>Análisis de mermas :</b>
               Este gráfico compara el peso neto registrado
@@ -1736,7 +1806,7 @@ const AnalisisDespachosBIPage = () => {
               <b>Low:</b> Diferencias por debajo de la tolerancia.
 
             </div>
-          `,
+          `),
                               width: 500,
                               confirmButtonText: "Entendido",
                               confirmButtonColor: "#7b1fa2",
@@ -1804,7 +1874,7 @@ const AnalisisDespachosBIPage = () => {
                             Swal.fire({
                               icon: "info",
                               title: "Distribución de estados en Despachos",
-                              html: `
+                              html: DOMPurify.sanitize(`
 <div style="text-align:left; line-height:1.8">
   
   <b>¿Qué muestra esta gráfica?</b><br/>
@@ -1840,7 +1910,7 @@ const AnalisisDespachosBIPage = () => {
   Los porcentajes y cantidades cambian según
   los filtros y rangos de fechas aplicados.
 </div>
-`,
+`),
                               width: 650,
                               confirmButtonText: "Entendido",
                               confirmButtonColor: "#7b1fa2",
@@ -1940,7 +2010,7 @@ const AnalisisDespachosBIPage = () => {
                             Swal.fire({
                               icon: "info",
                               title: "Cumplimiento Volumen por tolerancia 0.5%",
-                              html: `
+                              html: DOMPurify.sanitize(`
             <div style="text-align:left; line-height:1.7">
               <b>Análisis de mermas :</b>
               Este gráfico muestra la diferencia entre el
@@ -1951,7 +2021,7 @@ const AnalisisDespachosBIPage = () => {
               <b>Merma:</b> Volumen despachado inferior al facturado.
 
             </div>
-          `,
+          `),
                               width: 500,
                               confirmButtonText: "Entendido",
                               confirmButtonColor: "#7b1fa2",
@@ -2019,7 +2089,7 @@ const AnalisisDespachosBIPage = () => {
                             Swal.fire({
                               icon: "info",
                               title: "Cumple vs No cumple Programacion",
-                              html: `
+                              html: DOMPurify.sanitize(`
             <div style="text-align:left; line-height:1.7">
               Este gráfico compara los registros que tienen
               programación y despacho real contra los que no cumplen
@@ -2028,7 +2098,7 @@ const AnalisisDespachosBIPage = () => {
               <b>Cumple:</b> Tiene programación y despacho registrado.<br/>
               <b>No cumple:</b> Falta programación o falta despacho.
             </div>
-          `,
+          `),
                               width: 500,
                               confirmButtonText: "Entendido",
                               confirmButtonColor: "#7b1fa2",
@@ -2069,20 +2139,66 @@ const AnalisisDespachosBIPage = () => {
                     </ResponsiveContainer>
                   </Grid>
 
-                  {/* Pie 5 */}
+                  {/* pie 5 */}
                   <Grid item xs={12} md={6}>
-                    <Typography
-                      variant="body2"
-                      sx={{ mb: 1, textAlign: "center" }}
-                      fontWeight="bold"
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 1,
+                        mb: 1,
+                      }}
                     >
-                      Cumple vs No cumple Hora Programada
-                    </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ textAlign: "center" }}
+                        fontWeight="bold"
+                      >
+                        Cumple vs No cumple Hora Programada
+                      </Typography>
+
+                      <Tooltip title="Información del gráfico">
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => {
+                            Swal.fire({
+                              icon: "info",
+                              title: "Cumple vs No cumple Hora Programada",
+                              html: DOMPurify.sanitize(`
+              <div style="text-align:left; line-height:1.7">
+                Este gráfico compara la hora de llegada del despacho
+                contra la hora programada definida en la programación diaria.
+                <br/><br/>
+
+                <b>Cumple:</b> La llegada fue antes, igual o máximo 15 minutos después de la hora programada.<br/>
+                <b>No cumple:</b> La llegada superó la hora programada por más de 15 minutos.<br/>
+                <b>Sin datos:</b> No existe hora programada, hora de llegada o alguno de los formatos no es válido.
+              </div>
+            `),
+                              width: 500,
+                              confirmButtonText: "Entendido",
+                              confirmButtonColor: "#7b1fa2",
+                            });
+                          }}
+                          sx={{
+                            border: "1px solid #d1d5db",
+                            backgroundColor: "#f9fafb",
+                            "&:hover": {
+                              backgroundColor: "#ede9fe",
+                            },
+                          }}
+                        >
+                          <InfoOutlinedIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
 
                     <ResponsiveContainer width="100%" height={285}>
                       <PieChart>
                         <Pie
-                          data={pieCumpleVsNoCumple}
+                          data={pieCumpleVsNoCumpleHoraProgramada}
                           dataKey="value"
                           nameKey="name"
                           innerRadius={55}
@@ -2091,10 +2207,11 @@ const AnalisisDespachosBIPage = () => {
                             `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
                           }
                         >
-                          {pieCumpleVsNoCumple.map((entry, idx) => (
-                            <Cell key={`cell-cumple-5-${idx}`} fill={entry.color} />
+                          {pieCumpleVsNoCumpleHoraProgramada.map((entry, idx) => (
+                            <Cell key={`cell-cumple-hora-programada-${idx}`} fill={entry.color} />
                           ))}
                         </Pie>
+
                         <RTooltip />
                         <Legend />
                       </PieChart>

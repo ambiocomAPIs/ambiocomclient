@@ -13,12 +13,12 @@ const endpoints = {
 };
 
 const colors = [
-    '#FFD93D', // amarillo
-    '#4ECDC4', // turquesa
-    '#FF9F1C', // naranja
-    '#1982C4', // azul
-    '#6A4C93', // morado
-    '#FF6B6B', // rojo claro
+  '#FFD93D', // amarillo
+  '#4ECDC4', // turquesa
+  '#FF9F1C', // naranja
+  '#1982C4', // azul
+  '#6A4C93', // morado
+  '#FF6B6B', // rojo claro
 ];
 
 // Parsear filtros múltiples
@@ -45,28 +45,72 @@ function escapeRegExp(string) {
 }
 
 // Función para resaltar coincidencias múltiples con colores diferentes
-function highlightText(text, filters) {
+function highlightTextSafe(text, filters) {
   if (!filters.length) return text;
 
-  let result = text;
-  filters.forEach((filter, idx) => {
-    let pattern;
-    if (filter.key && filter.value !== undefined) {
-      pattern = escapeRegExp(filter.value);
-    } else if (filter.text) {
-      pattern = escapeRegExp(filter.text);
-    } else {
-      return;
-    }
+  const matches = [];
 
-    const regex = new RegExp(pattern, 'gi');
-    const color = colors[idx % colors.length];
-    
-    // Reemplazar coincidencias con span color
-    result = result.replace(regex, match => `<span style="background-color: ${color}; color: black;">${match}</span>`);
+  filters.forEach((filter, idx) => {
+    const value = filter.key && filter.value !== undefined
+      ? filter.value
+      : filter.text;
+
+    if (!value) return;
+
+    const regex = new RegExp(escapeRegExp(value), "gi");
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+      matches.push({
+        start: match.index,
+        end: match.index + match[0].length,
+        color: colors[idx % colors.length],
+      });
+    }
   });
 
-  return result;
+  if (!matches.length) return text;
+
+  matches.sort((a, b) => a.start - b.start);
+
+  const nonOverlapping = [];
+  let lastEnd = 0;
+
+  for (const match of matches) {
+    if (match.start >= lastEnd) {
+      nonOverlapping.push(match);
+      lastEnd = match.end;
+    }
+  }
+
+  const parts = [];
+  let cursor = 0;
+
+  nonOverlapping.forEach((match, idx) => {
+    if (cursor < match.start) {
+      parts.push(text.slice(cursor, match.start));
+    }
+
+    parts.push(
+      <span
+        key={`highlight-${idx}-${match.start}`}
+        style={{
+          backgroundColor: match.color,
+          color: "black",
+        }}
+      >
+        {text.slice(match.start, match.end)}
+      </span>
+    );
+
+    cursor = match.end;
+  });
+
+  if (cursor < text.length) {
+    parts.push(text.slice(cursor));
+  }
+
+  return parts;
 }
 
 const ConsultasHttpDb = () => {
@@ -121,16 +165,21 @@ const ConsultasHttpDb = () => {
   // Función para renderizar JSON con highlights
   const renderHighlightedJSON = (data) => {
     if (!data) return null;
-    const jsonString = JSON.stringify(data, null, 2);
 
-    // Se reemplazan las coincidencias en todo el string JSON
-    const highlighted = highlightText(jsonString, filters);
+    const jsonString = JSON.stringify(data, null, 2);
 
     return (
       <pre
-        style={{ backgroundColor: '#f0f0f0', padding: '10px',height:'75vh',  overflow: 'auto', whiteSpace: 'pre-wrap' }}
-        dangerouslySetInnerHTML={{ __html: highlighted }}
-      />
+        style={{
+          backgroundColor: "#f0f0f0",
+          padding: "10px",
+          height: "75vh",
+          overflow: "auto",
+          whiteSpace: "pre-wrap",
+        }}
+      >
+        {highlightTextSafe(jsonString, filters)}
+      </pre>
     );
   };
 

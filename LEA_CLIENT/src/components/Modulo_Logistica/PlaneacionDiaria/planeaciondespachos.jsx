@@ -852,17 +852,29 @@ const ProgramacionDespachoDiariaPage = () => {
 
   const kpiPorDia = useMemo(() => {
     const m = new Map();
+
     for (const r of rowsFiltrados ?? []) {
       const f = normalizeText(r.fecha);
+
       if (!isValidDateISO(f)) continue;
-      const prev = m.get(f) || { fecha: f, viajes: 0, cantidad: 0 };
+
+      const prev = m.get(f) || {
+        fecha: f,
+        viajes: 0,
+        cantidad: 0,
+      };
+
       prev.viajes += 1;
       prev.cantidad += Number(r?.cantidad ?? 0);
+
       m.set(f, prev);
     }
+
     return Array.from(m.entries())
-      .sort((a, b) => (a[0] < b[0] ? -1 : 1))
-      .map(([, v]) => v);
+      .sort((a, b) => new Date(b[0]) - new Date(a[0])) // más reciente primero
+      .slice(0, 8) // últimos 5 días
+      .map(([, v]) => v)
+      .reverse(); // opcional: para mostrar del más viejo al más reciente
   }, [rowsFiltrados]);
 
   const top10Dias = kpiPorDia.slice(0, 10);
@@ -876,7 +888,7 @@ const ProgramacionDespachoDiariaPage = () => {
     !!filters.destino;
 
   return (
-    <Box p={{ xs: 2, md: 4 }} mt={5}>
+    <Box p={{ xs: 2, md: 1 }} mt={5}>
       <Card elevation={4} sx={{ borderRadius: 3 }}>
         <CardContent>
           {/* Header */}
@@ -989,6 +1001,11 @@ const ProgramacionDespachoDiariaPage = () => {
                 sx={{
                   width: { xs: "100%", md: 190 },   // ✅ ancho fijo en desktop
                   maxWidth: { md: 210 },
+                  "& input[type='date']::-webkit-calendar-picker-indicator": {
+                    filter: "invert(0)", // negro
+                    opacity: 1,
+                    cursor: "pointer",
+                  },
                 }}
               />
 
@@ -1003,6 +1020,11 @@ const ProgramacionDespachoDiariaPage = () => {
                 sx={{
                   width: { xs: "100%", md: 190 },
                   maxWidth: { md: 210 },
+                  "& input[type='date']::-webkit-calendar-picker-indicator": {
+                    filter: "invert(0)", // negro
+                    opacity: 1,
+                    cursor: "pointer",
+                  },
                 }}
               />
 
@@ -1208,7 +1230,7 @@ const ProgramacionDespachoDiariaPage = () => {
                 fontWeight="bold"
                 sx={{ mb: 1 }}
               >
-                Resumen por día (según filtro actual)
+                Resumen por día (se listarán los últimos 8 dias de la programacion según filtro actual)
               </Typography>
 
               <Box
@@ -1535,14 +1557,14 @@ const ProgramacionDespachoDiariaPage = () => {
               <TableHead>
                 <TableRow>
                   <TableCell align="center"><strong>Fecha</strong></TableCell>
-                  <TableCell  align="center"><strong>Hora</strong></TableCell>
-                  <TableCell  align="center"><strong>Placa</strong></TableCell>
-                  <TableCell  align="center"><strong>Trailer</strong></TableCell>
-                  <TableCell  align="center"><strong>Conductor</strong></TableCell>
-                  <TableCell  align="center"><strong>Transportadora</strong></TableCell>
-                  <TableCell  align="center"><strong>Cliente</strong></TableCell>
-                  <TableCell  align="center"><strong>Destino</strong></TableCell>
-                  <TableCell  align="center"><strong>Producto</strong></TableCell>
+                  <TableCell align="center"><strong>Hora</strong></TableCell>
+                  <TableCell align="center"><strong>Placa</strong></TableCell>
+                  <TableCell align="center"><strong>Trailer</strong></TableCell>
+                  <TableCell align="center"><strong>Conductor</strong></TableCell>
+                  <TableCell align="center"><strong>Transportadora</strong></TableCell>
+                  <TableCell align="center"><strong>Cliente</strong></TableCell>
+                  <TableCell align="center"><strong>Destino</strong></TableCell>
+                  <TableCell align="center"><strong>Producto</strong></TableCell>
                   <TableCell align="center"><strong>Cantidad</strong></TableCell>
                   <TableCell align="center"><strong>Checked</strong></TableCell>
                   <TableCell align="center"><strong>Acciones</strong></TableCell>

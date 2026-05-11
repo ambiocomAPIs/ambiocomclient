@@ -292,7 +292,7 @@ const ConductoresPage = () => {
   const filtrados = conductoresFiltrados.length;
 
   return (
-    <Box p={4} mt={5}>
+    <Box p={0} mt={5}>
       <Card elevation={4}>
         <CardContent>
           {/* Header + chips + buscador */}

@@ -5,6 +5,8 @@ import { Box, Button, TextField, Typography } from '@mui/material';
 import Swal from 'sweetalert2';
 import SendIcon from '@mui/icons-material/Send';
 
+import DOMPurify from "dompurify";
+
 const FileUpload = ({ uploadrowId }) => {
   const [file, setFile] = useState(null);
   const [fileExtension, setFileExtension] = useState('');
@@ -86,7 +88,7 @@ const FileUpload = ({ uploadrowId }) => {
                 let timerInterval;
                 Swal.fire({
                     title: 'Reemplazo exitoso',
-                    html: 'Redirigiendo en <b></b> milisegundos.',
+                    html: DOMPurify.sanitize( 'Redirigiendo en <b></b> milisegundos.'),
                     timer: 2000,  // Tiempo de espera en milisegundos
                     timerProgressBar: true,
                     didOpen: () => {
@@ -121,7 +123,7 @@ const FileUpload = ({ uploadrowId }) => {
             let timerInterval;
             Swal.fire({
                 title: 'Archivo cargado correctamente',
-                html: 'Redirigiendo en <b></b> milisegundos.',
+                html: DOMPurify.sanitize( 'Redirigiendo en <b></b> milisegundos.'),
                 timer: 2000,  // Tiempo de espera en milisegundos
                 timerProgressBar: true,
                 didOpen: () => {

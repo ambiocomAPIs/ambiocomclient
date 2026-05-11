@@ -25,6 +25,8 @@ import {
   MenuItem,
 } from "@mui/material";
 
+import DOMPurify from "dompurify";
+
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SaveIcon from "@mui/icons-material/Save";
@@ -91,7 +93,7 @@ export default function GestionColumnasAlcoholes() {
   const requestSecurityCredentials = async () => {
     const result = await Swal.fire({
       title: "Acceso restringido",
-      html: `
+      html: DOMPurify.sanitize(`
         <div style="display:flex; flex-direction:column; gap:10px; text-align:left;">
           <div style="font-size:13px; opacity:0.85;">
             Rol requerido: <b>developer</b>
@@ -99,7 +101,7 @@ export default function GestionColumnasAlcoholes() {
           <label style="font-size:13px; opacity:0.8;">Contraseña</label>
           <input id="swal-pass" type="password" class="swal2-input" placeholder="Contraseña" style="margin:0;" />
         </div>
-      `,
+      `),
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Ingresar",
@@ -314,11 +316,11 @@ export default function GestionColumnasAlcoholes() {
   const handleDeleteDespacho = async (col) => {
     const res = await Swal.fire({
       title: "¿Desactivar columna de despacho?",
-      html: `<div style="text-align:left;">
+      html:DOMPurify.sanitize( `<div style="text-align:left;">
         <b>Nombre:</b> ${col.nombre || ""}<br/>
         <b>Key:</b> ${col.key || ""}<br/><br/>
         Se marcará como <b>inactiva</b> (activo=false).
-      </div>`,
+      </div>`),
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Sí, desactivar",
@@ -403,11 +405,11 @@ export default function GestionColumnasAlcoholes() {
   const handleDeleteRecepcion = async (col) => {
     const res = await Swal.fire({
       title: "¿Desactivar columna de recepción?",
-      html: `<div style="text-align:left;">
+      html: DOMPurify.sanitize(`<div style="text-align:left;">
         <b>Nombre:</b> ${col.nombre || ""}<br/>
         <b>Key:</b> ${col.key || ""}<br/><br/>
         Se marcará como <b>inactiva</b> (activo=false).
-      </div>`,
+      </div>`),
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Sí, desactivar",

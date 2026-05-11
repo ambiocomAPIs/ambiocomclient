@@ -5,6 +5,8 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import axios from 'axios';
 
+import DOMPurify from "dompurify";
+
 const tipos = ['HED', 'HEN', 'HEFD', 'HEFN', 'HFD', 'HFN', 'RN'];
 
 const PanelHoras = () => {
@@ -127,7 +129,7 @@ const PanelHoras = () => {
     // Muestra mensaje con hora inicio-fin, total y resumen recargos
     Swal.fire({
       title: 'Turno finalizado',
-      html: `
+      html:DOMPurify.sanitize(`
         <p><strong>Desde:</strong> ${inicio.toLocaleTimeString()}</p>
         <p><strong>Hasta:</strong> ${fin.toLocaleTimeString()}</p>
         <p><strong>Total horas trabajadas:</strong> ${diffHoras.toFixed(2)} h</p>
@@ -135,7 +137,7 @@ const PanelHoras = () => {
         <ul style="list-style:none; padding-left: 0;">
           ${tipos.map(t => `<li>${t}: ${resumenRecargos[t]}</li>`).join('')}
         </ul>
-      `,
+      `),
       icon: 'info',
     });
   };
@@ -165,7 +167,7 @@ const PanelHoras = () => {
     // Mostrar formulario para agregar usuario
     const { value: formValues } = await Swal.fire({
       title: 'Agregar nuevo usuario',
-      html:
+      html: DOMPurify.sanitize(
         `<div style="display: flex; flex-direction: column; gap: 12px; font-family: Arial, sans-serif; font-size: 14px;">
           <input id="nombre" class="swal2-input" placeholder="Nombre completo" style="padding: 10px; border-radius: 6px; border: 1px solid #ccc;">
           <select id="tipoDocumento" class="swal2-select" style="padding: 10px; border-radius: 6px; border: 1px solid #ccc;">
@@ -178,7 +180,7 @@ const PanelHoras = () => {
           <input id="grupoAsignado" class="swal2-input" placeholder="Grupo Asignado" style="padding: 10px; border-radius: 6px; border: 1px solid #ccc;">
           <label for="fechaNacimiento" style="font-weight: 600; margin-bottom: 0px;">Fecha de nacimiento</label>
          <input id="fechaNacimiento" type="date" class="swal2-input" style="padding: 10px; border-radius: 6px; border: 1px solid #ccc;">
-        </div>`,
+        </div>`),
       focusConfirm: false,
       showCancelButton: true,
       preConfirm: () => {
