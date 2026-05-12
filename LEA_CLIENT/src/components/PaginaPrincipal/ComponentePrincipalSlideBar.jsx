@@ -71,6 +71,7 @@ import TablaDespachosLogisticaReadOnly from "../Modulo_Logistica/ReadOnlyCompone
 import ProgramacionDespachoReadOnlyPage from "../Modulo_Logistica/ReadOnlyComponents/Despachos_List_ReadOnly/ProgramacionDespachoReadOnlyPage.jsx"
 import TablaRecepcionVehiculosReadOnly from '../Modulo_Logistica/ReadOnlyComponents/Recepciones_List/TablaRecepcionesLogisticaReadOnly.jsx';
 //MODULO LABORATORIO
+import LAB_FO_XX from '../Modulo_Laboratorio/LAB_FO_XX.jsx'
 //MODULO AGUAS
 import TableFormatoRegeneracionResinas from '../PTAP/TableFormatoRegeneracionResinas.jsx'
 //empelados
@@ -99,7 +100,7 @@ import {
     ptapIcon, GraphIcon, BarGraphIcon, BarGraphComparativeIcon, robotAssistanceIcon, bitacoraIcon, StopWatchIcon, PdfIcon, DatabaseAdministratorIcon, workerIcon,
     TankGraphIcon, CounterIcon, MoneyGraphIcon, EnergyIcon, EnergyDataIcon, InOutMaderaCarbonIcon, InformeIcon, TankWithLiquidIcon, ReportIcon,
     Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon, PersonalIcons, plannerIconDate, logsIcon, VesselTkIcon, VesselTkIconChemical, ListToDoIcon, ArcadeIcon,
-    WaterTankIcon, VentasIcon
+    WaterTankIcon, VentasIcon, WaterKeyIcon
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -302,7 +303,9 @@ export default function EmpresarialPrincipalSchedulerApp() {
                             icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
                         }
                     ]
-                }
+                },
+                { text: 'Análisis Agua', subKey: 'formatoseguimientoaguas', roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio", "operarioaguas"], icon: <img src={WaterKeyIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
+
             ],
         },
         {
@@ -505,12 +508,12 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'despachoalcoholeslogisticareadonly': return <TablaDespachosLogisticaReadOnly />;
             case 'planeaciondiariadespachosreadonly': return <ProgramacionDespachoReadOnlyPage />;
             case 'recepcionalcoholeslogisticareadonly': return <TablaRecepcionVehiculosReadOnly />;
+            case 'formatoseguimientoaguas': return <LAB_FO_XX />;
             //PTAP
             case 'regeneracionresinas': return <TableFormatoRegeneracionResinas />;
             // Comerciale
             case 'nivelestanquesjornalerospaginavistacomercial': return <GraficoNivelesTanquesPorDiaPageComponente NivelesTanquesContext={nivelesTanques} />;
             case 'conductoresreadonly': return <ConductoresReadOnlyPage />;
-
             //Modulo Desarrollador
             case 'taskandrequeriments': return <TaskRequerimentDev />;
             case 'basededatos': return <ConsultasHttpDb />;
