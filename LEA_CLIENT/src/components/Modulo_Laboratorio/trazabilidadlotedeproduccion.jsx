@@ -589,11 +589,11 @@ export default function TablaTrazabilidadLaboratorio() {
   );
 
   return (
-    <Box sx={{ p: 1.5, mt: 8, bgcolor: "#f3f3f3", minHeight: "90vh" }}>
+    <Box sx={{ p: 1.0, mt: 6.0, bgcolor: "#f3f3f3", minHeight: "92vh" }}>
       <Box
         sx={{
-          mb: 4,
-          mt: 3,
+          mb: 1.5,
+          mt: 1,
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
@@ -760,7 +760,7 @@ export default function TablaTrazabilidadLaboratorio() {
             </tr>
 
             <tr>
-              <td colSpan={24} style={{ ...cellStyle, height: 35, borderLeft: "none", borderRight: "none" }} />
+              <td colSpan={24} style={{ ...cellStyle, height: 25, borderLeft: "none", borderRight: "none" }} />
             </tr>
 
             <tr>
@@ -855,7 +855,7 @@ export default function TablaTrazabilidadLaboratorio() {
             </tr>
 
             <tr>
-              <td colSpan={24} style={{ ...cellStyle, height: 28, borderLeft: "none", borderRight: "none" }} />
+              <td colSpan={24} style={{ ...cellStyle, height: 22, borderLeft: "none", borderRight: "none" }} />
             </tr>
 
             <tr>
