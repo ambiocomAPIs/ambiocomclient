@@ -121,8 +121,8 @@ const headerCell = {
   ...cellStyle,
   background: "#fff",
   fontWeight: 500,
-  fontSize: 10,
-  height: 31,
+  fontSize: 8,
+  height: 35,
 };
 
 const labelCell = {
@@ -1072,7 +1072,7 @@ export default function TablaTrazabilidadLaboratorio() {
             {permittedRows.map((row, rowIndex) => (
               <tr key={`permitted-${rowIndex}`}>
                 {row.map((value, colIndex) => (
-                  <td key={colIndex} style={{ ...cellStyle, fontSize: 12 }}>
+                  <td key={colIndex} style={{ ...cellStyle, fontSize: 11 }}>
                     {value}
                   </td>
                 ))}
