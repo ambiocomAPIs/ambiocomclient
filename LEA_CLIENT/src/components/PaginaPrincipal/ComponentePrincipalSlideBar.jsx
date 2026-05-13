@@ -72,6 +72,7 @@ import ProgramacionDespachoReadOnlyPage from "../Modulo_Logistica/ReadOnlyCompon
 import TablaRecepcionVehiculosReadOnly from '../Modulo_Logistica/ReadOnlyComponents/Recepciones_List/TablaRecepcionesLogisticaReadOnly.jsx';
 //MODULO LABORATORIO
 import LAB_FO_XX from '../Modulo_Laboratorio/LAB_FO_XX.jsx'
+import TrazabilidadLoteDeProduccion from '../Modulo_Laboratorio/trazabilidadlotedeproduccion.jsx';
 //MODULO AGUAS
 import TableFormatoRegeneracionResinas from '../PTAP/TableFormatoRegeneracionResinas.jsx'
 //empelados
@@ -251,7 +252,9 @@ export default function EmpresarialPrincipalSchedulerApp() {
                             icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
                         }
                     ]
-                }
+                },
+                { text: 'Análisis Agua', subKey: 'formatoseguimientoaguas', roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio", "operarioaguas"], icon: <img src={WaterKeyIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
+
             ],
         },
         {
@@ -305,7 +308,14 @@ export default function EmpresarialPrincipalSchedulerApp() {
                     ]
                 },
                 { text: 'Análisis Agua', subKey: 'formatoseguimientoaguas', roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio", "operarioaguas"], icon: <img src={WaterKeyIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
-
+                { text: 'Trazabilidad Lote Produccion', subKey: 'TrazabilidadLoteDeProduccion', roles: ["admin", "developer", "gerente", "laboratorio"], icon: <img src={WaterKeyIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
+            ],
+        },
+        {
+            text: 'Planta de Aguas', roles: ["admin", "developer", "supervisor", "operarioaguas"], icon: <img src={ptapIcon} alt="plantadeaguas" style={{ width: 25, height: 25 }} />, key: 'plantadeaguas', subItems: [
+                { text: 'Medidores', subKey: 'registrodemedidores', roles: ["admin", "developer", "supervisor", "operarioaguas"], icon: <img src={CounterIcon} alt="Medidores" style={{ width: 25, height: 25 }} /> },
+                { text: 'Regeneracion', subKey: 'regeneracionresinas', roles: ["admin", "developer", "supervisor", "operarioaguas"], icon: <img src={WaterTankIcon} alt="regeneracionresinas" style={{ width: 35, height: 37 }} /> },
+                { text: 'Análisis Agua', subKey: 'formatoseguimientoaguas', roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio", "operarioaguas"], icon: <img src={WaterKeyIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
             ],
         },
         {
@@ -368,13 +378,6 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'Isumos Kg/L [OH]', subKey: 'comparativomensualinsumosquimicoscomponent', /* roles: ["admin","supervisor"], */ icon: <img src={BarGraphComparativeIcon} alt="comparativomensualinsumosquimicoscomponent" style={{ width: 25, height: 25 }} /> },
                 { text: 'Isumos $/L [OH]', subKey: 'Comparativomensualinsumosquimicoscostolitro', /* roles: ["admin","supervisor"], */ icon: <img src={MoneyGraphIcon} alt="Comparativomensualinsumosquimicoscostolitro" style={{ width: 25, height: 25 }} /> },
 
-            ],
-        },
-
-        {
-            text: 'Planta de Aguas', roles: ["admin", "developer", "supervisor", "operarioaguas"], icon: <img src={ptapIcon} alt="plantadeaguas" style={{ width: 25, height: 25 }} />, key: 'plantadeaguas', subItems: [
-                { text: 'Medidores', subKey: 'registrodemedidores', roles: ["admin", "developer", "supervisor", "operarioaguas"], icon: <img src={CounterIcon} alt="Medidores" style={{ width: 25, height: 25 }} /> },
-                { text: 'Regeneracion', subKey: 'regeneracionresinas', roles: ["admin", "developer", "supervisor", "operarioaguas"], icon: <img src={WaterTankIcon} alt="regeneracionresinas" style={{ width: 35, height: 37 }} /> },
             ],
         },
         {
@@ -509,6 +512,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'planeaciondiariadespachosreadonly': return <ProgramacionDespachoReadOnlyPage />;
             case 'recepcionalcoholeslogisticareadonly': return <TablaRecepcionVehiculosReadOnly />;
             case 'formatoseguimientoaguas': return <LAB_FO_XX />;
+            case 'TrazabilidadLoteDeProduccion': return <TrazabilidadLoteDeProduccion />;
             //PTAP
             case 'regeneracionresinas': return <TableFormatoRegeneracionResinas />;
             // Comerciale

@@ -294,18 +294,16 @@ export default function TablaDespachosLogistica() {
   ]);
 
   //doble click para mostrar observaciones si un vehiculo ha sido rechazado o aprobado con observaciones
-  const handleDblClickVehiculo = (row) => {
+  const handleOpenClickVehiculo = (row) => {
     const estado = (row?.lecturas?.vehiculo_rechazado || "")
       .toString()
       .toUpperCase()
       .trim();
 
-    // solo estos abren modal
-    // if (estado !== "SI" && estado !== "APROBADO CON OBSERVACIONES") return; al comentarlo hace que todos sean clickeable.
-
     const observacion = (row?.observaciones || "").toString().trim();
 
     setObsVehiculoData({
+      row,
       estado,
       observacion: observacion || "Esta fila no tiene observación registrada",
       fecha: row?.fecha || "",
@@ -314,6 +312,11 @@ export default function TablaDespachosLogistica() {
       transportadora: row?.lecturas?.transportadora || "",
       producto: row?.lecturas?.producto || "",
       conductor: row?.lecturas?.nombre_conductor || "",
+      volumenFacturado: row?.lecturas?.volumen_despachar || "",
+      volumenDespachado: row?.lecturas?.volumen_ambiocom_contador || "",
+      pesoNeto: row?.lecturas?.peso_neto_bascula_ambiocom || "",
+      remisionFactura: row?.lecturas?.remision_factura || "",
+      ordenFabricacion: row?.lecturas?.orden_fabricacion || "",
     });
 
     setOpenObsVehiculo(true);
@@ -1724,15 +1727,26 @@ export default function TablaDespachosLogistica() {
 
                       {/* ICONO Vehiculo */}
                       <Box
-                        onDoubleClick={(e) => {
-                          // doble click para abrir nota
+                        onClick={(e) => {
                           e.stopPropagation();
-                          handleDblClickVehiculo(row);
+                          handleOpenClickVehiculo(row);
                         }}
                         sx={{
                           display: "flex",
                           alignItems: "center",
+                          justifyContent: "center",
                           cursor: "pointer",
+                          transition: "all 0.18s ease",
+                          borderRadius: "50%",
+                          width: 30,
+                          height: 30,
+                          "&:hover": {
+                            backgroundColor: "rgba(25,118,210,0.08)",
+                            transform: "scale(1.08)",
+                          },
+                          "&:active": {
+                            transform: "scale(0.96)",
+                          },
                         }}
                       >
                         {renderIconoVehiculo(row.lecturas?.vehiculo_rechazado)}
@@ -1940,8 +1954,10 @@ export default function TablaDespachosLogistica() {
         open={openObsVehiculo}
         onClose={() => setOpenObsVehiculo(false)}
         data={obsVehiculoData}
-        title="Observación del vehículo"
-        subtitle="Revisión / control de despacho"
+        apiUrl={API_DESPACHOS}
+        onUpdated={obtenerMediciones}
+        title="Gestión de estado del vehículo"
+        subtitle="Información completa del despacho"
       />
       {/* ================= MODAL COLUMNA ================= */}
       <Dialog open={openColumna} fullWidth maxWidth="xs">

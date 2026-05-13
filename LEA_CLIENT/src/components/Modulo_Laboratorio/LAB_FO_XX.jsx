@@ -1098,7 +1098,7 @@ export default function TablaAguaAmbiocom() {
                     style={{
                       ...cellStyle,
                       background: index % 2 === 0 ? "#d9d9d9" : "#fff",
-                      fontSize: 8,
+                      fontSize: 10,
                     }}
                   >
                     {value}
