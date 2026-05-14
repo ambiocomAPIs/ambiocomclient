@@ -312,7 +312,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'Análisis Agua', subKey: 'formatoseguimientoaguas', roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio", "operarioaguas"], icon: <img src={WaterKeyIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
                 { text: 'Trazabilidad Lote Produccion', subKey: 'TrazabilidadLoteDeProduccion', roles: ["admin", "developer", "gerente", "laboratorio"], icon: <img src={WaterKeyIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
                 { text: 'Control Calidad Proceso', subKey: 'Trazabilidadcontrolcalidadenproceso', roles: ["admin", "developer", "gerente", "laboratorio"], icon: <img src={WaterKeyIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
-                { text: 'Trazabilidad Regeneracion', subKey: 'TrazabilidadRegistroRegeneracionResinas', roles: ["admin", "developer", "gerente", "laboratorio"], icon: <img src={WaterKeyIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
+                { text: 'Trazabilidad Regeneracion', subKey: 'TrazabilidadRegistroRegeneracionResinas', roles: ["admin", "developer", "gerente", "laboratorio"], icon: <img src={WaterTankIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
             ],
         },
         {
