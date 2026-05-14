@@ -74,6 +74,7 @@ import TablaRecepcionVehiculosReadOnly from '../Modulo_Logistica/ReadOnlyCompone
 import LAB_FO_XX from '../Modulo_Laboratorio/LAB_FO_XX.jsx'
 import TrazabilidadLoteDeProduccion from '../Modulo_Laboratorio/trazabilidadlotedeproduccion.jsx';
 import ControlCalidadEnProceso from '../Modulo_Laboratorio/ControlCalidadEnProceso.jsx';
+import RegistroRegeneracionResinas from '../Modulo_Laboratorio/RegistroRegeneracionResinas.jsx';
 //MODULO AGUAS
 import TableFormatoRegeneracionResinas from '../PTAP/TableFormatoRegeneracionResinas.jsx'
 //empelados
@@ -311,6 +312,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'Análisis Agua', subKey: 'formatoseguimientoaguas', roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio", "operarioaguas"], icon: <img src={WaterKeyIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
                 { text: 'Trazabilidad Lote Produccion', subKey: 'TrazabilidadLoteDeProduccion', roles: ["admin", "developer", "gerente", "laboratorio"], icon: <img src={WaterKeyIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
                 { text: 'Control Calidad Proceso', subKey: 'Trazabilidadcontrolcalidadenproceso', roles: ["admin", "developer", "gerente", "laboratorio"], icon: <img src={WaterKeyIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
+                { text: 'Trazabilidad Regeneracion', subKey: 'TrazabilidadRegistroRegeneracionResinas', roles: ["admin", "developer", "gerente", "laboratorio"], icon: <img src={WaterKeyIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
             ],
         },
         {
@@ -516,6 +518,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'formatoseguimientoaguas': return <LAB_FO_XX />;
             case 'TrazabilidadLoteDeProduccion': return <TrazabilidadLoteDeProduccion />;
             case 'Trazabilidadcontrolcalidadenproceso': return <ControlCalidadEnProceso />;
+            case 'TrazabilidadRegistroRegeneracionResinas': return <RegistroRegeneracionResinas />;
             //PTAP
             case 'regeneracionresinas': return <TableFormatoRegeneracionResinas />;
             // Comerciale
