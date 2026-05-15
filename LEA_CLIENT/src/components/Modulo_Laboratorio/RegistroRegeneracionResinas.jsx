@@ -20,11 +20,12 @@ import DownloadIcon from "@mui/icons-material/Download";
 import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import Swal from "sweetalert2";
 
 import { exportAnalisisRegeneracionResinasExcel } from "./utils_laboratorio/ExportarExcelRegeneracionResinas";
-
-// import { exportAnalisisRegeneracionResinasExcel } from "./utils_laboratorio/exportAnalisisRegeneracionResinasExcel";
 
 const API_URL = "https://ambiocomserver.onrender.com/regeneracionresinas/api/analisis-agua";
 const DRAFT_STORAGE_KEY = "analisis_agua_registro_draft";
@@ -435,9 +436,11 @@ function createInitialData() {
 function getInitialDraft() {
     return {
         rows: createInitialData(),
+        observacionesGenerales: "",
         fechaConsulta: "",
         fechaRegistro: "",
         registroId: null,
+        formMode: "create",
         encabezado: {
             codigo: "LAB - FO - 027",
             version: "15",
@@ -501,11 +504,19 @@ function handleCellKeyDown(event, rowIndex, columnKey, rowsLength) {
     nextInput?.select?.();
 }
 
-function AnalysisTable({ rows, setRows, encabezado }) {
+function AnalysisTable({
+    rows,
+    setRows,
+    encabezado,
+    observacionesGenerales,
+    setObservacionesGenerales,
+    canEditTable,
+}) {
     const analysisSummary = useMemo(() => getAnalysisSummary(rows), [rows]);
 
     const updateCell = (rowIndex, key, value) => {
         if (key === "cumple" || key === "observaciones") return;
+
         setRows((prev) => {
             const copy = [...prev];
             copy[rowIndex] = { ...copy[rowIndex], [key]: value };
@@ -517,8 +528,11 @@ function AnalysisTable({ rows, setRows, encabezado }) {
         <Paper sx={{ overflow: "auto", p: 0 }}>
             <table className="excelWaterTable">
                 <colgroup>
-                    {analysisColumns.map((column) => <col key={column.key} style={{ width: column.width }} />)}
+                    {analysisColumns.map((column) => (
+                        <col key={column.key} style={{ width: column.width }} />
+                    ))}
                 </colgroup>
+
                 <tbody>
                     <tr style={{ height: 20 }}>
                         <td colSpan={3} rowSpan={3} style={{ ...cellStyle, height: 70 }}>
@@ -551,22 +565,89 @@ function AnalysisTable({ rows, setRows, encabezado }) {
                     <tr><td colSpan={23} style={{ ...cellStyle, height: 8 }} /></tr>
 
                     <tr>
-                        {analysisColumns.slice(0, 6).map((column) => <td key={column.key} rowSpan={2} style={headerCell}>{column.label}</td>)}
+                        <td
+                            colSpan={3}
+                            style={{
+                                ...headerCell,
+                                height: 38,
+                                fontSize: 12,
+                                textAlign: "center",
+                            }}
+                        >
+                            OBSERVACIONES
+                        </td>
+
+                        <td
+                            colSpan={20}
+                            style={{
+                                ...cellStyle,
+                                height: 38,
+                                padding: 0,
+                                background: "#ffffff",
+                            }}
+                        >
+                            <TextField
+                                value={observacionesGenerales || ""}
+                                disabled={!canEditTable}
+                                onChange={(event) => setObservacionesGenerales(event.target.value)}
+                                variant="standard"
+                                fullWidth
+                                multiline
+                                minRows={1}
+                                maxRows={3}
+                                placeholder="Digite las observaciones generales del registro..."
+                                InputProps={{ disableUnderline: true }}
+                                sx={{
+                                    "& .MuiInputBase-root": {
+                                        minHeight: 38,
+                                        px: 1,
+                                        alignItems: "center",
+                                    },
+                                    "& .MuiInputBase-input": {
+                                        fontSize: 12,
+                                        fontWeight: 600,
+                                        textAlign: "left",
+                                        lineHeight: 1.25,
+                                    },
+                                }}
+                            />
+                        </td>
+                    </tr>
+
+                    <tr><td colSpan={23} style={{ ...cellStyle, height: 8 }} /></tr>
+
+                    <tr>
+                        {analysisColumns.slice(0, 6).map((column) => (
+                            <td key={column.key} rowSpan={2} style={headerCell}>{column.label}</td>
+                        ))}
+
                         <td colSpan={3} style={groupHeader}>DUREZA</td>
                         <td colSpan={3} style={groupHeader}>ALCALINIDAD</td>
                         <td colSpan={3} style={groupHeader}>CLORO LIBRE</td>
-                        {analysisColumns.slice(15).map((column) => <td key={column.key} rowSpan={2} style={headerCell}>{column.label}</td>)}
+
+                        {analysisColumns.slice(15).map((column) => (
+                            <td key={column.key} rowSpan={2} style={headerCell}>{column.label}</td>
+                        ))}
                     </tr>
 
                     <tr>
-                        {analysisColumns.slice(6, 15).map((column) => <td key={column.key} style={headerCell}>{column.label}</td>)}
+                        {analysisColumns.slice(6, 15).map((column) => (
+                            <td key={column.key} style={headerCell}>{column.label}</td>
+                        ))}
                     </tr>
 
                     {rows.map((row, rowIndex) => (
                         <tr key={`row-${rowIndex}`}>
                             {analysisColumns.map((column) => {
-                                const cellValue = column.key === "cumple" ? getRowCompliance(row) : column.key === "observaciones" ? getRowObservations(row) : row[column.key];
+                                const cellValue =
+                                    column.key === "cumple"
+                                        ? getRowCompliance(row)
+                                        : column.key === "observaciones"
+                                            ? getRowObservations(row)
+                                            : row[column.key];
+
                                 const backgroundColor = getCellBackground(row, column.key);
+
                                 return (
                                     <td key={`${rowIndex}-${column.key}`} style={{ ...cellStyle, padding: 0 }}>
                                         <EditableCell
@@ -594,7 +675,10 @@ function AnalysisTable({ rows, setRows, encabezado }) {
 
                     {waterTypes.map((type, rowIndex) => (
                         <tr key={type.code}>
-                            <td colSpan={2} style={{ ...cellStyle, fontSize: 8, fontWeight: 700 }}>{type.code}. {type.name}</td>
+                            <td colSpan={2} style={{ ...cellStyle, fontSize: 8, fontWeight: 700 }}>
+                                {type.code}. {type.name}
+                            </td>
+
                             {[
                                 type.limits.colorAparente,
                                 type.limits.turbiedad,
@@ -615,8 +699,11 @@ function AnalysisTable({ rows, setRows, encabezado }) {
                                 type.limits.hierro,
                                 type.limits.nitritos,
                             ].map((value, index) => (
-                                <td key={index} style={{ ...cellStyle, background: index % 2 === 0 ? "#d9d9d9" : "#fff", fontSize: 10 }}>{value}</td>
+                                <td key={index} style={{ ...cellStyle, background: index % 2 === 0 ? "#d9d9d9" : "#fff", fontSize: 10 }}>
+                                    {value}
+                                </td>
                             ))}
+
                             {rowIndex === 1 && (
                                 <td rowSpan={4} colSpan={3} style={{ ...cellStyle, fontWeight: 800, fontSize: 12, lineHeight: 1.6 }}>
                                     {"< Menor qué"}<br />{"> Mayor qué"}<br />
@@ -626,15 +713,22 @@ function AnalysisTable({ rows, setRows, encabezado }) {
                                     Rate: {analysisSummary.rate}%
                                 </td>
                             )}
-                            {rowIndex !== 1 && rowIndex !== 2 && rowIndex !== 3 && rowIndex !== 4 && <td colSpan={3} style={cellStyle} />}
+
+                            {rowIndex !== 1 && rowIndex !== 2 && rowIndex !== 3 && rowIndex !== 4 && (
+                                <td colSpan={3} style={cellStyle} />
+                            )}
                         </tr>
                     ))}
 
                     <tr>
                         {equationBlocks.map((item) => (
                             <td key={item.title} colSpan={7} style={{ ...cellStyle, height: 52 }}>
-                                <Box sx={{ fontWeight: 900, fontSize: 11, borderBottom: "1px solid #111", py: 0.5 }}>{item.title}</Box>
-                                <Box sx={{ fontSize: 10, py: 0.7, fontWeight: 700 }}>{item.formula}</Box>
+                                <Box sx={{ fontWeight: 900, fontSize: 11, borderBottom: "1px solid #111", py: 0.5 }}>
+                                    {item.title}
+                                </Box>
+                                <Box sx={{ fontSize: 10, py: 0.7, fontWeight: 700 }}>
+                                    {item.formula}
+                                </Box>
                             </td>
                         ))}
                         <td colSpan={2} style={cellStyle} />
@@ -656,16 +750,33 @@ export default function AnalisisAguaModule() {
     const [fechaConsulta, setFechaConsulta] = useState(draft.fechaConsulta || "");
     const [fechaRegistro, setFechaRegistro] = useState(draft.fechaRegistro || "");
     const [registroId, setRegistroId] = useState(draft.registroId || null);
+    const [formMode, setFormMode] = useState(draft.formMode || (draft.registroId ? "edit" : "create"));
     const [encabezado] = useState(draft.encabezado || getInitialDraft().encabezado);
     const [rows, setRows] = useState(draft.rows || createInitialData());
+    const [observacionesGenerales, setObservacionesGenerales] = useState(draft.observacionesGenerales || "");
     const [loading, setLoading] = useState(false);
     const [fechasDisponibles, setFechasDisponibles] = useState([]);
+
+    const [registrosFecha, setRegistrosFecha] = useState([]);
+    const [registroIndex, setRegistroIndex] = useState(0);
 
     const resumen = useMemo(() => getAnalysisSummary(rows), [rows]);
 
     useEffect(() => {
-        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({ fechaConsulta, fechaRegistro, registroId, encabezado, rows, updatedAt: new Date().toISOString() }));
-    }, [fechaConsulta, fechaRegistro, registroId, encabezado, rows]);
+        localStorage.setItem(
+            DRAFT_STORAGE_KEY,
+            JSON.stringify({
+                fechaConsulta,
+                fechaRegistro,
+                registroId,
+                formMode,
+                encabezado,
+                rows,
+                observacionesGenerales,
+                updatedAt: new Date().toISOString(),
+            })
+        );
+    }, [fechaConsulta, fechaRegistro, registroId, formMode, encabezado, rows, observacionesGenerales]);
 
     useEffect(() => {
         const loadFechasDisponibles = async () => {
@@ -692,9 +803,13 @@ export default function AnalisisAguaModule() {
                 if (!data) return;
 
                 setRows(Array.isArray(data.rows) ? data.rows : createInitialData());
+                setObservacionesGenerales(data.observaciones || "");
                 setRegistroId(data._id || data.id || null);
+                setFormMode("edit");
                 setFechaRegistro(formatDDMMYYYYToInput(data.fechaRegistro));
                 setFechaConsulta(formatDDMMYYYYToInput(data.fechaRegistro));
+                setRegistrosFecha([data]);
+                setRegistroIndex(0);
             } catch (error) {
                 console.error("Error cargando último registro:", error);
             }
@@ -715,6 +830,45 @@ export default function AnalisisAguaModule() {
         } catch (error) {
             console.error("Error actualizando fechas disponibles:", error);
         }
+    };
+
+    const loadRegistroSeleccionado = (data, index) => {
+        const registro = data[index];
+
+        if (!registro) return;
+
+        setRows(Array.isArray(registro.rows) ? registro.rows : createInitialData());
+        setObservacionesGenerales(registro.observaciones || "");
+        setRegistroId(registro._id || registro.id || null);
+        setFormMode("edit");
+        setFechaRegistro(formatDDMMYYYYToInput(registro.fechaRegistro));
+        setRegistroIndex(index);
+    };
+
+    const goToPreviousRegistro = () => {
+        if (registroIndex <= 0) return;
+        loadRegistroSeleccionado(registrosFecha, registroIndex - 1);
+    };
+
+    const goToNextRegistro = () => {
+        if (registroIndex >= registrosFecha.length - 1) return;
+        loadRegistroSeleccionado(registrosFecha, registroIndex + 1);
+    };
+
+    const handleNewRegistro = () => {
+        const initialRows = createInitialData();
+
+        setRows(initialRows);
+        setObservacionesGenerales("");
+        setRegistroId(null);
+        setFormMode("create");
+        setRegistroIndex(0);
+
+        if (fechaConsulta) {
+            setFechaRegistro(fechaConsulta);
+        }
+
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
     };
 
     const addRow = () => {
@@ -739,11 +893,17 @@ export default function AnalisisAguaModule() {
             if (!result.isConfirmed) return;
 
             localStorage.removeItem(DRAFT_STORAGE_KEY);
+
             const initial = getInitialDraft();
+
             setFechaConsulta(initial.fechaConsulta);
             setFechaRegistro(initial.fechaRegistro);
-            setRegistroId(initial.registroId);
+            setRegistroId(null);
+            setFormMode("create");
             setRows(initial.rows);
+            setObservacionesGenerales(initial.observacionesGenerales || "");
+            setRegistrosFecha([]);
+            setRegistroIndex(0);
         });
     };
 
@@ -755,6 +915,7 @@ export default function AnalisisAguaModule() {
 
     const buildPayload = () => ({
         fechaRegistro: formatDateToDDMMYYYY(fechaRegistro),
+        observaciones: observacionesGenerales || "",
         rows: buildRowsWithComputedFields(),
     });
 
@@ -771,25 +932,56 @@ export default function AnalisisAguaModule() {
 
         try {
             setLoading(true);
+
             const payload = buildPayload();
 
             let response;
+            const isEditingExistingRecord = formMode === "edit" && Boolean(registroId);
 
-            if (registroId) {
+            if (isEditingExistingRecord) {
                 response = await axios.patch(`${API_URL}/${registroId}`, payload);
             } else {
                 response = await axios.post(API_URL, payload);
             }
 
             const savedData = response.data?.data;
+            const savedId = savedData?._id || response.data?.id || null;
 
-            setRegistroId(savedData?._id || response.data?.id || null);
+            setRegistroId(savedId);
+            setFormMode("edit");
             setRows(Array.isArray(savedData?.rows) ? savedData.rows : payload.rows);
+            setObservacionesGenerales(savedData?.observaciones || payload.observaciones || "");
             localStorage.removeItem(DRAFT_STORAGE_KEY);
+
+            if (savedData) {
+                setRegistrosFecha((prev) => {
+                    const savedFecha = savedData.fechaRegistro || payload.fechaRegistro;
+                    const sameDateRecords = prev.filter((item) => item.fechaRegistro === savedFecha);
+
+                    const existingIndex = sameDateRecords.findIndex((item) => {
+                        const itemId = item._id || item.id;
+                        return itemId === savedId;
+                    });
+
+                    if (existingIndex >= 0) {
+                        const updatedRecords = sameDateRecords.map((item) => {
+                            const itemId = item._id || item.id;
+                            return itemId === savedId ? savedData : item;
+                        });
+
+                        setRegistroIndex(existingIndex);
+                        return updatedRecords;
+                    }
+
+                    const updatedRecords = [...sameDateRecords, savedData];
+                    setRegistroIndex(updatedRecords.length - 1);
+                    return updatedRecords;
+                });
+            }
 
             Swal.fire({
                 icon: "success",
-                title: registroId ? "Registro actualizado" : "Registro guardado",
+                title: isEditingExistingRecord ? "Registro actualizado" : "Registro guardado",
                 text: `Fecha de registro: ${payload.fechaRegistro}`,
                 timer: 1800,
                 showConfirmButton: false,
@@ -798,18 +990,7 @@ export default function AnalisisAguaModule() {
             setOpen(true);
             await refreshFechasDisponibles();
         } catch (error) {
-            const status = error.response?.status;
             const message = error.response?.data?.message || "No fue posible guardar la información.";
-
-            if (status === 409) {
-                Swal.fire({
-                    icon: "warning",
-                    title: "Registro existente",
-                    text: message,
-                });
-                return;
-            }
-
             Swal.fire("Error al guardar", message, "error");
         } finally {
             setLoading(false);
@@ -824,36 +1005,46 @@ export default function AnalisisAguaModule() {
 
         try {
             setLoading(true);
+
             const fecha = formatDateToDDMMYYYY(fechaConsulta);
+
             const response = await axios.get(`${API_URL}/by-date`, {
                 params: { fecha },
             });
 
-            const data = response.data?.data;
+            const data = Array.isArray(response.data?.data)
+                ? response.data.data
+                : response.data?.data
+                    ? [response.data.data]
+                    : [];
 
-            if (!data) {
+            setRegistrosFecha(data);
+            setRegistroIndex(0);
+
+            if (!data.length) {
                 setRows(createInitialData());
+                setObservacionesGenerales("");
                 setRegistroId(null);
+                setFormMode("create");
                 setFechaRegistro(fechaConsulta);
 
                 Swal.fire({
                     icon: "info",
-                    title: "Sin registro",
-                    text: `No hay información guardada para ${fecha}.`,
+                    title: "Sin registros",
+                    text: `No hay información guardada para ${fecha}. Puedes crear un nuevo registro.`,
                     timer: 1800,
                     showConfirmButton: false,
                 });
+
                 return;
             }
 
-            setRows(Array.isArray(data.rows) ? data.rows : createInitialData());
-            setRegistroId(data._id || data.id || null);
-            setFechaRegistro(formatDDMMYYYYToInput(data.fechaRegistro));
+            loadRegistroSeleccionado(data, 0);
 
             Swal.fire({
                 icon: "success",
                 title: "Consulta ejecutada",
-                text: `Fecha consultada: ${fecha}`,
+                text: `Se encontraron ${data.length} registro(s) para ${fecha}.`,
                 timer: 1800,
                 showConfirmButton: false,
             });
@@ -864,11 +1055,12 @@ export default function AnalisisAguaModule() {
             setLoading(false);
         }
     };
-    
+
     const handleExport = async () => {
         try {
             await exportAnalisisRegeneracionResinasExcel({
                 rows,
+                observaciones: observacionesGenerales || "",
                 waterTypes,
                 fechaRegistro: formatDateToDDMMYYYY(fechaRegistro),
                 titulo: encabezado.titulo,
@@ -884,7 +1076,6 @@ export default function AnalisisAguaModule() {
                 timer: 1800,
                 showConfirmButton: false,
             });
-
         } catch (error) {
             console.error(error);
 
@@ -898,7 +1089,7 @@ export default function AnalisisAguaModule() {
 
     return (
         <Box sx={{ p: 1.5, mt: 6, bgcolor: "#f3f3f3", minHeight: "88vh" }}>
-            <Paper sx={{ mb: 1, px: 1.2, py: 0.8, borderRadius: 2, boxShadow: "0 4px 14px rgba(0,0,0,0.08)" }}>
+            <Paper sx={{ mb: 1, px: 1.2, py: 0.8, borderRadius: 2, boxShadow: "0 4px 14px rgba(0,0,0,0.08)", position: "relative" }}>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} flexWrap="wrap" useFlexGap>
                     <Stack direction="row" spacing={0.7} alignItems="center" flexWrap="wrap" useFlexGap>
                         <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -919,28 +1110,131 @@ export default function AnalisisAguaModule() {
                             />
                         </LocalizationProvider>
 
-                        <Button size="medium" variant="contained" startIcon={<SearchIcon />} onClick={handleExecuteByDate} disabled={!fechaConsulta || loading}>
+                        <Button
+                            size="medium"
+                            variant="contained"
+                            startIcon={<SearchIcon />}
+                            onClick={handleExecuteByDate}
+                            disabled={!fechaConsulta || loading}
+                        >
                             Ejecutar
                         </Button>
 
-                        <Button size="medium" variant="outlined" startIcon={<AddIcon />} onClick={addRow} disabled={!canEditTable || loading}>
+                        {registrosFecha.length > 1 && (
+                            <Box
+                                sx={{
+                                    position: "fixed",
+                                    bottom: 20,
+                                    right: 25,
+                                    zIndex: 9999,
+                                    background: "#ffffffee",
+                                    backdropFilter: "blur(8px)",
+                                    border: "1px solid #dcdcdc",
+                                    borderRadius: 3,
+                                    px: 1,
+                                    py: 0.8,
+                                    boxShadow: "0 4px 18px rgba(0,0,0,0.15)",
+                                }}
+                            >
+                                <Stack direction="row" spacing={0.7} alignItems="center">
+                                    <Button
+                                        size="small"
+                                        variant="outlined"
+                                        onClick={goToPreviousRegistro}
+                                        disabled={registroIndex === 0 || loading}
+                                        sx={{
+                                            minWidth: 32,
+                                            width: 32,
+                                            height: 32,
+                                            p: 0,
+                                            borderRadius: 2,
+                                        }}
+                                    >
+                                        <ArrowBackIosNewIcon sx={{ fontSize: 15 }} />
+                                    </Button>
+
+                                    <Chip
+                                        size="small"
+                                        color="primary"
+                                        label={`${registroIndex + 1} / ${registrosFecha.length}`}
+                                        sx={{
+                                            fontWeight: 700,
+                                            minWidth: 58,
+                                        }}
+                                    />
+
+                                    <Button
+                                        size="small"
+                                        variant="outlined"
+                                        onClick={goToNextRegistro}
+                                        disabled={registroIndex >= registrosFecha.length - 1 || loading}
+                                        sx={{
+                                            minWidth: 32,
+                                            width: 32,
+                                            height: 32,
+                                            p: 0,
+                                            borderRadius: 2,
+                                        }}
+                                    >
+                                        <ArrowForwardIosIcon sx={{ fontSize: 15 }} />
+                                    </Button>
+                                </Stack>
+                            </Box>
+                        )}
+
+                        <Button
+                            size="medium"
+                            variant="outlined"
+                            startIcon={<AddIcon />}
+                            onClick={addRow}
+                            disabled={!canEditTable || loading}
+                        >
                             Agregar
                         </Button>
 
-                        <Button size="medium" variant="outlined" color="error" startIcon={<DeleteOutlineIcon />} onClick={removeLastRow} disabled={!canEditTable || rows.length <= 1 || loading}>
+                        <Button
+                            size="medium"
+                            variant="outlined"
+                            color="error"
+                            startIcon={<DeleteOutlineIcon />}
+                            onClick={removeLastRow}
+                            disabled={!canEditTable || rows.length <= 1 || loading}
+                        >
                             Quitar
                         </Button>
 
-                        <Button size="medium" variant="outlined" startIcon={<CleaningServicesIcon />} onClick={clearDraft} disabled={!canEditTable || loading}>
+                        <Button
+                            size="medium"
+                            variant="outlined"
+                            startIcon={<CleaningServicesIcon />}
+                            onClick={clearDraft}
+                            disabled={!canEditTable || loading}
+                        >
                             Limpiar
                         </Button>
                     </Stack>
 
                     <Stack direction="row" spacing={0.7} alignItems="center" flexWrap="wrap" useFlexGap>
-                        <Chip size="small" label={`Analizados: ${resumen.total}`} />
-                        <Chip size="small" color="success" label={`Cumplen: ${resumen.cumple}`} />
-                        <Chip size="small" color={resumen.noCumple ? "error" : "default"} label={`No cumplen: ${resumen.noCumple}`} />
-                        <Chip size="small" label={`Rate: ${resumen.rate}%`} />
+                        <Box
+                            sx={{
+                                position: "absolute",
+                                left: "50%",
+                                top: "50%",
+                                transform: "translate(-50%, -50%)",
+                                zIndex: 2,
+                            }}
+                        >
+                            <Chip
+                                size="medium"
+                                color={formMode === "edit" ? "warning" : "info"}
+                                label={formMode === "edit" ? "Modo: actualizar" : "Modo: nuevo"}
+                                sx={{
+                                    fontWeight: 800,
+                                    fontSize: 13,
+                                    px: 1.5,
+                                }}
+                            />
+                        </Box>
 
                         <TextField
                             label="Registro"
@@ -948,26 +1242,70 @@ export default function AnalisisAguaModule() {
                             size="small"
                             value={fechaRegistro}
                             disabled={!canEditTable || loading}
-                            onChange={(event) => setFechaRegistro(event.target.value)}
+                            onChange={(event) => {
+                                setFechaRegistro(event.target.value);
+
+                                if (formMode === "create") {
+                                    setRegistroId(null);
+                                }
+                            }}
                             InputLabelProps={{ shrink: true }}
                             sx={{ width: 145 }}
                         />
 
-                        <Button size="medium" variant="contained" startIcon={<SaveIcon />} onClick={handleSave} disabled={!canEditTable || loading}>
-                            {registroId ? "Actualizar" : "Guardar"}
+                        <Button
+                            size="medium"
+                            variant="contained"
+                            startIcon={<SaveIcon />}
+                            onClick={handleSave}
+                            disabled={!canEditTable || loading}
+                        >
+                            {formMode === "edit" ? "Actualizar" : "Guardar"}
                         </Button>
 
-                        <Button size="medium" variant="contained" color="success" startIcon={<DownloadIcon />} onClick={handleExport} disabled={loading}>
+                        <Button
+                            size="medium"
+                            variant="outlined"
+                            color="secondary"
+                            startIcon={<NoteAddIcon />}
+                            onClick={handleNewRegistro}
+                            disabled={!canEditTable || loading}
+                        >
+                            Nuevo registro
+                        </Button>
+
+                        <Button
+                            size="medium"
+                            variant="contained"
+                            color="success"
+                            startIcon={<DownloadIcon />}
+                            onClick={handleExport}
+                            disabled={loading}
+                        >
                             Excel
                         </Button>
                     </Stack>
                 </Stack>
             </Paper>
 
-            <AnalysisTable rows={rows} setRows={setRows} encabezado={encabezado} />
+            <AnalysisTable
+                rows={rows}
+                setRows={setRows}
+                encabezado={encabezado}
+                observacionesGenerales={observacionesGenerales}
+                setObservacionesGenerales={setObservacionesGenerales}
+                canEditTable={canEditTable}
+            />
 
-            <Snackbar open={open} autoHideDuration={3000} onClose={() => setOpen(false)} anchorOrigin={{ vertical: "bottom", horizontal: "right" }}>
-                <Alert variant="filled" severity="success" onClose={() => setOpen(false)}>Data guardada correctamente.</Alert>
+            <Snackbar
+                open={open}
+                autoHideDuration={3000}
+                onClose={() => setOpen(false)}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            >
+                <Alert variant="filled" severity="success" onClose={() => setOpen(false)}>
+                    Data guardada correctamente.
+                </Alert>
             </Snackbar>
 
             <style>{`

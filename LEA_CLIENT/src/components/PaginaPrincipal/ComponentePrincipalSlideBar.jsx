@@ -75,6 +75,7 @@ import LAB_FO_XX from '../Modulo_Laboratorio/LAB_FO_XX.jsx'
 import TrazabilidadLoteDeProduccion from '../Modulo_Laboratorio/trazabilidadlotedeproduccion.jsx';
 import ControlCalidadEnProceso from '../Modulo_Laboratorio/ControlCalidadEnProceso.jsx';
 import RegistroRegeneracionResinas from '../Modulo_Laboratorio/RegistroRegeneracionResinas.jsx';
+import TrazabilidadRegistroDeLotesDeProduccion from '../Modulo_Laboratorio/TrazabilidadRegistroDeLotesDeProduccion.jsx'
 //MODULO AGUAS
 import TableFormatoRegeneracionResinas from '../PTAP/TableFormatoRegeneracionResinas.jsx'
 //empelados
@@ -103,7 +104,7 @@ import {
     ptapIcon, GraphIcon, BarGraphIcon, BarGraphComparativeIcon, robotAssistanceIcon, bitacoraIcon, StopWatchIcon, PdfIcon, DatabaseAdministratorIcon, workerIcon,
     TankGraphIcon, CounterIcon, MoneyGraphIcon, EnergyIcon, EnergyDataIcon, InOutMaderaCarbonIcon, InformeIcon, TankWithLiquidIcon, ReportIcon,
     Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon, PersonalIcons, plannerIconDate, logsIcon, VesselTkIcon, VesselTkIconChemical, ListToDoIcon, ArcadeIcon,
-    WaterTankIcon, VentasIcon, WaterKeyIcon
+    WaterTankIcon, VentasIcon, WaterKeyIcon, DestileryIcon, LoteTankIcon
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -255,8 +256,15 @@ export default function EmpresarialPrincipalSchedulerApp() {
                         }
                     ]
                 },
-                { text: 'Análisis Agua', subKey: 'formatoseguimientoaguas', roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio", "operarioaguas"], icon: <img src={WaterKeyIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
-
+                {
+                    text: 'PTAP',
+                    key: 'tratamiento-aguas',
+                    icon: <img src={ptapIcon} alt="Logistica" style={{ width: 25, height: 25 }} />,
+                    subItems: [
+                        { text: 'Análisis Agua', subKey: 'formatoseguimientoaguas', roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio", "operarioaguas"], icon: <img src={WaterKeyIcon} alt="formatoaguas" style={{ width: 25, height: 25, marginLeft: 1 }} /> },
+                        { text: 'Trazabilidad Regeneracion', subKey: 'TrazabilidadRegistroRegeneracionResinas', roles: ["admin", "developer", "gerente", "laboratorio", "supervisor"], icon: <img src={WaterTankIcon} alt="formatoaguas" style={{ width: 35, height: 36, marginLeft: -4 }} /> },
+                    ]
+                },
             ],
         },
         {
@@ -309,17 +317,43 @@ export default function EmpresarialPrincipalSchedulerApp() {
                         }
                     ]
                 },
-                { text: 'Análisis Agua', subKey: 'formatoseguimientoaguas', roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio", "operarioaguas"], icon: <img src={WaterKeyIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
-                { text: 'Trazabilidad Lote Produccion', subKey: 'TrazabilidadLoteDeProduccion', roles: ["admin", "developer", "gerente", "laboratorio"], icon: <img src={WaterKeyIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
-                { text: 'Control Calidad Proceso', subKey: 'Trazabilidadcontrolcalidadenproceso', roles: ["admin", "developer", "gerente", "laboratorio"], icon: <img src={WaterKeyIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
-                { text: 'Trazabilidad Regeneracion', subKey: 'TrazabilidadRegistroRegeneracionResinas', roles: ["admin", "developer", "gerente", "laboratorio"], icon: <img src={WaterTankIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
+
+                {
+                    text: 'PTAP',
+                    key: 'tratamiento-aguas',
+                    icon: <img src={ptapIcon} alt="Logistica" style={{ width: 25, height: 25 }} />,
+                    subItems: [
+                        { text: 'Análisis Agua', subKey: 'formatoseguimientoaguas', roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio", "operarioaguas"], icon: <img src={WaterKeyIcon} alt="formatoaguas" style={{ width: 25, height: 25, marginLeft: 1 }} /> },
+                        { text: 'Trazabilidad Regeneracion', subKey: 'TrazabilidadRegistroRegeneracionResinas', roles: ["admin", "developer", "gerente", "laboratorio", "supervisor"], icon: <img src={WaterTankIcon} alt="formatoaguas" style={{ width: 35, height: 36, marginLeft: -4 }} /> },
+                    ]
+                },
+                {
+                    text: 'Destileria',
+                    key: 'destileria',
+                    icon: <img src={DestileryIcon} alt="Logistica" style={{ width: 30, height: 30, marginLeft:-3 }} />,
+                    subItems: [
+                        { text: 'Trazabilidad Lote Produccion', subKey: 'TrazabilidadLoteDeProduccion', roles: ["admin", "developer", "gerente", "laboratorio"], icon: <img src={ReportIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
+                        { text: 'Control Calidad Proceso', subKey: 'Trazabilidadcontrolcalidadenproceso', roles: ["admin", "developer", "gerente", "laboratorio"], icon: <img src={ReportIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
+                    ]
+                },
+                {
+                    text: 'Lote Producción',
+                    key: 'trazabilidadloteproduccion',
+                    icon: <img src={LoteTankIcon} alt="Logistica" style={{ width: 28, height: 25, marginLeft:-1 }} />,
+                    subItems: [
+                        { text: 'Analisis de Producto', subKey: 'Trazabilidadregistrodelotesdeproduccion', roles: ["admin", "developer", "gerente", "laboratorio"], icon: <img src={ReportIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
+                        // { text: 'Control Calidad Proceso', subKey: 'Trazabilidadcontrolcalidadenproceso', roles: ["admin", "developer", "gerente", "laboratorio"], icon: <img src={ReportIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
+                    ]
+                },
+
             ],
         },
         {
             text: 'Planta de Aguas', roles: ["admin", "developer", "supervisor", "operarioaguas"], icon: <img src={ptapIcon} alt="plantadeaguas" style={{ width: 25, height: 25 }} />, key: 'plantadeaguas', subItems: [
                 { text: 'Medidores', subKey: 'registrodemedidores', roles: ["admin", "developer", "supervisor", "operarioaguas"], icon: <img src={CounterIcon} alt="Medidores" style={{ width: 25, height: 25 }} /> },
-                { text: 'Regeneracion', subKey: 'regeneracionresinas', roles: ["admin", "developer", "supervisor", "operarioaguas"], icon: <img src={WaterTankIcon} alt="regeneracionresinas" style={{ width: 35, height: 37 }} /> },
                 { text: 'Análisis Agua', subKey: 'formatoseguimientoaguas', roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio", "operarioaguas"], icon: <img src={WaterKeyIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
+                { text: 'Regeneracion', subKey: 'regeneracionresinas', roles: ["admin", "developer", "supervisor", "operarioaguas"], icon: <img src={WaterTankIcon} alt="regeneracionresinas" style={{ width: 35, height: 36, marginLeft: -4 }} /> },
+                { text: 'Trazabilidad Regeneracion', subKey: 'TrazabilidadRegistroRegeneracionResinas', roles: ["admin", "developer", "gerente", "laboratorio", "supervisor"], icon: <img src={WaterTankIcon} alt="formatoaguas" style={{ width: 35, height: 36, marginLeft: -4 }} /> },
             ],
         },
         {
@@ -519,6 +553,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'TrazabilidadLoteDeProduccion': return <TrazabilidadLoteDeProduccion />;
             case 'Trazabilidadcontrolcalidadenproceso': return <ControlCalidadEnProceso />;
             case 'TrazabilidadRegistroRegeneracionResinas': return <RegistroRegeneracionResinas />;
+            case 'Trazabilidadregistrodelotesdeproduccion': return <TrazabilidadRegistroDeLotesDeProduccion />;
             //PTAP
             case 'regeneracionresinas': return <TableFormatoRegeneracionResinas />;
             // Comerciale
