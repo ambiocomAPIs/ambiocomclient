@@ -44,6 +44,7 @@ import ChatBox from '../IA/ChatBox';
 import BitacoraDeSupervisores from '../Bitacora/BitacoraComponentesProduccion'
 import PanelHoras from '../PanelHoras';
 import InventarioCarbonMadera from '../InventarioCarbonMadera';
+import PatioCarbonMadera from '../ModuloProduccion/PatioCarbonMadera.jsx'
 // Modulo de graficos y analisis
 import GraficoNivelesTanquesPorDiaPageComponente from '../TanquesVistaNiveles/GraficaNivelesDiariosPorMes/GraficaNivelesDiarioTanquesJornalerosComponente.jsx';
 import Comparativomensualinsumosquimicos from '../Modulos_API/DataAnalisis/Comparativomensualinsumosquimicos.jsx';
@@ -228,6 +229,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'Inventario de insumos', subKey: 'Inventariodeinsumos', /* roles: ["admin","supervisor"], */ icon: <img src={inventoryIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Tanques Jornaleros', subKey: 'Tanquesjornaleros', roles: ["admin", "developer", "liderlogistica", "supervisor"], icon: <img src={rulerIcon} alt="tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
                 { text: 'Bitacora Supervisores', subKey: 'bitacoradeturnosupervisores', /* roles: ["admin","supervisor"], */ icon: <img src={bitacoraIcon} alt="bitacoradeturnosupervisores" style={{ width: 25, height: 25 }} /> },
+                { text: 'Patio Carbon-Madera', subKey: 'patiodecarbonymadera', /* roles: ["admin","supervisor"], */ icon: <img src={coalInventoryIcon} alt="patiodecarbonymadera" style={{ width: 25, height: 25 }} /> },
                 { text: 'Inventario Combust', subKey: 'inventariodecarbonymadera', /* roles: ["admin","supervisor"], */ icon: <img src={coalInventoryIcon} alt="Tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
                 { text: 'Horas Extras', subKey: 'horasextrassupervisores', /* roles: ["admin","supervisor"], */ icon: <img src={StopWatchIcon} alt="horasextrassupervisores" style={{ width: 25, height: 25 }} /> },
                 { text: 'CRUD Tanques', subKey: 'tanquescrud', /* roles: ["admin"], */ icon: <img src={tanqueIcon} alt="tanquescrud" style={{ width: 25, height: 25 }} /> },
@@ -533,6 +535,8 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'registrodemedidores': return <TablaMedicionesAgua />;
             case 'energiaambiocom': return <TablaMedicionesDiariaEnergia />;
             case 'moduloingresosmaderacarbon': return <TablaRegistroCarbonMadera />;
+            //Produccion
+            case 'patiodecarbonymadera': return <PatioCarbonMadera />; 
             //informes
             case 'Inventariodeoh': return <InformeAlcoholes />;
             //logistica

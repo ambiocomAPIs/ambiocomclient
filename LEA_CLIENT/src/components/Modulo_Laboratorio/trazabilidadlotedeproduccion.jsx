@@ -1,4 +1,9 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
+import dayjs from "dayjs";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import {
   Box,
   Button,
@@ -6,19 +11,17 @@ import {
   Snackbar,
   Alert,
   TextField,
+  Chip,
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import SearchIcon from "@mui/icons-material/Search";
-import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import DownloadIcon from "@mui/icons-material/Download";
+import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import Swal from "sweetalert2";
 
-// import { useAuth } from "../../utils/Context/AuthContext/AuthContext";
-// import { exportTrazabilidadLaboratorioExcel } from "./utils_laboratorio/ExportTrazabilidadLaboratorioExcel";
-
-const API_URL = "https://ambiocomserver.onrender.com/api/trazabilidad-laboratorio";
-
-const STORAGE_KEY = "tabla_trazabilidad_laboratorio";
+const API_URL = "https://ambiocomserver.onrender.com/api/trazabilidadloteproduccionlaboratorio";
 const DRAFT_STORAGE_KEY = "tabla_trazabilidad_laboratorio_draft";
 
 const EDIT_ALLOWED_ROLES = ["laboratorio", "developer"];
@@ -150,11 +153,11 @@ function createInitialData() {
 
 function getInitialDraft() {
   return {
+    observacionesGenerales: "",
     fechaConsulta: "",
     fechaRegistro: "",
-    compareMode: false,
-    previousData: createInitialData(),
     registroId: null,
+    formMode: "create",
 
     fecha: "",
     lote: "",
@@ -191,6 +194,13 @@ function formatDateToDDMMYYYY(dateValue) {
   if (!dateValue) return "";
   const [year, month, day] = dateValue.split("-");
   return `${day}-${month}-${year}`;
+}
+
+function formatDDMMYYYYToInput(fecha) {
+  if (!fecha) return "";
+  const [day, month, year] = String(fecha).split("-");
+  if (!day || !month || !year) return "";
+  return `${year}-${month}-${day}`;
 }
 
 function normalizeText(value) {
@@ -234,10 +244,7 @@ function validateCellValue(value, rule) {
     return numericValue <= max;
   }
 
-  if (
-    normalizedRule.includes("min") ||
-    normalizedRule.includes(">")
-  ) {
+  if (normalizedRule.includes("min") || normalizedRule.includes(">")) {
     const min = parseNumber(rule);
     if (min === null) return true;
     return numericValue >= min;
@@ -267,13 +274,24 @@ export default function TablaTrazabilidadLaboratorio() {
   const canEditTable = true;
 
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const [fechasDisponibles, setFechasDisponibles] = useState([]);
+
+  const [observacionesGenerales, setObservacionesGenerales] = useState(
+    draft.observacionesGenerales || ""
+  );
+
   const [fechaConsulta, setFechaConsulta] = useState(draft.fechaConsulta || "");
   const [fechaRegistro, setFechaRegistro] = useState(draft.fechaRegistro || "");
-  const [compareMode, setCompareMode] = useState(draft.compareMode || false);
-  const [previousData, setPreviousData] = useState(
-    draft.previousData || createInitialData()
-  );
+
   const [registroId, setRegistroId] = useState(draft.registroId || null);
+  const [formMode, setFormMode] = useState(
+    draft.formMode || (draft.registroId ? "edit" : "create")
+  );
+
+  const [registrosFecha, setRegistrosFecha] = useState([]);
+  const [registroIndex, setRegistroIndex] = useState(0);
 
   const [fecha, setFecha] = useState(draft.fecha || "");
   const [lote, setLote] = useState(draft.lote || "");
@@ -293,9 +311,7 @@ export default function TablaTrazabilidadLaboratorio() {
     draft.horaFinalLlenado || ""
   );
 
-  const [codigoInterno, setCodigoInterno] = useState(
-    draft.codigoInterno || ""
-  );
+  const [codigoInterno, setCodigoInterno] = useState(draft.codigoInterno || "");
   const [fechaRecibo, setFechaRecibo] = useState(draft.fechaRecibo || "");
   const [origen, setOrigen] = useState(draft.origen || "");
   const [proveedor, setProveedor] = useState(draft.proveedor || "");
@@ -313,12 +329,39 @@ export default function TablaTrazabilidadLaboratorio() {
   const [data, setData] = useState(draft.data || createInitialData());
 
   useEffect(() => {
+    const loadFechasDisponibles = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/fechas`);
+        setFechasDisponibles(response.data?.fechas || []);
+      } catch (error) {
+        console.error("Error cargando fechas disponibles:", error);
+      }
+    };
+
+    loadFechasDisponibles();
+  }, []);
+
+  const refreshFechasDisponibles = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/fechas`);
+      setFechasDisponibles(response.data?.fechas || []);
+    } catch (error) {
+      console.error("Error actualizando fechas disponibles:", error);
+    }
+  };
+
+  const isFechaDisponible = (date) => {
+    if (!date || fechasDisponibles.length === 0) return false;
+    return fechasDisponibles.includes(date.format("DD-MM-YYYY"));
+  };
+
+  useEffect(() => {
     const draftPayload = {
+      observacionesGenerales,
       fechaConsulta,
       fechaRegistro,
-      compareMode,
-      previousData,
       registroId,
+      formMode,
 
       fecha,
       lote,
@@ -344,12 +387,11 @@ export default function TablaTrazabilidadLaboratorio() {
 
     localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftPayload));
   }, [
+    observacionesGenerales,
     fechaConsulta,
     fechaRegistro,
-    compareMode,
-    previousData,
     registroId,
-
+    formMode,
     fecha,
     lote,
     tipoAlcohol,
@@ -358,7 +400,6 @@ export default function TablaTrazabilidadLaboratorio() {
     horaInicioLlenado,
     fechaFinalLlenado,
     horaFinalLlenado,
-
     codigoInterno,
     fechaRecibo,
     origen,
@@ -367,7 +408,6 @@ export default function TablaTrazabilidadLaboratorio() {
     gradoAlcoholico,
     tanqueOrigen,
     volumenAlimentado,
-
     data,
   ]);
 
@@ -400,13 +440,13 @@ export default function TablaTrazabilidadLaboratorio() {
   };
 
   const buildPayload = () => ({
-    id: registroId,
     formato: "4-LAB-032",
     version: "3",
     pagina: "3-3",
     tabla: "Trazabilidad de lote de producción",
     fechaRegistro: formatDateToDDMMYYYY(fechaRegistro),
     fechaGuardado: new Date().toISOString(),
+    observacionesGenerales,
 
     encabezado: {
       fecha,
@@ -433,6 +473,83 @@ export default function TablaTrazabilidadLaboratorio() {
     analisisFisicoquimicoAlimentacion: data,
   });
 
+  const loadRegistroSeleccionado = (records, index) => {
+    const registro = records[index];
+    if (!registro) return;
+
+    setObservacionesGenerales(registro.observacionesGenerales || "");
+    setRegistroId(registro._id || registro.id || null);
+    setFormMode("edit");
+    setRegistroIndex(index);
+
+    setFechaRegistro(formatDDMMYYYYToInput(registro.fechaRegistro));
+
+    setFecha(registro.encabezado?.fecha || "");
+    setLote(registro.encabezado?.lote || "");
+    setTipoAlcohol(registro.encabezado?.tipoAlcohol || "");
+    setTanque(registro.encabezado?.tanque || "");
+    setFechaInicioLlenado(registro.encabezado?.fechaInicioLlenado || "");
+    setHoraInicioLlenado(registro.encabezado?.horaInicioLlenado || "");
+    setFechaFinalLlenado(registro.encabezado?.fechaFinalLlenado || "");
+    setHoraFinalLlenado(registro.encabezado?.horaFinalLlenado || "");
+
+    setCodigoInterno(registro.materiaPrima?.codigoInterno || "");
+    setFechaRecibo(registro.materiaPrima?.fechaRecibo || "");
+    setOrigen(registro.materiaPrima?.origen || "");
+    setProveedor(registro.materiaPrima?.proveedor || "");
+    setTipoAlcoholMateriaPrima(registro.materiaPrima?.tipoAlcohol || "");
+    setGradoAlcoholico(registro.materiaPrima?.gradoAlcoholico || "");
+    setTanqueOrigen(registro.materiaPrima?.tanqueOrigen || "");
+    setVolumenAlimentado(registro.materiaPrima?.volumenAlimentado || "");
+
+    setData(
+      Array.isArray(registro.analisisFisicoquimicoAlimentacion)
+        ? registro.analisisFisicoquimicoAlimentacion
+        : createInitialData()
+    );
+  };
+
+  const goToPreviousRegistro = () => {
+    if (registroIndex <= 0) return;
+    loadRegistroSeleccionado(registrosFecha, registroIndex - 1);
+  };
+
+  const goToNextRegistro = () => {
+    if (registroIndex >= registrosFecha.length - 1) return;
+    loadRegistroSeleccionado(registrosFecha, registroIndex + 1);
+  };
+
+  const handleNewRegistro = () => {
+    setObservacionesGenerales("");
+    setRegistroId(null);
+    setFormMode("create");
+    setData(createInitialData());
+
+    setFecha("");
+    setLote("");
+    setTipoAlcohol("");
+    setTanque("");
+    setFechaInicioLlenado("");
+    setHoraInicioLlenado("");
+    setFechaFinalLlenado("");
+    setHoraFinalLlenado("");
+
+    setCodigoInterno("");
+    setFechaRecibo("");
+    setOrigen("");
+    setProveedor("");
+    setTipoAlcoholMateriaPrima("");
+    setGradoAlcoholico("");
+    setTanqueOrigen("");
+    setVolumenAlimentado("");
+
+    if (fechaConsulta) {
+      setFechaRegistro(fechaConsulta);
+    }
+
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+  };
+
   const handleSave = async () => {
     if (!canEditTable) {
       Swal.fire({
@@ -453,46 +570,69 @@ export default function TablaTrazabilidadLaboratorio() {
     }
 
     try {
+      setLoading(true);
+
       const payload = buildPayload();
+      const isEditingExistingRecord = formMode === "edit" && Boolean(registroId);
 
-      /*
-      let json;
+      const response = isEditingExistingRecord
+        ? await axios.patch(`${API_URL}/${registroId}`, payload)
+        : await axios.post(API_URL, payload);
 
-      if (registroId) {
-        json = await requestApi(`${API_URL}/${registroId}`, {
-          method: "PATCH",
-          body: JSON.stringify(payload),
-        });
-      } else {
-        json = await requestApi(API_URL, {
-          method: "POST",
-          body: JSON.stringify(payload),
-        });
+      const savedData = response.data?.data || payload;
+      const savedId = savedData?._id || savedData?.id || response.data?.id || null;
 
-        if (json?.id) {
-          setRegistroId(json.id);
-        }
-      }
-      */
-
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      setRegistroId(savedId);
+      setFormMode("edit");
       localStorage.removeItem(DRAFT_STORAGE_KEY);
+
+      setRegistrosFecha((prev) => {
+        const savedFecha = savedData.fechaRegistro || payload.fechaRegistro;
+        const sameDateRecords = prev.filter(
+          (item) => item.fechaRegistro === savedFecha
+        );
+
+        const existingIndex = sameDateRecords.findIndex((item) => {
+          const itemId = item._id || item.id;
+          return itemId === savedId;
+        });
+
+        if (existingIndex >= 0) {
+          const updatedRecords = sameDateRecords.map((item) => {
+            const itemId = item._id || item.id;
+            return itemId === savedId ? savedData : item;
+          });
+
+          setRegistroIndex(existingIndex);
+          return updatedRecords;
+        }
+
+        const updatedRecords = [...sameDateRecords, savedData];
+        setRegistroIndex(updatedRecords.length - 1);
+        return updatedRecords;
+      });
 
       Swal.fire({
         icon: "success",
-        title: registroId ? "Registro actualizado" : "Registro guardado",
+        title: isEditingExistingRecord ? "Registro actualizado" : "Registro guardado",
         text: `Fecha de registro: ${payload.fechaRegistro}`,
         timer: 1800,
         showConfirmButton: false,
       });
 
       setOpen(true);
+      await refreshFechasDisponibles();
     } catch (error) {
       Swal.fire({
         icon: "error",
         title: "Error al guardar",
-        text: error.message || "No fue posible guardar la información.",
+        text:
+          error.response?.data?.message ||
+          error.message ||
+          "No fue posible guardar la información.",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -506,62 +646,63 @@ export default function TablaTrazabilidadLaboratorio() {
       return;
     }
 
-    /*
-    const fecha = formatDateToDDMMYYYY(fechaConsulta);
-    const json = await requestApi(`${API_URL}/by-date?fecha=${fecha}`);
+    try {
+      setLoading(true);
 
-    setData(json.data.analisisFisicoquimicoAlimentacion || createInitialData());
-    setRegistroId(json.data._id || null);
-    */
+      const fecha = formatDateToDDMMYYYY(fechaConsulta);
 
-    Swal.fire({
-      icon: "info",
-      title: "Consulta pendiente",
-      text: "El consumo al backend queda pendiente de conectar.",
-      timer: 1800,
-      showConfirmButton: false,
-    });
-  };
+      const response = await axios.get(`${API_URL}/by-date`, {
+        params: { fecha },
+      });
 
-  const handleCompare = async () => {
-    if (compareMode) {
-      setCompareMode(false);
-      setPreviousData(createInitialData());
+      const records = Array.isArray(response.data?.data)
+        ? response.data.data
+        : response.data?.data
+          ? [response.data.data]
+          : [];
+
+      setRegistrosFecha(records);
+      setRegistroIndex(0);
+
+      if (!records.length) {
+        setRegistroId(null);
+        setFormMode("create");
+        setFechaRegistro(fechaConsulta);
+        setData(createInitialData());
+        setObservacionesGenerales("");
+
+        Swal.fire({
+          icon: "info",
+          title: "Sin registros",
+          text: `No hay información guardada para ${fecha}. Puedes crear un nuevo registro.`,
+          timer: 1800,
+          showConfirmButton: false,
+        });
+
+        return;
+      }
+
+      loadRegistroSeleccionado(records, 0);
 
       Swal.fire({
-        icon: "info",
-        title: "Modo comparación desactivado",
-        timer: 1600,
+        icon: "success",
+        title: "Consulta ejecutada",
+        text: `Se encontraron ${records.length} registro(s) para ${fecha}.`,
+        timer: 1800,
         showConfirmButton: false,
       });
-
-      return;
-    }
-
-    if (!fechaConsulta) {
+    } catch (error) {
       Swal.fire({
-        icon: "warning",
-        title: "Fecha requerida",
-        text: "Selecciona una fecha de consulta para comparar.",
+        icon: "error",
+        title: "Error al consultar",
+        text:
+          error.response?.data?.message ||
+          error.message ||
+          "No fue posible consultar la información.",
       });
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    /*
-    const fecha = formatDateToDDMMYYYY(fechaConsulta);
-    const json = await requestApi(`${API_URL}/by-date?fecha=${fecha}`);
-    setPreviousData(json.dataDiaAnterior || createInitialData());
-    */
-
-    setCompareMode(true);
-
-    Swal.fire({
-      icon: "info",
-      title: "Comparación pendiente",
-      text: "El consumo de comparación queda pendiente de conectar.",
-      timer: 1800,
-      showConfirmButton: false,
-    });
   };
 
   const renderSmallInput = (value, onChange, disabled = false) => (
@@ -602,33 +743,91 @@ export default function TablaTrazabilidadLaboratorio() {
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-          <TextField
-            label="Fecha consulta"
-            type="date"
-            size="small"
-            value={fechaConsulta}
-            onChange={(e) => setFechaConsulta(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-          />
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <DatePicker
+              label="Fecha consulta"
+              value={fechaConsulta ? dayjs(fechaConsulta) : null}
+              onChange={(value) => {
+                setFechaConsulta(value ? value.format("YYYY-MM-DD") : "");
+              }}
+              shouldDisableDate={(date) => !isFechaDisponible(date)}
+              disabled={loading || fechasDisponibles.length === 0}
+              slotProps={{
+                textField: {
+                  size: "small",
+                  sx: { width: 155 },
+                },
+              }}
+            />
+          </LocalizationProvider>
 
           <Button
             variant="outlined"
             startIcon={<SearchIcon />}
             onClick={handleExecuteByDate}
-            disabled={!fechaConsulta}
+            disabled={!fechaConsulta || loading}
           >
             Ejecutar
           </Button>
 
-          <Button
-            variant="outlined"
-            color={compareMode ? "error" : "secondary"}
-            startIcon={<CompareArrowsIcon />}
-            onClick={handleCompare}
-            disabled={!fechaConsulta}
-          >
-            {compareMode ? "Desactivar comparación" : "Comparar"}
-          </Button>
+          {registrosFecha.length > 1 && (
+            <Box
+              sx={{
+                position: "fixed",
+                bottom: 20,
+                right: 25,
+                zIndex: 9999,
+                background: "#ffffffee",
+                backdropFilter: "blur(8px)",
+                border: "1px solid #dcdcdc",
+                borderRadius: 3,
+                px: 1,
+                py: 0.8,
+                boxShadow: "0 4px 18px rgba(0,0,0,0.15)",
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.7 }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={goToPreviousRegistro}
+                  disabled={registroIndex === 0 || loading}
+                  sx={{
+                    minWidth: 32,
+                    width: 32,
+                    height: 32,
+                    p: 0,
+                    borderRadius: 2,
+                  }}
+                >
+                  <ArrowBackIosNewIcon sx={{ fontSize: 15 }} />
+                </Button>
+
+                <Chip
+                  size="small"
+                  color="primary"
+                  label={`${registroIndex + 1} / ${registrosFecha.length}`}
+                  sx={{ fontWeight: 700, minWidth: 58 }}
+                />
+
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={goToNextRegistro}
+                  disabled={registroIndex >= registrosFecha.length - 1 || loading}
+                  sx={{
+                    minWidth: 32,
+                    width: 32,
+                    height: 32,
+                    p: 0,
+                    borderRadius: 2,
+                  }}
+                >
+                  <ArrowForwardIosIcon sx={{ fontSize: 15 }} />
+                </Button>
+              </Box>
+            </Box>
+          )}
         </Box>
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
@@ -636,30 +835,8 @@ export default function TablaTrazabilidadLaboratorio() {
             variant="contained"
             color="success"
             startIcon={<DownloadIcon />}
+            disabled={loading}
             onClick={() => {
-              /*
-              exportTrazabilidadLaboratorioExcel({
-                fecha,
-                lote,
-                tipoAlcohol,
-                tanque,
-                fechaInicioLlenado,
-                horaInicioLlenado,
-                fechaFinalLlenado,
-                horaFinalLlenado,
-                codigoInterno,
-                fechaRecibo,
-                origen,
-                proveedor,
-                tipoAlcoholMateriaPrima,
-                gradoAlcoholico,
-                tanqueOrigen,
-                volumenAlimentado,
-                data,
-                permittedRows,
-              });
-              */
-
               Swal.fire({
                 icon: "info",
                 title: "Exportación pendiente",
@@ -675,18 +852,28 @@ export default function TablaTrazabilidadLaboratorio() {
             type="date"
             size="small"
             value={fechaRegistro}
-            disabled={!canEditTable}
+            disabled={!canEditTable || loading}
             onChange={(e) => setFechaRegistro(e.target.value)}
             InputLabelProps={{ shrink: true }}
           />
 
           <Button
+            variant="outlined"
+            color="secondary"
+            startIcon={<NoteAddIcon />}
+            onClick={handleNewRegistro}
+            disabled={!canEditTable || loading}
+          >
+            Nuevo registro
+          </Button>
+
+          <Button
             variant="contained"
             startIcon={<SaveIcon />}
             onClick={handleSave}
-            disabled={!canEditTable}
+            disabled={!canEditTable || loading}
           >
-            {registroId ? "Actualizar data" : "Guardar data"}
+            {formMode === "edit" && registroId ? "Actualizar data" : "Guardar data"}
           </Button>
         </Box>
       </Box>
@@ -760,7 +947,45 @@ export default function TablaTrazabilidadLaboratorio() {
             </tr>
 
             <tr>
-              <td colSpan={24} style={{ ...cellStyle, height: 25, borderLeft: "none", borderRight: "none" }} />
+              <td colSpan={24} style={{ ...cellStyle, height: 10, borderLeft: "none", borderRight: "none" }} />
+            </tr>
+
+            <tr>
+              <td colSpan={4} style={labelCell}>
+                OBSERVACIONES
+              </td>
+
+              <td colSpan={20} style={cellStyle}>
+                <TextField
+                  value={observacionesGenerales}
+                  disabled={!canEditTable || loading}
+                  onChange={(e) => setObservacionesGenerales(e.target.value)}
+                  variant="standard"
+                  fullWidth
+                  multiline
+                  minRows={1}
+                  maxRows={2}
+                  placeholder="Digite las observaciones generales del registro..."
+                  InputProps={{ disableUnderline: true }}
+                  sx={{
+                    "& .MuiInputBase-root": {
+                      minHeight: 30,
+                      backgroundColor: "#fff",
+                      px: 1,
+                    },
+                    "& .MuiInputBase-input": {
+                      textAlign: "left",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      lineHeight: 1.25,
+                    },
+                  }}
+                />
+              </td>
+            </tr>
+
+            <tr>
+              <td colSpan={24} style={{ ...cellStyle, height: 10, borderLeft: "none", borderRight: "none" }} />
             </tr>
 
             <tr>
@@ -863,9 +1088,11 @@ export default function TablaTrazabilidadLaboratorio() {
                 MATERIA PRIMA
               </td>
             </tr>
+
             <tr>
               <td colSpan={24} style={{ ...cellStyle, height: 14, borderLeft: "none", borderRight: "none" }} />
             </tr>
+
             <tr>
               <td colSpan={2} style={labelCell}>
                 CODIGO INTERNO
@@ -876,7 +1103,7 @@ export default function TablaTrazabilidadLaboratorio() {
 
               <td style={{ border: "none" }} />
 
-              <td colSpan={2} style={labelCell} >
+              <td colSpan={2} style={labelCell}>
                 FECHA DE RECIBO
               </td>
               <td colSpan={3} style={cellStyle}>
@@ -972,97 +1199,39 @@ export default function TablaTrazabilidadLaboratorio() {
               <tr key={rowIndex}>
                 {analysisColumns.map((_, colIndex) => {
                   const outOfRange = isCellOutOfRange(rowIndex, row, colIndex);
-
                   const cellValue = row[`col_${colIndex}`] || "";
 
                   return (
                     <td key={colIndex} style={cellStyle}>
-                      {compareMode ? (
-                        <Box
-                          sx={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr",
+                      <TextField
+                        value={cellValue}
+                        disabled={!canEditTable}
+                        inputProps={{
+                          "data-cell": `${rowIndex}-${colIndex}`,
+                        }}
+                        onKeyDown={(e) =>
+                          handleCellKeyDown(e, rowIndex, colIndex)
+                        }
+                        onChange={(e) =>
+                          updateCell(rowIndex, colIndex, e.target.value)
+                        }
+                        variant="standard"
+                        fullWidth
+                        multiline
+                        InputProps={{ disableUnderline: true }}
+                        sx={{
+                          "& .MuiInputBase-root": {
+                            backgroundColor: outOfRange ? "#ffb3b3" : "#fff",
                             minHeight: 24,
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              color: "red",
-                              borderRight: "1px solid #000",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: 9,
-                              px: "2px",
-                              textAlign: "center",
-                              wordBreak: "break-word",
-                              backgroundColor: "#fdfdf4",
-                            }}
-                          >
-                            {previousData[rowIndex]?.[`col_${colIndex}`] || ""}
-                          </Box>
-
-                          <TextField
-                            value={cellValue}
-                            disabled={!canEditTable}
-                            inputProps={{
-                              "data-cell": `${rowIndex}-${colIndex}`,
-                            }}
-                            onKeyDown={(e) =>
-                              handleCellKeyDown(e, rowIndex, colIndex)
-                            }
-                            onChange={(e) =>
-                              updateCell(rowIndex, colIndex, e.target.value)
-                            }
-                            variant="standard"
-                            fullWidth
-                            multiline
-                            InputProps={{ disableUnderline: true }}
-                            sx={{
-                              "& .MuiInputBase-root": {
-                                backgroundColor: outOfRange ? "#ffb3b3" : "#fff",
-                                minHeight: 24,
-                              },
-                              "& .MuiInputBase-input": {
-                                textAlign: "center",
-                                fontSize: 9,
-                                padding: "2px",
-                                lineHeight: 1.1,
-                              },
-                            }}
-                          />
-                        </Box>
-                      ) : (
-                        <TextField
-                          value={cellValue}
-                          disabled={!canEditTable}
-                          inputProps={{
-                            "data-cell": `${rowIndex}-${colIndex}`,
-                          }}
-                          onKeyDown={(e) =>
-                            handleCellKeyDown(e, rowIndex, colIndex)
-                          }
-                          onChange={(e) =>
-                            updateCell(rowIndex, colIndex, e.target.value)
-                          }
-                          variant="standard"
-                          fullWidth
-                          multiline
-                          InputProps={{ disableUnderline: true }}
-                          sx={{
-                            "& .MuiInputBase-root": {
-                              backgroundColor: outOfRange ? "#ffb3b3" : "#fff",
-                              minHeight: 24,
-                            },
-                            "& .MuiInputBase-input": {
-                              textAlign: "center",
-                              fontSize: 9,
-                              padding: "2px",
-                              lineHeight: 1.1,
-                            },
-                          }}
-                        />
-                      )}
+                          },
+                          "& .MuiInputBase-input": {
+                            textAlign: "center",
+                            fontSize: 9,
+                            padding: "2px",
+                            lineHeight: 1.1,
+                          },
+                        }}
+                      />
                     </td>
                   );
                 })}
