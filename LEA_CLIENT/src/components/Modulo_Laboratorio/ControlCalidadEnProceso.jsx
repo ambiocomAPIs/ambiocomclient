@@ -21,6 +21,8 @@ import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import Swal from "sweetalert2";
 
+import { exportControlCalidadProcesoDestileriaExcel } from "./utils_laboratorio/exportControlCalidadProcesoDestileriaExcel";
+
 const API_URL = "https://ambiocomserver.onrender.com/api/trazabilidad-laboratorio-control-proceso";
 
 const DRAFT_STORAGE_KEY = "control_calidad_proceso_destileria_draft";
@@ -965,12 +967,14 @@ export default function ControlCalidadProcesoDestileria() {
       setLoading(false);
     }
   };
-
+  
   const handleExport = () => {
-    Swal.fire({
-      icon: "info",
-      title: "Exportación pendiente",
-      text: "La función de exportar Excel queda pendiente de conectar.",
+    exportControlCalidadProcesoDestileriaExcel({
+      encabezado,
+      controlCalidad,
+      extracciones,
+      observacionesGenerales,
+      fechaRegistro,
     });
   };
 

@@ -20,6 +20,7 @@ import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import Swal from "sweetalert2";
+import { exportTrazabilidadLoteProduccionLaboratorioExcel } from "./utils_laboratorio/exportTrazabilidadLoteProduccionLaboratorioExcel";
 
 const API_URL = "https://ambiocomserver.onrender.com/api/trazabilidadloteproduccionlaboratorio";
 const DRAFT_STORAGE_KEY = "tabla_trazabilidad_laboratorio_draft";
@@ -836,13 +837,33 @@ export default function TablaTrazabilidadLaboratorio() {
             color="success"
             startIcon={<DownloadIcon />}
             disabled={loading}
-            onClick={() => {
-              Swal.fire({
-                icon: "info",
-                title: "Exportación pendiente",
-                text: "La función de exportar Excel queda pendiente de conectar.",
-              });
-            }}
+            onClick={() =>
+              exportTrazabilidadLoteProduccionLaboratorioExcel({
+                observacionesGenerales,
+                fechaRegistro,
+                encabezado: {
+                  fecha,
+                  lote,
+                  tipoAlcohol,
+                  tanque,
+                  fechaInicioLlenado,
+                  horaInicioLlenado,
+                  fechaFinalLlenado,
+                  horaFinalLlenado,
+                },
+                materiaPrima: {
+                  codigoInterno,
+                  fechaRecibo,
+                  origen,
+                  proveedor,
+                  tipoAlcohol: tipoAlcoholMateriaPrima,
+                  gradoAlcoholico,
+                  tanqueOrigen,
+                  volumenAlimentado,
+                },
+                analisisFisicoquimicoAlimentacion: data,
+              })
+            }
           >
             Exportar Excel
           </Button>
