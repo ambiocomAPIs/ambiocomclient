@@ -246,7 +246,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                         },
                         {
                             text: 'Despachos',
-                            subKey: 'despachoalcoholeslogisticareadonly',
+                            subKey: 'despachoalcoholeslogisticareadonly', 
                             roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
                             icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
                         },
