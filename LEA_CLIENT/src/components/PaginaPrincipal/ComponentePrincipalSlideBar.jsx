@@ -90,6 +90,7 @@ import TablaMedicionesDiariaEnergia from '../Energia_CON/TablaMedicionesEnergia.
 //Modulo DEV
 import ConsultasHttpDb from '../DB_Consultas_View/ConsultasHttpDb.jsx';
 import TaskRequerimentDev from '../DB_Consultas_View/TaskRequerimentDevComponent.jsx';
+import RiceBacklogManager from '../DB_Consultas_View/RiceBacklogManager.jsx';
 //modulo inventario
 import SGMRC from '../Insumos_Modulo/SGMRC.jsx';
 //pagina mantenimiento de modulo y desarrollo
@@ -246,7 +247,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                         },
                         {
                             text: 'Despachos',
-                            subKey: 'despachoalcoholeslogisticareadonly', 
+                            subKey: 'despachoalcoholeslogisticareadonly',
                             roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
                             icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
                         },
@@ -430,6 +431,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             text: 'Administrator DEV', roles: ["admin", "developer"], icon: <img src={DevIcon} alt="basededatos" style={{ width: 25, height: 25 }} />, key: 'basededatoscomponent',
             subItems: [
                 { text: 'Task & Reqeriments', subKey: 'taskandrequeriments', roles: ["admin", "developer"], icon: <img src={ListToDoIcon} alt="taskandrequeriments" style={{ width: 25, height: 25 }} /> },
+                { text: 'R-I-C-E', subKey: 'ricescrum', roles: ["admin", "developer"], icon: <img src={ListToDoIcon} alt="taskandrequeriments" style={{ width: 25, height: 25 }} /> },
                 { text: 'Base de datos', subKey: 'basededatos', roles: ["admin", "developer"], icon: <img src={DatabaseAdministratorIcon} alt="basededatos" style={{ width: 25, height: 25 }} /> },
                 { text: 'Logs Traffic', subKey: 'logstraffic', roles: ["admin", "developer"], icon: <img src={logsIcon} alt="logstraffic" style={{ width: 25, height: 25 }} /> },
             ],
@@ -567,9 +569,10 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'taskandrequeriments': return <TaskRequerimentDev />;
             case 'basededatos': return <ConsultasHttpDb />;
             case 'logstraffic': return <TrafficLogViewer />;
+            case 'ricescrum': return <RiceBacklogManager />;
             //pagina mantenimiento
             case 'modulomantenimiento': return <ModuloEnMantenimiento />;
-            //pausa activa
+            //pausa activaricescrum
             case 'trivia': return <Trivia />;
             case 'snake': return <Snake />;
             default: return null;
