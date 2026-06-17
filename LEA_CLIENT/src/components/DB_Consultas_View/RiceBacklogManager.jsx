@@ -32,6 +32,7 @@ import ViewKanbanOutlinedIcon from "@mui/icons-material/ViewKanbanOutlined";
 import ViewListOutlinedIcon from "@mui/icons-material/ViewListOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import TodayIcon from "@mui/icons-material/Today";
+import TaskAltIcon from "@mui/icons-material/TaskAlt";
 
 import RiceItemModal from "./utils/RICE_Utils/Modal/RiceItemModal";
 import RiceKanbanBoard from "./utils/RICE_Utils/Components/RiceKanbanBoard";
@@ -1439,99 +1440,138 @@ export default function RiceBacklogManager() {
                                       Number(score) >= 5
                                         ? "#2e7d32"
                                         : Number(score) >= 2.5
-                                        ? "#1565c0"
-                                        : "#9e9e9e",
+                                          ? "#1565c0"
+                                          : "#9e9e9e",
                                   }}
                                 />
                               </Box>
                             </Grid>
-
                             <Grid item xs={12} md={3}>
-                              <Stack
-                                direction={{ xs: "row", md: "column" }}
-                                alignItems={{ xs: "center", md: "flex-end" }}
-                                justifyContent="space-between"
-                                spacing={1.5}
+                              <Box
+                                sx={{
+                                  position: "relative",
+                                  minHeight: { xs: "auto", md: 150 },
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "flex-end",
+                                  overflow: "hidden",
+                                  borderRadius: 2,
+                                }}
                               >
-                                <Box
+                                {item.estado === "Completado" && (
+                                  <TaskAltIcon
+                                    sx={{
+                                      position: "absolute",
+                                      right: 8,
+                                      top: "50%",
+                                      transform: "translateY(-50%)",
+                                      fontSize: { xs: 80, md: 120 },
+                                      color: "rgba(46, 125, 50, 0.14)",
+                                      zIndex: 0,
+                                      pointerEvents: "none",
+                                    }}
+                                  />
+                                )}
+
+                                <Stack
+                                  direction={{ xs: "row", md: "column" }}
+                                  alignItems={{ xs: "center", md: "flex-end" }}
+                                  justifyContent="space-between"
+                                  spacing={1.5}
                                   sx={{
-                                    textAlign: { xs: "left", md: "right" },
+                                    position: "relative",
+                                    zIndex: 1,
+                                    width: "100%",
                                   }}
                                 >
-                                  <Typography
-                                    variant="body2"
+                                  <Box
                                     sx={{
-                                      color: "text.secondary",
-                                      fontWeight: 800,
-                                      letterSpacing: 0.5,
+                                      textAlign: { xs: "left", md: "right" },
+                                      width: "100%",
                                     }}
                                   >
-                                    RICE
-                                  </Typography>
-
-                                  <Typography
-                                    variant="h4"
-                                    sx={{ fontWeight: 900 }}
-                                  >
-                                    {score}
-                                  </Typography>
-                                </Box>
-
-                                <Stack direction="row" spacing={1}>
-                                  <Tooltip title="Consultar">
-                                    <IconButton
-                                      onClick={() => openViewModal(item)}
+                                    <Typography
+                                      variant="body2"
                                       sx={{
-                                        border: "1px solid",
-                                        borderColor: "rgba(0,0,0,0.16)",
-                                        borderRadius: 2,
+                                        color: item.estado === "Completado" ? "#2e7d32" : "text.secondary",
+                                        fontWeight: 800,
+                                        letterSpacing: 0.5,
                                       }}
                                     >
-                                      <VisibilityOutlinedIcon />
-                                    </IconButton>
-                                  </Tooltip>
+                                      RICE
+                                    </Typography>
 
-                                  <Tooltip title="Editar">
-                                    <IconButton
-                                      onClick={() => openEditModal(item)}
+                                    <Typography
+                                      variant="h4"
                                       sx={{
-                                        border: "1px solid",
-                                        borderColor: "rgba(0,0,0,0.16)",
-                                        borderRadius: 2,
+                                        fontWeight: 900,
+                                        color: item.estado === "Completado" ? "#1b5e20" : "inherit",
                                       }}
                                     >
-                                      <EditOutlinedIcon />
-                                    </IconButton>
-                                  </Tooltip>
+                                      {score}
+                                    </Typography>
+                                  </Box>
 
-                                  <Tooltip title="Historial">
-                                    <IconButton
-                                      onClick={() => openHistoryModal(item)}
-                                      sx={{
-                                        border: "1px solid",
-                                        borderColor: "rgba(0,0,0,0.16)",
-                                        borderRadius: 2,
-                                      }}
-                                    >
-                                      <HistoryIcon />
-                                    </IconButton>
-                                  </Tooltip>
+                                  <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                    <Tooltip title="Consultar">
+                                      <IconButton
+                                        onClick={() => openViewModal(item)}
+                                        sx={{
+                                          border: "1px solid",
+                                          borderColor: "rgba(0,0,0,0.16)",
+                                          borderRadius: 2,
+                                          bgcolor: "rgba(255,255,255,0.85)",
+                                        }}
+                                      >
+                                        <VisibilityOutlinedIcon />
+                                      </IconButton>
+                                    </Tooltip>
 
-                                  <Tooltip title="Eliminar">
-                                    <IconButton
-                                      color="error"
-                                      onClick={() => handleDelete(item.id)}
-                                      sx={{
-                                        border: "1px solid",
-                                        borderColor: "rgba(0,0,0,0.16)",
-                                        borderRadius: 2,
-                                      }}
-                                    >
-                                      <DeleteOutlineIcon />
-                                    </IconButton>
-                                  </Tooltip>
+                                    <Tooltip title="Editar">
+                                      <IconButton
+                                        onClick={() => openEditModal(item)}
+                                        sx={{
+                                          border: "1px solid",
+                                          borderColor: "rgba(0,0,0,0.16)",
+                                          borderRadius: 2,
+                                          bgcolor: "rgba(255,255,255,0.85)",
+                                        }}
+                                      >
+                                        <EditOutlinedIcon />
+                                      </IconButton>
+                                    </Tooltip>
+
+                                    <Tooltip title="Historial">
+                                      <IconButton
+                                        onClick={() => openHistoryModal(item)}
+                                        sx={{
+                                          border: "1px solid",
+                                          borderColor: "rgba(0,0,0,0.16)",
+                                          borderRadius: 2,
+                                          bgcolor: "rgba(255,255,255,0.85)",
+                                        }}
+                                      >
+                                        <HistoryIcon />
+                                      </IconButton>
+                                    </Tooltip>
+
+                                    <Tooltip title="Eliminar">
+                                      <IconButton
+                                        color="error"
+                                        onClick={() => handleDelete(item.id)}
+                                        sx={{
+                                          border: "1px solid",
+                                          borderColor: "rgba(0,0,0,0.16)",
+                                          borderRadius: 2,
+                                          bgcolor: "rgba(255,255,255,0.85)",
+                                        }}
+                                      >
+                                        <DeleteOutlineIcon />
+                                      </IconButton>
+                                    </Tooltip>
+                                  </Stack>
                                 </Stack>
-                              </Stack>
+                              </Box>
                             </Grid>
                           </Grid>
                         </Paper>

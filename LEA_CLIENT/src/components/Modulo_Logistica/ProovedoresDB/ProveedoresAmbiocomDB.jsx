@@ -28,8 +28,6 @@ import {
   MenuItem,
 } from "@mui/material";
 
-import Autocomplete from "@mui/material/Autocomplete";
-
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SaveIcon from "@mui/icons-material/Save";
@@ -38,34 +36,48 @@ import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import BusinessIcon from "@mui/icons-material/Business";
 import PersonIcon from "@mui/icons-material/Person";
+import PhoneIcon from "@mui/icons-material/Phone";
+import EmailIcon from "@mui/icons-material/Email";
+import CategoryIcon from "@mui/icons-material/Category";
+import BadgeIcon from "@mui/icons-material/Badge";
 
-const API_URL = "https://ambiocomserver.onrender.com/api/clienteslogistica";
-const API_TIPO_OH_URL = "https://ambiocomserver.onrender.com/api/alcoholesdespacho";
+const API_URL = "https://ambiocomserver.onrender.com/api/proveedoreslogistica";
 
-// Debounce simple sin librerías
+const TIPOS_PROVEEDOR = [
+  "Materia Prima",
+  "Transporte",
+  "Servicios",
+  "Mantenimiento",
+  "Insumos",
+  "Equipos",
+  "Otro",
+];
+
 const useDebouncedValue = (value, delay = 250) => {
   const [debounced, setDebounced] = useState(value);
+
   useEffect(() => {
     const t = setTimeout(() => setDebounced(value), delay);
     return () => clearTimeout(t);
   }, [value, delay]);
+
   return debounced;
 };
 
-const ClientesDespachoPageDB = () => {
-  const [clientes, setClientes] = useState([]);
+const ProveedoresLogisticaPageDB = () => {
+  const [proveedores, setProveedores] = useState([]);
   const [editingId, setEditingId] = useState(null);
-  const [tiposOH, setTiposOH] = useState([]);
 
-  // buscador
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 250);
 
   const [form, setForm] = useState({
-    comercial: "",
-    cliente: "",
-    tipoOH: "",
-    incoterm: "",
+    proveedor: "",
+    nit: "",
+    contacto: "",
+    telefono: "",
+    emailContacto: "",
+    tipoProveedor: "",
   });
 
   const getApiErrorMessage = (error) => {
@@ -77,77 +89,63 @@ const ClientesDespachoPageDB = () => {
     );
   };
 
-  // ===============================
-  // OBTENER CLIENTES
-  // ===============================
-  const fetchClientes = async () => {
+  const fetchProveedores = async () => {
     try {
       const res = await axios.get(API_URL, {
         withCredentials: true,
       });
-      setClientes(Array.isArray(res.data) ? res.data : []);
+
+      setProveedores(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
-      console.error("Error al obtener clientes:", error);
+      console.error("Error al obtener proveedores:", error);
 
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: "No se pudieron cargar los clientes.",
+        text: "No se pudieron cargar los proveedores.",
       });
 
-      setClientes([]);
-    }
-  };
-
-  const fetchTiposOH = async () => {
-    try {
-      const res = await axios.get(API_TIPO_OH_URL);
-      setTiposOH(Array.isArray(res.data) ? res.data : []);
-    } catch (error) {
-      console.error("Error al obtener tipos OH:", error);
+      setProveedores([]);
     }
   };
 
   useEffect(() => {
-    fetchClientes();
-    fetchTiposOH();
+    fetchProveedores();
   }, []);
 
-  // ===============================
-  // FORM HANDLERS
-  // ===============================
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const resetForm = () => {
     setForm({
-      comercial: "",
-      cliente: "",
-      tipoOH: "",
-      incoterm: "",
+      proveedor: "",
+      nit: "",
+      contacto: "",
+      telefono: "",
+      emailContacto: "",
+      tipoProveedor: "",
     });
+
     setEditingId(null);
   };
 
-  // ===============================
-  // CREAR / ACTUALIZAR
-  // ===============================
   const handleSubmit = async () => {
     try {
       const payload = {
-        comercial: (form.comercial ?? "").trim(),
-        cliente: (form.cliente ?? "").trim(),
-        tipoOH: (form.tipoOH ?? "").trim(),
-        incoterm: (form.incoterm ?? "").trim(),
+        proveedor: (form.proveedor ?? "").trim(),
+        nit: (form.nit ?? "").trim(),
+        contacto: (form.contacto ?? "").trim(),
+        telefono: (form.telefono ?? "").trim(),
+        emailContacto: (form.emailContacto ?? "").trim(),
+        tipoProveedor: (form.tipoProveedor ?? "").trim(),
       };
 
-      // Validación mínima (sin cambiar estilos)
-      if (!payload.comercial || !payload.cliente) {
+      if (!payload.proveedor || !payload.tipoProveedor) {
         await Swal.fire({
           icon: "warning",
           title: "Campos obligatorios",
-          text: "Debes diligenciar Comercial y Cliente.",
+          text: "Debes diligenciar Proveedor y Tipo de proveedor.",
         });
         return;
       }
@@ -174,17 +172,17 @@ const ClientesDespachoPageDB = () => {
         icon: "success",
         title: "Listo",
         text: editingId
-          ? "Cliente actualizado correctamente."
-          : "Cliente registrado correctamente.",
+          ? "Proveedor actualizado correctamente."
+          : "Proveedor registrado correctamente.",
         timer: 1500,
         showConfirmButton: false,
       });
 
       resetForm();
-      fetchClientes();
+      fetchProveedores();
     } catch (error) {
       Swal.close();
-      console.error("Error al guardar cliente:", error);
+      console.error("Error al guardar proveedor:", error);
 
       Swal.fire({
         icon: "error",
@@ -196,11 +194,14 @@ const ClientesDespachoPageDB = () => {
 
   const handleEdit = (item) => {
     setForm({
-      comercial: item.comercial ?? "",
-      cliente: item.cliente ?? "",
-      tipoOH: item.tipoOH ?? "",
-      incoterm: item.incoterm ?? "",
+      proveedor: item.proveedor ?? "",
+      nit: item.nit ?? "",
+      contacto: item.contacto ?? "",
+      telefono: item.telefono ?? "",
+      emailContacto: item.emailContacto ?? "",
+      tipoProveedor: item.tipoProveedor ?? "",
     });
+
     setEditingId(item._id);
 
     Swal.fire({
@@ -216,7 +217,7 @@ const ClientesDespachoPageDB = () => {
     try {
       const confirm = await Swal.fire({
         icon: "warning",
-        title: "¿Eliminar cliente?",
+        title: "¿Eliminar proveedor?",
         text: "Esta acción no se puede deshacer.",
         showCancelButton: true,
         confirmButtonText: "Sí, eliminar",
@@ -241,18 +242,17 @@ const ClientesDespachoPageDB = () => {
       await Swal.fire({
         icon: "success",
         title: "Eliminado",
-        text: "Cliente eliminado correctamente.",
+        text: "Proveedor eliminado correctamente.",
         timer: 1300,
         showConfirmButton: false,
       });
 
-      // si estabas editando el mismo registro, resetea
       if (editingId === id) resetForm();
 
-      fetchClientes();
+      fetchProveedores();
     } catch (error) {
       Swal.close();
-      console.error("Error al eliminar cliente:", error);
+      console.error("Error al eliminar proveedor:", error);
 
       Swal.fire({
         icon: "error",
@@ -262,56 +262,36 @@ const ClientesDespachoPageDB = () => {
     }
   };
 
-  const comercialesOptions = useMemo(() => {
-    const unicos = [];
-    const vistos = new Set();
-
-    clientes.forEach((c) => {
-      const valorOriginal = String(c.comercial ?? "").trim();
-      if (!valorOriginal) return;
-
-      const clave = valorOriginal.toLowerCase();
-      if (!vistos.has(clave)) {
-        vistos.add(clave);
-        unicos.push(valorOriginal);
-      }
-    });
-
-    return unicos.sort((a, b) =>
-      a.localeCompare(b, "es", { sensitivity: "base" })
-    );
-  }, [clientes]);
-
-  // ===============================
-  // FILTRO BUSCADOR (rápido)
-  // ===============================
-  const clientesFiltrados = useMemo(() => {
+  const proveedoresFiltrados = useMemo(() => {
     const q = (debouncedSearch || "").trim().toLowerCase();
-    if (!q) return clientes;
+    if (!q) return proveedores;
 
-    return clientes.filter((c) => {
-      const comercial = String(c.comercial ?? "").toLowerCase();
-      const cliente = String(c.cliente ?? "").toLowerCase();
-      const tipoOH = String(c.tipoOH ?? "").toLowerCase();
-      const incoterm = String(c.incoterm ?? "").toLowerCase();
+    return proveedores.filter((p) => {
+      const proveedor = String(p.proveedor ?? "").toLowerCase();
+      const nit = String(p.nit ?? "").toLowerCase();
+      const contacto = String(p.contacto ?? "").toLowerCase();
+      const telefono = String(p.telefono ?? "").toLowerCase();
+      const emailContacto = String(p.emailContacto ?? "").toLowerCase();
+      const tipoProveedor = String(p.tipoProveedor ?? "").toLowerCase();
 
       return (
-        comercial.includes(q) ||
-        cliente.includes(q) ||
-        tipoOH.includes(q) ||
-        incoterm.includes(q)
+        proveedor.includes(q) ||
+        nit.includes(q) ||
+        contacto.includes(q) ||
+        telefono.includes(q) ||
+        emailContacto.includes(q) ||
+        tipoProveedor.includes(q)
       );
     });
-  }, [clientes, debouncedSearch]);
+  }, [proveedores, debouncedSearch]);
 
-  const total = clientes.length;
-  const filtrados = clientesFiltrados.length;
+  const total = proveedores.length;
+  const filtrados = proveedoresFiltrados.length;
 
   return (
     <Box p={0} mt={5}>
       <Card elevation={4}>
         <CardContent>
-          {/* Header + chips + buscador */}
           <Box
             display="flex"
             flexDirection={{ xs: "column", md: "row" }}
@@ -321,7 +301,7 @@ const ClientesDespachoPageDB = () => {
           >
             <Box>
               <Typography variant="h5" fontWeight="bold" gutterBottom>
-                Gestión de Clientes Logística
+                Gestión de Proveedores
               </Typography>
 
               <Stack direction="row" spacing={1} mt={1} flexWrap="wrap">
@@ -340,7 +320,7 @@ const ClientesDespachoPageDB = () => {
             <TextField
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por comercial, cliente, tipo OH o incoterm..."
+              placeholder="Buscar por proveedor, NIT, contacto, teléfono, email o tipo..."
               size="small"
               sx={{ minWidth: { xs: "100%", md: 520 } }}
               InputProps={{
@@ -366,96 +346,87 @@ const ClientesDespachoPageDB = () => {
 
           <Divider sx={{ mb: 3, mt: 3 }} />
 
-          {/* FORMULARIO */}
           <Grid container spacing={1.2} alignItems="center">
-            <Grid item xs={12} sm={6} md={2.3}>
-              <Autocomplete
-                fullWidth
-                freeSolo
-                size="small"
-                options={comercialesOptions}
-                value={form.comercial || ""}
-                onChange={(_, newValue) => {
-                  setForm((prev) => ({
-                    ...prev,
-                    comercial: typeof newValue === "string" ? newValue : "",
-                  }));
-                }}
-                onInputChange={(_, newInputValue, reason) => {
-                  if (reason === "input") {
-                    setForm((prev) => ({
-                      ...prev,
-                      comercial: newInputValue,
-                    }));
-                  }
-
-                  if (reason === "clear") {
-                    setForm((prev) => ({
-                      ...prev,
-                      comercial: "",
-                    }));
-                  }
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    size="small"
-                    label="Comercial"
-                    name="comercial"
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={2.5}>
+            <Grid item xs={12} sm={6} md={2.4}>
               <TextField
                 fullWidth
                 size="small"
-                label="Cliente"
-                name="cliente"
-                value={form.cliente}
+                label="Proveedor"
+                name="proveedor"
+                value={form.proveedor}
                 onChange={handleChange}
               />
             </Grid>
 
-            <Grid item xs={12} sm={6} md={2.3}>
-              <FormControl fullWidth size="small">
-                <InputLabel id="tipooh-label">Tipo OH</InputLabel>
-                <Select
-                  labelId="tipooh-label"
-                  name="tipoOH"
-                  value={form.tipoOH}
-                  label="Tipo OH"
-                  onChange={handleChange}
-                >
-                  <MenuItem value="">
-                    <em>Seleccione un tipo OH</em>
-                  </MenuItem>
-
-                  {tiposOH.map((item) => (
-                    <MenuItem
-                      key={item._id}
-                      value={item.tipoProducto || item.nombre}
-                    >
-                      {item.tipoProducto || item.nombre}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+            <Grid item xs={12} sm={6} md={1.5}>
+              <TextField
+                fullWidth
+                size="small"
+                label="NIT"
+                name="nit"
+                value={form.nit}
+                onChange={handleChange}
+              />
             </Grid>
 
             <Grid item xs={12} sm={6} md={1.8}>
               <TextField
                 fullWidth
                 size="small"
-                label="Incoterm"
-                name="incoterm"
-                value={form.incoterm}
+                label="Contacto"
+                name="contacto"
+                value={form.contacto}
                 onChange={handleChange}
               />
             </Grid>
 
-            <Grid item xs={12} md={3.1}>
+            <Grid item xs={12} sm={6} md={1.5}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Teléfono"
+                name="telefono"
+                value={form.telefono}
+                onChange={handleChange}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={2}>
+              <TextField
+                fullWidth
+                size="small"
+                type="email"
+                label="Email"
+                name="emailContacto"
+                value={form.emailContacto}
+                onChange={handleChange}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={1.8}>
+              <FormControl fullWidth size="small">
+                <InputLabel id="tipoProveedor-label">Tipo</InputLabel>
+                <Select
+                  labelId="tipoProveedor-label"
+                  name="tipoProveedor"
+                  value={form.tipoProveedor}
+                  label="Tipo"
+                  onChange={handleChange}
+                >
+                  <MenuItem value="">
+                    <em>Seleccione</em>
+                  </MenuItem>
+
+                  {TIPOS_PROVEEDOR.map((tipo) => (
+                    <MenuItem key={tipo} value={tipo}>
+                      {tipo}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} md={1}>
               <Box
                 sx={{
                   display: "flex",
@@ -499,7 +470,7 @@ const ClientesDespachoPageDB = () => {
                   variant="text"
                   size="small"
                   onClick={async () => {
-                    await fetchClientes();
+                    await fetchProveedores();
                     Swal.fire({
                       icon: "success",
                       title: "Actualizado",
@@ -518,7 +489,6 @@ const ClientesDespachoPageDB = () => {
 
           <Divider sx={{ my: 4 }} />
 
-          {/* TABLA */}
           <TableContainer
             component={Paper}
             elevation={0}
@@ -534,10 +504,12 @@ const ClientesDespachoPageDB = () => {
               <TableHead>
                 <TableRow>
                   {[
-                    "Comercial",
-                    "Cliente",
-                    "Tipo OH",
-                    "Incoterm",
+                    "Proveedor",
+                    "NIT",
+                    "Contacto",
+                    "Teléfono",
+                    "Email",
+                    "Tipo",
                     "Acciones",
                   ].map((head) => (
                     <TableCell
@@ -561,21 +533,21 @@ const ClientesDespachoPageDB = () => {
               </TableHead>
 
               <TableBody>
-                {clientesFiltrados.length === 0 ? (
+                {proveedoresFiltrados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 5 }}>
+                    <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
                       <Typography fontWeight={800}>No hay resultados</Typography>
                       <Typography variant="body2" color="text.secondary">
                         {debouncedSearch
                           ? "Prueba cambiando el texto de búsqueda."
-                          : "No hay clientes registrados."}
+                          : "No hay proveedores registrados."}
                       </Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  clientesFiltrados.map((c) => (
+                  proveedoresFiltrados.map((p) => (
                     <TableRow
-                      key={c._id}
+                      key={p._id}
                       hover
                       sx={{
                         "&:nth-of-type(even)": {
@@ -590,21 +562,9 @@ const ClientesDespachoPageDB = () => {
                         },
                       }}
                     >
-                      <TableCell>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <PersonIcon
-                            fontSize="small"
-                            sx={{ color: "#607D8B" }}
-                          />
-                          <Typography sx={{ fontWeight: 800 }}>
-                            {c.comercial || "-"}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-
                       <TableCell
                         sx={{
-                          maxWidth: 520,
+                          maxWidth: 320,
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
@@ -618,13 +578,80 @@ const ClientesDespachoPageDB = () => {
                           <Typography
                             variant="body2"
                             sx={{
-                              fontWeight: 700,
+                              fontWeight: 800,
                               whiteSpace: "nowrap",
                               overflow: "hidden",
                               textOverflow: "ellipsis",
                             }}
                           >
-                            {c.cliente || "-"}
+                            {p.proveedor || "-"}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <BadgeIcon
+                            fontSize="small"
+                            sx={{ color: "#607D8B", flexShrink: 0 }}
+                          />
+                          <Typography variant="body2">
+                            {p.nit || "-"}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <PersonIcon
+                            fontSize="small"
+                            sx={{ color: "#607D8B", flexShrink: 0 }}
+                          />
+                          <Typography variant="body2">
+                            {p.contacto || "-"}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+
+                      <TableCell>
+                        {p.telefono ? (
+                          <Chip
+                            size="small"
+                            icon={<PhoneIcon />}
+                            label={p.telefono}
+                            color="success"
+                            variant="outlined"
+                            sx={{ fontWeight: 700 }}
+                          />
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            Sin teléfono
+                          </Typography>
+                        )}
+                      </TableCell>
+
+                      <TableCell
+                        sx={{
+                          maxWidth: 300,
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <EmailIcon
+                            fontSize="small"
+                            sx={{ color: "#607D8B", flexShrink: 0 }}
+                          />
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {p.emailContacto || "-"}
                           </Typography>
                         </Box>
                       </TableCell>
@@ -632,19 +659,11 @@ const ClientesDespachoPageDB = () => {
                       <TableCell>
                         <Chip
                           size="small"
-                          label={c.tipoOH || "-"}
+                          icon={<CategoryIcon />}
+                          label={p.tipoProveedor || "-"}
                           color="primary"
                           variant="outlined"
                           sx={{ fontWeight: 800 }}
-                        />
-                      </TableCell>
-
-                      <TableCell>
-                        <Chip
-                          size="small"
-                          label={c.incoterm || "-"}
-                          variant="outlined"
-                          sx={{ fontWeight: 700 }}
                         />
                       </TableCell>
 
@@ -659,7 +678,7 @@ const ClientesDespachoPageDB = () => {
                               backgroundColor: "#BBDEFB",
                             },
                           }}
-                          onClick={() => handleEdit(c)}
+                          onClick={() => handleEdit(p)}
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>
@@ -673,7 +692,7 @@ const ClientesDespachoPageDB = () => {
                               backgroundColor: "#FFCDD2",
                             },
                           }}
-                          onClick={() => handleDelete(c._id)}
+                          onClick={() => handleDelete(p._id)}
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>
@@ -690,4 +709,4 @@ const ClientesDespachoPageDB = () => {
   );
 };
 
-export default ClientesDespachoPageDB;
+export default ProveedoresLogisticaPageDB;

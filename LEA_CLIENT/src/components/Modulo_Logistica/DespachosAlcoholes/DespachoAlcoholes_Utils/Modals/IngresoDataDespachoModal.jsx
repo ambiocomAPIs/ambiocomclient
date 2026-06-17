@@ -39,11 +39,8 @@ const DENSIDAD_KEY = "densidadlab_alcohol_tanque";
 const DENSIDAD_MIN = 0.7;
 const DENSIDAD_MAX = 0.9;
 
-const PERSONAL_ANALISTA_KEY = "muestreador_analista_laboratorio"; // personal lab para el select
-const PERSONAL_LOGISTICA_KEYS = [
-  "operario_auxiliar_logistica",
-  "responsable_despacho",
-]; // personal logistica para el select
+const PERSONAL_ANALISTA_KEY = "muestreador_analista_laboratorio";
+const PERSONAL_LOGISTICA_KEYS = ["operario_auxiliar_logistica", "responsable_despacho",]; // personal logistica para el select
 
 const SELECT_KEYS = [
   "nombre_conductor",
@@ -56,16 +53,9 @@ const SELECT_KEYS = [
 const CACHE_PREFIX = "despacho_catalogo_";
 const FORM_CACHE_PREFIX = "despacho_form_draft_";
 const TIME_KEYS = ["hora_llegada", "hora_salida"];
+const DATE_KEYS = ["fecha_entrega"];
 const VEHICULO_RECHAZADO_KEY = "vehiculo_rechazado";
-// const VEHICULO_RECHAZADO_OPTIONS = [
-//   "SI",
-//   "NO",
-//   "EN TRANSITO",
-//   "EN CLIENTE",
-//   "APROBADO CON OBSERVACIONES",
-//   "RECHAZADO POR CLIENTE",
-//   "EN CARGUE",
-// ];
+
 const VEHICULO_RECHAZADO_OPTIONS = [
   "EN PLANTA",
   "RECHAZADO AMBIOCOM",
@@ -83,7 +73,11 @@ const RESPONSABLE_RECIBO_ROLES = [
   "auxiliarlogistica2",
 ];
 const LLEGADA_DESTINO_KEY = "llegada_destino";
+const PUNTUALIDAD_CLIENTE_KEY = "puntualidad_en_cliente";
+
 const LLEGADA_DESTINO_OPTIONS = ["PUNTUAL", "RETRASADO"];
+const ESTADO_PUNTUALIDAD_OPTIONS = ["PUNTUAL", "RETRASADO"];
+
 const REQUIRED_FIELDS = ["fecha", "responsable", "observaciones"];
 const FLETE_FACTURADO_KEY = "flete_facturado";
 
@@ -208,6 +202,24 @@ const parseHHMMToMinutes = (hhmm) => {
 };
 
 const safeStr = (v) => (v == null ? "" : String(v));
+
+const toDateInputValue = (v) => {
+  if (!v) return "";
+
+  const s = String(v).trim();
+  // Si ya viene en formato correcto: 2026-06-14
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // Si viene como ISO: 2026-06-14T00:00:00.000Z
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return s.slice(0, 10);
+  // Si viene como 25/05/2026 o 25-05-2026
+  const match = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/.exec(s);
+  if (match) {
+    const [, dd, mm, yyyy] = match;
+    return `${yyyy}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
+  }
+
+  return "";
+};
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
@@ -727,17 +739,26 @@ const IngresoDataDespachoModal = ({
 
     setForm((prev) => {
       const lecturas = prev?.lecturas ?? {};
-      const actual = lecturas?.[LLEGADA_DESTINO_KEY];
 
-      // Si ya tiene valor, no lo piso
-      if (actual != null && String(actual).trim() !== "") return prev;
+      const nextLecturas = { ...lecturas };
+
+      if (
+        nextLecturas?.[LLEGADA_DESTINO_KEY] == null ||
+        String(nextLecturas?.[LLEGADA_DESTINO_KEY]).trim() === ""
+      ) {
+        nextLecturas[LLEGADA_DESTINO_KEY] = "PUNTUAL";
+      }
+
+      if (
+        nextLecturas?.[PUNTUALIDAD_CLIENTE_KEY] == null ||
+        String(nextLecturas?.[PUNTUALIDAD_CLIENTE_KEY]).trim() === ""
+      ) {
+        nextLecturas[PUNTUALIDAD_CLIENTE_KEY] = "PUNTUAL";
+      }
 
       return {
         ...prev,
-        lecturas: {
-          ...lecturas,
-          [LLEGADA_DESTINO_KEY]: "PUNTUAL",
-        },
+        lecturas: nextLecturas,
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -832,6 +853,7 @@ const IngresoDataDespachoModal = ({
     "hora_llegada",
     "cliente",
     "producto",
+    "fecha_entrega",
     "__RESPONSABLE_RECIBO__",
     "operario_auxiliar_logistica", // responsable cargue
     "volumen_despachar",
@@ -872,6 +894,7 @@ const IngresoDataDespachoModal = ({
     "dif_v_netodif_v_desp_bascula_ambiocom",
     "dif_kilos_neto",
     "llegada_destino",
+    "puntualidad_en_cliente",
     "costo_transporte",
     "factura_proveedor",
     "entrada_orden_compra",
@@ -1129,8 +1152,10 @@ const IngresoDataDespachoModal = ({
 
                 const esSelect = SELECT_KEYS.includes(c.key);
                 const esHora = TIME_KEYS.includes(c.key);
+                const esFecha = DATE_KEYS.includes(c.key);
                 const esVehiculoRechazado = c.key === VEHICULO_RECHAZADO_KEY; // evalua si fue rechazado
                 const esLlegadaDestino = c.key === LLEGADA_DESTINO_KEY; // evalua si llego al destino el vehiculo
+                const esPuntualidadCliente = c.key === PUNTUALIDAD_CLIENTE_KEY;
                 const esTanqueSalida = c.key === "tanque_salida"; // evalua que la lista select se renderizara en la columna con esta key
                 const items = esSelect ? getItems(c.key) : [];
                 const esNombreConductor = c.key === "nombre_conductor";
@@ -1305,6 +1330,20 @@ const IngresoDataDespachoModal = ({
                           />
                         )}
                       />
+                    ) : esFecha ? (
+                      <TextField
+                        fullWidth
+                        type="date"
+                        label={c.nombre}
+                        InputLabelProps={{ shrink: true }}
+                        value={toDateInputValue(form.lecturas?.[c.key])}
+                        onChange={(e) => {
+                          if (isDisabled) return;
+                          handleChangeLectura(c.key, e.target.value);
+                        }}
+                        disabled={isDisabled}
+                        sx={sxField}
+                      />
                     ) : esVehiculoRechazado ? (
                       <Autocomplete
                         disableClearable
@@ -1325,12 +1364,12 @@ const IngresoDataDespachoModal = ({
                           />
                         )}
                       />
-                    ) : esLlegadaDestino ? (
+                    ) : esLlegadaDestino || esPuntualidadCliente ? (
                       <Autocomplete
                         disableClearable
                         forcePopupIcon
-                        options={LLEGADA_DESTINO_OPTIONS}
-                        value={form.lecturas?.[c.key] ?? ""}
+                        options={ESTADO_PUNTUALIDAD_OPTIONS}
+                        value={form.lecturas?.[c.key] ?? "PUNTUAL"}
                         onChange={(event, newValue) => {
                           if (isDisabled) return;
                           handleChangeLectura(c.key, newValue ?? "");
@@ -1346,162 +1385,162 @@ const IngresoDataDespachoModal = ({
                         )}
                       />
                     ) : esTanqueSalida ? (
-                      <Autocomplete
-                        multiple
-                        disableCloseOnSelect
-                        forcePopupIcon
-                        loading={loadingTanques}
-                        options={tanquesOptions}
-                        value={selectedTanques}
-                        isOptionEqualToValue={(option, value) =>
-                          option.value === value.value
-                        }
-                        getOptionLabel={(option) =>
-                          typeof option === "string"
-                            ? option
-                            : option.label ?? ""
-                        }
-                        onChange={(event, newValue) => {
-                          if (isDisabled) return;
+                        <Autocomplete
+                          multiple
+                          disableCloseOnSelect
+                          forcePopupIcon
+                          loading={loadingTanques}
+                          options={tanquesOptions}
+                          value={selectedTanques}
+                          isOptionEqualToValue={(option, value) =>
+                            option.value === value.value
+                          }
+                          getOptionLabel={(option) =>
+                            typeof option === "string"
+                              ? option
+                              : option.label ?? ""
+                          }
+                          onChange={(event, newValue) => {
+                            if (isDisabled) return;
 
-                          const names = (newValue ?? []).map((x) =>
-                            typeof x === "string" ? x : x.value
-                          );
+                            const names = (newValue ?? []).map((x) =>
+                              typeof x === "string" ? x : x.value
+                            );
 
-                          handleChangeLectura(c.key, buildTanquesString(names));
-                        }}
-                        renderOption={(props, option, { selected }) => {
-                          const icon = (
-                            <CheckBoxOutlineBlankIcon fontSize="small" />
-                          );
-                          const checkedIcon = <CheckBoxIcon fontSize="small" />;
-                          return (
-                            <li {...props} key={option.value}>
-                              <Checkbox
-                                icon={icon}
-                                checkedIcon={checkedIcon}
-                                style={{ marginRight: 8 }}
-                                checked={selected}
-                              />
-                              {option.label}
-                            </li>
-                          );
-                        }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label={c.nombre}
-                            fullWidth
-                            disabled={isDisabled}
-                            sx={sxField}
-                            placeholder="Selecciona 1 o más tanques"
-                          />
-                        )}
-                      />
-                    ) : esFleteFacturado ? (
-                      <Tooltip title={faltaRemisionFactura ? "Debe Registrar remisión o Factura asociada" : ""}>
-                        <Box
-                          sx={{
-                            border: "1px solid rgba(0,0,0,0.23)",
-                            borderRadius: 1,
-                            px: 2.0,
-                            py: 0.7,
-                            minHeight: 30,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            backgroundColor: isDisabled ? "#f5f5f5" : "#fff",
-                            ...(allowedByRole
-                              ? {
-                                borderWidth: 2,
-                                borderColor: "orange",
-                              }
-                              : {}),
+                            handleChangeLectura(c.key, buildTanquesString(names));
                           }}
-                        >
-                          <Typography
-                            variant="body2"
-                            sx={{ color: "rgba(0,0,0,0.7)", fontWeight: 500 }}
-                          >
-                            {c.nombre} ?
-                          </Typography>
-
+                          renderOption={(props, option, { selected }) => {
+                            const icon = (
+                              <CheckBoxOutlineBlankIcon fontSize="small" />
+                            );
+                            const checkedIcon = <CheckBoxIcon fontSize="small" />;
+                            return (
+                              <li {...props} key={option.value}>
+                                <Checkbox
+                                  icon={icon}
+                                  checkedIcon={checkedIcon}
+                                  style={{ marginRight: 8 }}
+                                  checked={selected}
+                                />
+                                {option.label}
+                              </li>
+                            );
+                          }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label={c.nombre}
+                              fullWidth
+                              disabled={isDisabled}
+                              sx={sxField}
+                              placeholder="Selecciona 1 o más tanques"
+                            />
+                          )}
+                        />
+                      ) : esFleteFacturado ? (
+                        <Tooltip title={faltaRemisionFactura ? "Debe Registrar remisión o Factura asociada" : ""}>
                           <Box
                             sx={{
-                              position: "relative",
-                              display: "inline-flex",
+                              border: "1px solid rgba(0,0,0,0.23)",
+                              borderRadius: 1,
+                              px: 2.0,
+                              py: 0.7,
+                              minHeight: 30,
+                              display: "flex",
                               alignItems: "center",
-                              justifyContent: "center",
+                              justifyContent: "space-between",
+                              backgroundColor: isDisabled ? "#f5f5f5" : "#fff",
+                              ...(allowedByRole
+                                ? {
+                                  borderWidth: 2,
+                                  borderColor: "orange",
+                                }
+                                : {}),
                             }}
                           >
-                            <Checkbox
-                              checked={Boolean(form.lecturas?.[c.key])}
-                              onChange={(e) => {
-                                if (isDisabled) return;
-                                handleChangeLectura(c.key, e.target.checked);
+                            <Typography
+                              variant="body2"
+                              sx={{ color: "rgba(0,0,0,0.7)", fontWeight: 500 }}
+                            >
+                              {c.nombre} ?
+                            </Typography>
+
+                            <Box
+                              sx={{
+                                position: "relative",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
                               }}
-                              disabled={isDisabled || faltaRemisionFactura}
-                            />
-
-                            {faltaRemisionFactura && (
-                              <WarningAmberRoundedIcon
-                                sx={{
-                                  position: "absolute",
-                                  top: -5,
-                                  right: -15,
-                                  fontSize: 25,
-                                  color: "error.main",
-                                  backgroundColor: "#fff",
-                                  borderRadius: "50%",
-                                  zIndex: 2,
-                                  animation: "alertBlink 1s infinite",
-                                  "@keyframes alertBlink": {
-                                    "0%": { opacity: 1, transform: "scale(1)" },
-                                    "50%": { opacity: 0.25, transform: "scale(1.2)" },
-                                    "100%": { opacity: 1, transform: "scale(1)" },
-                                  },
+                            >
+                              <Checkbox
+                                checked={Boolean(form.lecturas?.[c.key])}
+                                onChange={(e) => {
+                                  if (isDisabled) return;
+                                  handleChangeLectura(c.key, e.target.checked);
                                 }}
+                                disabled={isDisabled || faltaRemisionFactura}
                               />
-                            )}
+
+                              {faltaRemisionFactura && (
+                                <WarningAmberRoundedIcon
+                                  sx={{
+                                    position: "absolute",
+                                    top: -5,
+                                    right: -15,
+                                    fontSize: 25,
+                                    color: "error.main",
+                                    backgroundColor: "#fff",
+                                    borderRadius: "50%",
+                                    zIndex: 2,
+                                    animation: "alertBlink 1s infinite",
+                                    "@keyframes alertBlink": {
+                                      "0%": { opacity: 1, transform: "scale(1)" },
+                                      "50%": { opacity: 0.25, transform: "scale(1.2)" },
+                                      "100%": { opacity: 1, transform: "scale(1)" },
+                                    },
+                                  }}
+                                />
+                              )}
+                            </Box>
                           </Box>
-                        </Box>
-                      </Tooltip>
-                    ) : (
-                      <TextField
-                        fullWidth
-                        label={c.nombre}
-                        type="text"
-                        value={form.lecturas?.[c.key] ?? ""}
-                        onChange={(e) => {
-                          if (isDisabled) return;
+                        </Tooltip>
+                      ) : (
+                        <TextField
+                          fullWidth
+                          label={c.nombre}
+                          type="text"
+                          value={form.lecturas?.[c.key] ?? ""}
+                          onChange={(e) => {
+                            if (isDisabled) return;
 
-                          const value = e.target.value;
-                          handleChangeLectura(c.key, value);
+                            const value = e.target.value;
+                            handleChangeLectura(c.key, value);
 
-                          if (c.key === "densidadlab_alcohol_tanque") {
-                            const n = Number(String(value).replace(",", "."));
+                            if (c.key === "densidadlab_alcohol_tanque") {
+                              const n = Number(String(value).replace(",", "."));
 
-                            if (value.trim() === "") {
-                              clearFieldError(c.key);
-                            } else if (!Number.isFinite(n)) {
-                              setFieldError(c.key, "La densidad debe ser numérica");
-                            } else if (n < 0.7 || n > 0.9) {
-                              setFieldError(c.key, "Debe estar entre 0.7 y 0.9");
-                            } else {
-                              clearFieldError(c.key);
+                              if (value.trim() === "") {
+                                clearFieldError(c.key);
+                              } else if (!Number.isFinite(n)) {
+                                setFieldError(c.key, "La densidad debe ser numérica");
+                              } else if (n < 0.7 || n > 0.9) {
+                                setFieldError(c.key, "Debe estar entre 0.7 y 0.9");
+                              } else {
+                                clearFieldError(c.key);
+                              }
                             }
+                          }}
+                          onKeyDown={bloquearPuntoYComa(c.key)} // bloquea techas . y , 
+                          onPaste={bloquearPegado(c.key)} // si copian un valor con . y , no permite los caracteres
+                          disabled={isDisabled}
+                          sx={sxField}
+                          error={!!fieldErrors[c.key]}
+                          helperText={
+                            fieldErrors[c.key]
                           }
-                        }}
-                        onKeyDown={bloquearPuntoYComa(c.key)} // bloquea techas . y , 
-                        onPaste={bloquearPegado(c.key)} // si copian un valor con . y , no permite los caracteres
-                        disabled={isDisabled}
-                        sx={sxField}
-                        error={!!fieldErrors[c.key]}
-                        helperText={
-                          fieldErrors[c.key]
-                        }
-                      />
-                    )}
+                        />
+                      )}
                   </Grid>
                 );
               })}
@@ -1570,6 +1609,7 @@ const IngresoDataDespachoModal = ({
               observaciones: String(form?.observaciones ?? "").trim(),
               lecturas: {
                 ...(form?.lecturas ?? {}),
+                fecha_entrega: toDateInputValue(form?.lecturas?.fecha_entrega),
                 [FLETE_FACTURADO_KEY]: Boolean(form?.lecturas?.[FLETE_FACTURADO_KEY]),
               },
             };

@@ -30,6 +30,10 @@ import SaveIcon from "@mui/icons-material/Save";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import PhoneIcon from "@mui/icons-material/Phone";
+import EmailIcon from "@mui/icons-material/Email";
+import PlaceIcon from "@mui/icons-material/Place";
 
 const API_URL = "https://ambiocomserver.onrender.com/api/transportadoraslogistica";
 
@@ -164,7 +168,10 @@ const TransportadorasLogisticaPage = () => {
         text: msg,
       });
 
-      console.error("Error al guardar transportadora:", error?.response?.data ?? error);
+      console.error(
+        "Error al guardar transportadora:",
+        error?.response?.data ?? error
+      );
     }
   };
 
@@ -233,7 +240,10 @@ const TransportadorasLogisticaPage = () => {
         text: msg,
       });
 
-      console.error("Error al eliminar transportadora:", error?.response?.data ?? error);
+      console.error(
+        "Error al eliminar transportadora:",
+        error?.response?.data ?? error
+      );
     }
   };
 
@@ -263,10 +273,10 @@ const TransportadorasLogisticaPage = () => {
   const filtradas = empresasFiltradas.length;
 
   return (
-    <Box p={{ xs: 2, md: 4 }} mt={5}>
-      <Card elevation={4} sx={{ borderRadius: 3 }}>
+    <Box p={0} mt={5}>
+      <Card elevation={4}>
         <CardContent>
-          {/* Header */}
+          {/* Header + chips + buscador */}
           <Box
             display="flex"
             flexDirection={{ xs: "column", md: "row" }}
@@ -275,8 +285,8 @@ const TransportadorasLogisticaPage = () => {
             gap={2}
           >
             <Box>
-              <Typography variant="h5" fontWeight="bold">
-                Gestión de Transportadoras (Logística)
+              <Typography variant="h5" fontWeight="bold" gutterBottom>
+                Gestión de Transportadoras Logística
               </Typography>
 
               <Stack direction="row" spacing={1} mt={1} flexWrap="wrap">
@@ -292,13 +302,12 @@ const TransportadorasLogisticaPage = () => {
               </Stack>
             </Box>
 
-            {/* Buscador */}
             <TextField
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nombre, locación, teléfono o email..."
               size="small"
-              sx={{ minWidth: { xs: "100%", md: 420 } }}
+              sx={{ minWidth: { xs: "100%", md: 520 } }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -320,13 +329,14 @@ const TransportadorasLogisticaPage = () => {
             />
           </Box>
 
-          <Divider sx={{ my: 3 }} />
+          <Divider sx={{ mb: 3, mt: 3 }} />
 
           {/* FORMULARIO */}
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={3}>
+          <Grid container spacing={1.2} alignItems="center">
+            <Grid item xs={12} sm={6} md={2.5}>
               <TextField
                 fullWidth
+                size="small"
                 label="Nombre Transportadora"
                 name="nombreTransportadora"
                 value={form.nombreTransportadora}
@@ -334,9 +344,10 @@ const TransportadorasLogisticaPage = () => {
               />
             </Grid>
 
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} sm={6} md={2}>
               <TextField
                 fullWidth
+                size="small"
                 label="Locación / Origen"
                 name="locacion"
                 value={form.locacion}
@@ -344,9 +355,10 @@ const TransportadorasLogisticaPage = () => {
               />
             </Grid>
 
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} sm={6} md={2}>
               <TextField
                 fullWidth
+                size="small"
                 label="Contacto Telefónico"
                 name="contactoTelefonico"
                 value={form.contactoTelefonico}
@@ -354,9 +366,10 @@ const TransportadorasLogisticaPage = () => {
               />
             </Grid>
 
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} sm={6} md={2.3}>
               <TextField
                 fullWidth
+                size="small"
                 type="email"
                 label="Email de Contacto"
                 name="emailContacto"
@@ -365,13 +378,23 @@ const TransportadorasLogisticaPage = () => {
               />
             </Grid>
 
-            <Grid item xs={12}>
-              <Box display="flex" gap={2} flexWrap="wrap">
+            <Grid item xs={12} md={3.2}>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 1,
+                  justifyContent: { xs: "flex-start", md: "flex-end" },
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                }}
+              >
                 <Button
                   variant="contained"
+                  size="small"
                   color={editingId ? "warning" : "primary"}
                   startIcon={editingId ? <SaveIcon /> : <AddIcon />}
                   onClick={handleSubmit}
+                  sx={{ textTransform: "none", fontWeight: 700 }}
                 >
                   {editingId ? "Actualizar" : "Registrar"}
                 </Button>
@@ -379,6 +402,7 @@ const TransportadorasLogisticaPage = () => {
                 {editingId && (
                   <Button
                     variant="outlined"
+                    size="small"
                     onClick={() => {
                       resetForm();
                       Swal.fire({
@@ -388,6 +412,7 @@ const TransportadorasLogisticaPage = () => {
                         showConfirmButton: false,
                       });
                     }}
+                    sx={{ textTransform: "none" }}
                   >
                     Cancelar
                   </Button>
@@ -395,6 +420,7 @@ const TransportadorasLogisticaPage = () => {
 
                 <Button
                   variant="text"
+                  size="small"
                   onClick={async () => {
                     await fetchEmpresas();
                     Swal.fire({
@@ -405,6 +431,7 @@ const TransportadorasLogisticaPage = () => {
                       showConfirmButton: false,
                     });
                   }}
+                  sx={{ textTransform: "none" }}
                 >
                   Refrescar
                 </Button>
@@ -412,18 +439,47 @@ const TransportadorasLogisticaPage = () => {
             </Grid>
           </Grid>
 
-          <Divider sx={{ my: 3 }} />
+          <Divider sx={{ my: 4 }} />
 
           {/* TABLA */}
-          <TableContainer component={Paper} elevation={2} sx={{ borderRadius: 2 }}>
+          <TableContainer
+            component={Paper}
+            elevation={0}
+            sx={{
+              maxHeight: "68vh",
+              borderRadius: 3,
+              border: "1px solid #DDE3EA",
+              overflow: "auto",
+              boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
+            }}
+          >
             <Table stickyHeader size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell><strong>Transportadora</strong></TableCell>
-                  <TableCell><strong>Locación</strong></TableCell>
-                  <TableCell><strong>Teléfono</strong></TableCell>
-                  <TableCell><strong>Email</strong></TableCell>
-                  <TableCell align="center"><strong>Acciones</strong></TableCell>
+                  {[
+                    "Transportadora",
+                    "Locación",
+                    "Teléfono",
+                    "Email",
+                    "Acciones",
+                  ].map((head) => (
+                    <TableCell
+                      key={head}
+                      align={head === "Acciones" ? "center" : "left"}
+                      sx={{
+                        backgroundColor: "#1A237E",
+                        color: "#FFFFFF",
+                        fontWeight: 800,
+                        textTransform: "uppercase",
+                        fontSize: "0.75rem",
+                        letterSpacing: "0.4px",
+                        py: 1.2,
+                        borderBottom: "none",
+                      }}
+                    >
+                      {head}
+                    </TableCell>
+                  ))}
                 </TableRow>
               </TableHead>
 
@@ -431,7 +487,7 @@ const TransportadorasLogisticaPage = () => {
                 {empresasFiltradas.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} align="center" sx={{ py: 5 }}>
-                      <Typography fontWeight="bold">No hay resultados</Typography>
+                      <Typography fontWeight={800}>No hay resultados</Typography>
                       <Typography variant="body2" color="text.secondary">
                         {debouncedSearch
                           ? "Prueba cambiando el texto de búsqueda."
@@ -441,18 +497,117 @@ const TransportadorasLogisticaPage = () => {
                   </TableRow>
                 ) : (
                   empresasFiltradas.map((e) => (
-                    <TableRow key={e._id} hover>
-                      <TableCell>{e.nombreTransportadora}</TableCell>
-                      <TableCell>{e.locacion}</TableCell>
-                      <TableCell>{e.contactoTelefonico}</TableCell>
-                      <TableCell>{e.emailContacto}</TableCell>
+                    <TableRow
+                      key={e._id}
+                      hover
+                      sx={{
+                        "&:nth-of-type(even)": {
+                          backgroundColor: "#F8FAFC",
+                        },
+                        "&:hover": {
+                          backgroundColor: "#EAF4FF",
+                        },
+                        "& td": {
+                          py: 1.1,
+                          borderBottom: "1px solid #ECEFF1",
+                        },
+                      }}
+                    >
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <LocalShippingIcon
+                            fontSize="small"
+                            sx={{ color: "#607D8B", flexShrink: 0 }}
+                          />
+                          <Typography sx={{ fontWeight: 800 }}>
+                            {e.nombreTransportadora || "-"}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <PlaceIcon
+                            fontSize="small"
+                            sx={{ color: "#607D8B", flexShrink: 0 }}
+                          />
+                          <Typography variant="body2">
+                            {e.locacion || "-"}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+
+                      <TableCell>
+                        {e.contactoTelefonico ? (
+                          <Chip
+                            size="small"
+                            icon={<PhoneIcon />}
+                            label={e.contactoTelefonico}
+                            color="success"
+                            variant="outlined"
+                            sx={{ fontWeight: 700 }}
+                          />
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            Sin teléfono
+                          </Typography>
+                        )}
+                      </TableCell>
+
+                      <TableCell
+                        sx={{
+                          maxWidth: 320,
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <EmailIcon
+                            fontSize="small"
+                            sx={{ color: "#607D8B", flexShrink: 0 }}
+                          />
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {e.emailContacto || "-"}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+
                       <TableCell align="center">
-                        <IconButton color="primary" onClick={() => handleEdit(e)}>
-                          <EditIcon />
+                        <IconButton
+                          size="small"
+                          sx={{
+                            color: "#1565C0",
+                            backgroundColor: "#E3F2FD",
+                            mr: 0.8,
+                            "&:hover": {
+                              backgroundColor: "#BBDEFB",
+                            },
+                          }}
+                          onClick={() => handleEdit(e)}
+                        >
+                          <EditIcon fontSize="small" />
                         </IconButton>
 
-                        <IconButton color="error" onClick={() => handleDelete(e._id)}>
-                          <DeleteIcon />
+                        <IconButton
+                          size="small"
+                          sx={{
+                            color: "#C62828",
+                            backgroundColor: "#FFEBEE",
+                            "&:hover": {
+                              backgroundColor: "#FFCDD2",
+                            },
+                          }}
+                          onClick={() => handleDelete(e._id)}
+                        >
+                          <DeleteIcon fontSize="small" />
                         </IconButton>
                       </TableCell>
                     </TableRow>

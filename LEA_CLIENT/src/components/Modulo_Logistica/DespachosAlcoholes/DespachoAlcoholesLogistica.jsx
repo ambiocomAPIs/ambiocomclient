@@ -71,6 +71,7 @@ import NotificationImportantIcon from "@mui/icons-material/NotificationImportant
 import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt';
 import ChecklistIcon from '@mui/icons-material/Checklist';
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import UnpublishedIcon from "@mui/icons-material/Unpublished";
 import CancelIcon from "@mui/icons-material/Cancel";
 import FactoryIcon from '@mui/icons-material/Factory';
 import SentimentVerySatisfiedIcon from '@mui/icons-material/SentimentVerySatisfied';
@@ -242,10 +243,8 @@ export default function TablaDespachosLogistica() {
         return;
       }
 
-      // Si el modo inteligente está apagado, dejamos el scroll normal
       if (!modoInteligenteScroll) return;
       // --- MODO INTELIGENTE ---
-      // vertical mientras haya más vertical; si ya no se puede, horizontal
       const atTop = el.scrollTop <= 0;
       const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
 
@@ -323,7 +322,6 @@ export default function TablaDespachosLogistica() {
   };
 
   //doble click para mostrar observaciones si un vehiculo ha llegado a tiempo
-
   const handleDblClickLlegadaATiempo = (row) => {
     const estado = (row?.lecturas?.llegada_destino || "")
       .toString()
@@ -345,6 +343,30 @@ export default function TablaDespachosLogistica() {
 
     setOpenObsVehiculo(true);
 
+  };
+
+  const handleDblClickPuntualidadCliente = (row) => {
+    const estado = (row?.lecturas?.puntualidad_en_cliente || "")
+      .toString()
+      .toUpperCase()
+      .trim();
+
+    if (estado !== "PUNTUAL" && estado !== "RETRASADO") return;
+
+    const observacion = (row?.observaciones || "").toString().trim();
+
+    setObsVehiculoData({
+      estado,
+      observacion: observacion || "Esta fila no tiene observación registrada",
+      fecha: row?.fecha || "",
+      placa: row?.lecturas?.placa || "",
+      cliente: row?.lecturas?.cliente || "",
+      transportadora: row?.lecturas?.transportadora || "",
+      producto: row?.lecturas?.producto || "",
+      conductor: row?.lecturas?.nombre_conductor || "",
+    });
+
+    setOpenObsVehiculo(true);
   };
 
   // Detectar click derecho para copiar tabla tipo SAP
@@ -371,11 +393,6 @@ export default function TablaDespachosLogistica() {
       Swal.fire("Error", "No se pudieron cargar las columnas", "error");
     }
   };
-
-  // const obtenerMediciones = async () => {
-  //   const { data } = await axios.get(API_DESPACHOS);
-  //   setMediciones(data);
-  // };
 
   const obtenerMediciones = async (
     desde = fechaDesde,
@@ -424,20 +441,6 @@ export default function TablaDespachosLogistica() {
     obtenerMediciones();
   };
 
-  // const eliminarMedicion = async (id) => {
-  //   Swal.fire({
-  //     title: "¿Eliminar este ingreso?",
-  //     icon: "warning",
-  //     showCancelButton: true,
-  //     confirmButtonText: "Sí, eliminar",
-  //     cancelButtonText: "Cancelar",
-  //   }).then((result) => {
-  //     if (!result.isConfirmed) return;
-  //     axios.delete(`${API_DESPACHOS}/${id}`);
-  //     obtenerMediciones();
-  //   });
-  // };
-
   const eliminarMedicion = async (id) => {
     const result = await Swal.fire({
       title: "¿Eliminar este ingreso?",
@@ -465,14 +468,6 @@ export default function TablaDespachosLogistica() {
     if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
     return hh * 60 + mm;
   };
-
-  /* ================= CRUD COLUMNAS ================= */
-  // const guardarColumna = async () => {
-  //   await axios.post(API_COLUMNAS, nuevaColumna);
-  //   setNuevaColumna({ nombre: "", key: "", unidad: "", totalizable: false });
-  //   setOpenColumna(false);
-  //   obtenerColumnas();
-  // };
 
   const guardarColumna = async () => {
     try {
@@ -510,15 +505,6 @@ export default function TablaDespachosLogistica() {
       return ordenFechaAsc ? fa - fb : fb - fa; // funciona con el estado segun orden que se requiera
     });
 
-    // if (fechaDesde) {
-    //   const fd = stringToDate(fechaDesde);
-    //   data = data.filter((m) => stringToDate(m.fecha) >= fd);
-    // }
-
-    // if (fechaHasta) {
-    //   const fh = stringToDate(fechaHasta);
-    //   data = data.filter((m) => stringToDate(m.fecha) <= fh);
-    // }
 
     // Aplica filtros de columnas
     Object.entries(filtrosColumna).forEach(([key, valorFiltro]) => {
@@ -766,9 +752,8 @@ export default function TablaDespachosLogistica() {
     return null;
   };
 
-  //renderizado botones visuales estado llegada a tiempo o retraso
-  const renderIconoTiempodeEntrega = (estado) => {
-    const valor = (estado || "").toString().toUpperCase().trim();
+  const renderIconoLlegadaDestino = (estado) => {
+    const valor = (estado ?? "").toString().toUpperCase().trim();
 
     const commonWrapper = (icon, title) => (
       <Box
@@ -779,23 +764,111 @@ export default function TablaDespachosLogistica() {
           width: "100%",
         }}
       >
-        <Tooltip title={title}>{icon}</Tooltip>
+        <Tooltip title={title} arrow>
+          {icon}
+        </Tooltip>
       </Box>
     );
+
     if (valor === "PUNTUAL") {
       return commonWrapper(
         <AlarmOnIcon sx={{ color: "#58555a" }} />,
-        "Vehículo a tiempo"
+        "Llegada a destino: Puntual"
       );
     }
+
     if (valor === "RETRASADO") {
       return commonWrapper(
         <AlarmOffIcon sx={{ color: "#ea5931" }} />,
-        "Vehículo con retrazo a destino"
+        "Llegada a destino: Retrasado"
       );
     }
-    return null;
+
+    return commonWrapper(
+      <ReportIcon sx={{ color: "#9e9e9e" }} />,
+      "Llegada a destino: Sin datos"
+    );
   };
+
+  const renderIconoPuntualidadCliente = (estado) => {
+    const valor = (estado ?? "").toString().toUpperCase().trim();
+
+    const commonWrapper = (icon, title) => (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          width: "100%",
+        }}
+      >
+        <Tooltip title={title} arrow>
+          {icon}
+        </Tooltip>
+      </Box>
+    );
+
+    if (valor === "PUNTUAL" || valor === "CUMPLE") {
+      return commonWrapper(
+        <CheckCircleIcon sx={{ color: "#2e7d32" }} />,
+        "Puntualidad en cliente: Cumple"
+      );
+    }
+
+    if (valor === "RETRASADO" || valor === "NO CUMPLE") {
+      return commonWrapper(
+        <UnpublishedIcon sx={{ color: "#d32f2f" }} />,
+        "Puntualidad en cliente: No cumple"
+      );
+    }
+
+    return commonWrapper(
+      <ReportIcon sx={{ color: "#9e9e9e" }} />,
+      "Puntualidad en cliente: Sin datos"
+    );
+  };
+
+  // //renderizado botones visuales estado llegada a tiempo o retraso
+  // const renderIconoTiempodeEntrega = (estado, tipo = "destino") => {
+  //   const valor = (estado ?? "").toString().toUpperCase().trim();
+
+  //   const labelBase =
+  //     tipo === "cliente" ? "Puntualidad en cliente" : "Llegada a destino";
+
+  //   const commonWrapper = (icon, title) => (
+  //     <Box
+  //       sx={{
+  //         display: "flex",
+  //         justifyContent: "center",
+  //         alignItems: "center",
+  //         width: "100%",
+  //       }}
+  //     >
+  //       <Tooltip title={title} arrow>
+  //         {icon}
+  //       </Tooltip>
+  //     </Box>
+  //   );
+
+  //   if (valor === "PUNTUAL" || valor === "CUMPLE") {
+  //     return commonWrapper(
+  //       <AlarmOnIcon sx={{ color: "#2e7d32" }} />,
+  //       `${labelBase}: Cumple`
+  //     );
+  //   }
+
+  //   if (valor === "RETRASADO" || valor === "NO CUMPLE") {
+  //     return commonWrapper(
+  //       <AlarmOffIcon sx={{ color: "#d32f2f" }} />,
+  //       `${labelBase}: No cumple`
+  //     );
+  //   }
+
+  //   return commonWrapper(
+  //     <ReportIcon sx={{ color: "#9e9e9e" }} />,
+  //     `${labelBase}: Sin datos`
+  //   );
+  // };
 
 
   // helper para alertas de mermas segun tolerancia del 5%
@@ -1764,12 +1837,25 @@ export default function TablaDespachosLogistica() {
                           cursor: "pointer",
                         }}
                       >
-                        {renderIconoTiempodeEntrega(
-                          row.lecturas?.llegada_destino
-                        )}
+                        {renderIconoLlegadaDestino(row.lecturas?.llegada_destino)}
+                      </Box>
+                      {/* ICONO PUNTUALIDAD EN CLIENTE */}
+                      <Box
+                        onDoubleClick={(e) => {
+                          e.stopPropagation();
+                          handleDblClickPuntualidadCliente(row);
+                        }}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {renderIconoPuntualidadCliente(row.lecturas?.puntualidad_en_cliente)}
                       </Box>
                     </Box>
                   </TableCell>
+
                   <TableCell align="center">{row.fecha}</TableCell>
 
                   {columnas

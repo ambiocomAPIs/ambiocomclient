@@ -66,6 +66,7 @@ import ProductosDespacho from "../Modulo_Logistica/Productos/ProductosDespacho.j
 import ColumnasDBManagement from "../Modulo_Logistica/Desarrollador_DB/ColumnasDBManagement.jsx"
 import ColaboradoresAmbiocom from "../Modulo_Logistica/ColaboradoresDB/ColaboradoresDespachosDB.jsx"
 import ClientesDespachoPageDB from "../Modulo_Logistica/ClientesDB/ClientesAmbiocomDB.jsx"
+import ProveedoresDespachoPageDB from "../Modulo_Logistica/ProovedoresDB/ProveedoresAmbiocomDB.jsx"
 import ProgramacionDespachoDiariaPage from '../Modulo_Logistica/PlaneacionDiaria/planeaciondespachos.jsx';
 //MODULO LOGISTICA ReadOnly
 import TablaDespachosLogisticaReadOnly from "../Modulo_Logistica/ReadOnlyComponents/Despachos_List_ReadOnly/TablaDespachosLogisticaReadOnly.jsx"
@@ -85,6 +86,7 @@ import EmpleadosManager from '../EmpleadosManager/EmpleadosAmbiocomList.jsx';
 import TablaMedicionesAgua from '../PTAP/TablaMedicionesAgua.jsx';
 //modulo comerciales
 import ConductoresReadOnlyPage from '../Modulo_Comerciales/ConductoresReadOnlyPage.jsx';
+import CotizadorAmbiocom from '../Modulo_Comerciales/CotizadorAmbiocom.jsx';
 //energia
 import TablaMedicionesDiariaEnergia from '../Energia_CON/TablaMedicionesEnergia.jsx'
 //Modulo DEV
@@ -106,7 +108,7 @@ import {
     ptapIcon, GraphIcon, BarGraphIcon, BarGraphComparativeIcon, robotAssistanceIcon, bitacoraIcon, StopWatchIcon, PdfIcon, DatabaseAdministratorIcon, workerIcon,
     TankGraphIcon, CounterIcon, MoneyGraphIcon, EnergyIcon, EnergyDataIcon, InOutMaderaCarbonIcon, InformeIcon, TankWithLiquidIcon, ReportIcon,
     Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon, PersonalIcons, plannerIconDate, logsIcon, VesselTkIcon, VesselTkIconChemical, ListToDoIcon, ArcadeIcon,
-    WaterTankIcon, VentasIcon, WaterKeyIcon, DestileryIcon, LoteTankIcon
+    WaterTankIcon, VentasIcon, WaterKeyIcon, DestileryIcon, LoteTankIcon, ProveedorIcon
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -284,6 +286,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'Productos', subKey: 'productosdespacho', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={ProductDespacho} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Conductores', subKey: 'conductoresdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={Driver} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Clientes', subKey: 'clientesdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={ClientIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Proveedores', subKey: 'proveedoresdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={ProveedorIcon} alt="DespachoProveedores" style={{ width: 25, height: 25 }} /> },
                 { text: 'Transportadora', subKey: 'transportadorasdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={TruckCompany} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Ingresos_M-C', subKey: 'moduloingresosmaderacarbon', roles: ["admin", "developer"], icon: <img src={InOutMaderaCarbonIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'DEV_Functions', subKey: 'gestiondecolumnasdesarrollador', roles: ["developer"], icon: <img src={DevIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
@@ -392,6 +395,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 },
                 { text: 'Grafica Niveles Tanques Jornaleros', subKey: 'nivelestanquesjornalerospaginavistacomercial', roles: ["admin", "supervisor", "gerente", "developer", "comercial"], icon: <img src={TankGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
                 { text: 'Conductores Info', subKey: 'conductoresreadonly', roles: ["admin", "supervisor", "gerente", "developer", "comercial"], icon: <img src={Driver} alt="conductoresreadonly" style={{ width: 25, height: 25 }} /> },
+                { text: 'Cotizador Alcoholes', subKey: 'cotizadoralcoholes', roles: ["admin", "supervisor", "gerente", "developer", "comercial"], icon: <img src={Driver} alt="conductoresreadonly" style={{ width: 25, height: 25 }} /> },
             ],
         },
         {
@@ -550,6 +554,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'gestiondecolumnasdesarrollador': return <ColumnasDBManagement />;
             case 'colaboradoresambiocom': return <ColaboradoresAmbiocom />;
             case 'clientesdb': return <ClientesDespachoPageDB />;
+            case 'proveedoresdb': return <ProveedoresDespachoPageDB />;
             case 'planeaciondiariadespachos': return <ProgramacionDespachoDiariaPage />;
             //laboratorio
             case 'despachoalcoholeslogisticareadonly': return <TablaDespachosLogisticaReadOnly />;
@@ -565,6 +570,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             // Comerciale
             case 'nivelestanquesjornalerospaginavistacomercial': return <GraficoNivelesTanquesPorDiaPageComponente NivelesTanquesContext={nivelesTanques} />;
             case 'conductoresreadonly': return <ConductoresReadOnlyPage />;
+            case 'cotizadoralcoholes': return <CotizadorAmbiocom />;
             //Modulo Desarrollador
             case 'taskandrequeriments': return <TaskRequerimentDev />;
             case 'basededatos': return <ConsultasHttpDb />;

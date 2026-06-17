@@ -30,6 +30,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
+import PublicIcon from "@mui/icons-material/Public";
 
 const API_URL = "https://ambiocomserver.onrender.com/api/alcoholesdespacho";
 
@@ -75,8 +76,8 @@ const updateProductosCacheFromList = (alcoholesList) => {
 
 const invalidateProductosCache = () => {
   try {
-    localStorage.removeItem(`${CACHE_PREFIX}productos`); // esto limpia la caché cuando hay productos nuevos o editados y la actualiza
-  } catch {}
+    localStorage.removeItem(`${CACHE_PREFIX}productos`);
+  } catch { }
 };
 
 // Debounce simple sin librerías
@@ -297,6 +298,7 @@ const AlcoholesDespachoPage = () => {
       const nombre = String(a.nombre ?? "").toLowerCase();
       const tipoProducto = String(a.tipoProducto ?? "").toLowerCase();
       const origen = String(a.origen ?? "").toLowerCase();
+
       return (
         nombre.includes(q) || tipoProducto.includes(q) || origen.includes(q)
       );
@@ -307,7 +309,7 @@ const AlcoholesDespachoPage = () => {
   const filtrados = alcoholesFiltrados.length;
 
   return (
-    <Box p={4} mt={5}>
+    <Box p={0} mt={5}>
       <Card elevation={4}>
         <CardContent>
           {/* Header + chips + buscador */}
@@ -341,7 +343,7 @@ const AlcoholesDespachoPage = () => {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nombre, tipo de producto u origen..."
               size="small"
-              sx={{ minWidth: { xs: "100%", md: 420 } }}
+              sx={{ minWidth: { xs: "100%", md: 520 } }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -366,10 +368,11 @@ const AlcoholesDespachoPage = () => {
           <Divider sx={{ mb: 3, mt: 3 }} />
 
           {/* FORMULARIO */}
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
+          <Grid container spacing={1.2} alignItems="center">
+            <Grid item xs={12} sm={6} md={2.6}>
               <TextField
                 fullWidth
+                size="small"
                 label="Nombre"
                 name="nombre"
                 value={form.nombre}
@@ -377,9 +380,10 @@ const AlcoholesDespachoPage = () => {
               />
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} sm={6} md={2.6}>
               <TextField
                 fullWidth
+                size="small"
                 label="Tipo de producto"
                 name="tipoProducto"
                 value={form.tipoProducto}
@@ -388,9 +392,10 @@ const AlcoholesDespachoPage = () => {
               />
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} sm={6} md={2.6}>
               <TextField
                 fullWidth
+                size="small"
                 label="Origen"
                 name="origen"
                 value={form.origen}
@@ -399,13 +404,23 @@ const AlcoholesDespachoPage = () => {
               />
             </Grid>
 
-            <Grid item xs={12}>
-              <Box display="flex" gap={2} flexWrap="wrap">
+            <Grid item xs={12} sm={6} md={4.2}>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 1,
+                  justifyContent: { xs: "flex-start", md: "flex-end" },
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                }}
+              >
                 <Button
                   variant="contained"
+                  size="small"
                   color={editingId ? "warning" : "primary"}
                   startIcon={editingId ? <SaveIcon /> : <AddIcon />}
                   onClick={handleSubmit}
+                  sx={{ textTransform: "none", fontWeight: 700 }}
                 >
                   {editingId ? "Actualizar" : "Registrar"}
                 </Button>
@@ -413,6 +428,7 @@ const AlcoholesDespachoPage = () => {
                 {editingId && (
                   <Button
                     variant="outlined"
+                    size="small"
                     onClick={async () => {
                       resetForm();
                       await Swal.fire({
@@ -422,6 +438,7 @@ const AlcoholesDespachoPage = () => {
                         showConfirmButton: false,
                       });
                     }}
+                    sx={{ textTransform: "none" }}
                   >
                     Cancelar
                   </Button>
@@ -429,6 +446,7 @@ const AlcoholesDespachoPage = () => {
 
                 <Button
                   variant="text"
+                  size="small"
                   onClick={async () => {
                     await fetchAlcoholes();
                     Swal.fire({
@@ -439,6 +457,7 @@ const AlcoholesDespachoPage = () => {
                       showConfirmButton: false,
                     });
                   }}
+                  sx={{ textTransform: "none" }}
                 >
                   Refrescar
                 </Button>
@@ -449,22 +468,40 @@ const AlcoholesDespachoPage = () => {
           <Divider sx={{ my: 4 }} />
 
           {/* TABLA */}
-          <TableContainer component={Paper} elevation={3}>
-            <Table>
-              <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
+          <TableContainer
+            component={Paper}
+            elevation={0}
+            sx={{
+              maxHeight: "68vh",
+              borderRadius: 3,
+              border: "1px solid #DDE3EA",
+              overflow: "auto",
+              boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
+            }}
+          >
+            <Table stickyHeader size="small">
+              <TableHead>
                 <TableRow>
-                  <TableCell>
-                    <strong>Nombre</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Tipo producto</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Origen</strong>
-                  </TableCell>
-                  <TableCell align="center">
-                    <strong>Acciones</strong>
-                  </TableCell>
+                  {["Nombre", "Tipo producto", "Origen", "Acciones"].map(
+                    (head) => (
+                      <TableCell
+                        key={head}
+                        align={head === "Acciones" ? "center" : "left"}
+                        sx={{
+                          backgroundColor: "#1A237E",
+                          color: "#FFFFFF",
+                          fontWeight: 800,
+                          textTransform: "uppercase",
+                          fontSize: "0.75rem",
+                          letterSpacing: "0.4px",
+                          py: 1.2,
+                          borderBottom: "none",
+                        }}
+                      >
+                        {head}
+                      </TableCell>
+                    )
+                  )}
                 </TableRow>
               </TableHead>
 
@@ -472,7 +509,7 @@ const AlcoholesDespachoPage = () => {
                 {alcoholesFiltrados.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} align="center" sx={{ py: 5 }}>
-                      <Typography fontWeight="bold">No hay resultados</Typography>
+                      <Typography fontWeight={800}>No hay resultados</Typography>
                       <Typography variant="body2" color="text.secondary">
                         {debouncedSearch
                           ? "Prueba cambiando el texto de búsqueda."
@@ -482,23 +519,83 @@ const AlcoholesDespachoPage = () => {
                   </TableRow>
                 ) : (
                   alcoholesFiltrados.map((a) => (
-                    <TableRow key={a._id}>
-                      <TableCell>{a.nombre}</TableCell>
-                      <TableCell>{a.tipoProducto}</TableCell>
-                      <TableCell>{a.origen}</TableCell>
+                    <TableRow
+                      key={a._id}
+                      hover
+                      sx={{
+                        "&:nth-of-type(even)": {
+                          backgroundColor: "#F8FAFC",
+                        },
+                        "&:hover": {
+                          backgroundColor: "#EAF4FF",
+                        },
+                        "& td": {
+                          py: 1.1,
+                          borderBottom: "1px solid #ECEFF1",
+                        },
+                      }}
+                    >
+                      <TableCell>
+                        <Box>
+                          <Typography sx={{ fontWeight: 800 }}>
+                            {a.nombre || "-"}
+                          </Typography>
+                          {/* <Typography variant="caption" color="text.secondary">
+                            ID: {a._id?.slice(-6) || "-"}
+                          </Typography> */}
+                        </Box>
+                      </TableCell>
+
+                      <TableCell>
+                        <Chip
+                          size="small"
+                          label={a.tipoProducto || "-"}
+                          color="primary"
+                          variant="outlined"
+                          sx={{ fontWeight: 800 }}
+                        />
+                      </TableCell>
+
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <PublicIcon
+                            fontSize="small"
+                            sx={{ color: "#607D8B" }}
+                          />
+                          <Typography variant="body2">
+                            {a.origen || "-"}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+
                       <TableCell align="center">
                         <IconButton
-                          color="primary"
+                          size="small"
+                          sx={{
+                            color: "#1565C0",
+                            backgroundColor: "#E3F2FD",
+                            mr: 0.8,
+                            "&:hover": {
+                              backgroundColor: "#BBDEFB",
+                            },
+                          }}
                           onClick={() => handleEdit(a)}
                         >
-                          <EditIcon />
+                          <EditIcon fontSize="small" />
                         </IconButton>
 
                         <IconButton
-                          color="error"
+                          size="small"
+                          sx={{
+                            color: "#C62828",
+                            backgroundColor: "#FFEBEE",
+                            "&:hover": {
+                              backgroundColor: "#FFCDD2",
+                            },
+                          }}
                           onClick={() => handleDelete(a._id)}
                         >
-                          <DeleteIcon />
+                          <DeleteIcon fontSize="small" />
                         </IconButton>
                       </TableCell>
                     </TableRow>

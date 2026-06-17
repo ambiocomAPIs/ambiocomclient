@@ -203,7 +203,7 @@ export default function RegistroModal({
                   >
                     <MenuItem value="liber antonio">Liber Antonio</MenuItem>
                     <MenuItem value="jose morales">José Morales</MenuItem>
-                    <MenuItem value="robinson jaramillo">Robinson Jaramillo</MenuItem>
+                    <MenuItem value="robinson Rodriguez">Robinson Rodriguez</MenuItem>
                     <MenuItem value="nuevo operario">Jhonatan Sandoval</MenuItem>
                   </Select>
                 </FormControl>

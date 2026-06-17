@@ -44,8 +44,8 @@ const opcionesHora = generarHoras(5);
 const responsables = [
   "Jose Morales",
   "Liber Antonio",
-  "Robinson Jaramillo",
-  "Nuevo Operario",
+  "Robinson Rodriguez",
+  "Jhonatan Sandoval",
 ];
 
 export default function ModalMedicionAgua({

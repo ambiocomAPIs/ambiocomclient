@@ -81,8 +81,8 @@ export default function RiceItemModal({
     modalMode === "create"
       ? "Crear ítem"
       : modalMode === "edit"
-      ? "Editar ítem"
-      : "Consultar ítem";
+        ? "Editar ítem"
+        : "Consultar ítem";
 
   return (
     <Dialog
@@ -189,7 +189,7 @@ export default function RiceItemModal({
                 sx={fieldSx}
               />
 
-              <Grid container spacing={1.0} style={{marginLeft:-5}}>
+              <Grid container spacing={1.0} style={{ marginLeft: -5 }}>
                 <Grid item xs={12} md={6}>
                   <TextField
                     select
@@ -227,7 +227,7 @@ export default function RiceItemModal({
                 </Grid>
               </Grid>
 
-              <Grid container spacing={1.0} style={{marginLeft:-5}}>
+              <Grid container spacing={1.0} style={{ marginLeft: -5 }}>
                 <Grid item xs={12} md={6}>
                   <TextField
                     select
@@ -435,7 +435,7 @@ export default function RiceItemModal({
             }}
           >
             <Stack spacing={1.8}>
-              <Grid container spacing={1.0} style={{marginLeft:-5}}>
+              <Grid container spacing={1.0} style={{ marginLeft: -5 }}>
                 <Grid item xs={12} md={6}>
                   <TextField
                     select
@@ -461,7 +461,8 @@ export default function RiceItemModal({
                     label="Sprint asignado"
                     value={form.sprint}
                     disabled={isViewMode}
-                    onChange={(e) => onChange("sprint", e.target.value)}
+                    disabled
+                    // onChange={(e) => onChange("sprint", e.target.value)}
                     sx={fieldSx}
                   >
                     <MenuItem value="">Sin sprint asignado</MenuItem>

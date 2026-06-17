@@ -32,6 +32,9 @@ import SaveIcon from "@mui/icons-material/Save";
 import CloseIcon from "@mui/icons-material/Close";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
+import ScienceIcon from "@mui/icons-material/Science";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import BadgeIcon from "@mui/icons-material/Badge";
 
 const API_URL = "https://ambiocomserver.onrender.com/api/personal";
 
@@ -39,7 +42,6 @@ const AREA_ANALISTAS = "Laboratorio";
 const AREA_LOGISTICA = "Logistica";
 const AREAS = [AREA_ANALISTAS, AREA_LOGISTICA];
 
-// Debounce simple sin librerías
 const useDebouncedValue = (value, delay = 250) => {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
@@ -63,13 +65,9 @@ const PersonalPageDespacho = () => {
     area: AREA_LOGISTICA,
   });
 
-  // === estado de edición (UNO SOLO para ambas columnas)
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({ nombres: "", area: "" });
 
-  // ==========================
-  // BUSCADOR + CHIPS
-  // ==========================
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 250);
 
@@ -82,9 +80,6 @@ const PersonalPageDespacho = () => {
     );
   };
 
-  // ==========================
-  // TRAER TODO Y SEPARAR POR AREA
-  // ==========================
   const fetchPersonal = async () => {
     try {
       const res = await axios.get(API_URL);
@@ -115,12 +110,8 @@ const PersonalPageDespacho = () => {
     setEditForm({ nombres: "", area: "" });
   };
 
-  // ==========================
-  // CREAR (POST)
-  // ==========================
   const handleAddAnalista = async () => {
     try {
-      // (no se elimina tu validación; se mantiene y se mejora con swal)
       if (!formAnalista.nombres.trim()) {
         await Swal.fire({
           icon: "warning",
@@ -167,7 +158,6 @@ const PersonalPageDespacho = () => {
 
   const handleAddLogistica = async () => {
     try {
-      // (no se elimina tu validación; se mantiene y se mejora con swal)
       if (!formLogistica.nombres.trim()) {
         await Swal.fire({
           icon: "warning",
@@ -212,9 +202,6 @@ const PersonalPageDespacho = () => {
     }
   };
 
-  // ==========================
-  // EDITAR (GET row -> set edit)
-  // ==========================
   const handleEdit = (row) => {
     setEditingId(row._id);
     setEditForm({
@@ -231,14 +218,10 @@ const PersonalPageDespacho = () => {
     });
   };
 
-  // ==========================
-  // GUARDAR EDICIÓN (PUT)
-  // ==========================
   const handleUpdate = async () => {
     try {
       if (!editingId) return;
 
-      // (se respeta tu validación + se agregan alertas)
       if (!editForm.nombres.trim()) {
         await Swal.fire({
           icon: "warning",
@@ -291,9 +274,6 @@ const PersonalPageDespacho = () => {
     }
   };
 
-  // ==========================
-  // ELIMINAR (DELETE)
-  // ==========================
   const handleDelete = async (id) => {
     try {
       const confirm = await Swal.fire({
@@ -326,7 +306,6 @@ const PersonalPageDespacho = () => {
         showConfirmButton: false,
       });
 
-      // Si borras el que estabas editando, cancela edición (esto ya lo tenías)
       if (editingId === id) resetEdit();
       fetchPersonal();
     } catch (error) {
@@ -341,9 +320,6 @@ const PersonalPageDespacho = () => {
     }
   };
 
-  // ==========================
-  // FILTRO (rápido) POR NOMBRE / ÁREA
-  // ==========================
   const analistasFiltrados = useMemo(() => {
     const q = (debouncedSearch || "").trim().toLowerCase();
     if (!q) return analistas;
@@ -369,12 +345,26 @@ const PersonalPageDespacho = () => {
   const total = analistas.length + logistica.length;
   const filtrados = analistasFiltrados.length + logisticaFiltrada.length;
 
-  // Render fila (reutilizable para ambas tablas)
   const renderRow = (row) => {
     const isEditing = editingId === row._id;
 
     return (
-      <TableRow key={row._id}>
+      <TableRow
+        key={row._id}
+        hover
+        sx={{
+          "&:nth-of-type(even)": {
+            backgroundColor: "#F8FAFC",
+          },
+          "&:hover": {
+            backgroundColor: "#EAF4FF",
+          },
+          "& td": {
+            py: 1.1,
+            borderBottom: "1px solid #ECEFF1",
+          },
+        }}
+      >
         <TableCell>
           {isEditing ? (
             <TextField
@@ -386,7 +376,12 @@ const PersonalPageDespacho = () => {
               }
             />
           ) : (
-            row.nombres
+            <Box display="flex" alignItems="center" gap={1}>
+              <BadgeIcon fontSize="small" sx={{ color: "#607D8B" }} />
+              <Typography sx={{ fontWeight: 800 }}>
+                {row.nombres || "-"}
+              </Typography>
+            </Box>
           )}
         </TableCell>
 
@@ -408,18 +403,42 @@ const PersonalPageDespacho = () => {
               ))}
             </TextField>
           ) : (
-            row.area
+            <Chip
+              size="small"
+              label={row.area || "-"}
+              color="primary"
+              variant="outlined"
+              sx={{ fontWeight: 800 }}
+            />
           )}
         </TableCell>
 
         <TableCell align="center">
           {isEditing ? (
             <>
-              <IconButton color="success" onClick={handleUpdate}>
-                <SaveIcon />
+              <IconButton
+                size="small"
+                sx={{
+                  color: "#2E7D32",
+                  backgroundColor: "#E8F5E9",
+                  mr: 0.8,
+                  "&:hover": {
+                    backgroundColor: "#C8E6C9",
+                  },
+                }}
+                onClick={handleUpdate}
+              >
+                <SaveIcon fontSize="small" />
               </IconButton>
               <IconButton
-                color="inherit"
+                size="small"
+                sx={{
+                  color: "#455A64",
+                  backgroundColor: "#ECEFF1",
+                  "&:hover": {
+                    backgroundColor: "#CFD8DC",
+                  },
+                }}
                 onClick={async () => {
                   resetEdit();
                   await Swal.fire({
@@ -430,16 +449,37 @@ const PersonalPageDespacho = () => {
                   });
                 }}
               >
-                <CloseIcon />
+                <CloseIcon fontSize="small" />
               </IconButton>
             </>
           ) : (
             <>
-              <IconButton color="primary" onClick={() => handleEdit(row)}>
-                <EditIcon />
+              <IconButton
+                size="small"
+                sx={{
+                  color: "#1565C0",
+                  backgroundColor: "#E3F2FD",
+                  mr: 0.8,
+                  "&:hover": {
+                    backgroundColor: "#BBDEFB",
+                  },
+                }}
+                onClick={() => handleEdit(row)}
+              >
+                <EditIcon fontSize="small" />
               </IconButton>
-              <IconButton color="error" onClick={() => handleDelete(row._id)}>
-                <DeleteIcon />
+              <IconButton
+                size="small"
+                sx={{
+                  color: "#C62828",
+                  backgroundColor: "#FFEBEE",
+                  "&:hover": {
+                    backgroundColor: "#FFCDD2",
+                  },
+                }}
+                onClick={() => handleDelete(row._id)}
+              >
+                <DeleteIcon fontSize="small" />
               </IconButton>
             </>
           )}
@@ -449,10 +489,9 @@ const PersonalPageDespacho = () => {
   };
 
   return (
-    <Box p={4} mt={5}>
+    <Box p={0} mt={5}>
       <Card elevation={4}>
         <CardContent>
-          {/* Header + chips + buscador */}
           <Box
             display="flex"
             flexDirection={{ xs: "column", md: "row" }}
@@ -483,7 +522,7 @@ const PersonalPageDespacho = () => {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nombres o área..."
               size="small"
-              sx={{ minWidth: { xs: "100%", md: 420 } }}
+              sx={{ minWidth: { xs: "100%", md: 520 } }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -507,155 +546,287 @@ const PersonalPageDespacho = () => {
 
           <Divider sx={{ mb: 3, mt: 3 }} />
 
-          <Grid container spacing={4}>
-            {/* ANALISTAS */}
+          <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
-              <Typography variant="h6" gutterBottom>
-                Analistas de Laboratorio
-              </Typography>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2,
+                  borderRadius: 3,
+                  border: "1px solid #DDE3EA",
+                  backgroundColor: "#FFFFFF",
+                  height: "100%",
+                }}
+              >
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  gap={1}
+                  mb={2}
+                >
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <ScienceIcon sx={{ color: "#1A237E" }} />
+                    <Typography variant="h6" fontWeight={800}>
+                      Analistas de Laboratorio
+                    </Typography>
+                  </Box>
 
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Nombres"
-                    value={formAnalista.nombres}
-                    onChange={(e) =>
-                      setFormAnalista((prev) => ({
-                        ...prev,
-                        nombres: e.target.value,
-                      }))
-                    }
+                  <Chip
+                    size="small"
+                    label={`${analistasFiltrados.length} registros`}
+                    variant="outlined"
+                    sx={{ fontWeight: 700 }}
                   />
+                </Box>
+
+                <Grid container spacing={1.2} alignItems="center">
+                  <Grid item xs={12} md={7}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Nombres"
+                      value={formAnalista.nombres}
+                      onChange={(e) =>
+                        setFormAnalista((prev) => ({
+                          ...prev,
+                          nombres: e.target.value,
+                        }))
+                      }
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} md={5}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        gap: 1,
+                        justifyContent: { xs: "flex-start", md: "flex-end" },
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <Button
+                        variant="contained"
+                        size="small"
+                        startIcon={<AddIcon />}
+                        onClick={handleAddAnalista}
+                        disabled={!!editingId}
+                        sx={{ textTransform: "none", fontWeight: 700 }}
+                      >
+                        Agregar
+                      </Button>
+
+                      <Button
+                        variant="text"
+                        size="small"
+                        onClick={async () => {
+                          await fetchPersonal();
+                          Swal.fire({
+                            icon: "success",
+                            title: "Actualizado",
+                            text: "Datos refrescados.",
+                            timer: 1200,
+                            showConfirmButton: false,
+                          });
+                        }}
+                        sx={{ textTransform: "none" }}
+                      >
+                        Refrescar
+                      </Button>
+                    </Box>
+                  </Grid>
                 </Grid>
 
-                <Grid item xs={12}>
-                  <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={handleAddAnalista}
-                    disabled={!!editingId} // opcional: evita crear mientras editas
-                  >
-                    Agregar Analista
-                  </Button>
-
-                  {/* Botón refrescar (no cambia tu flujo; solo suma utilidad) */}
-                  <Button
-                    variant="text"
-                    sx={{ ml: 1 }}
-                    onClick={async () => {
-                      await fetchPersonal();
-                      Swal.fire({
-                        icon: "success",
-                        title: "Actualizado",
-                        text: "Datos refrescados.",
-                        timer: 1200,
-                        showConfirmButton: false,
-                      });
-                    }}
-                  >
-                    Refrescar
-                  </Button>
-                </Grid>
-              </Grid>
-
-              <TableContainer component={Paper} sx={{ mt: 2 }}>
-                <Table>
-                  <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
-                    <TableRow>
-                      <TableCell>
-                        <strong>Nombres</strong>
-                      </TableCell>
-                      <TableCell>
-                        <strong>Área</strong>
-                      </TableCell>
-                      <TableCell align="center">
-                        <strong>Acciones</strong>
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-
-                  <TableBody>
-                    {analistasFiltrados.length === 0 ? (
+                <TableContainer
+                  component={Paper}
+                  elevation={0}
+                  sx={{
+                    mt: 2,
+                    maxHeight: "60vh",
+                    borderRadius: 3,
+                    border: "1px solid #DDE3EA",
+                    overflow: "auto",
+                    boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
+                  }}
+                >
+                  <Table stickyHeader size="small">
+                    <TableHead>
                       <TableRow>
-                        <TableCell colSpan={3} align="center">
-                          {debouncedSearch
-                            ? "No hay resultados para el filtro."
-                            : "No hay analistas registrados"}
-                        </TableCell>
+                        {["Nombres", "Área", "Acciones"].map((head) => (
+                          <TableCell
+                            key={head}
+                            align={head === "Acciones" ? "center" : "left"}
+                            sx={{
+                              backgroundColor: "#1A237E",
+                              color: "#FFFFFF",
+                              fontWeight: 800,
+                              textTransform: "uppercase",
+                              fontSize: "0.75rem",
+                              letterSpacing: "0.4px",
+                              py: 1.2,
+                              borderBottom: "none",
+                            }}
+                          >
+                            {head}
+                          </TableCell>
+                        ))}
                       </TableRow>
-                    ) : (
-                      analistasFiltrados.map(renderRow)
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                    </TableHead>
+
+                    <TableBody>
+                      {analistasFiltrados.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={3} align="center" sx={{ py: 5 }}>
+                            <Typography fontWeight={800}>
+                              No hay resultados
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {debouncedSearch
+                                ? "No hay resultados para el filtro."
+                                : "No hay analistas registrados"}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        analistasFiltrados.map(renderRow)
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
             </Grid>
 
-            {/* LOGISTICA */}
             <Grid item xs={12} md={6}>
-              <Typography variant="h6" gutterBottom>
-                Trabajadores de Logística
-              </Typography>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2,
+                  borderRadius: 3,
+                  border: "1px solid #DDE3EA",
+                  backgroundColor: "#FFFFFF",
+                  height: "100%",
+                }}
+              >
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  gap={1}
+                  mb={2}
+                >
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <LocalShippingIcon sx={{ color: "#1A237E" }} />
+                    <Typography variant="h6" fontWeight={800}>
+                      Trabajadores de Logística
+                    </Typography>
+                  </Box>
 
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Nombres"
-                    value={formLogistica.nombres}
-                    onChange={(e) =>
-                      setFormLogistica((prev) => ({
-                        ...prev,
-                        nombres: e.target.value,
-                      }))
-                    }
+                  <Chip
+                    size="small"
+                    label={`${logisticaFiltrada.length} registros`}
+                    variant="outlined"
+                    sx={{ fontWeight: 700 }}
                   />
+                </Box>
+
+                <Grid container spacing={1.2} alignItems="center">
+                  <Grid item xs={12} md={8}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Nombres"
+                      value={formLogistica.nombres}
+                      onChange={(e) =>
+                        setFormLogistica((prev) => ({
+                          ...prev,
+                          nombres: e.target.value,
+                        }))
+                      }
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} md={4}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        gap: 1,
+                        justifyContent: { xs: "flex-start", md: "flex-end" },
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <Button
+                        variant="contained"
+                        size="small"
+                        startIcon={<AddIcon />}
+                        onClick={handleAddLogistica}
+                        disabled={!!editingId}
+                        sx={{ textTransform: "none", fontWeight: 700 }}
+                      >
+                        Agregar
+                      </Button>
+                    </Box>
+                  </Grid>
                 </Grid>
 
-                <Grid item xs={12}>
-                  <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={handleAddLogistica}
-                    disabled={!!editingId} // opcional
-                  >
-                    Agregar Trabajador
-                  </Button>
-                </Grid>
-              </Grid>
-
-              <TableContainer component={Paper} sx={{ mt: 2 }}>
-                <Table>
-                  <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
-                    <TableRow>
-                      <TableCell>
-                        <strong>Nombres</strong>
-                      </TableCell>
-                      <TableCell>
-                        <strong>Área</strong>
-                      </TableCell>
-                      <TableCell align="center">
-                        <strong>Acciones</strong>
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-
-                  <TableBody>
-                    {logisticaFiltrada.length === 0 ? (
+                <TableContainer
+                  component={Paper}
+                  elevation={0}
+                  sx={{
+                    mt: 2,
+                    maxHeight: "60vh",
+                    borderRadius: 3,
+                    border: "1px solid #DDE3EA",
+                    overflow: "auto",
+                    boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
+                  }}
+                >
+                  <Table stickyHeader size="small">
+                    <TableHead>
                       <TableRow>
-                        <TableCell colSpan={3} align="center">
-                          {debouncedSearch
-                            ? "No hay resultados para el filtro."
-                            : "No hay trabajadores registrados"}
-                        </TableCell>
+                        {["Nombres", "Área", "Acciones"].map((head) => (
+                          <TableCell
+                            key={head}
+                            align={head === "Acciones" ? "center" : "left"}
+                            sx={{
+                              backgroundColor: "#1A237E",
+                              color: "#FFFFFF",
+                              fontWeight: 800,
+                              textTransform: "uppercase",
+                              fontSize: "0.75rem",
+                              letterSpacing: "0.4px",
+                              py: 1.2,
+                              borderBottom: "none",
+                            }}
+                          >
+                            {head}
+                          </TableCell>
+                        ))}
                       </TableRow>
-                    ) : (
-                      logisticaFiltrada.map(renderRow)
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                    </TableHead>
+
+                    <TableBody>
+                      {logisticaFiltrada.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={3} align="center" sx={{ py: 5 }}>
+                            <Typography fontWeight={800}>
+                              No hay resultados
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {debouncedSearch
+                                ? "No hay resultados para el filtro."
+                                : "No hay trabajadores registrados"}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        logisticaFiltrada.map(renderRow)
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
             </Grid>
           </Grid>
         </CardContent>

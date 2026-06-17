@@ -27,6 +27,8 @@ import {
   Tooltip,
 } from "@mui/material";
 
+import { useAuth } from "../../../utils/Context/AuthContext/AuthContext";
+
 import BarChartIcon from "@mui/icons-material/BarChart";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
@@ -45,8 +47,9 @@ import CleaningServicesIcon from '@mui/icons-material/CleaningServices';
 import SwapVertIcon from "@mui/icons-material/SwapVert";
 import CheckIcon from '@mui/icons-material/Check';
 
-const API_URL = "https://ambiocomserver.onrender.com/api/programaciondespacho";
+import ProgramacionDespachoModal from "./utils_planeacion/ProgramacionDespachoModal";
 
+const API_URL = "https://ambiocomserver.onrender.com/api/programaciondespacho";
 const API_CONDUCTORES = "https://ambiocomserver.onrender.com/api/conductores";
 const API_CLIENTES = "https://ambiocomserver.onrender.com/api/clienteslogistica";
 const API_PRODUCTOS = "https://ambiocomserver.onrender.com/api/alcoholesdespacho";
@@ -112,6 +115,24 @@ const isValidDateISO = (s) => {
   );
 };
 
+const normalizeFechaEstimadaEntrega = (value) => {
+  const v = normalizeText(value).toUpperCase();
+  return v || "NA";
+};
+
+const isValidFechaEstimadaEntrega = (value) => {
+  const v = normalizeFechaEstimadaEntrega(value);
+
+  if (v === "NA") return true;
+
+  return isValidDateISO(v);
+};
+
+const displayFechaEstimadaEntrega = (value) => {
+  const v = normalizeFechaEstimadaEntrega(value);
+  return v === "NA" ? "" : v;
+};
+
 const formatNumber = (n) => {
   const x = Number(n);
   if (Number.isNaN(x)) return "0";
@@ -157,8 +178,13 @@ const ProgramacionDespachoDiariaPage = () => {
 
   const navigate = useNavigate();
 
+  const { rol } = useAuth();
+
+  const canEditFechaEstimadaEntrega = ["developer", "comercial"].includes(normalizeText(rol).toLowerCase());
+
   const [rows, setRows] = useState([]);
   const [editingId, setEditingId] = useState(null);
+  const [formModalOpen, setFormModalOpen] = useState(false);
   const [search, setSearch] = useState("");   // buscador global
   const [sortOrder, setSortOrder] = useState("desc");
   const debouncedSearch = useDebouncedValue(search, 250);
@@ -166,6 +192,7 @@ const ProgramacionDespachoDiariaPage = () => {
   // filtros tipo BI
   const [filters, setFilters] = useState({
     fecha: "",
+    fechaEstimadaEntrega: "",
     cliente: "",
     producto: "",
     transportadora: "",
@@ -178,6 +205,7 @@ const ProgramacionDespachoDiariaPage = () => {
   // formulario
   const [form, setForm] = useState({
     fecha: "", // ISO YYYY-MM-DD (date picker)
+    fechaEstimadaEntrega: "", // ISO YYYY-MM-DD
     placa: "",
     trailer: "",
     conductor: "",
@@ -325,7 +353,6 @@ const ProgramacionDespachoDiariaPage = () => {
   };
 
   // OBTENER PROGRAMACIÓN (DB)
-  // ✅ ahora por defecto consume el endpoint /rango (mes anterior + mes actual)
   const fetchProgramacion = async (customRange) => {
     try {
       const effective = customRange ?? range ?? getDefaultRange();
@@ -354,7 +381,7 @@ const ProgramacionDespachoDiariaPage = () => {
 
   useEffect(() => {
     fetchCatalogs();
-    // ✅ primer consumo: mes actual y anterior
+    // primer consumo: mes actual y anterior
     fetchProgramacion(getDefaultRange());
   }, []);
 
@@ -363,9 +390,13 @@ const ProgramacionDespachoDiariaPage = () => {
     const uniq = (arr) => Array.from(new Set(arr.filter(Boolean)));
     const safe = rows ?? [];
     return {
-      fechas: uniq(safe.map((r) => normalizeText(r.fecha))).filter((f) =>
-        isValidDateISO(f)
-      ),
+      fechas: uniq(safe.map((r) => normalizeText(r.fecha))).filter((f) => isValidDateISO(f)),
+      fechasEstimadasEntrega: uniq(safe.map((r) => normalizeFechaEstimadaEntrega(r.fechaEstimadaEntrega)))
+        .sort((a, b) => {
+          if (a === "NA") return -1;
+          if (b === "NA") return 1;
+          return a.localeCompare(b);
+        }),
       clientes: uniq(safe.map((r) => normalizeText(r.cliente))),
       productos: uniq(safe.map((r) => normalizeText(r.producto))),
       transportadoras: uniq(safe.map((r) => normalizeText(r.transportadora))),
@@ -402,9 +433,17 @@ const ProgramacionDespachoDiariaPage = () => {
   }, [rows]);
 
   // FORM HANDLERS
-  // const handleChange = (e) => {
-  //   setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  // };
+
+  const handleOpenCreateModal = () => {
+    resetForm();
+    setFormModalOpen(true);
+  };
+
+  const handleCloseFormModal = () => {
+    resetForm();
+    setFormModalOpen(false);
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     // destino siempre se guarda en mayúsculas
@@ -419,6 +458,7 @@ const ProgramacionDespachoDiariaPage = () => {
   const resetForm = () => {
     setForm({
       fecha: "",
+      fechaEstimadaEntrega: "",
       placa: "",
       trailer: "",
       conductor: "",
@@ -439,6 +479,7 @@ const ProgramacionDespachoDiariaPage = () => {
   const clearFilters = () => {
     setFilters({
       fecha: "",
+      fechaEstimadaEntrega: "",
       cliente: "",
       producto: "",
       transportadora: "",
@@ -447,7 +488,7 @@ const ProgramacionDespachoDiariaPage = () => {
     setSearch("");
   };
 
-  // ✅ handlers para rango
+  // handlers para rango
   const handleRangeChange = (e) => {
     setRange((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
@@ -540,6 +581,15 @@ const ProgramacionDespachoDiariaPage = () => {
       return false;
     }
 
+    if (!isValidFechaEstimadaEntrega(payload.fechaEstimadaEntrega)) {
+      await Swal.fire({
+        icon: "warning",
+        title: "Fecha estimada inválida",
+        text: 'La fecha estimada de entrega debe ser "NA" o tener formato "YYYY-MM-DD".',
+      });
+      return false;
+    }
+
     if (!payload.cliente) {
       await Swal.fire({
         icon: "warning",
@@ -605,6 +655,12 @@ const ProgramacionDespachoDiariaPage = () => {
         cantidad: Number(normalizeText(form.cantidad)),
       };
 
+      if (canEditFechaEstimadaEntrega) {
+        payload.fechaEstimadaEntrega = normalizeFechaEstimadaEntrega(
+          form.fechaEstimadaEntrega
+        );
+      }
+
       const ok = await validatePayload(payload);
       if (!ok) return;
 
@@ -633,7 +689,9 @@ const ProgramacionDespachoDiariaPage = () => {
       });
 
       resetForm();
-      // ✅ recarga usando el rango actual (no toda la DB)
+      setFormModalOpen(false);
+
+      //recarga usando el rango actual (no toda la DB)
       await fetchProgramacion(range);
       fetchCatalogs();
     } catch (error) {
@@ -651,6 +709,7 @@ const ProgramacionDespachoDiariaPage = () => {
   const handleEdit = (item) => {
     setForm({
       fecha: item.fecha ?? "",
+      fechaEstimadaEntrega: displayFechaEstimadaEntrega(item.fechaEstimadaEntrega),
       horaProgramada: item.horaProgramada ?? "",
       placa: item.placa ?? "",
       trailer: item.trailer ?? "",
@@ -661,15 +720,9 @@ const ProgramacionDespachoDiariaPage = () => {
       producto: item.producto ?? "",
       cantidad: String(item.cantidad ?? ""),
     });
-    setEditingId(item._id);
 
-    Swal.fire({
-      icon: "info",
-      title: "Modo edición",
-      text: "Edita el registro y pulsa Actualizar.",
-      timer: 1200,
-      showConfirmButton: false,
-    });
+    setEditingId(item._id);
+    setFormModalOpen(true);
   };
 
   const handleDelete = async (id) => {
@@ -726,6 +779,7 @@ const ProgramacionDespachoDiariaPage = () => {
     const safe = rows ?? [];
 
     const fFecha = normalizeText(filters.fecha);
+    const fFechaEstimadaEntrega = normalizeFechaEstimadaEntrega(filters.fechaEstimadaEntrega);
     const fCliente = normalizeText(filters.cliente);
     const fProducto = normalizeText(filters.producto);
     const fTransportadora = normalizeText(filters.transportadora);
@@ -734,6 +788,13 @@ const ProgramacionDespachoDiariaPage = () => {
     let out = [...safe];
 
     if (fFecha) out = out.filter((r) => normalizeText(r.fecha) === fFecha);
+    if (filters.fechaEstimadaEntrega) {
+      out = out.filter(
+        (r) =>
+          normalizeFechaEstimadaEntrega(r.fechaEstimadaEntrega) ===
+          fFechaEstimadaEntrega
+      );
+    }
     if (fCliente) out = out.filter((r) => normalizeText(r.cliente) === fCliente);
     if (fProducto) out = out.filter((r) => normalizeText(r.producto) === fProducto);
     if (fTransportadora) {
@@ -745,6 +806,7 @@ const ProgramacionDespachoDiariaPage = () => {
     if (q) {
       out = out.filter((r) => {
         const fecha = normalizeText(r.fecha).toLowerCase();
+        const fechaEstimadaEntrega = normalizeFechaEstimadaEntrega(r.fechaEstimadaEntrega).toLowerCase();
         const placa = normalizeText(r.placa).toLowerCase();
         const trailer = normalizeText(r.trailer).toLowerCase();
         const conductor = normalizeText(r.conductor).toLowerCase();
@@ -756,6 +818,7 @@ const ProgramacionDespachoDiariaPage = () => {
 
         return (
           fecha.includes(q) ||
+          fechaEstimadaEntrega.includes(q) ||
           placa.includes(q) ||
           trailer.includes(q) ||
           conductor.includes(q) ||
@@ -793,6 +856,7 @@ const ProgramacionDespachoDiariaPage = () => {
     try {
       const headers = [
         "Fecha",
+        "Fecha Estimada Entrega",
         "Hora",
         "Placa",
         "Trailer",
@@ -807,6 +871,7 @@ const ProgramacionDespachoDiariaPage = () => {
 
       const rows = rowsFiltrados.map((r) => [
         normalizeText(r.fecha),
+        normalizeFechaEstimadaEntrega(r.fechaEstimadaEntrega) === "NA" ? "Pendiente" : normalizeFechaEstimadaEntrega(r.fechaEstimadaEntrega),
         normalizeText(r.horaProgramada),
         normalizeText(r.placa),
         normalizeText(r.trailer),
@@ -882,13 +947,14 @@ const ProgramacionDespachoDiariaPage = () => {
   const hasAnyFilter =
     !!debouncedSearch ||
     !!filters.fecha ||
+    !!filters.fechaEstimadaEntrega ||
     !!filters.cliente ||
     !!filters.producto ||
     !!filters.transportadora ||
     !!filters.destino;
 
   return (
-    <Box p={{ xs: 2, md: 1 }} mt={5}>
+    <Box p={{ xs: 2, md: 1 }} mt={6}>
       <Card elevation={4} sx={{ borderRadius: 3 }}>
         <CardContent>
           {/* Header */}
@@ -935,6 +1001,29 @@ const ProgramacionDespachoDiariaPage = () => {
             >
               <Button
                 variant="contained"
+                startIcon={<AddIcon />}
+                size="small"
+                onClick={handleOpenCreateModal}
+                sx={{
+                  whiteSpace: "nowrap",
+                  bgcolor: "#0B7A5A",
+                  color: "#fff",
+                  fontWeight: 700,
+                  textTransform: "none",
+                  borderRadius: 2,
+                  px: 2,
+                  boxShadow: "0 6px 14px rgba(11, 122, 90, 0.28)",
+                  "&:hover": {
+                    bgcolor: "#09684D",
+                    boxShadow: "0 8px 18px rgba(11, 122, 90, 0.35)",
+                  },
+                }}
+              >
+                Nueva programación
+              </Button>
+
+              <Button
+                variant="contained"
                 color="info"
                 startIcon={<BarChartIcon />}
                 size="small"
@@ -949,7 +1038,7 @@ const ProgramacionDespachoDiariaPage = () => {
               <TextField
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por fecha, placa, trailer, conductor, transportadora, cliente, destino, producto..."
+                placeholder="Buscar por fecha, fecha estimada, placa, trailer, conductor, transportadora, cliente, destino, producto..."
                 size="small"
                 sx={{ minWidth: { xs: "100%", md: 520 } }}
                 InputProps={{
@@ -1066,7 +1155,24 @@ const ProgramacionDespachoDiariaPage = () => {
                 ))}
               </TextField>
             </Grid>
-
+            <Grid item xs={12} md={2}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                label="Fecha Est. Entrega"
+                name="fechaEstimadaEntrega"
+                value={filters.fechaEstimadaEntrega}
+                onChange={handleFilterChange}
+              >
+                <MenuItem value="">(Todas)</MenuItem>
+                {options.fechasEstimadasEntrega.map((f) => (
+                  <MenuItem key={f} value={f}>
+                    {f === "NA" ? "Pendiente" : f}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
             <Grid item xs={12} md={2}>
               <TextField
                 select
@@ -1319,233 +1425,18 @@ const ProgramacionDespachoDiariaPage = () => {
             </Box>
           )}
           <Divider sx={{ my: 3 }} />
-          {/* FORMULARIO (COMPACTO + SELECTS) */}
-          <Typography
-            variant="h5"
-            sx={{
-              mb: 2,
-              mt: -1,
-              textAlign: "center",
-              fontWeight: 600,
-            }}
-          >
-            {editingId ? "Editar programación" : "Registrar Nueva programación"}
-          </Typography>
-          <Grid container spacing={1}>
-            {/* FECHA: DATE PICKER (guarda YYYY-MM-DD) */}
-            <Grid item xs={12} md={1}>
-              <TextField
-                fullWidth
-                size="small"
-                sx={INPUT_SX_COMPACT}
-                type="date"
-                label="Fecha"
-                name="fecha"
-                value={form.fecha}
-                onChange={handleChange}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-            <Grid item xs={12} md={1}>
-              <TextField
-                fullWidth
-                size="small"
-                sx={INPUT_SX_COMPACT}
-                type="time"
-                label="Hora"
-                name="horaProgramada"
-                value={form.horaProgramada}
-                onChange={handleChange}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
 
-            <Grid item xs={12} md={1}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                sx={INPUT_SX_COMPACT}
-                label="Placa"
-                name="placa"
-                value={form.placa}
-                onChange={handleChange}
-              >
-                <MenuItem value="">(Selecciona)</MenuItem>
-                {catalog.placas.map((p) => (
-                  <MenuItem key={p} value={p}>
-                    {p}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-
-            <Grid item xs={12} md={1}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                sx={INPUT_SX_COMPACT}
-                label="Trailer"
-                name="trailer"
-                value={form.trailer}
-                onChange={handleChange}
-              >
-                <MenuItem value="">(Selecciona)</MenuItem>
-                {catalog.trailers.map((t) => (
-                  <MenuItem key={t} value={t}>
-                    {t}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-
-            <Grid item xs={12} md={1.5}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                sx={INPUT_SX_COMPACT}
-                label="Conductor"
-                name="conductor"
-                value={form.conductor}
-                onChange={handleChange}
-              >
-                <MenuItem value="">(Selecciona)</MenuItem>
-                {catalog.conductores.map((c) => (
-                  <MenuItem key={c} value={c}>
-                    {c}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-
-            <Grid item xs={12} md={1.5}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                sx={INPUT_SX_COMPACT}
-                label="Transportadora"
-                name="transportadora"
-                value={form.transportadora}
-                onChange={handleChange}
-              >
-                <MenuItem value="">(Selecciona)</MenuItem>
-                {catalog.transportadoras.map((t) => (
-                  <MenuItem key={t} value={t}>
-                    {t}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-
-            <Grid item xs={12} md={2}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                sx={INPUT_SX_COMPACT}
-                label="Cliente"
-                name="cliente"
-                value={form.cliente}
-                onChange={handleChange}
-              >
-                <MenuItem value="">(Selecciona)</MenuItem>
-                {catalog.clientes.map((c) => (
-                  <MenuItem key={c} value={c}>
-                    {c}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-
-            {/* DESTINO: DIGITABLE */}
-            <Grid item xs={12} md={1}>
-              <TextField
-                fullWidth
-                size="small"
-                sx={INPUT_SX_COMPACT}
-                label="Destino"
-                name="destino"
-                value={form.destino}
-                onChange={handleChange}
-                placeholder="Ej: ITAGUI"
-              />
-            </Grid>
-
-            <Grid item xs={12} md={1}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                sx={INPUT_SX_COMPACT}
-                label="Producto"
-                name="producto"
-                value={form.producto}
-                onChange={handleChange}
-              >
-                <MenuItem value="">(Selecciona)</MenuItem>
-                {catalog.productos.map((p) => (
-                  <MenuItem key={p} value={p}>
-                    {p}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-
-            <Grid item xs={12} md={1}>
-              <TextField
-                fullWidth
-                size="small"
-                sx={INPUT_SX_COMPACT}
-                label="Cantidad"
-                name="cantidad"
-                value={form.cantidad}
-                onChange={handleChange}
-                placeholder="Ej: 40000"
-                type="number"
-                inputProps={{ inputMode: "numeric", min: 0 }}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={1}
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
-              }}>
-              <Button
-                variant="contained"
-                color={editingId ? "warning" : "primary"}
-                startIcon={editingId ? <SaveIcon /> : <AddIcon />}
-                onClick={handleSubmit}
-                size="medium"
-              >
-                {editingId ? "Actualizar" : "Registrar"}
-              </Button>
-
-              {editingId && (
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={async () => {
-                    resetForm();
-                    await Swal.fire({
-                      icon: "info",
-                      title: "Edición cancelada",
-                      timer: 1200,
-                      showConfirmButton: false,
-                    });
-                  }}
-                >
-                  Cancelar
-                </Button>
-              )}
-            </Grid>
-          </Grid>
-
-          <Divider sx={{ my: 3 }} />
+          <ProgramacionDespachoModal
+            open={formModalOpen}
+            editingId={editingId}
+            form={form}
+            catalog={catalog}
+            catalogLoading={catalogLoading}
+            canEditFechaEstimadaEntrega={canEditFechaEstimadaEntrega}
+            onChange={handleChange}
+            onSubmit={handleSubmit}
+            onClose={handleCloseFormModal}
+          />
 
           {/* TABLA */}
           <TableContainer component={Paper} elevation={2} sx={{ borderRadius: 2 }}
@@ -1556,18 +1447,19 @@ const ProgramacionDespachoDiariaPage = () => {
             <Table stickyHeader size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell align="center"><strong>Fecha</strong></TableCell>
-                  <TableCell align="center"><strong>Hora</strong></TableCell>
-                  <TableCell align="center"><strong>Placa</strong></TableCell>
-                  <TableCell align="center"><strong>Trailer</strong></TableCell>
-                  <TableCell align="center"><strong>Conductor</strong></TableCell>
-                  <TableCell align="center"><strong>Transportadora</strong></TableCell>
-                  <TableCell align="center"><strong>Cliente</strong></TableCell>
-                  <TableCell align="center"><strong>Destino</strong></TableCell>
-                  <TableCell align="center"><strong>Producto</strong></TableCell>
-                  <TableCell align="center"><strong>Cantidad</strong></TableCell>
-                  <TableCell align="center"><strong>Checked</strong></TableCell>
-                  <TableCell align="center"><strong>Acciones</strong></TableCell>
+                  <TableCell align="left"><strong>Fecha</strong></TableCell>
+                  <TableCell align="left"><strong>Fecha Est. Entrega</strong></TableCell>
+                  <TableCell align="left"><strong>Hora</strong></TableCell>
+                  <TableCell align="left"><strong>Placa</strong></TableCell>
+                  <TableCell align="left"><strong>Trailer</strong></TableCell>
+                  <TableCell align="left"><strong>Conductor</strong></TableCell>
+                  <TableCell align="left"><strong>Transportadora</strong></TableCell>
+                  <TableCell align="left"><strong>Cliente</strong></TableCell>
+                  <TableCell align="left"><strong>Destino</strong></TableCell>
+                  <TableCell align="left"><strong>Producto</strong></TableCell>
+                  <TableCell align="left"><strong>Cantidad</strong></TableCell>
+                  <TableCell align="left"><strong>Checked</strong></TableCell>
+                  <TableCell align="left"><strong>Acciones</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody
@@ -1596,7 +1488,7 @@ const ProgramacionDespachoDiariaPage = () => {
               >
                 {rowsFiltrados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={12} align="center" sx={{ py: 5 }}>
+                    <TableCell colSpan={13} align="center" sx={{ py: 5 }}>
                       <Typography fontWeight="bold">No hay resultados</Typography>
                       <Typography variant="body2" color="text.secondary">
                         {hasAnyFilter
@@ -1610,6 +1502,43 @@ const ProgramacionDespachoDiariaPage = () => {
                     <TableRow key={r._id} hover>
                       <TableCell sx={{ minWidth: 105, whiteSpace: "nowrap", fontWeight: 600 }}>
                         {normalizeText(r.fecha)}
+                      </TableCell>
+                      <TableCell sx={{ minWidth: 140, whiteSpace: "nowrap" }}>
+                        {normalizeFechaEstimadaEntrega(r.fechaEstimadaEntrega) === "NA" ? (
+                          <Box
+                            component="span"
+                            sx={{
+                              display: "inline-block",
+                              px: 1.2,
+                              py: 0.35,
+                              borderRadius: 2,
+                              fontWeight: 700,
+                              fontSize: "0.78rem",
+                              color: "#B71C1C",
+                              backgroundColor: "rgba(244, 67, 54, 0.12)",
+                              border: "1px solid rgba(244, 67, 54, 0.35)",
+                            }}
+                          >
+                            Pendiente
+                          </Box>
+                        ) : (
+                          <Box
+                            component="span"
+                            sx={{
+                              display: "inline-block",
+                              px: 1.2,
+                              py: 0.35,
+                              borderRadius: 2,
+                              fontWeight: 700,
+                              fontSize: "0.78rem",
+                              color: "#1B5E20",
+                              backgroundColor: "rgba(76, 175, 80, 0.12)",
+                              border: "1px solid rgba(76, 175, 80, 0.35)",
+                            }}
+                          >
+                            {normalizeFechaEstimadaEntrega(r.fechaEstimadaEntrega)}
+                          </Box>
+                        )}
                       </TableCell>
 
                       <TableCell sx={{ whiteSpace: "nowrap", fontWeight: 600, color: "primary.main" }}>

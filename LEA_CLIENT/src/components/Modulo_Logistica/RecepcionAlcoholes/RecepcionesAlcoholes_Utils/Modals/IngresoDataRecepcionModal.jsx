@@ -27,7 +27,7 @@ const DENSIDAD_MAX = 0.9;
 const TIME_KEYS = ["hora_ingreso", "hora_salida"];
 const REQUIRED_FIELDS = ["fecha", "responsable", "observaciones"];
 const ANALISTA_KEYS = ["analista_laboratorio"];
-const INTEGER_ONLY_KEYS = ["cantidad_recibida", "bascula_ambiocom", "peso_enviado_neto_puerto",];
+const INTEGER_ONLY_KEYS = ["bascula_ambiocom", "peso_enviado_neto_puerto",];
 // const "flete_facturado" = "flete_facturado";
 
 //LABELS para estado de la recepcion
@@ -90,6 +90,7 @@ const IngresoDataRecepcionModal = ({
     const [conductores, setConductores] = useState([]);
     const [transportadoras, setTransportadoras] = useState([]);
     const [productos, setProductos] = useState([]);
+    const [proveedores, setProveedores] = useState([]);
     const timeOptions = useMemo(() => buildTimeOptions(1), []);
     const [fieldErrors, setFieldErrors] = useState({});
 
@@ -100,11 +101,12 @@ const IngresoDataRecepcionModal = ({
 
         const cargarDataMenuItemsSelect = async () => {
             try {
-                const [{ data: personalData }, { data: conductoresData }, { data: transportadorasData }, { data: productosData }] = await Promise.all([
+                const [{ data: personalData }, { data: conductoresData }, { data: transportadorasData }, { data: productosData }, { data: proveedoresData },] = await Promise.all([
                     axios.get("https://ambiocomserver.onrender.com/api/personal"),
                     axios.get("https://ambiocomserver.onrender.com/api/conductores"),
                     axios.get("https://ambiocomserver.onrender.com/api/transportadoraslogistica"),
                     axios.get("https://ambiocomserver.onrender.com/api/alcoholesdespacho"),
+                    axios.get("https://ambiocomserver.onrender.com/api/proveedoreslogistica"),
                 ]);
 
                 const base = (Array.isArray(personalData) ? personalData : [])
@@ -164,11 +166,24 @@ const IngresoDataRecepcionModal = ({
                     .filter((x) => x.value)
                     .sort((a, b) => a.label.localeCompare(b.label, "es"));
 
+                const listaProveedores = (Array.isArray(proveedoresData) ? proveedoresData : [])
+                    .map((p) => {
+                        const nombre = String(p?.proveedor ?? "").trim();
+
+                        return {
+                            value: nombre,
+                            label: nombre,
+                        };
+                    })
+                    .filter((x) => x.value)
+                    .sort((a, b) => a.label.localeCompare(b.label, "es"));
+
                 setColaboradoresLogistica(listaLogistica);
                 setColaboradoresLaboratorio(listaLaboratorio);
                 setConductores(listaConductores);
                 setTransportadoras(listaTransportadoras);
                 setProductos(listaProductos);
+                setProveedores(listaProveedores);
             } catch (error) {
                 console.error("Error cargando personal/conductores:", error);
                 setColaboradoresLogistica([]);
@@ -176,6 +191,7 @@ const IngresoDataRecepcionModal = ({
                 setConductores([]);
                 setTransportadoras([]);
                 setProductos([]);
+                setProveedores([]);
             }
         };
 
@@ -278,6 +294,8 @@ const IngresoDataRecepcionModal = ({
 
             const basculaCliente = Number(nuevasLecturas?.peso_enviado_neto_puerto ?? 0);
             const basculaAmbiocom = Number(nuevasLecturas?.bascula_ambiocom ?? 0);
+            const densidad = Number(String(nuevasLecturas?.densidad ?? "").replace(",", "."));
+
 
             if (["peso_enviado_neto_puerto", "bascula_ambiocom"].includes(key)) {
                 nuevasLecturas["diferencia_peso"] = Number(
@@ -285,8 +303,16 @@ const IngresoDataRecepcionModal = ({
                 );
             }
 
+            if (["bascula_ambiocom", "densidad"].includes(key)) {
+                nuevasLecturas["cantidad_recibida"] =
+                    basculaAmbiocom > 0 && densidad > 0
+                        ? Number((basculaAmbiocom / densidad).toFixed(1))
+                        : "";
+            }
+
             const pesoProveedor = Number(nuevasLecturas?.peso_enviado_neto_puerto ?? 0);
             const densidadPuerto = Number(nuevasLecturas?.densidad_puerto ?? 0);
+
 
             if (["peso_enviado_neto_puerto", "densidad_puerto"].includes(key)) {
                 nuevasLecturas["volumen_gravimetrico_proveedor"] =
@@ -314,6 +340,11 @@ const IngresoDataRecepcionModal = ({
                     (basculaAmbiocom / basculaCliente).toFixed(3)
                 );
             }
+            // if (["densidad", "bascula_ambiocom"].includes(key)) {
+            //     nuevasLecturas["cantidad_recibida"] = Number(
+            //         (basculaAmbiocom / densidad).toFixed(3)
+            //     );
+            // }
             return {
                 ...prev,
                 lecturas: nuevasLecturas,
@@ -382,6 +413,11 @@ const IngresoDataRecepcionModal = ({
     const productoSeleccionado =
         productos.find(
             (p) => p.value === (form?.lecturas?.producto ?? "")
+        ) || null;
+
+    const proveedorSeleccionado =
+        proveedores.find(
+            (p) => p.value === (form?.lecturas?.proveedor ?? "")
         ) || null;
 
     const tanqueRecepcionSeleccionado =
@@ -506,7 +542,7 @@ const IngresoDataRecepcionModal = ({
                                     ""
                                 }
                                 getOptionLabel={(option) => option?.label ?? ""}
-                                isOptionEqualToValue={(option, value) => option.value === value.value}
+                                isOptionEqualToValue={(option, value) => option.value === value?.value}
                                 onChange={(event, newValue) =>
                                     setForm((prev) => ({
                                         ...prev,
@@ -573,7 +609,7 @@ const IngresoDataRecepcionModal = ({
                                     ""
                                 }
                                 getOptionLabel={(option) => option?.label ?? ""}
-                                isOptionEqualToValue={(option, value) => option.value === value.value}
+                                isOptionEqualToValue={(option, value) => option.value === value?.value}
                                 onChange={(event, newValue) =>
                                     setForm((prev) => ({
                                         ...prev,
@@ -618,7 +654,7 @@ const IngresoDataRecepcionModal = ({
                                     ""
                                 }
                                 getOptionLabel={(option) => option?.label ?? ""}
-                                isOptionEqualToValue={(option, value) => option.value === value.value}
+                                isOptionEqualToValue={(option, value) => option.value === value?.value}
                                 onChange={(event, newValue) =>
                                     setForm((prev) => {
                                         const lecturas = {
@@ -699,9 +735,11 @@ const IngresoDataRecepcionModal = ({
                             const esDiferenciaVolumen = c.key === "diferencia_volumen";
                             const esErrorPeso = c.key === "error_en_peso";
                             const esErrorVolumen = c.key === "error_volumen";
+                            const esCantidadRecibidaCalculada = c.key === "cantidad_recibida";
                             const esEstadoVehiculo = c.key === "estado_vehiculo";
                             const esFleteFacturado = c.key === "flete_facturado";
                             const esProducto = c.key === "producto";
+                            const esProveedor = c.key === "proveedor";
 
                             if (["nombre_conductor", "placa", "remolque", "transportadora", "tanque_recepcion"].includes(c.key)) {
                                 return null;
@@ -723,7 +761,7 @@ const IngresoDataRecepcionModal = ({
                                             }
                                             getOptionLabel={(option) => option?.label ?? ""}
                                             isOptionEqualToValue={(option, value) =>
-                                                option.value === value.value
+                                                option.value === value?.value
                                             }
                                             renderInput={(params) => (
                                                 <TextField
@@ -752,7 +790,7 @@ const IngresoDataRecepcionModal = ({
                                             }
                                             getOptionLabel={(option) => option?.label ?? ""}
                                             isOptionEqualToValue={(option, value) =>
-                                                option.value === value.value
+                                                option.value === value?.value
                                             }
                                             onChange={(event, newValue) =>
                                                 setForm((prev) => ({
@@ -782,6 +820,32 @@ const IngresoDataRecepcionModal = ({
                                                     fullWidth
                                                     label={`${c.nombre}${esObligatorio ? " *" : ""}`}
                                                     placeholder="Selecciona producto"
+                                                />
+                                            )}
+                                        />
+                                    </Grid>
+                                );
+                            }
+
+                            if (esProveedor) {
+                                return (
+                                    <Grid item {...size} key={c.key}>
+                                        <Autocomplete
+                                            options={proveedores}
+                                            value={proveedorSeleccionado}
+                                            onChange={(event, newValue) =>
+                                                handleChangeLectura(c.key, newValue?.value ?? "")
+                                            }
+                                            getOptionLabel={(option) => option?.label ?? ""}
+                                            isOptionEqualToValue={(option, value) =>
+                                                option.value === value?.value
+                                            }
+                                            renderInput={(params) => (
+                                                <TextField
+                                                    {...params}
+                                                    fullWidth
+                                                    label={`${c.nombre}${esObligatorio ? " *" : ""}`}
+                                                    placeholder="Selecciona proveedor"
                                                 />
                                             )}
                                         />
@@ -903,7 +967,7 @@ const IngresoDataRecepcionModal = ({
                                             }
                                             getOptionLabel={(option) => option?.label ?? ""}
                                             isOptionEqualToValue={(option, value) =>
-                                                option.value === value.value
+                                                option.value === value?.value
                                             }
                                             renderInput={(params) => (
                                                 <TextField
@@ -925,7 +989,7 @@ const IngresoDataRecepcionModal = ({
                                         label={`${c.nombre}${esObligatorio ? " *" : ""}${c.unidad ? ` (${c.unidad})` : ""}`}
                                         type={esNumero ? "number" : "text"}
                                         value={form?.lecturas?.[c.key] ?? ""}
-                                        disabled={esTiempoCalculado || esVolumenRecepcionado || esVolumenGravimetricoProveedor || esDiferenciaPeso || esDiferenciaVolumen || esErrorPeso || esErrorVolumen}
+                                        disabled={esTiempoCalculado || esVolumenRecepcionado || esVolumenGravimetricoProveedor || esDiferenciaPeso || esDiferenciaVolumen || esErrorPeso || esErrorVolumen || esCantidadRecibidaCalculada}
                                         onChange={(e) => {
                                             let value = e.target.value;
                                             value = value.replace(",", "."); // cambiar , por punto
@@ -952,7 +1016,7 @@ const IngresoDataRecepcionModal = ({
                                         }
                                         sx={{
                                             "& .MuiInputBase-root": {
-                                                backgroundColor: esTiempoCalculado || esVolumenRecepcionado || esVolumenGravimetricoProveedor || esDiferenciaPeso || esDiferenciaVolumen || esErrorPeso || esErrorVolumen
+                                                backgroundColor: esTiempoCalculado || esVolumenRecepcionado || esVolumenGravimetricoProveedor || esDiferenciaPeso || esDiferenciaVolumen || esErrorPeso || esErrorVolumen || esCantidadRecibidaCalculada
                                                     ? "rgba(0,0,0,0.03)"
                                                     : "#fff",
                                             },

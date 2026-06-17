@@ -1,15 +1,11 @@
 import React, { Fragment, useEffect, useMemo, useState } from "react";
-import axios from "axios";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
-import { LabelList } from "recharts";
-
 import {
   Box, Card, CardContent, Typography, Grid, TextField, Button, Divider, Chip, Stack, MenuItem, Tooltip,
-  Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, IconButton,
+  Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, IconButton, Collapse
 } from "@mui/material";
 
-import { ReferenceLine } from "recharts";
 
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -28,6 +24,8 @@ import DonutSmallIcon from '@mui/icons-material/DonutSmall';
 import CleaningServicesIcon from '@mui/icons-material/CleaningServices';
 import RestoreIcon from '@mui/icons-material/Restore';
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 
 import PersonRemoveAlt1Icon from "@mui/icons-material/PersonRemoveAlt1";
 import PlaylistRemoveIcon from "@mui/icons-material/PlaylistRemove";
@@ -38,363 +36,31 @@ import ObservacionEstadoModal from "../../components/Modulo_Logistica/utils_Logi
 // purificacion del DOM en renderizado HTML
 import DOMPurify from "dompurify";
 
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip as RTooltip,
-  Legend,
-  CartesianGrid,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
 
-const API_PROGRAMACION = "https://ambiocomserver.onrender.com/api/programaciondespacho";
-const API_DESPACHOS = "https://ambiocomserver.onrender.com/api/despacho-alcoholes";
+import { formatNumber, formatNumber1D } from "./utils_Logistica_Page/helpers/formatters";
+import { getDefaultRange } from "./utils_Logistica_Page/helpers/dateHelpers";
+import { heatBg, heatBgKg, heatCumplimiento } from "./utils_Logistica_Page/helpers/heatmap";
+import { getDespachoInfo } from "./utils_Logistica_Page/helpers/estadoHelpers";
+import { normalizeKey, normalizeText, parseHoraToMinutes } from "./utils_Logistica_Page/helpers/normalizers";
 
-// Debounce simple
-const useDebouncedValue = (value, delay = 250) => {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return debounced;
-};
+import useDebouncedValue from "./utils_Logistica_Page/hooks/useDebouncedValue";
+import useDespachosFetch from "./utils_Logistica_Page/hooks/useDespachosFetch";
+import useComparativoBase from "./utils_Logistica_Page/hooks/useComparativoBase";
+import useComparativoFiltrado from "./utils_Logistica_Page/hooks/useComparativoFiltrado";
+import useFilterOptions from "./utils_Logistica_Page/hooks/useFilterOptions";
 
-// Helpers
-
-const parseHoraToMinutes = (hora) => {
-  const value = normalizeText(hora);
-  if (!value) return null;
-
-  const match = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(value);
-  if (!match) return null;
-
-  const h = Number(match[1]);
-  const m = Number(match[2]);
-
-  if (Number.isNaN(h) || Number.isNaN(m)) return null;
-  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
-
-  return h * 60 + m;
-};
-
-//formato para eliminar decimales tipo 12334,99887778 y se vea 12334,9
-const formatNumber1D = (n) => {
-  const x = Number(n);
-  if (Number.isNaN(x)) return "0,0";
-  return x.toLocaleString("es-CO", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  });
-};
-
-const normalizeText = (v) =>
-  String(v ?? "")
-    .replace(/\u00A0/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-const removeAccents = (s) =>
-  String(s ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-
-const normalizeKey = (v) =>
-  removeAccents(normalizeText(v))
-    .toUpperCase()
-    .replace(/\s*\(.*?\)\s*/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-const formatNumber = (n) => {
-  const x = Number(n);
-  if (Number.isNaN(x)) return "0,00";
-
-  return x.toLocaleString("es-CO", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 1,
-  });
-};
-
-const getEstadoVehiculo = (d) =>
-  normalizeText(d?.lecturas?.vehiculo_rechazado).toUpperCase();
-
-const isAprobado = (estado) => ["APROBADO AMBIOCOM"].includes(estado);
-const isAprobadoConObs = (estado) => ["APROBADO CON OBSERVACIONES"].includes(estado);
-const isRechazado = (estado) => ["RECHAZADO AMBIOCOM"].includes(estado);
-const isRechazadoCliente = (estado) => ["RECHAZADO POR CLIENTE"].includes(estado);
-const isEnProceso = (estado) => ["EN PLANTA", "EN TRANSITO", "EN CARGUE", "EN CLIENTE"].includes(estado);
-const isAprobadocliente = (estado) => ["APROBADO POR EL CLIENTE"].includes(estado);
-
-const isValidDateISO = (s) => {
-  const v = normalizeText(s);
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
-  if (!m) return false;
-  const yyyy = Number(m[1]);
-  const mm = Number(m[2]);
-  const dd = Number(m[3]);
-  if (mm < 1 || mm > 12) return false;
-  if (dd < 1 || dd > 31) return false;
-  const dt = new Date(yyyy, mm - 1, dd);
-  return (
-    dt.getFullYear() === yyyy && dt.getMonth() === mm - 1 && dt.getDate() === dd
-  );
-};
-
-const getApiErrorMessage = (error) =>
-  error?.response?.data?.message ||
-  error?.response?.data?.error ||
-  error?.message ||
-  "Ocurrió un error inesperado.";
-
-const pad2 = (n) => String(n).padStart(2, "0");
-const toISODate = (d) => {
-  const yyyy = d.getFullYear();
-  const mm = pad2(d.getMonth() + 1);
-  const dd = pad2(d.getDate());
-  return `${yyyy}-${mm}-${dd}`;
-};
-
-// mes anterior + mes actual
-const getDefaultRange = () => {
-  const now = new Date();
-  const startPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const endCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  return { from: toISODate(startPrevMonth), to: toISODate(endCurrentMonth) };
-};
-
-// Heatmap (diff cantidad)
-const heatBg = (diff, tol = 0, row = null) => {
-  const v = Number(diff ?? 0);
-  const a = Math.abs(v);
-
-  if (row) {
-    const volGrav = Number(row?.cantidadRealPlanta ?? 0);
-    const volCliente = Number(row?.volumenRecibidoCliente ?? 0);
-    const volProg = Number(row?.cantidadProgramada ?? 0);
-
-    const ceroPorFaltaDato =
-      v === 0 &&
-      (volGrav <= 0 || volCliente <= 0 || volProg <= 0);
-
-    if (ceroPorFaltaDato) {
-      return "rgb(209, 215, 219)";
-    }
-  }
-
-  if (a <= tol) return "rgba(46,125,50,0.18)";
-  if (a <= tol * 2) return "rgba(251,140,0,0.18)";
-  return "rgba(211,47,47,0.18)";
-};
-
-// heatmap para datos de diferencia de peso con cliente
-const heatBgKg = (diff, tol = 0, row = null) => {
-  const v = Number(diff ?? 0);
-  const a = Math.abs(v);
-
-  if (row) {
-    const pesoCliente = Number(row?.pesoNetoCliente ?? 0);
-    const pesoAmbiocom = Number(row?.pesoNetoBasculaAmbiocom ?? 0);
-
-    const ceroFalso =
-      v === 0 &&
-      (pesoCliente <= 0 || pesoAmbiocom <= 0);
-
-    if (ceroFalso) {
-      return "rgb(209, 215, 219)"; // gris
-    }
-  }
-
-  if (a <= tol) return "rgba(46,125,50,0.18)";
-  if (v > 0 && v > tol) return "rgba(248,168,77,0.66)";
-  if (a <= tol * 2) return "rgba(255,235,59,0.25)";
-  return "rgba(211,47,47,0.18)";
-};
-//helper mapa de calor para %cumplimiento volumenes de despacho
-const heatCumplimiento = (pct) => {
-  const v = Number(pct ?? 0);
-  if (v === 0) return "rgb(209, 215, 219)"; // azul frío
-  if (v > 100) return "rgba(244,67,54,0.18)"; // rojo pálido
-  if (v === 100) return "rgba(46,125,50,0.18)"; // verde
-  if (v > 0 && v < 100) return "rgba(255,235,59,0.25)"; // amarillo
-
-  return "transparent";
-};
-
-// Extractores (cruce)
-const keyProgramacion = (p) => {
-  const fecha = normalizeText(p?.fecha);
-  const transportadora = normalizeKey(p?.transportadora);
-  const cliente = normalizeKey(p?.cliente);
-  const producto = normalizeKey(p?.producto);
-  return `${fecha}|${transportadora}|${cliente}|${producto}`;
-};
-
-const keyDespacho = (d) => {
-  const fecha = normalizeText(d?.fecha);
-  const transportadora = normalizeKey(d?.lecturas?.transportadora);
-  const cliente = normalizeKey(d?.lecturas?.cliente);
-  const producto = normalizeKey(d?.lecturas?.producto);
-  return `${fecha}|${transportadora}|${cliente}|${producto}`;
-};
-
-const getDespachoCantidadRealPlanta = (d) =>
-  Number(d?.lecturas?.volumen_contador_gravimetrico ?? 0);
-
-// Diferencia planta
-const getDespachoDifPlanta = (d) => Number(d?.lecturas?.variación_volumen ?? 0);
-
-// Diferencia cliente
-const getDespachoDifCliente = (d) =>
-  Number(d?.lecturas?.diferencia_recibo_cliente ?? 0);
-// Diferencia bascula cliente-bascula ambiocom (Pesos netos)
-const getDespachoDifKgCliente = (d) =>
-  Number(d?.lecturas?.kilos_peso_neto ?? 0) -
-  Number(d?.lecturas?.peso_neto_bascula_ambiocom ?? 0);
-
-// Rechazo / Cumplimiento (salió de planta)
-
-const getDespachoInfo = (d) => {
-  const estado = getEstadoVehiculo(d);
-
-  return {
-    fecha: normalizeText(d?.fecha),
-    transportadora: normalizeKey(d?.lecturas?.transportadora),
-    cliente: normalizeKey(d?.lecturas?.cliente),
-    producto: normalizeKey(d?.lecturas?.producto),
-    estadoVehiculo: estado,
-
-    rechazado: isRechazado(estado),
-    rechazadoCliente: isRechazadoCliente(estado),
-
-    aprobado: isAprobado(estado),
-    aprobadoConObs: isAprobadoConObs(estado),
-
-    enProceso: isEnProceso(estado),
-    Aprobadocliente: isAprobadocliente(estado),
-  };
-};
-
-const buildComparativoBase = ({ programaciones, despachos }) => {
-  const group = (rows, getKey) => {
-    const m = new Map();
-    for (const r of rows ?? []) {
-      const k = getKey(r);
-      if (!k || k.startsWith("|")) continue;
-      const arr = m.get(k) || [];
-      arr.push(r);
-      m.set(k, arr);
-    }
-    return m;
-  };
-
-  const progG = group(programaciones, keyProgramacion);
-  const despG = group(despachos, keyDespacho);
-
-  const keys = new Set([...progG.keys(), ...despG.keys()]);
-  const out = [];
-
-  for (const key of keys) {
-    const [fecha, transportadora, cliente, producto] = key.split("|");
-    if (!isValidDateISO(fecha)) continue;
-
-    const progs = progG.get(key) || [];
-    const desps = despG.get(key) || [];
-    const n = Math.max(progs.length, desps.length);
-
-    for (let i = 0; i < n; i++) {
-      const p = progs[i] || null;
-      const d = desps[i] || null;
-
-      const cantidadProgramada = Number(p?.cantidad ?? 0);
-      const cantidadRealPlanta = Number(getDespachoCantidadRealPlanta(d) ?? 0);
-
-      const estadoVehiculo = d ? getEstadoVehiculo(d) : "";
-      const rechazado = d ? isRechazado(estadoVehiculo) : false;
-      const rechazadoCliente = d ? isRechazadoCliente(estadoVehiculo) : false;
-      const aprobado = d ? isAprobado(estadoVehiculo) : false;
-      const aprobadoConObs = d ? isAprobadoConObs(estadoVehiculo) : false;
-      const enProceso = d ? isEnProceso(estadoVehiculo) : false;
-      const Aprobadocliente = d ? isAprobadocliente(estadoVehiculo) : false;
-
-      const diffCantidad = cantidadRealPlanta - cantidadProgramada;
-      const diffPlanta = Number(getDespachoDifPlanta(d) ?? 0);
-      const diffCliente = Number(getDespachoDifCliente(d) ?? 0);
-      const diffKgBasculaClienteAmbiocom = Number(getDespachoDifKgCliente(d) ?? 0);
-
-      const cumplimientoPct =
-        cantidadProgramada > 0
-          ? (cantidadRealPlanta / cantidadProgramada) * 100
-          : 0;
-
-      out.push({
-        key: `${key}|${i}`,
-        fecha,
-        transportadora,
-        cliente,
-        producto,
-        horaProgramada: normalizeText(p?.horaProgramada),
-        horaLlegada: normalizeText(d?.lecturas?.hora_llegada ?? d?.hora_llegada),
-        conductor: normalizeText(d?.lecturas?.nombre_conductor),
-        observacion: normalizeText(
-          d?.observaciones ??
-          d?.lecturas?.observaciones ??
-          d?.lecturas?.observacion ??
-          ""
-        ),
-        viajesProgramados: p ? 1 : 0,
-        viajesRealizados: d ? 1 : 0,
-        cantidadProgramada,
-        cantidadRealPlanta,
-        volumenRecibidoCliente: Number(d?.lecturas?.cantidad_recibida_cliente ?? 0),
-        pesoNetoCliente: Number(d?.lecturas?.kilos_peso_neto ?? 0),
-        pesoNetoBasculaAmbiocom: Number(d?.lecturas?.peso_neto_bascula_ambiocom ?? 0),
-        diffCantidad,
-        diffPlanta,
-        diffCliente,
-        diffKgBasculaClienteAmbiocom,
-        cumplimientoPct,
-        tieneProgramacion: !!p,
-        tieneDespacho: !!d,
-        rechazado,
-        rechazadoCliente,
-        aprobado,
-        aprobadoConObs,
-        enProceso,
-        Aprobadocliente,
-        estadoVehiculo,
-      });
-    }
-  }
-
-  out.sort((a, b) => {
-    if (a.fecha !== b.fecha) return b.fecha.localeCompare(a.fecha);
-    if (a.transportadora !== b.transportadora) {
-      return a.transportadora.localeCompare(b.transportadora);
-    }
-    if (a.cliente !== b.cliente) {
-      return a.cliente.localeCompare(b.cliente);
-    }
-    return a.producto.localeCompare(b.producto);
-  });
-
-  return out;
-};
+import OtiffGeneralCollapsible from "./utils_Logistica_Page/graficas/OtiffGeneralCollapsible"
+import LineChartProgramadoVsReal from "./utils_Logistica_Page/graficas/LineChartProgramadoVsReal";
+import PieChartsAnalisis from "./utils_Logistica_Page/graficas/PieChartsAnalisis";
+import BarChartDiffTransportadora from "./utils_Logistica_Page/graficas/BarChartDiffTransportadora";
+import LineChartMermas from "./utils_Logistica_Page/graficas/LineChartMermas";
+import BarChartCumplimiento from "./utils_Logistica_Page/graficas/BarChartCumplimiento";
 // UI: módulo BI
-const AnalisisDespachosBIPage = () => {
+const DataAnalisysProgramacionDespacho = () => {
   const navigate = useNavigate();
 
   const [range, setRange] = useState(() => getDefaultRange());
-  const [programaciones, setProgramaciones] = useState([]);
-  const [despachos, setDespachos] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { programaciones, despachos, loading, fetchAll } = useDespachosFetch({ range });
   const [filtersElevated, setFiltersElevated] = useState(false);
   const [filters, setFilters] = useState({
     fecha: "",
@@ -404,8 +70,7 @@ const AnalisisDespachosBIPage = () => {
   });
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 250);
-  const [tolerancia, setTolerancia] = useState(0.5);
-  const [toleranciaDespacho, setToleranciaDespacho] = useState(30);
+  const [tolerancia, setTolerancia] = useState(0.002);
   const [toleranciaKgCliente, setToleranciaKgCliente] = useState(30);
   const [openRadarModal, setOpenRadarModal] = useState(false);
 
@@ -445,104 +110,32 @@ const AnalisisDespachosBIPage = () => {
     setSearch("");
   };
 
-  const fetchAll = async (customRange) => {
-    const effective = customRange ?? range ?? getDefaultRange();
-    const from = normalizeText(effective.from);
-    const to = normalizeText(effective.to);
-
-    if (from && !isValidDateISO(from)) {
-      await Swal.fire({
-        icon: "warning",
-        title: "Desde inválido",
-        text: 'La fecha "Desde" debe ser YYYY-MM-DD.',
-      });
-      return;
-    }
-    if (to && !isValidDateISO(to)) {
-      await Swal.fire({
-        icon: "warning",
-        title: "Hasta inválido",
-        text: 'La fecha "Hasta" debe ser YYYY-MM-DD.',
-      });
-      return;
-    }
-    if (from && to && from > to) {
-      await Swal.fire({
-        icon: "warning",
-        title: "Rango inválido",
-        text: '"Desde" no puede ser mayor que "Hasta".',
-      });
-      return;
-    }
-
-    setLoading(true);
-    Swal.fire({
-      title: "Cargando análisis...",
-      allowOutsideClick: false,
-      didOpen: () => Swal.showLoading(),
-    });
-
-    try {
-      const resProg = await axios.get(`${API_PROGRAMACION}/rango`, {
-        params: { from, to },
-        withCredentials: true,
-      });
-
-      const resDesp = await axios.get(`${API_DESPACHOS}/rango`, {
-        params: { from, to },
-        withCredentials: true,
-      });
-
-      setProgramaciones(Array.isArray(resProg.data) ? resProg.data : []);
-      setDespachos(Array.isArray(resDesp.data) ? resDesp.data : []);
-
-      Swal.close();
-      await Swal.fire({
-        icon: "success",
-        title: "Listo",
-        text: "Datos cargados para análisis.",
-        timer: 1100,
-        showConfirmButton: false,
-      });
-    } catch (err) {
-      Swal.close();
-      await Swal.fire({
-        icon: "error",
-        title: "Error cargando",
-        text: getApiErrorMessage(err),
-      });
-      setProgramaciones([]);
-      setDespachos([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchAll(getDefaultRange());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const comparativoBase = useMemo(() => {
-    return buildComparativoBase({
-      programaciones,
-      despachos,
-    });
-  }, [programaciones, despachos]);
+  const comparativoBase = useComparativoBase({ programaciones, despachos });
 
   const comparativo = useMemo(() => {
     return comparativoBase.map((r) => {
-      const cumplioCantidadDespachada =
-        r.cantidadProgramada > 0 &&
-        Math.abs(r.diffCantidad) <= Number(toleranciaDespacho ?? 0);
 
-      const toleranciaMermaCliente = Number(r.cantidadProgramada ?? 0) * 0.005;
-      const superaMerma = Math.abs(r.diffCliente) > toleranciaMermaCliente;
-      const cumplioCantidadCliente = r.cantidadProgramada > 0 && !superaMerma;
-
-      // const cumplioCantidadCliente = r.cantidadProgramada > 0 && Math.abs(r.diffCliente) <= Number(tolerancia ?? 0);
+      const cumplioCantidadDespachada = r.cantidadProgramada > 0 && Math.abs(r.diffCantidad) <= Number(r.cantidadProgramada ?? 0) * Number(tolerancia);
+      const toleranciaMermaCliente = Number(r.cantidadProgramada ?? 0) * tolerancia;   // (1)
+      const superaMerma = Math.abs(r.diffCliente) > toleranciaMermaCliente;       // (2)
+      const cumplioCantidadCliente = r.cantidadProgramada > 0 && !superaMerma;    // (3)
+      const diffCliente_Facturado = Number(r.volumenRecibidoCliente ?? 0) - Number(r.cantidadProgramada ?? 0);
 
       const cumplioViaje = r.tieneProgramacion && r.tieneDespacho;
+
+
+      const excluidoFechaEntrega = r.rechazado || r.rechazadoCliente || !r.tieneCampoFechaEstimadaEntrega || !r.tieneCampoFechaEntrega;   // si el vehiculo es rechazado no lo tendrá en cuenta
+      const tieneFechasEntrega = !!r.fechaEstimadaEntrega && !!r.fechaEntrega;
+      const cumplioFechaEntrega = !excluidoFechaEntrega && tieneFechasEntrega && r.fechaEntrega <= r.fechaEstimadaEntrega;
+      const estadoFechaEntrega = r.rechazado || r.rechazadoCliente
+        ? "Excluido por rechazo"
+        : !r.tieneCampoFechaEstimadaEntrega || !r.tieneCampoFechaEntrega
+          ? "Excluido por campo no existente"
+          : !tieneFechasEntrega
+            ? "Sin datos"
+            : cumplioFechaEntrega
+              ? "Cumple"
+              : "No cumple";
 
       const estadoProgramacion =
         r.tieneProgramacion && !r.tieneDespacho && !r.rechazado
@@ -568,54 +161,22 @@ const AnalisisDespachosBIPage = () => {
         cumplioCantidadDespachada,
         cumplioCantidadCliente,
         cumplioToleranciaDespacho: cumplioCantidadDespachada,
+        excluidoFechaEntrega,
+        cumplioFechaEntrega,
+        estadoFechaEntrega,
         estadoProgramacion,
+        diffCliente_Facturado
       };
     });
-  }, [comparativoBase, tolerancia, toleranciaDespacho]);
+  }, [comparativoBase, tolerancia]);
 
-  const filterOptions = useMemo(() => {
-    const uniq = (arr) => Array.from(new Set(arr.filter(Boolean))).sort();
-    return {
-      fechas: uniq(comparativo.map((r) => r.fecha)),
-      transportadoras: uniq(comparativo.map((r) => r.transportadora)),
-      clientes: uniq(comparativo.map((r) => r.cliente)),
-      productos: uniq(comparativo.map((r) => r.producto)),
-    };
-  }, [comparativo]);
+  const filterOptions = useFilterOptions(comparativo);
 
-  const comparativoFiltrado = useMemo(() => {
-    let out = comparativo;
-
-    const fFecha = normalizeText(filters.fecha);
-    const fT = normalizeText(filters.transportadora);
-    const fC = normalizeText(filters.cliente);
-    const fP = normalizeText(filters.producto);
-
-    if (fFecha) out = out.filter((r) => r.fecha === fFecha);
-    if (fT) out = out.filter((r) => r.transportadora === fT);
-    if (fC) out = out.filter((r) => r.cliente === fC);
-    if (fP) out = out.filter((r) => r.producto === fP);
-
-    const q = normalizeText(debouncedSearch).toLowerCase();
-    if (!q) return out;
-
-    return out.filter((r) => {
-      const hay = [
-        r.fecha,
-        r.transportadora,
-        r.cliente,
-        r.producto,
-        String(r.viajesProgramados),
-        String(r.viajesRealizados),
-        String(r.cantidadProgramada),
-        String(r.cantidadRealPlanta),
-        String(r.diffCantidad),
-      ]
-        .join(" ")
-        .toLowerCase();
-      return hay.includes(q);
-    });
-  }, [comparativo, filters, debouncedSearch]);
+  const comparativoFiltrado = useComparativoFiltrado({
+    comparativo,
+    filters,
+    debouncedSearch,
+  });
 
   // ===== NUEVO: despachos filtrados (para cumplir/rechazar por viaje real) =====
   const despachosFiltrados = useMemo(() => {
@@ -638,7 +199,7 @@ const AnalisisDespachosBIPage = () => {
     if (!q) return out;
 
     return out.filter((r) => {
-      const hay = [r.fecha, r.transportadora, r.cliente, r.producto]
+      const hay = [r.fecha, r.transportadora, r.cliente, r.producto, r.placa]
         .join(" ")
         .toLowerCase();
       return hay.includes(q);
@@ -647,6 +208,7 @@ const AnalisisDespachosBIPage = () => {
 
   // KPIs principales (comparativo)
   const kpis = useMemo(() => {
+
     const rows = comparativoFiltrado ?? [];
     // VIAJES
     const viajesProgramados = rows.reduce((acc, r) => acc + (r.viajesProgramados ?? 0), 0);
@@ -664,6 +226,33 @@ const AnalisisDespachosBIPage = () => {
 
     const pctCumplCant = rows.length ? (cumplidosCantidad / rows.length) * 100 : 0;
     const pctCumplViaje = rows.length ? (cumplidosViaje / rows.length) * 100 : 0;
+    // cumplimiento fecha entrega vs fecha estimada entrega
+    const rowsFechaEntregaEvaluables = rows.filter((r) => !r.rechazado && !r.rechazadoCliente && r.tieneCampoFechaEstimadaEntrega && r.tieneCampoFechaEntrega);
+    const cumplidosFechaEntrega = rowsFechaEntregaEvaluables.filter((r) => {
+      return (
+        r.fechaEstimadaEntrega &&
+        r.fechaEntrega &&
+        r.fechaEntrega <= r.fechaEstimadaEntrega
+      );
+    }).length;
+    const noCumplidosFechaEntrega = rowsFechaEntregaEvaluables.filter((r) => {
+      return (
+        !r.fechaEstimadaEntrega ||
+        !r.fechaEntrega ||
+        r.fechaEntrega > r.fechaEstimadaEntrega
+      );
+    }).length;
+    const excluidosFechaEntrega = rows.filter(
+      (r) =>
+        r.rechazado ||
+        r.rechazadoCliente ||
+        !r.tieneCampoFechaEstimadaEntrega ||
+        !r.tieneCampoFechaEntrega
+    ).length;
+
+    const pctCumplFechaEntrega = rowsFechaEntregaEvaluables.length
+      ? (cumplidosFechaEntrega / rowsFechaEntregaEvaluables.length) * 100
+      : 0;    // con este solo tiene en cuenta los que coinciden, con el de arriba castiga, asi no coincidan castiga el kpi oko
 
     return {
       filas: rows.length,
@@ -676,6 +265,11 @@ const AnalisisDespachosBIPage = () => {
       diffClienteTotal,
       pctCumplCant,
       pctCumplViaje,
+      cumplidosFechaEntrega,
+      noCumplidosFechaEntrega,
+      excluidosFechaEntrega,
+      totalFechaEntrega: rowsFechaEntregaEvaluables.length,
+      pctCumplFechaEntrega,
     };
   }, [comparativoFiltrado]);
 
@@ -722,10 +316,11 @@ const AnalisisDespachosBIPage = () => {
         return a.producto.localeCompare(b.producto);
       })
       .map((r, idx) => ({
-        id: `${r.fecha}-${idx}`,
+        id: `${r.fecha}-${r.placa}-${idx}`,
         fecha: r.fecha,
         item: `${r.fecha} #${idx + 1}`,
 
+        placa: r.placa ?? "Sin placa",
         cliente: r.cliente,
         conductor: r.conductor ?? "Sin dato",
         producto: r.producto,
@@ -939,42 +534,93 @@ const AnalisisDespachosBIPage = () => {
   }, [seriesMermasDetalladaFiltrada, toleranciaKgCliente]);
 
   // auqi mido la tolerancia por encima por debajo y en rango para graficas de piechart etc
+  // const pieToleranciaRango = useMemo(() => {
+  //   const rows = (comparativoFiltrado ?? []).filter(
+  //     (r) => !r.rechazado && !r.rechazadoCliente    // no tiene en cuenta rechazados 
+  //   );
+
+  //   const tol = Number(tolerancia ?? 0);
+
+  //   const inRange = rows.filter((r) => {
+  //     const diff = Number(r.diffCantidad ?? 0);
+  //     return diff >= -tol && diff <= tol;
+  //   }).length;
+
+  //   const above = rows.filter((r) => {
+  //     const diff = Number(r.diffCantidad ?? 0);
+  //     return diff > tol;
+  //   }).length;
+
+  //   const below = rows.filter((r) => {
+  //     const diff = Number(r.diffCantidad ?? 0);
+  //     return diff < -tol;
+  //   }).length;
+
+  //   return [
+  //     {
+  //       name: `En rango (${formatNumber(tol)}%)`,
+  //       value: inRange,
+  //       color: "#36b865",
+  //     },
+  //     {
+  //       name: `Por encima (+>${formatNumber(tol)}%)`,
+  //       value: above,
+  //       color: "#ed6c02",
+  //     },
+  //     {
+  //       name: `Por debajo (<-${formatNumber(tol)}%)`,
+  //       value: below,
+  //       color: "#e53935",
+  //     },
+  //   ].filter((x) => x.value > 0);
+  // }, [comparativoFiltrado, tolerancia]);
+
   const pieToleranciaRango = useMemo(() => {
     const rows = (comparativoFiltrado ?? []).filter(
-      (r) => !r.rechazado && !r.rechazadoCliente    // no tiene en cuenta rechazados 
+      (r) => !r.rechazado && !r.rechazadoCliente
     );
 
     const tol = Number(tolerancia ?? 0);
+    const tolPct = (tol * 100).toFixed(2);
 
-    const inRange = rows.filter((r) => {
+    const enRango = rows.filter((r) => {
       const diff = Number(r.diffCantidad ?? 0);
-      return diff >= -tol && diff <= tol;
+      const base = Number(r.cantidadProgramada ?? 0);
+      const limite = base * tol;
+
+      return base > 0 && diff >= -limite && diff <= limite;
     }).length;
 
-    const above = rows.filter((r) => {
+    const porEncima = rows.filter((r) => {
       const diff = Number(r.diffCantidad ?? 0);
-      return diff > tol;
+      const base = Number(r.cantidadProgramada ?? 0);
+      const limite = base * tol;
+
+      return base > 0 && diff > limite;
     }).length;
 
-    const below = rows.filter((r) => {
+    const porDebajo = rows.filter((r) => {
       const diff = Number(r.diffCantidad ?? 0);
-      return diff < -tol;
+      const base = Number(r.cantidadProgramada ?? 0);
+      const limite = base * tol;
+
+      return base > 0 && diff < -limite;
     }).length;
 
     return [
       {
-        name: `En rango (${formatNumber(tol)}%)`,
-        value: inRange,
+        name: `En rango (±${tolPct}%)`,
+        value: enRango,
         color: "#36b865",
       },
       {
-        name: `Por encima (+>${formatNumber(tol)}%)`,
-        value: above,
+        name: `Por encima (+>${tolPct}%)`,
+        value: porEncima,
         color: "#ed6c02",
       },
       {
-        name: `Por debajo (<-${formatNumber(tol)}%)`,
-        value: below,
+        name: `Por debajo (<-${tolPct}%)`,
+        value: porDebajo,
         color: "#e53935",
       },
     ].filter((x) => x.value > 0);
@@ -996,34 +642,104 @@ const AnalisisDespachosBIPage = () => {
   }, [comparativoFiltrado]);
 
   const pieCumpleVsNoCumpleHoraProgramada = useMemo(() => {
-    const rows = comparativoFiltrado ?? [];
+    const TOL_MIN = 15;
 
-    const resumen = rows.reduce(
-      (acc, r) => {
-        const horaProgramadaMin = parseHoraToMinutes(r.horaProgramada);
-        const horaLlegadaMin = parseHoraToMinutes(r.horaLlegada);
+    const makeKeyProg = (p) => {
+      const fecha = normalizeText(p?.fecha);
+      const transportadora = normalizeKey(p?.transportadora);
+      const cliente = normalizeKey(p?.cliente);
+      const producto = normalizeKey(p?.producto);
+      const placa = normalizeKey(p?.placa);
 
-        if (horaProgramadaMin === null || horaLlegadaMin === null) {
-          acc.sinDatos += 1;
-          return acc;
-        }
+      return `${fecha}|${transportadora}|${cliente}|${producto}|${placa}`;
+    };
 
-        const limite = horaProgramadaMin + 15;
+    const makeKeyDesp = (d) => {
+      const fecha = normalizeText(d?.fecha);
+      const transportadora = normalizeKey(d?.transportadora ?? d?.lecturas?.transportadora);
+      const cliente = normalizeKey(d?.cliente ?? d?.lecturas?.cliente);
+      const producto = normalizeKey(d?.producto ?? d?.lecturas?.producto);
+      const placa = normalizeKey(d?.placa ?? d?.lecturas?.placa);
 
-        if (horaLlegadaMin <= limite) {
-          acc.cumple += 1;
-        } else {
-          acc.noCumple += 1;
-        }
+      return `${fecha}|${transportadora}|${cliente}|${producto}|${placa}`;
+    };
 
-        return acc;
-      },
-      {
-        cumple: 0,
-        noCumple: 0,
-        sinDatos: 0,
+    const getHoraLlegada = (d) =>
+      normalizeText(
+        d?.hora_llegada ??
+        d?.horaLlegada ??
+        d?.lecturas?.hora_llegada ??
+        d?.lecturas?.horaLlegada ??
+        ""
+      );
+
+    const fFecha = normalizeText(filters.fecha);
+    const fTransportadora = normalizeKey(filters.transportadora);
+    const fCliente = normalizeKey(filters.cliente);
+    const fProducto = normalizeKey(filters.producto);
+
+    const despachosMap = new Map();
+
+    for (const d of despachos ?? []) {
+      const fecha = normalizeText(d?.fecha);
+      const transportadora = normalizeKey(d?.transportadora ?? d?.lecturas?.transportadora);
+      const cliente = normalizeKey(d?.cliente ?? d?.lecturas?.cliente);
+      const producto = normalizeKey(d?.producto ?? d?.lecturas?.producto);
+
+      if (fFecha && fecha !== fFecha) continue;
+      if (filters.transportadora && transportadora !== fTransportadora) continue;
+      if (filters.cliente && cliente !== fCliente) continue;
+      if (filters.producto && producto !== fProducto) continue;
+
+      const key = makeKeyDesp(d);
+      const arr = despachosMap.get(key) || [];
+      arr.push(d);
+      despachosMap.set(key, arr);
+    }
+
+    const resumen = {
+      cumple: 0,
+      noCumple: 0,
+      sinDatos: 0,
+    };
+
+    for (const p of programaciones ?? []) {
+      const fecha = normalizeText(p?.fecha);
+      const transportadora = normalizeKey(p?.transportadora);
+      const cliente = normalizeKey(p?.cliente);
+      const producto = normalizeKey(p?.producto);
+
+      if (fFecha && fecha !== fFecha) continue;
+      if (filters.transportadora && transportadora !== fTransportadora) continue;
+      if (filters.cliente && cliente !== fCliente) continue;
+      if (filters.producto && producto !== fProducto) continue;
+
+      const key = makeKeyProg(p);
+      const posiblesDespachos = despachosMap.get(key) || [];
+
+      if (!posiblesDespachos.length) {
+        resumen.sinDatos += 1;
+        continue;
       }
-    );
+
+      const d = posiblesDespachos.shift();
+
+      const horaProgramadaMin = parseHoraToMinutes(p?.horaProgramada);
+      const horaLlegadaMin = parseHoraToMinutes(getHoraLlegada(d));
+
+      if (horaProgramadaMin === null || horaLlegadaMin === null) {
+        resumen.sinDatos += 1;
+        continue;
+      }
+
+      const diferenciaMin = horaLlegadaMin - horaProgramadaMin;
+
+      if (diferenciaMin <= TOL_MIN) {
+        resumen.cumple += 1;
+      } else {
+        resumen.noCumple += 1;
+      }
+    }
 
     return [
       {
@@ -1042,7 +758,7 @@ const AnalisisDespachosBIPage = () => {
         color: "#9ca3af",
       },
     ].filter((x) => x.value > 0);
-  }, [comparativoFiltrado]);
+  }, [programaciones, despachos, filters]);
 
   const hasAnyFilter =
     !!debouncedSearch ||
@@ -1053,6 +769,78 @@ const AnalisisDespachosBIPage = () => {
 
 
   // resumen de kpis para resumen tipo radar
+  // const radarSummaryData = useMemo(() => {
+  //   const rowsNoRechazados = (comparativoFiltrado ?? []).filter(
+  //     (r) => !r.rechazado && !r.rechazadoCliente
+  //   );
+
+  //   const tol = Number(tolerancia ?? 0);
+  //   const tolKg = Number(toleranciaKgCliente ?? 0);
+
+  //   const pctDespachosRealizados =
+  //     kpis.viajesProgramados > 0
+  //       ? (kpis.viajesRealizados / kpis.viajesProgramados) * 100
+  //       : 0;
+
+  //   const pctEnRangoVolumen = rowsNoRechazados.length
+  //     ? (rowsNoRechazados.filter((r) => {
+  //       const diff = Number(r.diffCantidad ?? 0);
+  //       return diff >= -tol && diff <= tol;
+  //     }).length /
+  //       rowsNoRechazados.length) *
+  //     100
+  //     : 0;
+
+  //   const rowsPeso = seriesMermasDetalladaFiltrada ?? [];
+  //   const pctPesoEnRango = rowsPeso.length
+  //     ? (rowsPeso.filter((r) => {
+  //       const diffKg = Number(r.diffPesoCliente ?? 0);
+  //       return diffKg >= -tolKg && diffKg <= tolKg;
+  //     }).length /
+  //       rowsPeso.length) *
+  //     100
+  //     : 0;
+
+  //   return [
+  //     {
+  //       subject: "Cumpl. Volumen",
+  //       value: Number(kpis.pctCumplCant ?? 0),
+  //       meta: "Programado vs despachado según tolerancia de despacho",
+  //     },
+  //     {
+  //       subject: "Cumpl. Despachos",
+  //       value: Number(kpis.pctCumplViaje ?? 0),
+  //       meta: "Programación vs despacho realizado",
+  //     },
+  //     {
+  //       subject: "Vehículos OK",
+  //       value: Number(kpiVehiculos.pct ?? 0),
+  //       meta: "Vehículos aceptados sobre total despachado",
+  //     },
+  //     {
+  //       subject: "Despachos ejecutados",
+  //       value: Number(pctDespachosRealizados ?? 0),
+  //       meta: "Viajes realizados sobre viajes programados",
+  //     },
+  //     {
+  //       subject: "Volumen en rango",
+  //       value: Number(pctEnRangoVolumen ?? 0),
+  //       meta: `Dentro de ±${tolerancia} %`,
+  //     },
+  //     {
+  //       subject: "Peso en rango",
+  //       value: Number(pctPesoEnRango ?? 0),
+  //       meta: `Dentro de ±${toleranciaKgCliente} Kg`,
+  //     },
+  //   ];
+  // }, [
+  //   comparativoFiltrado,
+  //   kpis,
+  //   kpiVehiculos,
+  //   tolerancia,
+  //   toleranciaKgCliente,
+  //   seriesMermasDetalladaFiltrada,
+  // ]);
   const radarSummaryData = useMemo(() => {
     const rowsNoRechazados = (comparativoFiltrado ?? []).filter(
       (r) => !r.rechazado && !r.rechazadoCliente
@@ -1060,22 +848,40 @@ const AnalisisDespachosBIPage = () => {
 
     const tol = Number(tolerancia ?? 0);
     const tolKg = Number(toleranciaKgCliente ?? 0);
+    const tolPct = (tol * 100).toFixed(2);
 
     const pctDespachosRealizados =
       kpis.viajesProgramados > 0
         ? (kpis.viajesRealizados / kpis.viajesProgramados) * 100
         : 0;
 
-    const pctEnRangoVolumen = rowsNoRechazados.length
-      ? (rowsNoRechazados.filter((r) => {
-        const diff = Number(r.diffCantidad ?? 0);
-        return diff >= -tol && diff <= tol;
-      }).length /
-        rowsNoRechazados.length) *
-      100
+    const rowsClienteFactEvaluables = rowsNoRechazados.filter((r) => {
+      const base = Number(r.cantidadProgramada ?? 0);
+      const recibidoCliente = Number(r.volumenRecibidoCliente ?? 0);
+
+      return base > 0 && recibidoCliente > 0;
+    });
+
+    const cumplidosClientFact = rowsClienteFactEvaluables.filter((r) => {
+      const diffClienteFacturado = Number(
+        r.diffClienteFacturado ??
+        r.diffCliente_Facturado ??
+        r.diffCliente ??
+        0
+      );
+
+      const base = Number(r.cantidadProgramada ?? 0);
+      const limite = base * tol;
+
+      return Math.abs(diffClienteFacturado) <= limite;
+    }).length;
+
+    const pctEnRangoVolumen = rowsClienteFactEvaluables.length
+      ? (cumplidosClientFact / rowsClienteFactEvaluables.length) * 100
       : 0;
 
     const rowsPeso = seriesMermasDetalladaFiltrada ?? [];
+
     const pctPesoEnRango = rowsPeso.length
       ? (rowsPeso.filter((r) => {
         const diffKg = Number(r.diffPesoCliente ?? 0);
@@ -1107,9 +913,9 @@ const AnalisisDespachosBIPage = () => {
         meta: "Viajes realizados sobre viajes programados",
       },
       {
-        subject: "Volumen en rango",
+        subject: "Client/Fact",
         value: Number(pctEnRangoVolumen ?? 0),
-        meta: `Dentro de ±${tolerancia} %`,
+        meta: `Volumen recibido cliente vs facturado dentro de ±${tolPct}%`,
       },
       {
         subject: "Peso en rango",
@@ -1126,17 +932,85 @@ const AnalisisDespachosBIPage = () => {
     seriesMermasDetalladaFiltrada,
   ]);
 
-  //resumen data radar
+  // resumen data radar
   const radarResumen = useMemo(() => {
+    const rows = comparativoFiltrado ?? [];
+
+    const estados = rows.reduce((acc, r) => {
+      const estado = r.estadoProgramacion || "Sin datos";
+      acc[estado] = (acc[estado] ?? 0) + 1;
+      return acc;
+    }, {});
+
     return {
       filas: kpis.filas,
+
       viajesProgramados: kpis.viajesProgramados,
       viajesRealizados: kpis.viajesRealizados,
+
       pctCumplCant: kpis.pctCumplCant,
       pctCumplViaje: kpis.pctCumplViaje,
+
+      pctFechaEntrega: kpis.pctCumplFechaEntrega,
+      totalFechaEntrega: kpis.totalFechaEntrega,
+      cumplidosFechaEntrega: kpis.cumplidosFechaEntrega,
+      noCumplidosFechaEntrega: kpis.noCumplidosFechaEntrega,
+      excluidosFechaEntrega: kpis.excluidosFechaEntrega,
+
       pctVehiculos: kpiVehiculos.pct,
+
+      estados,
     };
-  }, [kpis, kpiVehiculos]);
+  }, [comparativoFiltrado, kpis, kpiVehiculos]);
+
+  // kpi use memo cumplimiento fecha entrega
+  const pieCumplimientoFechaEntrega = useMemo(() => {
+    const rows = (comparativoFiltrado ?? []).filter(
+      (r) =>
+        !r.rechazado &&
+        !r.rechazadoCliente &&
+        r.tieneCampoFechaEstimadaEntrega &&
+        r.tieneCampoFechaEntrega
+    );
+
+    const cumple = rows.filter((r) => {
+      return (
+        r.fechaEstimadaEntrega &&
+        r.fechaEntrega &&
+        r.fechaEntrega <= r.fechaEstimadaEntrega
+      );
+    }).length;
+
+    const noCumple = rows.filter((r) => {
+      return (
+        r.fechaEstimadaEntrega &&
+        r.fechaEntrega &&
+        r.fechaEntrega > r.fechaEstimadaEntrega
+      );
+    }).length;
+
+    const sinDatos = rows.filter((r) => {
+      return !r.fechaEstimadaEntrega || !r.fechaEntrega;
+    }).length;
+
+    return [
+      {
+        name: "Cumple Fecha Entrega",
+        value: cumple,
+        color: "#36b865",
+      },
+      {
+        name: "No Cumple Fecha Entrega",
+        value: noCumple,
+        color: "#e53935",
+      },
+      {
+        name: "Sin datos - Castiga KPI",
+        value: sinDatos,
+        color: "#9ca3af",
+      },
+    ].filter((x) => x.value > 0);
+  }, [comparativoFiltrado]);
 
   // =============================  CUSTOMER TOOLTIP RENDER  =====================================
   //tooltip personalizado para ver datos mas completos en grafica
@@ -1284,7 +1158,7 @@ const AnalisisDespachosBIPage = () => {
               <TextField
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar en tabla (fecha, transportadora, cliente, producto, cantidades...)"
+                placeholder="Buscar en tabla (fecha, placa, transportadora, cliente, producto, cantidades...)"
                 size="small"
                 sx={{ flexGrow: 1, minWidth: { xs: "100%", md: 300, lg: 350 } }}
                 InputProps={{
@@ -1499,15 +1373,6 @@ const AnalisisDespachosBIPage = () => {
 
               <TextField
                 size="small"
-                label="Tolerancia en el despacho (L)"
-                type="number"
-                value={toleranciaDespacho}
-                onChange={(e) => setToleranciaDespacho(Number(e.target.value))}
-                inputProps={{ min: 0 }}
-                sx={{ width: { xs: "100%", md: 220 } }}
-              />
-              <TextField
-                size="small"
                 label="Tolerancia Kg Diferencia Cliente"
                 type="number"
                 value={toleranciaKgCliente}
@@ -1633,989 +1498,55 @@ const AnalisisDespachosBIPage = () => {
 
           {/* Gráficas con RECHA*/}
           <Grid container spacing={2}>
-            {/* Line */}
-            <Grid item xs={12}>
-              <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    justifyContent: "space-between",
-                    gap: 2,
-                    mb: 1,
-                  }}
-                >
-                  <Typography fontWeight="bold" sx={{ mb: 1 }}>
-                    KPI (V.Real-V.Programado) Volumen Real Despachado vs Volumen
-                    Programado/Facturado (por día)
-                  </Typography>
-                  <Chip
-                    size="medium"
-                    variant="outlined"
-                    label="Lineal Charts KPI"
-                    sx={{ borderRadius: 2, fontWeight: 700 }}
-                  />
-                </Box>
-                <ResponsiveContainer width="100%" height={320}>
-                  <LineChart
-                    data={seriesPorDia}
-                    margin={{ top: 20, right: 20, left: 10, bottom: 10 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="fecha" />
-                    <YAxis
-                      tickFormatter={(v) => formatNumber1D(v)}
-                      domain={[
-                        (dataMin) => dataMin - 20000,
-                        (dataMax) => dataMax * 1.25,
-                      ]}
-                    />
-                    <ReferenceLine
-                      y={0}
-                      stroke="#111827"
-                      strokeDasharray="4 4"
-                      strokeWidth={1}
-                      ifOverflow="extendDomain"
-                    />
 
-                    <RTooltip formatter={(v) => formatNumber(v)} />
-                    <Legend />
+            <OtiffGeneralCollapsible
+              comparativoFiltrado={comparativoFiltrado}
+              tolerancia={tolerancia}
+              pieCumpleVsNoCumpleHoraProgramada={pieCumpleVsNoCumpleHoraProgramada}
+              pieCumplimientoFechaEntrega={pieCumplimientoFechaEntrega}
+              range={range}
+              formatNumber={formatNumber}
+              formatNumber1D={formatNumber1D}
+              metaOtiff={95}
+            />
 
-                    <Line
-                      type="monotone"
-                      dataKey="programado"
-                      stroke="#1976d2"
-                      strokeWidth={2}
-                      // label={{
-                      //   position: "top",
-                      //   fontSize: 12,
-                      //   formatter: (v) => formatNumber(v),
-                      // }}
-                      dot={{ r: 3 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="real"
-                      stroke="#2e7d32"
-                      strokeWidth={4}
-                      // label={{
-                      //   position: "top",
-                      //   fontSize: 12,
-                      //   formatter: (v) => formatNumber(v),
-                      // }}
-                      dot={{ r: 3 }}
-                    />
-                    <Line
-                      type="natural"
-                      dataKey="diff"
-                      stroke="#ed6c02"
-                      strokeWidth={2}
-                      // label={{
-                      //   position: "top",
-                      //   fontSize: 12,
-                      //   formatter: (v) => formatNumber(v),
-                      // }}
-                      dot={{ r: 3 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </Paper>
-            </Grid>
+            <LineChartProgramadoVsReal
+              seriesPorDia={seriesPorDia}
+              formatNumber={formatNumber}
+              formatNumber1D={formatNumber1D}
+            />
 
-            {/* Pie chart */}
-            <Grid item xs={12}>
-              <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    justifyContent: "space-between",
-                    gap: 2,
-                    mb: 1,
-                  }}
-                >
-                  <Box>
-                    <Typography
-                      fontWeight="bold"
-                      sx={{ fontWeight: 800, fontSize: { xs: 14, md: 16 } }}
-                    >
-                      (KPI) Analisis de Cumplimiento de Programación por
-                      transportadora y Diferencias en Volumen.
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Regla: Se analizan según cruce de información entre la
-                      programación y los despachos reales, si un vehiculo o
-                      Transportadora NO ESTÁ PROGRAMADO no será renderizado en
-                      el gráfico. <strong>NOTA: Los Rechazos son excluidos de este análisis.</strong>
-                    </Typography>
-                  </Box>
-                  <Chip
-                    size="medium"
-                    variant="outlined"
-                    label="Pie Charts"
-                    sx={{ borderRadius: 2, fontWeight: 700 }}
-                  />
-                </Box>
-                <Divider
-                  sx={{
-                    my: 2,
-                    mb: 1,
-                    width: "90vw",
-                    marginLeft: "auto",
-                    marginRight: "auto",
-                  }}
-                />
-                <Grid container spacing={2} justifyContent="center">
-                  {/* Pie 1 */}
-                  <Grid item xs={12} md={6}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 1,
-                        mb: 1,
-                      }}
-                    >
-                      <Typography
-                        variant="body2"
-                        sx={{ textAlign: "center" }}
-                        fontWeight="bold"
-                      >
-                        KPI cumplimiento por peso neto (Báscula Ambiocom vs Cliente)
-                        Según Tolerancia: ±{`${toleranciaKgCliente} Kg`}.
-                      </Typography>
+            <PieChartsAnalisis
+              tolerancia={tolerancia}
+              toleranciaKgCliente={toleranciaKgCliente}
+              pieCumplimientoPeso={pieCumplimientoPeso}
+              pieTransportadoras={pieTransportadoras}
+              pieToleranciaRango={pieToleranciaRango}
+              pieCumpleVsNoCumple={pieCumpleVsNoCumple}
+              pieCumpleVsNoCumpleHoraProgramada={pieCumpleVsNoCumpleHoraProgramada}
+              pieCumplimientoFechaEntrega={pieCumplimientoFechaEntrega}
+            />
 
-                      <Tooltip title="Información del gráfico">
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => {
-                            Swal.fire({
-                              icon: "info",
-                              title: "Cumplimiento por peso neto",
-                              html: DOMPurify.sanitize(`
-            <div style="text-align:left; line-height:1.7">
-              <b>Análisis de mermas :</b>
-              Este gráfico compara el peso neto registrado
-              por la báscula de Ambiocom frente al peso
-              recibido por el cliente.<br/><br/>
+            <BarChartDiffTransportadora
+              seriesPosNegPorTransportadora={seriesPosNegPorTransportadora}
+              colorByTransportadora={colorByTransportadora}
+              formatNumber={formatNumber}
+              formatNumber1D={formatNumber1D}
+            />
 
-              <b>Range:</b> Se encuentra dentro la tolerancia.<br/>
-              <b>Upper:</b> Diferencias por encima de la tolerancia.<br/>
-              <b>Low:</b> Diferencias por debajo de la tolerancia.
+            <LineChartMermas
+              seriesMermasDetalladaFiltrada={seriesMermasDetalladaFiltrada}
+              CustomMermasTooltip={CustomMermasTooltip}
+              formatNumber1D={formatNumber1D}
+            />
 
-            </div>
-          `),
-                              width: 500,
-                              confirmButtonText: "Entendido",
-                              confirmButtonColor: "#7b1fa2",
-                            });
-                          }}
-                          sx={{
-                            border: "1px solid #d1d5db",
-                            backgroundColor: "#f9fafb",
-                            "&:hover": {
-                              backgroundColor: "#ede9fe",
-                            },
-                          }}
-                        >
-                          <InfoOutlinedIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-
-                    <ResponsiveContainer width="100%" height={285}>
-                      <PieChart>
-                        <Pie
-                          data={pieCumplimientoPeso}
-                          dataKey="value"
-                          nameKey="name"
-                          innerRadius={55}
-                          outerRadius={90}
-                          label={({ name, value, percent }) =>
-                            `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
-                          }
-                        >
-                          {pieCumplimientoPeso.map((entry, idx) => (
-                            <Cell key={`cell-1-${idx}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <RTooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </Grid>
-
-                  {/* Pie 2 */}
-                  <Grid item xs={12} md={6}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 1,
-                        mb: 1,
-                      }}
-                    >
-                      <Typography
-                        variant="body2"
-                        sx={{ textAlign: "center" }}
-                        fontWeight="bold"
-                      >
-                        Distribución por estados de despachos
-                      </Typography>
-
-                      <Tooltip title="Información del gráfico">
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => {
-                            Swal.fire({
-                              icon: "info",
-                              title: "Distribución de estados en Despachos",
-                              html: DOMPurify.sanitize(`
-<div style="text-align:left; line-height:1.8">
-  
-  <b>¿Qué muestra esta gráfica?</b><br/>
-  Representa el estado operativo actual de los despachos
-  registrados en el sistema según su flujo logístico.<br/><br/>
-
-  <b>Estados agrupados:</b>
-
-  <ul style="padding-left:18px">
-
-    <li>
-      <b>En proceso:</b>
-      Vehículos en estados:
-      <i>En planta, Aprobado Ambiocom, En cargue,
-      En tránsito o En cliente.</i>
-    </li>
-
-    <li>
-      <b>Rechazado:</b>
-      Vehículos rechazados en Ambiocom
-      o rechazados por el cliente.
-    </li>
-
-    <li>
-      <b>Cumple:</b>
-      Vehículos aprobados por el cliente
-      o aprobados con observaciones.
-    </li>
-
-  </ul>
-
-  <b>Nota:</b><br/>
-  Los porcentajes y cantidades cambian según
-  los filtros y rangos de fechas aplicados.
-</div>
-`),
-                              width: 650,
-                              confirmButtonText: "Entendido",
-                              confirmButtonColor: "#7b1fa2",
-                            });
-                          }}
-                          sx={{
-                            border: "1px solid #d1d5db",
-                            backgroundColor: "#f9fafb",
-                            "&:hover": {
-                              backgroundColor: "#ede9fe",
-                            },
-                          }}
-                        >
-                          <InfoOutlinedIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-
-                    <ResponsiveContainer width="100%" height={330}>
-                      <PieChart>
-                        <Pie
-                          data={pieTransportadoras}
-                          dataKey="value"
-                          nameKey="name"
-                          innerRadius={55}
-                          outerRadius={90}
-                          labelLine={{ stroke: "#999", strokeWidth: 1 }}
-                          label={({
-                            cx,
-                            cy,
-                            midAngle,
-                            outerRadius,
-                            percent,
-                            index,
-                            name,
-                            value,
-                          }) => {
-                            const RADIAN = Math.PI / 180;
-                            const radius = outerRadius + 22 + index * 10;
-                            const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                            const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-                            return (
-                              <text
-                                x={x}
-                                y={y}
-                                fill="#333"
-                                textAnchor={x > cx ? "start" : "end"}
-                                dominantBaseline="central"
-                                style={{
-                                  fontSize: "11px",
-                                  fontWeight: 500,
-                                }}
-                              >
-                                {`${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
-                              </text>
-                            );
-                          }}
-                        >
-                          {pieTransportadoras.map((entry, idx) => (
-                            <Cell key={`cell-2-${idx}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-
-                        <RTooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </Grid>
-
-                  {/* Pie 3 */}
-                  <Grid item xs={12} md={6}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 1,
-                        mb: 1,
-                      }}
-                    >
-                      <Typography
-                        variant="body2"
-                        sx={{ textAlign: "center" }}
-                        fontWeight="bold"
-                      >
-                        Estado de cumplimiento del despacho según tolerancia:
-                        ±{`${tolerancia} %`}
-                        (En rango / Exceso / Merma)
-                      </Typography>
-
-                      <Tooltip title="Información del gráfico">
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => {
-                            Swal.fire({
-                              icon: "info",
-                              title: "Cumplimiento Volumen por tolerancia 0.5%",
-                              html: DOMPurify.sanitize(`
-            <div style="text-align:left; line-height:1.7">
-              <b>Análisis de mermas :</b>
-              Este gráfico muestra la diferencia entre el
-              volumen programado o facturado y el volumen despachado en planta.<br/><br/>
-
-              <b>En rango:</b> Dentro de la tolerancia permitida de despacho.<br/>
-              <b>Por encima:</b> Volumen despachado superior al facturado.<br/>
-              <b>Merma:</b> Volumen despachado inferior al facturado.
-
-            </div>
-          `),
-                              width: 500,
-                              confirmButtonText: "Entendido",
-                              confirmButtonColor: "#7b1fa2",
-                            });
-                          }}
-                          sx={{
-                            border: "1px solid #d1d5db",
-                            backgroundColor: "#f9fafb",
-                            "&:hover": {
-                              backgroundColor: "#ede9fe",
-                            },
-                          }}
-                        >
-                          <InfoOutlinedIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-
-                    <ResponsiveContainer width="100%" height={285}>
-                      <PieChart>
-                        <Pie
-                          data={pieToleranciaRango}
-                          dataKey="value"
-                          nameKey="name"
-                          innerRadius={55}
-                          outerRadius={90}
-                          label={({ name, value, percent }) =>
-                            `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
-                          }
-                        >
-                          {pieToleranciaRango.map((entry, idx) => (
-                            <Cell key={`cell-tol-${idx}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <RTooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </Grid>
-
-                  {/* Pie 4 */}
-                  <Grid item xs={12} md={6}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 1,
-                        mb: 1,
-                      }}
-                    >
-                      <Typography
-                        variant="body2"
-                        sx={{ textAlign: "center" }}
-                        fontWeight="bold"
-                      >
-                        Cumple vs No cumple Programado vs Despachado
-                      </Typography>
-
-                      <Tooltip title="Información del gráfico">
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => {
-                            Swal.fire({
-                              icon: "info",
-                              title: "Cumple vs No cumple Programacion",
-                              html: DOMPurify.sanitize(`
-            <div style="text-align:left; line-height:1.7">
-              Este gráfico compara los registros que tienen
-              programación y despacho real contra los que no cumplen
-              esa condición.<br/><br/>
-
-              <b>Cumple:</b> Tiene programación y despacho registrado.<br/>
-              <b>No cumple:</b> Falta programación o falta despacho.
-            </div>
-          `),
-                              width: 500,
-                              confirmButtonText: "Entendido",
-                              confirmButtonColor: "#7b1fa2",
-                            });
-                          }}
-                          sx={{
-                            border: "1px solid #d1d5db",
-                            backgroundColor: "#f9fafb",
-                            "&:hover": {
-                              backgroundColor: "#ede9fe",
-                            },
-                          }}
-                        >
-                          <InfoOutlinedIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-
-                    <ResponsiveContainer width="100%" height={285}>
-                      <PieChart>
-                        <Pie
-                          data={pieCumpleVsNoCumple}
-                          dataKey="value"
-                          nameKey="name"
-                          innerRadius={55}
-                          outerRadius={90}
-                          label={({ name, value, percent }) =>
-                            `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
-                          }
-                        >
-                          {pieCumpleVsNoCumple.map((entry, idx) => (
-                            <Cell key={`cell-cumple-${idx}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <RTooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </Grid>
-
-                  {/* pie 5 */}
-                  <Grid item xs={12} md={6}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 1,
-                        mb: 1,
-                      }}
-                    >
-                      <Typography
-                        variant="body2"
-                        sx={{ textAlign: "center" }}
-                        fontWeight="bold"
-                      >
-                        Cumple vs No cumple Hora Programada
-                      </Typography>
-
-                      <Tooltip title="Información del gráfico">
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => {
-                            Swal.fire({
-                              icon: "info",
-                              title: "Cumple vs No cumple Hora Programada",
-                              html: DOMPurify.sanitize(`
-              <div style="text-align:left; line-height:1.7">
-                Este gráfico compara la hora de llegada del despacho
-                contra la hora programada definida en la programación diaria.
-                <br/><br/>
-
-                <b>Cumple:</b> La llegada fue antes, igual o máximo 15 minutos después de la hora programada.<br/>
-                <b>No cumple:</b> La llegada superó la hora programada por más de 15 minutos.<br/>
-                <b>Sin datos:</b> No existe hora programada, hora de llegada o alguno de los formatos no es válido.
-              </div>
-            `),
-                              width: 500,
-                              confirmButtonText: "Entendido",
-                              confirmButtonColor: "#7b1fa2",
-                            });
-                          }}
-                          sx={{
-                            border: "1px solid #d1d5db",
-                            backgroundColor: "#f9fafb",
-                            "&:hover": {
-                              backgroundColor: "#ede9fe",
-                            },
-                          }}
-                        >
-                          <InfoOutlinedIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-
-                    <ResponsiveContainer width="100%" height={285}>
-                      <PieChart>
-                        <Pie
-                          data={pieCumpleVsNoCumpleHoraProgramada}
-                          dataKey="value"
-                          nameKey="name"
-                          innerRadius={55}
-                          outerRadius={90}
-                          label={({ name, value, percent }) =>
-                            `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
-                          }
-                        >
-                          {pieCumpleVsNoCumpleHoraProgramada.map((entry, idx) => (
-                            <Cell key={`cell-cumple-hora-programada-${idx}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-
-                        <RTooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </Grid>
-                </Grid>
-              </Paper>
-            </Grid>
-            {/* Bar: diff por transportadora */}
-            <Grid item xs={12}>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: { xs: 2, md: 2.5 },
-                  borderRadius: 3,
-                  border: "1px solid",
-                  borderColor: "divider",
-                  background:
-                    "linear-gradient(180deg, rgba(17,24,39,0.03) 0%, rgba(17,24,39,0.00) 60%)",
-                }}
-              >
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    justifyContent: "space-between",
-                    gap: 2,
-                    mb: 1,
-                  }}
-                >
-                  <Box>
-                    <Typography
-                      sx={{ fontWeight: 800, fontSize: { xs: 14, md: 16 } }}
-                    >
-                      KPI acumulado Diferencia (Volumen Programado -Volumen
-                      Cliente) por transportadora
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Regla: Los acumulados positivos y negativos se visualizan
-                      por transportadora para analizar las variaciones de
-                      volumen de cada ítem.
-                    </Typography>
-                  </Box>
-
-                  <Chip
-                    size="medium"
-                    variant="outlined"
-                    label="Divergent Chart Analisys"
-                    sx={{ borderRadius: 2, fontWeight: 700 }}
-                  />
-                </Box>
-
-                <Divider sx={{ mb: 1.5 }} />
-
-                {/* ✅ Más alto para que se “llene” el área */}
-                <ResponsiveContainer width="100%" height={520}>
-                  <BarChart
-                    data={seriesPosNegPorTransportadora}
-                    margin={{ top: 16, right: 18, left: 10, bottom: 52 }} // ✅ menos bottom
-                    barCategoryGap="12%" // ✅ barras más anchas
-                    barGap={4}
-                  >
-                    {/* Patrón para NEGATIVOS (rayado) */}
-                    <defs>
-                      <pattern
-                        id="negStripes"
-                        patternUnits="userSpaceOnUse"
-                        width="6"
-                        height="6"
-                        patternTransform="rotate(45)"
-                      >
-                        <line
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="6"
-                          stroke="rgba(17,24,39,0.55)"
-                          strokeWidth="2"
-                        />
-                      </pattern>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis
-                      dataKey="transportadora"
-                      interval={0}
-                      angle={-15}
-                      textAnchor="end"
-                      height={70}
-                      tick={{ fontSize: 12 }}
-                      tickMargin={10}
-                    />
-
-                    <YAxis
-                      tick={{ fontSize: 12 }}
-                      tickFormatter={(v) => formatNumber(v)}
-                      domain={[
-                        (dataMin) => dataMin * 1.25,
-                        (dataMax) => dataMax * 1.15,
-                      ]}
-                    />
-                    {/* Eje cero */}
-                    <ReferenceLine
-                      y={0}
-                      stroke="#111827"
-                      strokeWidth={2}
-                      strokeDasharray="3 3"
-                    />
-                    <RTooltip
-                      formatter={(v, name) => [`${formatNumber(v)} L`, name]}
-                      labelFormatter={(label) => `Transportadora: ${label}`}
-                      cursor={{ fill: "rgba(17,24,39,0.06)" }}
-                    />
-                    <Legend wrapperStyle={{ paddingTop: 6 }} />
-                    {/* ===================== POSITIVOS ===================== */}
-                    <Bar
-                      dataKey="positivos"
-                      name="Positivos"
-                      radius={[3, 10, 0, 0]}
-                      stroke="rgba(17,24,39,0.35)"
-                      strokeWidth={0.6}
-                      maxBarSize={64}
-                    >
-                      <LabelList
-                        dataKey="positivos"
-                        position="top"
-                        formatter={(v) => (v ? `${formatNumber(v)}` : "")}
-                        style={{
-                          fontSize: 12,
-                          fill: "#111827",
-                          fontWeight: 700,
-                        }}
-                      />
-                      {seriesPosNegPorTransportadora.map((d, i) => (
-                        <Cell
-                          key={`pos-${i}`}
-                          fill={colorByTransportadora.get(d.transportadora)}
-                          fillOpacity={1}
-                        />
-                      ))}
-                    </Bar>
-
-                    {/* ===================== NEGATIVOS ===================== */}
-                    <Bar
-                      dataKey="negativos"
-                      name="Negativos"
-                      radius={[10, 3, 0, 0]}
-                      stroke="rgba(17, 24, 39, 0.84)"
-                      strokeWidth={0.6}
-                      maxBarSize={64}
-                    >
-                      <LabelList
-                        dataKey="negativos"
-                        position="bottom"
-                        offset={10}
-                        formatter={(v) => (v ? `${formatNumber(v)}` : "")}
-                        style={{
-                          fontSize: 12,
-                          fill: "#111827",
-                          fontWeight: 700,
-                        }}
-                      />
-                      {seriesPosNegPorTransportadora.map((d, i) => (
-                        <Cell
-                          key={`neg-${i}`}
-                          fill={colorByTransportadora.get(d.transportadora)}
-                          fillOpacity={0.58}
-                        />
-                      ))}
-                    </Bar>
-
-                    {/* Capa “rayada” sobre los negativos */}
-                    <Bar dataKey="negativos" hide>
-                      {seriesPosNegPorTransportadora.map((_, i) => (
-                        <Cell key={`neg-stripe-${i}`} fill="url(#negStripes)" />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </Paper>
-            </Grid>
-            {/* Grafina lineal kilos s volumen */}
-            <Grid item xs={12}>
-              <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    justifyContent: "space-between",
-                    gap: 2,
-                    mb: 1,
-                  }}
-                >
-                  <Box>
-                    <Typography fontWeight="bold" sx={{ mb: 1 }}>
-                      Análisis de Variaciones de Volumen y Peso en Báscula (Mermas Reportadas por el Cliente)
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Regla: Se analizan todos los datos filtrados programados y no programados a excepcion
-                      de aquellos que fueron rechazados en ambiocom o rechazados por el cliente.
-                    </Typography>
-                  </Box>
-                  <Chip
-                    size="medium"
-                    variant="outlined"
-                    label="Lineal Charts KPI"
-                    sx={{ borderRadius: 2, fontWeight: 700 }}
-                  />
-                </Box>
-                <ResponsiveContainer width="100%" height={320}>
-                  <LineChart
-                    data={seriesMermasDetalladaFiltrada}
-                    margin={{ top: 20, right: 20, left: 10, bottom: 10 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="item" hide />
-                    <YAxis
-                      tickFormatter={(v) => formatNumber1D(v)}
-                      domain={[
-                        (dataMin) => dataMin - 5000,
-                        (dataMax) => dataMax + 5000,
-                      ]}
-                    />
-
-                    <ReferenceLine
-                      y={0}
-                      stroke="#111827"
-                      strokeDasharray="4 4"
-                      strokeWidth={1}
-                      ifOverflow="extendDomain"
-                    />
-
-                    <RTooltip
-                      content={<CustomMermasTooltip />}
-                      offset={20}
-                      allowEscapeViewBox={{ x: true, y: true }}
-                      wrapperStyle={{ transform: "translateY(-110%)" }}
-                      cursor={{ stroke: "#9CA3AF", strokeWidth: 1 }}
-                    />
-                    <Legend />
-
-                    <Line
-                      type="monotone"
-                      dataKey="diffVolCliente"
-                      name="Diff volumen cliente"
-                      stroke="#ed6c02"
-                      strokeWidth={3}
-                      dot={{ r: 3 }}
-                    />
-
-                    <Line
-                      type="monotone"
-                      dataKey="diffPesoCliente"
-                      name="Diff peso cliente"
-                      stroke="#9f5bbc"
-                      strokeWidth={3}
-                      dot={{ r: 3 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </Paper>
-            </Grid>
-            {/* Bar apilado Cumplidos vs Rechazados por transportadora */}
-            <Grid item xs={12}>
-              <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    justifyContent: "space-between",
-                    gap: 2,
-                    mb: 1,
-                  }}
-                >
-                  <Box>
-                    <Typography fontWeight="bold" sx={{ mb: 0 }}>
-                      KPI cumplimiento de la programación por transportadora
-                      (Cumplidos vs Rechazados)
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Regla: Se analizan según cruce de información entre la
-                      programación y los despachos reales, si un vehiculo o
-                      Transportadora NO ESTÁ PROGRAMADO no será renderizado en
-                      el gráfico.
-                    </Typography>
-                  </Box>
-                  <Chip
-                    size="medium"
-                    variant="outlined"
-                    label="KPI Chart Cumplimiento por transportadora"
-                    sx={{ borderRadius: 2, fontWeight: 700 }}
-                  />
-                </Box>
-
-                <ResponsiveContainer width="100%" height={360}>
-                  <BarChart
-                    data={seriesCumplimientoPorTransportadora}
-                    margin={{ top: 10, right: 15, left: 5, bottom: 10 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-
-                    <XAxis
-                      dataKey="transportadora"
-                      interval={0}
-                      angle={-15}
-                      textAnchor="end"
-                      height={80}
-                    />
-                    <YAxis tickFormatter={(v) => formatNumber1D(v)} domain={[
-                      (dataMin) => (dataMin * 0) - 5,
-                      (dataMax) => dataMax + 15,
-                    ]} />
-                    <ReferenceLine
-                      y={0}
-                      stroke="#111827"
-                      strokeDasharray="4 4"
-                      strokeWidth={1}
-                      ifOverflow="extendDomain"
-                    />
-                    <RTooltip
-                      formatter={(val, name) => {
-                        const map = {
-                          programados: "Programados",
-                          cumplidos: "Cumplidos",
-                          rechazadosAmbiocom: "Rechazados Ambiocom",
-                          rechazadosCliente: "Rechazados Cliente",
-                          Programados: "Programados",
-                          Cumplidos: "Cumplidos",
-                          "Rechazados Ambiocom": "Rechazados Ambiocom",
-                          "Rechazados Cliente": "Rechazados Cliente",
-                        };
-
-                        return [formatNumber(val), map[name] ?? String(name)];
-                      }}
-                    />
-                    <Legend />
-
-                    {/* PROGRAMADOS */}
-                    <Bar
-                      dataKey="programados"
-                      name="Programados"
-                      fill="#4f51cb"
-                      radius={[6, 6, 0, 0]}
-                      label={{
-                        position: "top",
-                        offset: 20,
-                        fill: "#111827",
-                        fontSize: 12,
-                        formatter: (v) => `Programados: ${formatNumber(v)}`,
-                      }}
-                    />
-
-                    {/* CUMPLIDOS */}
-                    <Bar
-                      dataKey="cumplidos"
-                      name="Cumplidos"
-                      fill="#70a189"
-                      radius={[6, 6, 0, 0]}
-                      label={{
-                        position: "top",
-                        fill: "#111827",
-                        fontSize: 12,
-                        formatter: (v) => `Cumple: ${formatNumber(v)}`,
-                      }}
-                    />
-
-                    {/* RECHAZADOS AMBIOCOM */}
-                    {hasRechazosAmbiocom && (
-                      <Bar
-                        dataKey="rechazadosAmbiocom"
-                        name="Rechazados Ambiocom"
-                        stackId="rechazosambiocom"
-                        fill="#EF4444"
-                        radius={[6, 6, 0, 0]}
-                        label={{
-                          position: "top",
-                          offset: 5,
-                          fill: "#111827",
-                          fontSize: 11,
-                          formatter: (v) => (v ? `${formatNumber(v)}` : ""),
-                        }}
-                      />
-                    )}
-
-                    {/* RECHAZADOS CLIENTE */}
-                    {hasRechazosCliente && (
-                      <Bar
-                        dataKey="rechazadosCliente"
-                        name="Rechazados Cliente"
-                        stackId="rechazoscliente"
-                        fill="#F59E0B"
-                        radius={[6, 6, 0, 0]}
-                        label={{
-                          position: "top",
-                          offset: 5,
-                          fill: "#111827",
-                          fontSize: 11,
-                          formatter: (v) => (v ? ` ${formatNumber(v)}` : ""),
-                        }}
-                      />
-                    )}
-                  </BarChart>
-                </ResponsiveContainer>
-              </Paper>
-            </Grid>
+            <BarChartCumplimiento
+              seriesCumplimientoPorTransportadora={seriesCumplimientoPorTransportadora}
+              hasRechazosAmbiocom={hasRechazosAmbiocom}
+              hasRechazosCliente={hasRechazosCliente}
+              formatNumber={formatNumber}
+              formatNumber1D={formatNumber1D}
+            />
           </Grid>
 
           <Divider sx={{ my: 3 }} />
@@ -2669,19 +1600,31 @@ const AnalisisDespachosBIPage = () => {
                   <TableCell align="center">
                     <strong>Producto</strong>
                   </TableCell>
-
+                  <TableCell align="center">
+                    <strong>Placa</strong>
+                  </TableCell>
                   <TableCell align="center">
                     <strong>Vehiculo Programado</strong>
                   </TableCell>
                   <TableCell align="center">
                     <strong>Vehiculo en Despacho</strong>
                   </TableCell>
-
                   <TableCell align="center">
-                    <strong>Cantidad Programada</strong>
+                    <Tooltip
+                      placement="top"
+                      title="KPI Vechiculo en programación y vechiculo despachado (SI=100% ; NO= 0,0%)"
+                      slotProps={{
+                        tooltip: { sx: { fontSize: 13, textAlign: "center" } },
+                      }}
+                    >
+                      <strong>Cumple Programación ?</strong>
+                    </Tooltip>
                   </TableCell>
                   <TableCell align="center">
-                    <strong>Cant Despa Gravimetrico</strong>
+                    <strong>Cantidad Facturada</strong>
+                  </TableCell>
+                  <TableCell align="center">
+                    <strong>Vol. Gravimetrico Despa</strong>
                   </TableCell>
                   <TableCell align="center">
                     <Tooltip
@@ -2691,40 +1634,7 @@ const AnalisisDespachosBIPage = () => {
                         tooltip: { sx: { fontSize: 13, textAlign: "center" } },
                       }}
                     >
-                      <strong>Diferencia Gravimetrico - Facturado</strong>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Tooltip
-                      placement="top"
-                      title="KPI Diferencia Volumen Contador Despacho - Volumen Facturado"
-                      slotProps={{
-                        tooltip: { sx: { fontSize: 13, textAlign: "center" } },
-                      }}
-                    >
-                      <strong>Diff V.Ambiocom Cont-Fact</strong>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Tooltip
-                      placement="top"
-                      title="KPI Diferencia Volumen Facturado Ambiocom - Volumen Recibido por el cliente"
-                      slotProps={{
-                        tooltip: { sx: { fontSize: 13, textAlign: "center" } },
-                      }}
-                    >
-                      <strong>Diff V.Cliente Fact-RClie</strong>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Tooltip
-                      placement="top"
-                      title="Diferencia entre el peso neto Báscula Ambiocom vs Báscula Cliente"
-                      slotProps={{
-                        tooltip: { sx: { fontSize: 13, textAlign: "center" } },
-                      }}
-                    >
-                      <strong>Diff Kg B.Ambio-B.Cliente</strong>
+                      <strong>Diferencia Facturado - Gravimétrico</strong>
                     </Tooltip>
                   </TableCell>
                   <TableCell align="center">
@@ -2738,22 +1648,10 @@ const AnalisisDespachosBIPage = () => {
                       <strong>KPI Despacho (Vp-Vd)</strong>
                     </Tooltip>
                   </TableCell>
-
                   <TableCell align="center">
                     <Tooltip
                       placement="top"
-                      title="KPI Vechiculo en programación y vechiculo despachado (SI=100% ; NO= 0,0%)"
-                      slotProps={{
-                        tooltip: { sx: { fontSize: 13, textAlign: "center" } },
-                      }}
-                    >
-                      <strong>Cumple Despachos Programados ?</strong>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Tooltip
-                      placement="top"
-                      title="KPI Cantidad programada vs Despachada según tolerancia en el Despacho"
+                      title="KPI Cantidad Facturada vs Vol. Despachado Gravimétrico, según tolerancia en el Despacho 0.2% "
                       slotProps={{
                         tooltip: { sx: { fontSize: 13, textAlign: "center" } },
                       }}
@@ -2761,6 +1659,41 @@ const AnalisisDespachosBIPage = () => {
                       <strong>Cumple Cantidad Despachada ?</strong>
                     </Tooltip>
                   </TableCell>
+
+                  <TableCell align="center">
+                    <Tooltip
+                      placement="top"
+                      title="KPI Diferencia Volumen Contador Despacho - Volumen Facturado"
+                      slotProps={{
+                        tooltip: { sx: { fontSize: 13, textAlign: "center" } },
+                      }}
+                    >
+                      <strong>Vol. recibido Cliente</strong>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Tooltip
+                      placement="top"
+                      title="KPI Diferencia Volumen Facturado Ambiocom - Volumen Recibido por el cliente"
+                      slotProps={{
+                        tooltip: { sx: { fontSize: 13, textAlign: "center" } },
+                      }}
+                    >
+                      <strong>Diff Facturado-R.Cliente</strong>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Tooltip
+                      placement="top"
+                      title="Diferencia entre el peso neto Báscula Ambiocom vs Báscula Cliente"
+                      slotProps={{
+                        tooltip: { sx: { fontSize: 13, textAlign: "center" } },
+                      }}
+                    >
+                      <strong>Diff Kg B.Ambio-B.Cliente</strong>
+                    </Tooltip>
+                  </TableCell>
+
                   <TableCell align="center">
                     <Tooltip
                       placement="top"
@@ -2769,7 +1702,7 @@ const AnalisisDespachosBIPage = () => {
                         tooltip: { sx: { fontSize: 13, textAlign: "center" } },
                       }}
                     >
-                      <strong>Client/Desp</strong>
+                      <strong>Client/Fact</strong>
                     </Tooltip>
                   </TableCell>
                   <TableCell align="center">
@@ -2800,7 +1733,7 @@ const AnalisisDespachosBIPage = () => {
               <TableBody>
                 {comparativoFiltrado.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={16} align="center" sx={{ py: 5 }}>
+                    <TableCell colSpan={19} align="center" sx={{ py: 5 }}>
                       <Typography fontWeight="bold">
                         No hay resultados
                       </Typography>
@@ -2819,7 +1752,7 @@ const AnalisisDespachosBIPage = () => {
                         {nuevaFecha && (
                           <TableRow>
                             <TableCell
-                              colSpan={18}
+                              colSpan={19}
                               sx={{
                                 position: "sticky",
                                 top: 0,
@@ -2858,11 +1791,34 @@ const AnalisisDespachosBIPage = () => {
                           >
                             {r.producto}
                           </TableCell>
+                          <TableCell align="center">
+                            {r.placa || "Sin placa"}
+                          </TableCell>
                           <TableCell align="right">
                             {formatNumber(r.viajesProgramados)}
                           </TableCell>
                           <TableCell align="right">
                             {formatNumber(r.viajesRealizados)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {(r.rechazado || r.rechazadoCliente) ? (
+                              <Chip
+                                size="small"
+                                label="X"
+                                sx={{
+                                  backgroundColor: "#9E9E9E",
+                                  color: "#fff",
+                                  fontWeight: "bold",
+                                  minWidth: 32,
+                                }}
+                              />
+                            ) : (
+                              <Chip
+                                size="small"
+                                label={r.cumplioViaje ? "SI" : "NO"}
+                                color={r.cumplioViaje ? "success" : "error"}
+                              />
+                            )}
                           </TableCell>
                           <TableCell align="right">
                             {formatNumber(r.cantidadProgramada)}
@@ -2870,23 +1826,134 @@ const AnalisisDespachosBIPage = () => {
                           <TableCell align="right">
                             {formatNumber(r.cantidadRealPlanta)}
                           </TableCell>
-                          <Tooltip placement="top" title={`Tolerancia en el Despacho: ${toleranciaDespacho}`}>
+                          <Tooltip placement="top" title={`Tolerancia en el Despacho: ${tolerancia}, diferencia desp/fact : ${r.diffCantidad}, volumen máximo merma : ${Number(r.cantidadProgramada) * Number(tolerancia)}`}>
                             <TableCell
                               align="right"
                               sx={{
                                 backgroundColor: heatBg(
                                   r.diffCantidad,
-                                  tolerancia
+                                  Number(r.cantidadProgramada) * Number(tolerancia)
                                 ),
                               }}
                             >
                               {formatNumber(r.diffCantidad)}
                             </TableCell>
                           </Tooltip>
-
-                          <TableCell align="right">
-                            {formatNumber(r.diffPlanta)}
+                          <TableCell
+                            align="right"
+                            sx={{
+                              backgroundColor: heatCumplimiento(
+                                r.cumplimientoPct
+                              ),
+                              fontWeight: 600,
+                            }}
+                          >
+                            <Tooltip placement="top" title="porcentaje de cumplimiento, Volumen Programado vs Real Despachado" >
+                              {r.cumplimientoPct.toFixed(1)}%
+                            </Tooltip>
                           </TableCell>
+                          <Tooltip
+                            placement="top"
+                            arrow
+                            title={
+                              <Box sx={{ p: 0.5, minWidth: 280 }}>
+                                <Typography sx={{ fontWeight: 800, fontSize: 13, mb: 0.8 }}>
+                                  Validación despacho vs facturado
+                                </Typography>
+
+                                <Typography sx={{ fontSize: 12 }}>
+                                  <strong>Tolerancia:</strong>{" "}
+                                  {(Number(tolerancia ?? 0) * 100).toFixed(1)}%
+                                </Typography>
+
+                                <Typography sx={{ fontSize: 12 }}>
+                                  <strong>Volumen facturado:</strong>{" "}
+                                  {Number(r.cantidadProgramada ?? 0).toFixed(1)} L
+                                </Typography>
+
+                                <Typography sx={{ fontSize: 12 }}>
+                                  <strong>Volumen despachado:</strong>{" "}
+                                  {Number(r.cantidadRealPlanta ?? 0).toFixed(1)} L
+                                </Typography>
+
+                                <Typography sx={{ fontSize: 12 }}>
+                                  <strong>Diferencia facturado-despachado:</strong>{" "}
+                                  {(
+                                    Number(r.cantidadProgramada ?? 0) -
+                                    Number(r.cantidadRealPlanta ?? 0)
+                                  ).toFixed(1)}{" "}
+                                  L
+                                </Typography>
+
+                                <Typography sx={{ fontSize: 12 }}>
+                                  <strong>Merma máxima:</strong>{" "}
+                                  {(
+                                    Number(r.cantidadProgramada ?? 0) *
+                                    Number(tolerancia ?? 0)
+                                  ).toFixed(1)}{" "}
+                                  L
+                                </Typography>
+
+                                <Divider sx={{ my: 0.8, borderColor: "rgba(255,255,255,0.25)" }} />
+
+                                <Typography
+                                  sx={{
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    color:
+                                      Math.abs(
+                                        Number(r.cantidadProgramada ?? 0) -
+                                        Number(r.cantidadRealPlanta ?? 0)
+                                      ) <=
+                                        Number(r.cantidadProgramada ?? 0) * Number(tolerancia ?? 0)
+                                        ? "#A7F3D0"
+                                        : "#FCA5A5",
+                                  }}
+                                >
+                                  {Math.abs(
+                                    Number(r.cantidadProgramada ?? 0) -
+                                    Number(r.cantidadRealPlanta ?? 0)
+                                  ) <=
+                                    Number(r.cantidadProgramada ?? 0) * Number(tolerancia ?? 0)
+                                    ? "Cumple dentro de la merma permitida"
+                                    : "No cumple: supera la merma permitida"}
+                                </Typography>
+                              </Box>
+                            }
+                          >
+                            <TableCell align="center">
+                              {(r.rechazado || r.rechazadoCliente) ? (
+                                <Chip
+                                  size="small"
+                                  label="X"
+                                  sx={{
+                                    backgroundColor: "#9E9E9E",
+                                    color: "#fff",
+                                    fontWeight: "bold",
+                                    minWidth: 32,
+                                  }}
+                                />
+                              ) : (
+                                <Chip
+                                  size="small"
+                                  label={r.cumplioCantidadDespachada ? "SI" : "NO"}
+                                  color={r.cumplioCantidadDespachada ? "success" : "error"}
+                                />
+                              )}
+                            </TableCell>
+                          </Tooltip>
+
+                          <Tooltip
+                            placement="top"
+                            arrow
+                            title={`Volumen recibido por el cliente: ${Number(
+                              r.volumenRecibidoCliente ?? 0
+                            ).toFixed(1)} L`}
+                          >
+                            <TableCell align="right">
+                              {Number(r.volumenRecibidoCliente ?? 0).toFixed(1)} L
+                            </TableCell>
+                          </Tooltip>
 
                           <Tooltip
                             arrow
@@ -2906,18 +1973,18 @@ const AnalisisDespachosBIPage = () => {
                             <TableCell
                               align="right"
                               sx={{
-                                backgroundColor: heatBg(r.diffCliente, tolerancia, r),
+                                backgroundColor: heatBg(r.diffCliente_Facturado, Number(r.cantidadProgramada) * Number(tolerancia), r),
                                 fontWeight: 600,
                               }}
                             >
-                              {formatNumber(r.diffCliente)}
+                              {formatNumber(r.diffCliente_Facturado)}
                             </TableCell>
                           </Tooltip>
 
                           <TableCell
                             align="right"
                             sx={{
-                              backgroundColor: heatBgKg(r.diffKgBasculaClienteAmbiocom, toleranciaKgCliente, r),
+                              backgroundColor: heatBgKg(r.diffKgBasculaClienteAmbiocom, Number(r.cantidadProgramada) * Number(tolerancia), r),
                               fontWeight: 600,
                             }}
                           >
@@ -2948,40 +2015,59 @@ const AnalisisDespachosBIPage = () => {
                               </Box>
                             </Tooltip>
                           </TableCell>
-                          <TableCell
-                            align="right"
-                            sx={{
-                              backgroundColor: heatCumplimiento(
-                                r.cumplimientoPct
-                              ),
-                              fontWeight: 600,
-                            }}
+
+                          <Tooltip
+                            placement="top"
+                            arrow
+                            title={
+                              <Box sx={{ p: 0.5, minWidth: 260 }}>
+                                <Typography sx={{ fontWeight: 800, fontSize: 13, mb: 0.8 }}>
+                                  Validación merma cliente vs facturado
+                                </Typography>
+
+                                <Typography sx={{ fontSize: 12 }}>
+                                  <strong>Tolerancia:</strong> {(Number(tolerancia) * 100).toFixed(2)}%
+                                </Typography>
+
+                                <Typography sx={{ fontSize: 12 }}>
+                                  <strong>Volumen facturado:</strong>{" "}
+                                  {formatNumber(r.cantidadProgramada)} L
+                                </Typography>
+                                <Typography sx={{ fontSize: 12 }}>
+                                  <strong>Volumen recibido cliente:</strong>{" "}
+                                  {formatNumber(r.volumenRecibidoCliente ?? 0)} L
+                                </Typography>
+                                <Typography sx={{ fontSize: 12 }}>
+                                  <strong>Merma máxima:</strong>{" "}
+                                  {formatNumber(Number(r.cantidadProgramada ?? 0) * Number(tolerancia ?? 0))} L
+                                </Typography>
+
+                                <Typography sx={{ fontSize: 12 }}>
+                                  <strong>Dif. cliente vs facturado:</strong>{" "}
+                                  {formatNumber(r.diffClienteFacturado ?? r.diffCliente_Facturado ?? 0)} L
+                                </Typography>
+
+                                <Divider sx={{ my: 0.8, borderColor: "rgba(255,255,255,0.25)" }} />
+
+                                <Typography
+                                  sx={{
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    color:
+                                      Math.abs(Number(r.diffClienteFacturado ?? r.diffCliente_Facturado ?? 0)) <=
+                                        Number(r.cantidadProgramada ?? 0) * Number(tolerancia ?? 0)
+                                        ? "#A7F3D0"
+                                        : "#FCA5A5",
+                                  }}
+                                >
+                                  {Math.abs(Number(r.diffClienteFacturado ?? r.diffCliente_Facturado ?? 0)) <=
+                                    Number(r.cantidadProgramada ?? 0) * Number(tolerancia ?? 0)
+                                    ? "Cumple dentro de la merma permitida"
+                                    : "No cumple: supera la merma permitida"}
+                                </Typography>
+                              </Box>
+                            }
                           >
-                            <Tooltip placement="top" title="porcentaje de cumplimiento, Volumen Programado vs Real Despachado" >
-                              {r.cumplimientoPct.toFixed(1)}%
-                            </Tooltip>
-                          </TableCell>
-                          <TableCell align="center">
-                            {(r.rechazado || r.rechazadoCliente) ? (
-                              <Chip
-                                size="small"
-                                label="X"
-                                sx={{
-                                  backgroundColor: "#9E9E9E",
-                                  color: "#fff",
-                                  fontWeight: "bold",
-                                  minWidth: 32,
-                                }}
-                              />
-                            ) : (
-                              <Chip
-                                size="small"
-                                label={r.cumplioViaje ? "SI" : "NO"}
-                                color={r.cumplioViaje ? "success" : "error"}
-                              />
-                            )}
-                          </TableCell>
-                          <Tooltip placement="top" title={`Tolerancia en el Despacho: ${toleranciaDespacho}`}>
                             <TableCell align="center">
                               {(r.rechazado || r.rechazadoCliente) ? (
                                 <Chip
@@ -2997,33 +2083,28 @@ const AnalisisDespachosBIPage = () => {
                               ) : (
                                 <Chip
                                   size="small"
-                                  label={r.cumplioCantidadDespachada ? "SI" : "NO"}
-                                  color={r.cumplioCantidadDespachada ? "success" : "error"}
+                                  label={
+                                    Number(r.cantidadProgramada ?? 0) > 0 &&
+                                      Number(r.volumenRecibidoCliente ?? 0) > 0 &&
+                                      Number(r.cantidadProgramada ?? 0) * Number(tolerancia ?? 0) > 0 &&
+                                      Math.abs(Number(r.diffCliente_Facturado ?? 0)) <=
+                                      Number(r.cantidadProgramada ?? 0) * Number(tolerancia ?? 0)
+                                      ? "SI"
+                                      : "NO"
+                                  }
+                                  color={
+                                    Number(r.cantidadProgramada ?? 0) > 0 &&
+                                      Number(r.volumenRecibidoCliente ?? 0) > 0 &&
+                                      Number(r.cantidadProgramada ?? 0) * Number(tolerancia ?? 0) > 0 &&
+                                      Math.abs(Number(r.diffCliente_Facturado ?? 0)) <=
+                                      Number(r.cantidadProgramada ?? 0) * Number(tolerancia ?? 0)
+                                      ? "success"
+                                      : "error"
+                                  }
                                 />
                               )}
                             </TableCell>
                           </Tooltip>
-
-                          <TableCell align="center">
-                            {(r.rechazado || r.rechazadoCliente) ? (
-                              <Chip
-                                size="small"
-                                label="X"
-                                sx={{
-                                  backgroundColor: "#9E9E9E",
-                                  color: "#fff",
-                                  fontWeight: "bold",
-                                  minWidth: 32,
-                                }}
-                              />
-                            ) : (
-                              <Chip
-                                size="small"
-                                label={r.cumplioCantidadCliente ? "SI" : "NO"}
-                                color={r.cumplioCantidadCliente ? "success" : "error"}
-                              />
-                            )}
-                          </TableCell>
 
                           <TableCell align="center">
                             <Tooltip
@@ -3174,6 +2255,7 @@ const AnalisisDespachosBIPage = () => {
         radarData={radarSummaryData}
         resumen={radarResumen}
       />
+
       {/* MODAL DE OBSERVACIONES */}
       <ObservacionEstadoModal
         open={openObsEstado}
@@ -3186,4 +2268,4 @@ const AnalisisDespachosBIPage = () => {
   );
 };
 
-export default AnalisisDespachosBIPage;
+export default DataAnalisysProgramacionDespacho;
