@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -45,6 +45,28 @@ const ProgramacionDespachoModal = ({
   onSubmit,
   onClose,
 }) => {
+
+  const [submitting, setSubmitting] = useState(false);
+  const submitLockRef = useRef(false);
+
+  const handleSubmitClick = async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (submitLockRef.current) return;
+
+    submitLockRef.current = true;
+    setSubmitting(true);
+
+    try {
+      await onSubmit?.(event);
+    } finally {
+      submitLockRef.current = false;
+      setSubmitting(false);
+    }
+  };
+
+
   return (
     <Dialog
       open={open}
@@ -77,7 +99,7 @@ const ProgramacionDespachoModal = ({
           </Typography>
         </Box>
 
-        <IconButton onClick={onClose}>
+        <IconButton onClick={onClose} disabled={submitting}>
           <CloseIcon />
         </IconButton>
       </DialogTitle>
@@ -95,6 +117,7 @@ const ProgramacionDespachoModal = ({
               value={form.fecha}
               onChange={onChange}
               InputLabelProps={{ shrink: true }}
+              disabled={submitting}
             />
           </Grid>
 
@@ -114,7 +137,7 @@ const ProgramacionDespachoModal = ({
               value={form.fechaEstimadaEntrega || ""}
               onChange={onChange}
               InputLabelProps={{ shrink: true }}
-              disabled={!canEditFechaEstimadaEntrega}
+              disabled={!canEditFechaEstimadaEntrega || submitting}
               helperText={
                 !canEditFechaEstimadaEntrega
                   ? "Solo comercial o developer pueden editar este campo"
@@ -142,6 +165,7 @@ const ProgramacionDespachoModal = ({
               value={form.horaProgramada}
               onChange={onChange}
               InputLabelProps={{ shrink: true }}
+              disabled={submitting}
             />
           </Grid>
 
@@ -155,7 +179,7 @@ const ProgramacionDespachoModal = ({
               name="placa"
               value={form.placa}
               onChange={onChange}
-              disabled={catalogLoading}
+              disabled={catalogLoading || submitting}
             >
               <MenuItem value="">(Selecciona)</MenuItem>
               {catalog.placas.map((p) => (
@@ -176,7 +200,7 @@ const ProgramacionDespachoModal = ({
               name="trailer"
               value={form.trailer}
               onChange={onChange}
-              disabled={catalogLoading}
+              disabled={catalogLoading || submitting}
             >
               <MenuItem value="">(Selecciona)</MenuItem>
               {catalog.trailers.map((t) => (
@@ -197,7 +221,7 @@ const ProgramacionDespachoModal = ({
               name="conductor"
               value={form.conductor}
               onChange={onChange}
-              disabled={catalogLoading}
+              disabled={catalogLoading || submitting}
             >
               <MenuItem value="">(Selecciona)</MenuItem>
               {catalog.conductores.map((c) => (
@@ -218,7 +242,7 @@ const ProgramacionDespachoModal = ({
               name="transportadora"
               value={form.transportadora}
               onChange={onChange}
-              disabled={catalogLoading}
+              disabled={catalogLoading || submitting}
             >
               <MenuItem value="">(Selecciona)</MenuItem>
               {catalog.transportadoras.map((t) => (
@@ -239,7 +263,7 @@ const ProgramacionDespachoModal = ({
               name="cliente"
               value={form.cliente}
               onChange={onChange}
-              disabled={catalogLoading}
+              disabled={catalogLoading || submitting}
             >
               <MenuItem value="">(Selecciona)</MenuItem>
               {catalog.clientes.map((c) => (
@@ -260,6 +284,7 @@ const ProgramacionDespachoModal = ({
               value={form.destino}
               onChange={onChange}
               placeholder="Ej: ITAGUI"
+              disabled={submitting}
             />
           </Grid>
 
@@ -273,7 +298,7 @@ const ProgramacionDespachoModal = ({
               name="producto"
               value={form.producto}
               onChange={onChange}
-              disabled={catalogLoading}
+              disabled={catalogLoading || submitting}
             >
               <MenuItem value="">(Selecciona)</MenuItem>
               {catalog.productos.map((p) => (
@@ -296,23 +321,38 @@ const ProgramacionDespachoModal = ({
               placeholder="Ej: 40000"
               type="number"
               inputProps={{ inputMode: "numeric", min: 0 }}
+              disabled={submitting}
             />
           </Grid>
         </Grid>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button variant="outlined" color="inherit" onClick={onClose}>
+        <Button
+          type="button"
+          variant="outlined"
+          color="inherit"
+          onClick={onClose}
+          disabled={submitting}
+        >
           Cancelar
         </Button>
 
         <Button
+          type="button"
           variant="contained"
           color={editingId ? "warning" : "primary"}
           startIcon={editingId ? <SaveIcon /> : <AddIcon />}
-          onClick={onSubmit}
+          onClick={handleSubmitClick}
+          disabled={submitting}
         >
-          {editingId ? "Actualizar" : "Registrar"}
+          {submitting
+            ? editingId
+              ? "Actualizando..."
+              : "Registrando..."
+            : editingId
+              ? "Actualizar"
+              : "Registrar"}
         </Button>
       </DialogActions>
     </Dialog>
