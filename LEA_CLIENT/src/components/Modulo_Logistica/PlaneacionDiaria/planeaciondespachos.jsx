@@ -115,9 +115,37 @@ const isValidDateISO = (s) => {
   );
 };
 
+// const normalizeFechaEstimadaEntrega = (value) => {
+//   const v = normalizeText(value).toUpperCase();
+//   return v || "NA";
+// };
+
 const normalizeFechaEstimadaEntrega = (value) => {
   const v = normalizeText(value).toUpperCase();
-  return v || "NA";
+
+  if (!v) return "NA";
+  if (v === "NA" || v === "PENDIENTE") return "NA";
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+    return `${v} 00:00`;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}\s\d{1,2}:\d{2}$/.test(v)) {
+    const [date, time] = v.split(" ");
+    const [hh, mm] = time.split(":");
+
+    return `${date} ${String(hh).padStart(2, "0")}:${mm}`;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}T\d{1,2}:\d{2}/.test(v)) {
+    const date = v.slice(0, 10);
+    const time = v.slice(11, 16);
+    const [hh, mm] = time.split(":");
+
+    return `${date} ${String(hh).padStart(2, "0")}:${mm}`;
+  }
+
+  return v;
 };
 
 const isValidFechaEstimadaEntrega = (value) => {
@@ -125,7 +153,7 @@ const isValidFechaEstimadaEntrega = (value) => {
 
   if (v === "NA") return true;
 
-  return isValidDateISO(v);
+  return /^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}$/.test(v);
 };
 
 const displayFechaEstimadaEntrega = (value) => {
@@ -585,7 +613,7 @@ const ProgramacionDespachoDiariaPage = () => {
       await Swal.fire({
         icon: "warning",
         title: "Fecha estimada inválida",
-        text: 'La fecha estimada de entrega debe ser "NA" o tener formato "YYYY-MM-DD".',
+        text: 'La fecha estimada de entrega debe ser "NA" o tener formato "YYYY-MM-DD HH:mm".',
       });
       return false;
     }

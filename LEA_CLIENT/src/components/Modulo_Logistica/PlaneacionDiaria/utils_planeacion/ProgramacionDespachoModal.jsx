@@ -131,26 +131,41 @@ const ProgramacionDespachoModal = ({
                   backgroundColor: "rgba(244, 67, 54, 0.06)",
                 },
               }}
-              type="date"
+              type="datetime-local"
               label="Fecha estimada entrega"
               name="fechaEstimadaEntrega"
-              value={form.fechaEstimadaEntrega || ""}
-              onChange={onChange}
-              InputLabelProps={{ shrink: true }}
-              disabled={!canEditFechaEstimadaEntrega || submitting}
-              helperText={
-                !canEditFechaEstimadaEntrega
-                  ? "Solo comercial o developer pueden editar este campo"
-                  : ""
+              value={
+                !form.fechaEstimadaEntrega ||
+                  String(form.fechaEstimadaEntrega).toUpperCase() === "NA"
+                  ? ""
+                  : String(form.fechaEstimadaEntrega).includes(" ")
+                    ? String(form.fechaEstimadaEntrega).replace(" ", "T")
+                    : `${String(form.fechaEstimadaEntrega).slice(0, 10)}T00:00`
               }
-              FormHelperTextProps={{
-                sx: {
-                  fontSize: "0.68rem",
-                  color: "error.main",
-                  mx: 0,
-                  mt: 0.4,
+            onChange={(e) => {
+              onChange({
+                target: {
+                  name: "fechaEstimadaEntrega",
+                  value: e.target.value.replace("T", " "),
                 },
-              }}
+              });
+            }}
+            InputLabelProps={{ shrink: true }}
+            inputProps={{ step: 60 }}
+            disabled={!canEditFechaEstimadaEntrega || submitting}
+            helperText={
+              !canEditFechaEstimadaEntrega
+                ? "Solo comercial o developer pueden editar este campo"
+                : ""
+            }
+            FormHelperTextProps={{
+              sx: {
+                fontSize: "0.68rem",
+                color: "error.main",
+                mx: 0,
+                mt: 0.4,
+              },
+            }}
             />
           </Grid>
 
