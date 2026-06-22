@@ -55,6 +55,34 @@ import PieChartsAnalisis from "./utils_Logistica_Page/graficas/PieChartsAnalisis
 import BarChartDiffTransportadora from "./utils_Logistica_Page/graficas/BarChartDiffTransportadora";
 import LineChartMermas from "./utils_Logistica_Page/graficas/LineChartMermas";
 import BarChartCumplimiento from "./utils_Logistica_Page/graficas/BarChartCumplimiento";
+
+const normalizarFechaHoraEntregaKpi = (value) => {
+  const s = normalizeText(value);
+
+  if (!s) return "";
+
+  if (/^\d{4}-\d{2}-\d{2}\s\d{1,2}:\d{2}$/.test(s)) {
+    const [date, time] = s.split(" ");
+    const [hh, mm] = time.split(":");
+
+    return `${date} ${String(hh).padStart(2, "0")}:${mm}`;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}T\d{1,2}:\d{2}/.test(s)) {
+    const date = s.slice(0, 10);
+    const time = s.slice(11, 16);
+    const [hh, mm] = time.split(":");
+
+    return `${date} ${String(hh).padStart(2, "0")}:${mm}`;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    return `${s} 00:00`;
+  }
+
+  return "";
+};
+
 // UI: módulo BI
 const DataAnalisysProgramacionDespacho = () => {
   const navigate = useNavigate();
@@ -123,10 +151,25 @@ const DataAnalisysProgramacionDespacho = () => {
 
       const cumplioViaje = r.tieneProgramacion && r.tieneDespacho;
 
+      // const excluidoFechaEntrega = r.rechazado || r.rechazadoCliente || !r.tieneCampoFechaEstimadaEntrega || !r.tieneCampoFechaEntrega;   // si el vehiculo es rechazado no lo tendrá en cuenta
+      const excluidoFechaEntrega =
+        r.rechazado ||
+        r.rechazadoCliente ||
+        !r.tieneCampoFechaEstimadaEntrega ||
+        !r.tieneCampoFechaEntrega;
 
-      const excluidoFechaEntrega = r.rechazado || r.rechazadoCliente || !r.tieneCampoFechaEstimadaEntrega || !r.tieneCampoFechaEntrega;   // si el vehiculo es rechazado no lo tendrá en cuenta
-      const tieneFechasEntrega = !!r.fechaEstimadaEntrega && !!r.fechaEntrega;
-      const cumplioFechaEntrega = !excluidoFechaEntrega && tieneFechasEntrega && r.fechaEntrega <= r.fechaEstimadaEntrega;
+      const fechaEntregaKpi = normalizarFechaHoraEntregaKpi(r.fechaEntrega);
+      const fechaEstimadaEntregaKpi = normalizarFechaHoraEntregaKpi(
+        r.fechaEstimadaEntrega
+      );
+
+      const tieneFechasEntrega = !!fechaEstimadaEntregaKpi && !!fechaEntregaKpi;
+
+      const cumplioFechaEntrega =
+        !excluidoFechaEntrega &&
+        tieneFechasEntrega &&
+        fechaEntregaKpi <= fechaEstimadaEntregaKpi;
+
       const estadoFechaEntrega = r.rechazado || r.rechazadoCliente
         ? "Excluido por rechazo"
         : !r.tieneCampoFechaEstimadaEntrega || !r.tieneCampoFechaEntrega
@@ -165,7 +208,9 @@ const DataAnalisysProgramacionDespacho = () => {
         cumplioFechaEntrega,
         estadoFechaEntrega,
         estadoProgramacion,
-        diffCliente_Facturado
+        diffCliente_Facturado,
+        fechaEntregaKpi,
+        fechaEstimadaEntregaKpi,
       };
     });
   }, [comparativoBase, tolerancia]);
@@ -229,19 +274,22 @@ const DataAnalisysProgramacionDespacho = () => {
     // cumplimiento fecha entrega vs fecha estimada entrega
     const rowsFechaEntregaEvaluables = rows.filter((r) => !r.rechazado && !r.rechazadoCliente && r.tieneCampoFechaEstimadaEntrega && r.tieneCampoFechaEntrega);
     const cumplidosFechaEntrega = rowsFechaEntregaEvaluables.filter((r) => {
-      return (
-        r.fechaEstimadaEntrega &&
-        r.fechaEntrega &&
-        r.fechaEntrega <= r.fechaEstimadaEntrega
-      );
+      return r.cumplioFechaEntrega === true;
     }).length;
     const noCumplidosFechaEntrega = rowsFechaEntregaEvaluables.filter((r) => {
-      return (
-        !r.fechaEstimadaEntrega ||
-        !r.fechaEntrega ||
-        r.fechaEntrega > r.fechaEstimadaEntrega
-      );
+      const tieneFechas =
+        !!r.fechaEstimadaEntregaKpi &&
+        !!r.fechaEntregaKpi;
+
+      return !tieneFechas || r.cumplioFechaEntrega !== true;
     }).length;
+    // const noCumplidosFechaEntrega = rowsFechaEntregaEvaluables.filter((r) => {
+    //   return (
+    //     !r.fechaEstimadaEntrega ||
+    //     !r.fechaEntrega ||
+    //     r.fechaEntrega > r.fechaEstimadaEntrega
+    //   );
+    // }).length;
     const excluidosFechaEntrega = rows.filter(
       (r) =>
         r.rechazado ||
@@ -974,23 +1022,19 @@ const DataAnalisysProgramacionDespacho = () => {
     );
 
     const cumple = rows.filter((r) => {
-      return (
-        r.fechaEstimadaEntrega &&
-        r.fechaEntrega &&
-        r.fechaEntrega <= r.fechaEstimadaEntrega
-      );
+      return r.cumplioFechaEntrega === true;
     }).length;
 
     const noCumple = rows.filter((r) => {
-      return (
-        r.fechaEstimadaEntrega &&
-        r.fechaEntrega &&
-        r.fechaEntrega > r.fechaEstimadaEntrega
-      );
+      const tieneFechas =
+        !!r.fechaEstimadaEntregaKpi &&
+        !!r.fechaEntregaKpi;
+
+      return tieneFechas && r.cumplioFechaEntrega !== true;
     }).length;
 
     const sinDatos = rows.filter((r) => {
-      return !r.fechaEstimadaEntrega || !r.fechaEntrega;
+      return !r.fechaEstimadaEntregaKpi || !r.fechaEntregaKpi;
     }).length;
 
     return [
