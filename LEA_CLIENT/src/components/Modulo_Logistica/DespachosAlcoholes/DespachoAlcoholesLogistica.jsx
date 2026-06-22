@@ -416,12 +416,29 @@ export default function TablaDespachosLogistica() {
 
   /* ================= CRUD MEDICIONES ================= */
 
-  const handleGuardar = async () => {
+  // const handleGuardar = async () => {
+  //   try {
+  //     if (openEditar) {
+  //       await actualizarMedicion();
+  //     } else {
+  //       await guardarMedicion();
+  //     }
+  //   } catch (error) {
+  //     console.error(error);
+  //     Swal.fire("Error", "No se pudo guardar la información", "error");
+  //   }
+  // };
+
+  const handleGuardar = async (payload) => {
     try {
+      const dataToSave = payload ?? form;
+
+      console.log("DATA REAL QUE SE ENVÍA AL BACKEND:", dataToSave);
+
       if (openEditar) {
-        await actualizarMedicion();
+        await actualizarMedicion(dataToSave);
       } else {
-        await guardarMedicion();
+        await guardarMedicion(dataToSave);
       }
     } catch (error) {
       console.error(error);
@@ -429,17 +446,32 @@ export default function TablaDespachosLogistica() {
     }
   };
 
-  const guardarMedicion = async () => {
-    await axios.post(API_DESPACHOS, form, { withCredentials: true });
+  const guardarMedicion = async (dataToSave) => {
+    await axios.post(API_DESPACHOS, dataToSave, { withCredentials: true });
     setOpenFila(false);
     obtenerMediciones();
   };
 
-  const actualizarMedicion = async () => {
-    await axios.put(`${API_DESPACHOS}/${editId}`, form, { withCredentials: true });
+  const actualizarMedicion = async (dataToSave) => {
+    await axios.put(`${API_DESPACHOS}/${editId}`, dataToSave, {
+      withCredentials: true,
+    });
+
     setOpenEditar(false);
     obtenerMediciones();
   };
+
+  // const guardarMedicion = async () => {
+  //   await axios.post(API_DESPACHOS, form, { withCredentials: true });
+  //   setOpenFila(false);
+  //   obtenerMediciones();
+  // };
+
+  // const actualizarMedicion = async () => {
+  //   await axios.put(`${API_DESPACHOS}/${editId}`, form, { withCredentials: true });
+  //   setOpenEditar(false);
+  //   obtenerMediciones();
+  // };
 
   const eliminarMedicion = async (id) => {
     const result = await Swal.fire({

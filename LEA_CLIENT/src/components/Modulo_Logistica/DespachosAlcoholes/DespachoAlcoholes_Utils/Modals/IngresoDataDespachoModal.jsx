@@ -53,7 +53,8 @@ const SELECT_KEYS = [
 const CACHE_PREFIX = "despacho_catalogo_";
 const FORM_CACHE_PREFIX = "despacho_form_draft_";
 const TIME_KEYS = ["hora_llegada", "hora_salida"];
-const DATE_KEYS = ["fecha_entrega"];
+const DATE_KEYS = [];
+const DATETIME_KEYS = ["fecha_entrega"];
 const VEHICULO_RECHAZADO_KEY = "vehiculo_rechazado";
 
 const VEHICULO_RECHAZADO_OPTIONS = [
@@ -67,6 +68,146 @@ const VEHICULO_RECHAZADO_OPTIONS = [
   "APROBADO CON OBSERVACIONES",
   "RECHAZADO POR CLIENTE",
 ];
+
+const ESTADOS_VEHICULO_MANUALES_PROTEGIDOS = new Set([
+  "RECHAZADO AMBIOCOM",
+  "RECHAZADO POR CLIENTE",
+  "APROBADO CON OBSERVACIONES",
+]);
+
+const ESTADOS_VEHICULO_AUTOMATICOS = new Set([
+  "EN PLANTA",
+  "APROBADO AMBIOCOM",
+  "EN CARGUE",
+  "EN TRANSITO",
+  "EN CLIENTE",
+  "APROBADO POR EL CLIENTE",
+]);
+
+const tieneValor = (v) => {
+  if (v == null) return false;
+  return String(v).trim() !== "";
+};
+
+const tieneNumeroMayorACero = (v) => {
+  const n = toNum(v);
+  return Number.isFinite(n) && n > 0;
+};
+
+const inferirEstadoVehiculo = (lecturas = {}) => {
+
+
+  if (tieneValor(lecturas.hora_llegada)) {
+    return "EN PLANTA";
+  }
+
+  // if (
+  //   tieneValor(lecturas.hora_llegada) &&
+  //   tieneValor(lecturas.hora_salida) &&
+  //   !tieneNumeroMayorACero(lecturas.final_contador_ambiocom) &&
+  //   !tieneNumeroMayorACero(lecturas.volumen_ambiocom_contador) &&
+  //   !tieneNumeroMayorACero(lecturas.volumen_contador_gravimetrico)
+  // ) {
+  //   return "RECHAZADO AMBIOCOM";
+  // }
+
+  if (
+    tieneValor(lecturas.hora_llegada) &&
+    tieneValor(lecturas.productos) &&
+    tieneValor(lecturas.muestreador_analista_laboratorio) &&
+    !tieneNumeroMayorACero(lecturas.peso_neto_contador_ambiocom) &&
+    !tieneNumeroMayorACero(lecturas.volumen_ambiocom_contador) &&
+    !tieneNumeroMayorACero(lecturas.volumen_contador_gravimetrico)
+  ) {
+    return "APROBADO AMBIOCOM";
+  }
+
+  if (
+    tieneValor(lecturas.hora_llegada) &&
+    tieneValor(lecturas.muestreador_analista_laboratorio) &&
+    tieneNumeroMayorACero(lecturas.inicio_contador_ambiocom) &&
+    tieneNumeroMayorACero(lecturas.inicio_volumen_ambiocom) &&
+    tieneNumeroMayorACero(lecturas.responsable) &&
+    tieneNumeroMayorACero(lecturas.tanque_salida) &&
+    !tieneNumeroMayorACero(lecturas.kilos_peso_final) &&
+    !tieneValor(lecturas.hora_salida)
+  ) {
+    return "EN CARGUE";
+  }
+
+  if (
+    tieneValor(lecturas.hora_llegada) &&
+    tieneValor(lecturas.muestreador_analista_laboratorio) &&
+    tieneNumeroMayorACero(lecturas.volumen_despachar) &&
+    tieneNumeroMayorACero(lecturas.inicio_contador_ambiocom) &&
+    tieneNumeroMayorACero(lecturas.final_contador_ambiocom) &&
+    tieneNumeroMayorACero(lecturas.inicio_volumen_ambiocom) &&
+    tieneNumeroMayorACero(lecturas.final_volumen_ambiocom) &&
+    tieneNumeroMayorACero(lecturas.grado_alcoholico_lab) &&
+    tieneNumeroMayorACero(lecturas.densidadlab_alcohol_tanque) &&
+    tieneNumeroMayorACero(lecturas.responsable) &&
+    tieneNumeroMayorACero(lecturas.tanque_salida) &&
+    tieneNumeroMayorACero(lecturas.peso_neto_bascula_ambiocom) &&
+    tieneValor(lecturas.hora_salida) &&
+    !tieneNumeroMayorACero(lecturas.cantidad_recibida_cliente) &&
+    !tieneNumeroMayorACero(lecturas.kilos_peso_neto)
+  ) {
+    return "EN TRANSITO";
+  }
+
+  if (
+    tieneValor(lecturas.hora_llegada) &&
+    tieneValor(lecturas.muestreador_analista_laboratorio) &&
+    tieneNumeroMayorACero(lecturas.volumen_despachar) &&
+    tieneNumeroMayorACero(lecturas.inicio_contador_ambiocom) &&
+    tieneNumeroMayorACero(lecturas.final_contador_ambiocom) &&
+    tieneNumeroMayorACero(lecturas.inicio_volumen_ambiocom) &&
+    tieneNumeroMayorACero(lecturas.final_volumen_ambiocom) &&
+    tieneNumeroMayorACero(lecturas.grado_alcoholico_lab) &&
+    tieneNumeroMayorACero(lecturas.densidadlab_alcohol_tanque) &&
+    tieneNumeroMayorACero(lecturas.responsable) &&
+    tieneNumeroMayorACero(lecturas.tanque_salida) &&
+    tieneNumeroMayorACero(lecturas.peso_neto_bascula_ambiocom) &&
+    tieneValor(lecturas.hora_salida) &&
+    tieneNumeroMayorACero(lecturas.cantidad_recibida_cliente) &&
+    tieneNumeroMayorACero(lecturas.kilos_peso_neto)
+  ) {
+    return "EN CLIENTE";
+  }
+
+  if (
+    tieneValor(lecturas.hora_llegada) &&
+    tieneValor(lecturas.muestreador_analista_laboratorio) &&
+    tieneNumeroMayorACero(lecturas.volumen_despachar) &&
+    tieneNumeroMayorACero(lecturas.inicio_contador_ambiocom) &&
+    tieneNumeroMayorACero(lecturas.final_contador_ambiocom) &&
+    tieneNumeroMayorACero(lecturas.inicio_volumen_ambiocom) &&
+    tieneNumeroMayorACero(lecturas.final_volumen_ambiocom) &&
+    tieneNumeroMayorACero(lecturas.grado_alcoholico_lab) &&
+    tieneNumeroMayorACero(lecturas.densidadlab_alcohol_tanque) &&
+    tieneNumeroMayorACero(lecturas.responsable) &&
+    tieneNumeroMayorACero(lecturas.tanque_salida) &&
+    tieneNumeroMayorACero(lecturas.peso_neto_bascula_ambiocom) &&
+    tieneValor(lecturas.hora_salida) &&
+    tieneNumeroMayorACero(lecturas.cantidad_recibida_cliente) &&
+    tieneNumeroMayorACero(lecturas.kilos_peso_neto) &&
+    tieneValor(lecturas.LLEGADA_DESTINO_KEY) &&
+    tieneValor(lecturas.PUNTUALIDAD_CLIENTE_KEY)
+  ) {
+    return "APROBADO POR EL CLIENTE";
+  }
+
+  // if (tieneValor(lecturas.grado_alcoholico_lab) || tieneValor(lecturas.densidadlab_alcohol_tanque) || tieneValor(lecturas.muestreador_analista_laboratorio)) {
+  //   return "APROBADO CON OBSERVACIONES";
+  // }
+
+  // if (tieneValor(lecturas.grado_alcoholico_lab) || tieneValor(lecturas.densidadlab_alcohol_tanque) || tieneValor(lecturas.muestreador_analista_laboratorio)) {
+  //   return "RECHAZADO POR CLIENTE";
+  // }
+
+  return "";
+};
+
 const RESPONSABLE_RECIBO_ROLES = [
   "developer",
   "liderlogistica",
@@ -221,6 +362,64 @@ const toDateInputValue = (v) => {
   return "";
 };
 
+const normalizeHHMM = (v) => {
+  const s = String(v ?? "").trim();
+  if (!s) return "";
+
+  const match = /^(\d{1,2}):(\d{2})$/.exec(s);
+  if (!match) return "";
+
+  const hh = Number(match[1]);
+  const mm = Number(match[2]);
+
+  if (!Number.isFinite(hh) || !Number.isFinite(mm)) return "";
+  if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return "";
+
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+};
+
+const toDateTimeLocalInputValue = (v) => {
+  if (!v) return "";
+
+  const s = String(v).trim();
+
+  // Acepta: 2026-06-22 14:00
+  if (/^\d{4}-\d{2}-\d{2}\s\d{1,2}:\d{2}$/.test(s)) {
+    const [date, time] = s.split(" ");
+    const cleanTime = normalizeHHMM(time);
+    return cleanTime ? `${date}T${cleanTime}` : "";
+  }
+
+  // Acepta: 2026-06-22T14:00
+  if (/^\d{4}-\d{2}-\d{2}T\d{1,2}:\d{2}$/.test(s)) {
+    const [date, time] = s.split("T");
+    const cleanTime = normalizeHHMM(time);
+    return cleanTime ? `${date}T${cleanTime}` : "";
+  }
+
+  // Acepta ISO largo: 2026-06-22T14:00:00.000Z
+  if (/^\d{4}-\d{2}-\d{2}T\d{1,2}:\d{2}/.test(s)) {
+    const date = s.slice(0, 10);
+    const time = normalizeHHMM(s.slice(11, 16));
+    return time ? `${date}T${time}` : "";
+  }
+
+  // Compatibilidad con datos viejos que solo venían como fecha
+  const dateOnly = toDateInputValue(s);
+  if (dateOnly) return `${dateOnly}T00:00`;
+
+  return "";
+};
+
+const toDateTimeStringValue = (v) => {
+  const inputValue = toDateTimeLocalInputValue(v);
+  if (!inputValue) return "";
+
+  // Convierte: 2026-06-22T14:00
+  // En:       2026-06-22 14:00
+  return inputValue.replace("T", " ");
+};
+
 const pad2 = (n) => String(n).padStart(2, "0");
 
 const buildTimeOptions = (stepMinutes = 15) => {
@@ -367,16 +566,66 @@ const IngresoDataDespachoModal = ({
 
   const timeOptions = useMemo(() => buildTimeOptions(15), []);
 
-  const handleChangeLectura = (key, value) => {
-    setForm((prev) => ({
-      ...prev,
-      lecturas: {
-        ...prev.lecturas,
-        [key]: value,
-      },
-    }));
-  };
+  // const handleChangeLectura = (key, value) => {
+  //   setForm((prev) => ({
+  //     ...prev,
+  //     lecturas: {
+  //       ...prev.lecturas,
+  //       [key]: value,
+  //     },
+  //   }));
+  // };
 
+  const handleChangeLectura = (key, value) => {
+    setForm((prev) => {
+      const lecturasPrev = prev?.lecturas ?? {};
+
+      const nextLecturas = {
+        ...lecturasPrev,
+        [key]: value,
+      };
+
+      // Si el usuario cambia directamente el estado del vehículo,
+      // se respeta lo que seleccionó.
+      if (key === VEHICULO_RECHAZADO_KEY) {
+        return {
+          ...prev,
+          lecturas: nextLecturas,
+        };
+      }
+
+      const estadoActual = String(
+        lecturasPrev?.[VEHICULO_RECHAZADO_KEY] ?? ""
+      ).trim();
+
+      const estadoManualProtegido =
+        ESTADOS_VEHICULO_MANUALES_PROTEGIDOS.has(estadoActual);
+
+      // Si el estado es rechazo u observación manual,
+      // el automático no debe pisarlo.
+      if (estadoManualProtegido) {
+        return {
+          ...prev,
+          lecturas: nextLecturas,
+        };
+      }
+
+      const estadoAutomatico = inferirEstadoVehiculo(nextLecturas);
+
+      if (estadoAutomatico) {
+        nextLecturas[VEHICULO_RECHAZADO_KEY] = estadoAutomatico;
+      } else if (ESTADOS_VEHICULO_AUTOMATICOS.has(estadoActual)) {
+        // Si antes tenía un estado automático, pero ya no hay datos
+        // que lo justifiquen, se limpia.
+        nextLecturas[VEHICULO_RECHAZADO_KEY] = "";
+      }
+
+      return {
+        ...prev,
+        lecturas: nextLecturas,
+      };
+    });
+  };
   //tanques desde el contexto para el select
 
   const tanquesArray = useMemo(() => {
@@ -712,25 +961,52 @@ const IngresoDataDespachoModal = ({
   }, [open]);
 
   // "EN CARGUE" para vehiculo_rechazado en NUEVO
+  // useEffect(() => {
+  //   if (!open) return;
+  //   if (isEdit) return;
+
+  //   setForm((prev) => {
+  //     const lecturas = prev?.lecturas ?? {};
+  //     const actual = lecturas?.[VEHICULO_RECHAZADO_KEY];
+
+  //     // Si ya tiene valor (por draft o usuario), no lo piso
+  //     if (actual != null && String(actual).trim() !== "") return prev;
+
+  //     return {
+  //       ...prev,
+  //       lecturas: {
+  //         ...lecturas,
+  //         [VEHICULO_RECHAZADO_KEY]: "EN CARGUE",
+  //       },
+  //     };
+  //   });
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [open, isEdit]);
+
   useEffect(() => {
     if (!open) return;
     if (isEdit) return;
 
     setForm((prev) => {
       const lecturas = prev?.lecturas ?? {};
-      const actual = lecturas?.[VEHICULO_RECHAZADO_KEY];
+      const actual = String(lecturas?.[VEHICULO_RECHAZADO_KEY] ?? "").trim();
 
-      // Si ya tiene valor (por draft o usuario), no lo piso
-      if (actual != null && String(actual).trim() !== "") return prev;
+      // Si ya tiene estado por draft o por edición manual, no lo piso
+      if (actual) return prev;
+
+      const estadoAutomatico = inferirEstadoVehiculo(lecturas);
+
+      if (!estadoAutomatico) return prev;
 
       return {
         ...prev,
         lecturas: {
           ...lecturas,
-          [VEHICULO_RECHAZADO_KEY]: "EN CARGUE",
+          [VEHICULO_RECHAZADO_KEY]: estadoAutomatico,
         },
       };
     });
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, isEdit]);
 
@@ -1153,6 +1429,7 @@ const IngresoDataDespachoModal = ({
                 const esSelect = SELECT_KEYS.includes(c.key);
                 const esHora = TIME_KEYS.includes(c.key);
                 const esFecha = DATE_KEYS.includes(c.key);
+                const esFechaHora = DATETIME_KEYS.includes(c.key);
                 const esVehiculoRechazado = c.key === VEHICULO_RECHAZADO_KEY; // evalua si fue rechazado
                 const esLlegadaDestino = c.key === LLEGADA_DESTINO_KEY; // evalua si llego al destino el vehiculo
                 const esPuntualidadCliente = c.key === PUNTUALIDAD_CLIENTE_KEY;
@@ -1330,6 +1607,32 @@ const IngresoDataDespachoModal = ({
                           />
                         )}
                       />
+                    ) : esFechaHora ? (
+                      <TextField
+                        fullWidth
+                        type="datetime-local"
+                        label={`${c.nombre} y hora`}
+                        InputLabelProps={{ shrink: true }}
+                        inputProps={{
+                          step: 60, // permite minutos, sin segundos
+                        }}
+                        value={toDateTimeLocalInputValue(form.lecturas?.[c.key])}
+                        onChange={(e) => {
+                          if (isDisabled) return;
+
+                          const value = toDateTimeStringValue(e.target.value);
+
+                          handleChangeLectura(c.key, value);
+
+                          if (value) {
+                            clearFieldError(c.key);
+                          }
+                        }}
+                        disabled={isDisabled}
+                        sx={sxField}
+                        error={!!fieldErrors[c.key]}
+                        helperText={fieldErrors[c.key] || " "}
+                      />
                     ) : esFecha ? (
                       <TextField
                         fullWidth
@@ -1349,20 +1652,32 @@ const IngresoDataDespachoModal = ({
                         disableClearable
                         forcePopupIcon
                         options={VEHICULO_RECHAZADO_OPTIONS}
-                        value={form.lecturas?.[c.key] ?? "EN CARGUE"}
+                        value={form.lecturas?.[c.key] ?? ""}
                         onChange={(event, newValue) => {
                           if (isDisabled) return;
                           handleChangeLectura(c.key, newValue ?? "");
                         }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label={c.nombre}
-                            fullWidth
-                            disabled={isDisabled}
-                            sx={sxField}
-                          />
-                        )}
+                        renderInput={(params) => {
+                          const estadoActual = String(form.lecturas?.[c.key] ?? "").trim();
+
+                          const esProtegido =
+                            ESTADOS_VEHICULO_MANUALES_PROTEGIDOS.has(estadoActual);
+
+                          return (
+                            <TextField
+                              {...params}
+                              label={c.nombre}
+                              fullWidth
+                              disabled={isDisabled}
+                              sx={sxField}
+                              helperText={
+                                esProtegido
+                                  ? "Estado manual protegido: no será cambiado automáticamente"
+                                  : "Estado automático según la información digitada"
+                              }
+                            />
+                          );
+                        }}
                       />
                     ) : esLlegadaDestino || esPuntualidadCliente ? (
                       <Autocomplete
@@ -1385,162 +1700,162 @@ const IngresoDataDespachoModal = ({
                         )}
                       />
                     ) : esTanqueSalida ? (
-                        <Autocomplete
-                          multiple
-                          disableCloseOnSelect
-                          forcePopupIcon
-                          loading={loadingTanques}
-                          options={tanquesOptions}
-                          value={selectedTanques}
-                          isOptionEqualToValue={(option, value) =>
-                            option.value === value.value
-                          }
-                          getOptionLabel={(option) =>
-                            typeof option === "string"
-                              ? option
-                              : option.label ?? ""
-                          }
-                          onChange={(event, newValue) => {
-                            if (isDisabled) return;
+                      <Autocomplete
+                        multiple
+                        disableCloseOnSelect
+                        forcePopupIcon
+                        loading={loadingTanques}
+                        options={tanquesOptions}
+                        value={selectedTanques}
+                        isOptionEqualToValue={(option, value) =>
+                          option.value === value.value
+                        }
+                        getOptionLabel={(option) =>
+                          typeof option === "string"
+                            ? option
+                            : option.label ?? ""
+                        }
+                        onChange={(event, newValue) => {
+                          if (isDisabled) return;
 
-                            const names = (newValue ?? []).map((x) =>
-                              typeof x === "string" ? x : x.value
-                            );
+                          const names = (newValue ?? []).map((x) =>
+                            typeof x === "string" ? x : x.value
+                          );
 
-                            handleChangeLectura(c.key, buildTanquesString(names));
+                          handleChangeLectura(c.key, buildTanquesString(names));
+                        }}
+                        renderOption={(props, option, { selected }) => {
+                          const icon = (
+                            <CheckBoxOutlineBlankIcon fontSize="small" />
+                          );
+                          const checkedIcon = <CheckBoxIcon fontSize="small" />;
+                          return (
+                            <li {...props} key={option.value}>
+                              <Checkbox
+                                icon={icon}
+                                checkedIcon={checkedIcon}
+                                style={{ marginRight: 8 }}
+                                checked={selected}
+                              />
+                              {option.label}
+                            </li>
+                          );
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label={c.nombre}
+                            fullWidth
+                            disabled={isDisabled}
+                            sx={sxField}
+                            placeholder="Selecciona 1 o más tanques"
+                          />
+                        )}
+                      />
+                    ) : esFleteFacturado ? (
+                      <Tooltip title={faltaRemisionFactura ? "Debe Registrar remisión o Factura asociada" : ""}>
+                        <Box
+                          sx={{
+                            border: "1px solid rgba(0,0,0,0.23)",
+                            borderRadius: 1,
+                            px: 2.0,
+                            py: 0.7,
+                            minHeight: 30,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            backgroundColor: isDisabled ? "#f5f5f5" : "#fff",
+                            ...(allowedByRole
+                              ? {
+                                borderWidth: 2,
+                                borderColor: "orange",
+                              }
+                              : {}),
                           }}
-                          renderOption={(props, option, { selected }) => {
-                            const icon = (
-                              <CheckBoxOutlineBlankIcon fontSize="small" />
-                            );
-                            const checkedIcon = <CheckBoxIcon fontSize="small" />;
-                            return (
-                              <li {...props} key={option.value}>
-                                <Checkbox
-                                  icon={icon}
-                                  checkedIcon={checkedIcon}
-                                  style={{ marginRight: 8 }}
-                                  checked={selected}
-                                />
-                                {option.label}
-                              </li>
-                            );
-                          }}
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              label={c.nombre}
-                              fullWidth
-                              disabled={isDisabled}
-                              sx={sxField}
-                              placeholder="Selecciona 1 o más tanques"
-                            />
-                          )}
-                        />
-                      ) : esFleteFacturado ? (
-                        <Tooltip title={faltaRemisionFactura ? "Debe Registrar remisión o Factura asociada" : ""}>
+                        >
+                          <Typography
+                            variant="body2"
+                            sx={{ color: "rgba(0,0,0,0.7)", fontWeight: 500 }}
+                          >
+                            {c.nombre} ?
+                          </Typography>
+
                           <Box
                             sx={{
-                              border: "1px solid rgba(0,0,0,0.23)",
-                              borderRadius: 1,
-                              px: 2.0,
-                              py: 0.7,
-                              minHeight: 30,
-                              display: "flex",
+                              position: "relative",
+                              display: "inline-flex",
                               alignItems: "center",
-                              justifyContent: "space-between",
-                              backgroundColor: isDisabled ? "#f5f5f5" : "#fff",
-                              ...(allowedByRole
-                                ? {
-                                  borderWidth: 2,
-                                  borderColor: "orange",
-                                }
-                                : {}),
+                              justifyContent: "center",
                             }}
                           >
-                            <Typography
-                              variant="body2"
-                              sx={{ color: "rgba(0,0,0,0.7)", fontWeight: 500 }}
-                            >
-                              {c.nombre} ?
-                            </Typography>
-
-                            <Box
-                              sx={{
-                                position: "relative",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                justifyContent: "center",
+                            <Checkbox
+                              checked={Boolean(form.lecturas?.[c.key])}
+                              onChange={(e) => {
+                                if (isDisabled) return;
+                                handleChangeLectura(c.key, e.target.checked);
                               }}
-                            >
-                              <Checkbox
-                                checked={Boolean(form.lecturas?.[c.key])}
-                                onChange={(e) => {
-                                  if (isDisabled) return;
-                                  handleChangeLectura(c.key, e.target.checked);
+                              disabled={isDisabled || faltaRemisionFactura}
+                            />
+
+                            {faltaRemisionFactura && (
+                              <WarningAmberRoundedIcon
+                                sx={{
+                                  position: "absolute",
+                                  top: -5,
+                                  right: -15,
+                                  fontSize: 25,
+                                  color: "error.main",
+                                  backgroundColor: "#fff",
+                                  borderRadius: "50%",
+                                  zIndex: 2,
+                                  animation: "alertBlink 1s infinite",
+                                  "@keyframes alertBlink": {
+                                    "0%": { opacity: 1, transform: "scale(1)" },
+                                    "50%": { opacity: 0.25, transform: "scale(1.2)" },
+                                    "100%": { opacity: 1, transform: "scale(1)" },
+                                  },
                                 }}
-                                disabled={isDisabled || faltaRemisionFactura}
                               />
-
-                              {faltaRemisionFactura && (
-                                <WarningAmberRoundedIcon
-                                  sx={{
-                                    position: "absolute",
-                                    top: -5,
-                                    right: -15,
-                                    fontSize: 25,
-                                    color: "error.main",
-                                    backgroundColor: "#fff",
-                                    borderRadius: "50%",
-                                    zIndex: 2,
-                                    animation: "alertBlink 1s infinite",
-                                    "@keyframes alertBlink": {
-                                      "0%": { opacity: 1, transform: "scale(1)" },
-                                      "50%": { opacity: 0.25, transform: "scale(1.2)" },
-                                      "100%": { opacity: 1, transform: "scale(1)" },
-                                    },
-                                  }}
-                                />
-                              )}
-                            </Box>
+                            )}
                           </Box>
-                        </Tooltip>
-                      ) : (
-                        <TextField
-                          fullWidth
-                          label={c.nombre}
-                          type="text"
-                          value={form.lecturas?.[c.key] ?? ""}
-                          onChange={(e) => {
-                            if (isDisabled) return;
+                        </Box>
+                      </Tooltip>
+                    ) : (
+                      <TextField
+                        fullWidth
+                        label={c.nombre}
+                        type="text"
+                        value={form.lecturas?.[c.key] ?? ""}
+                        onChange={(e) => {
+                          if (isDisabled) return;
 
-                            const value = e.target.value;
-                            handleChangeLectura(c.key, value);
+                          const value = e.target.value;
+                          handleChangeLectura(c.key, value);
 
-                            if (c.key === "densidadlab_alcohol_tanque") {
-                              const n = Number(String(value).replace(",", "."));
+                          if (c.key === "densidadlab_alcohol_tanque") {
+                            const n = Number(String(value).replace(",", "."));
 
-                              if (value.trim() === "") {
-                                clearFieldError(c.key);
-                              } else if (!Number.isFinite(n)) {
-                                setFieldError(c.key, "La densidad debe ser numérica");
-                              } else if (n < 0.7 || n > 0.9) {
-                                setFieldError(c.key, "Debe estar entre 0.7 y 0.9");
-                              } else {
-                                clearFieldError(c.key);
-                              }
+                            if (value.trim() === "") {
+                              clearFieldError(c.key);
+                            } else if (!Number.isFinite(n)) {
+                              setFieldError(c.key, "La densidad debe ser numérica");
+                            } else if (n < 0.7 || n > 0.9) {
+                              setFieldError(c.key, "Debe estar entre 0.7 y 0.9");
+                            } else {
+                              clearFieldError(c.key);
                             }
-                          }}
-                          onKeyDown={bloquearPuntoYComa(c.key)} // bloquea techas . y , 
-                          onPaste={bloquearPegado(c.key)} // si copian un valor con . y , no permite los caracteres
-                          disabled={isDisabled}
-                          sx={sxField}
-                          error={!!fieldErrors[c.key]}
-                          helperText={
-                            fieldErrors[c.key]
                           }
-                        />
-                      )}
+                        }}
+                        onKeyDown={bloquearPuntoYComa(c.key)} // bloquea techas . y , 
+                        onPaste={bloquearPegado(c.key)} // si copian un valor con . y , no permite los caracteres
+                        disabled={isDisabled}
+                        sx={sxField}
+                        error={!!fieldErrors[c.key]}
+                        helperText={
+                          fieldErrors[c.key]
+                        }
+                      />
+                    )}
                   </Grid>
                 );
               })}
@@ -1560,9 +1875,14 @@ const IngresoDataDespachoModal = ({
             if (formCacheKey) clearFormDraft(formCacheKey);
             setForm((prev) => ({
               ...prev,
+              // lecturas: {
+              //   ...recalcBloqueadas({}),
+              //   [FLETE_FACTURADO_KEY]: false,
+              // },
               lecturas: {
                 ...recalcBloqueadas({}),
                 [FLETE_FACTURADO_KEY]: false,
+                [VEHICULO_RECHAZADO_KEY]: "",
               },
               observaciones: "",
               responsable: "",
@@ -1582,19 +1902,28 @@ const IngresoDataDespachoModal = ({
             Object.values(fieldErrors).some(Boolean)
           }
           onClick={async () => {
-
             if (saving) return; // evita doble click
 
             const errors = {};
 
-            // validacion para que si no esta en el rango de densidad no se guarde
+            // Validación para que si no está en el rango de densidad no se guarde
             const densidadError = validateDensidad(form?.lecturas?.[DENSIDAD_KEY]);
             if (densidadError) {
               errors[DENSIDAD_KEY] = densidadError;
             }
 
+            // Validación fecha_entrega con fecha + hora
+            if (
+              form?.lecturas?.fecha_entrega &&
+              !toDateTimeStringValue(form?.lecturas?.fecha_entrega)
+            ) {
+              errors.fecha_entrega =
+                "La fecha de entrega debe tener formato yyyy-mm-dd hh:mm";
+            }
+
             if (!form.fecha) errors.fecha = "La fecha es obligatoria";
             if (!form.responsable) errors.responsable = "El responsable es obligatorio";
+
             if (!form.observaciones?.trim()) {
               errors.observaciones = "Las observaciones son obligatorias";
             }
@@ -1609,22 +1938,23 @@ const IngresoDataDespachoModal = ({
               observaciones: String(form?.observaciones ?? "").trim(),
               lecturas: {
                 ...(form?.lecturas ?? {}),
-                fecha_entrega: toDateInputValue(form?.lecturas?.fecha_entrega),
-                [FLETE_FACTURADO_KEY]: Boolean(form?.lecturas?.[FLETE_FACTURADO_KEY]),
+                fecha_entrega: toDateTimeStringValue(form?.lecturas?.fecha_entrega),
+                [FLETE_FACTURADO_KEY]: Boolean(
+                  form?.lecturas?.[FLETE_FACTURADO_KEY]
+                ),
               },
             };
 
             try {
               setSaving(true); // 🔒 bloquea el botón
               await onSave(payload); // espera el POST/PUT/PATCH
-              if (formCacheKey) clearFormDraft(formCacheKey);
 
+              if (formCacheKey) clearFormDraft(formCacheKey);
             } catch (error) {
               console.error(error);
             } finally {
               setSaving(false); // 🔓 vuelve a habilitar el botón
             }
-
           }}
         >
           {saving ? "Guardando..." : isEdit ? "Actualizar" : "Guardar"}
