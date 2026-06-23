@@ -886,6 +886,7 @@ function SeguimientoTKJornaleros({ NivelesTanquesContext }) {
               sx={{
                 px: 3,
                 py: 1.3,
+                marginBottom: -6,
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
