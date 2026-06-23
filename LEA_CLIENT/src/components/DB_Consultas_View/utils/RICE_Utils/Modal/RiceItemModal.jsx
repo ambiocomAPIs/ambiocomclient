@@ -458,22 +458,17 @@ export default function RiceItemModal({
                   <TextField
                     select
                     fullWidth
-                    label="Sprint asignado"
-                    value={form.sprint}
-                    disabled={isViewMode}
-                    disabled
-                    // onChange={(e) => onChange("sprint", e.target.value)}
-                    sx={fieldSx}
+                    size="small"
+                    label="Sprint"
+                    value={form.sprint || ""}
+                    onChange={(e) => onChange("sprint", e.target.value)}
+                    disabled={modalMode === "view"}
                   >
-                    <MenuItem value="">Sin sprint asignado</MenuItem>
-
-                    {sprints
-                      .filter((sprint) => sprint)
-                      .map((sprint) => (
-                        <MenuItem key={sprint} value={sprint}>
-                          {sprint}
-                        </MenuItem>
-                      ))}
+                    {sprints.map((sprint) => (
+                      <MenuItem key={sprint || "sin-sprint"} value={sprint}>
+                        {sprint || "Sin sprint / Pendiente por planificar"}
+                      </MenuItem>
+                    ))}
                   </TextField>
                 </Grid>
               </Grid>

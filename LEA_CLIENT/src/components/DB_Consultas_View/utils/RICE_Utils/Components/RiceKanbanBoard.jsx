@@ -18,8 +18,8 @@ import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 const estadosKanban = [
   "Backlog",
   "En análisis",
-  "Priorizado",
-  "En sprint",
+  "En sprint Carril 1",
+  "En sprint Carril 2",
   "En ajuste",
   "Completado",
 ];
@@ -56,7 +56,7 @@ function getEstadoStyles(estado) {
         headerBg: "#E9DDF8",
       };
 
-    case "Priorizado":
+    case "En sprint Carril 1":
       return {
         bg: "#FFF4E5",
         border: "#FFB74D",
@@ -64,7 +64,7 @@ function getEstadoStyles(estado) {
         headerBg: "#FFE8C2",
       };
 
-    case "En sprint":
+    case "En sprint Carril 2":
       return {
         bg: "#EAF4FF",
         border: "#90CAF9",

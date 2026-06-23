@@ -115,19 +115,69 @@ const areasSolicitantes = [
 const estados = [
   "Backlog",
   "En análisis",
-  "Priorizado",
-  "En sprint",
+  "En sprint Carril 1",
+  "En sprint Carril 2",
   "En ajuste",
   "Completado",
 ];
 
-const sprints = [
-  "",
-  "Sprint 1 — Jun 2026",
-  "Sprint 2 — Jul 2026",
-  "Sprint 3 — Ago 2026",
-  "Sprint 4 — Sep 2026",
+const MONTHS_ES = [
+  "Ene",
+  "Feb",
+  "Mar",
+  "Abr",
+  "May",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dic",
 ];
+
+const WEEK_CONFIGS = [
+  "Sem 1",
+  "Sem 2",
+  "Sem 3",
+  "Sem 4",
+
+  "Sem 1-2",
+  "Sem 2-3",
+  "Sem 3-4",
+
+  "Sem 1-3",
+  "Sem 2-4",
+  "Sem 1-4",
+
+  "Sem 1 + 3",
+  "Sem 1 + 4",
+  "Sem 2 + 4",
+
+  "Sem 1 + 2 + 3",
+  "Sem 1 + 2 + 4",
+  "Sem 1 + 3 + 4",
+  "Sem 2 + 3 + 4",
+
+  "Sem 1 + 2 + 3 + 4",
+];
+
+function buildSprintOptions(baseDate = new Date()) {
+  const year = baseDate.getFullYear();
+  const currentMonth = baseDate.getMonth();
+
+  const options = [""];
+
+  for (let month = currentMonth; month <= 11; month += 1) {
+    const monthName = MONTHS_ES[month];
+
+    WEEK_CONFIGS.forEach((weekConfig) => {
+      options.push(`${monthName} ${year} · ${weekConfig}`);
+    });
+  }
+
+  return options;
+}
 
 const alcanceOptions = [
   { value: 1, label: "1", helper: "1 área impactada" },
@@ -281,9 +331,9 @@ function getEstadoColor(estado) {
       return "success";
     case "En ajuste":
       return "error";
-    case "En sprint":
+    case "En sprint Carril 1":
       return "primary";
-    case "Priorizado":
+    case "En sprint Carril 2":
       return "warning";
     case "En análisis":
       return "secondary";
@@ -341,6 +391,8 @@ export default function RiceBacklogManager() {
 
   const [monthFilter, setMonthFilter] = useState(getCurrentMonthValue());
   const [periodInfo, setPeriodInfo] = useState(null);
+
+  const sprints = useMemo(() => buildSprintOptions(), []);
 
   const fetchRiceItemsByMonth = async (
     targetMonth = monthFilter,
