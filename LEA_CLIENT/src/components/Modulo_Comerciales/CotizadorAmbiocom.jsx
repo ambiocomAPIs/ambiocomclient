@@ -102,6 +102,7 @@ const RAW_API_URL =
 const API_URL = RAW_API_URL.replace(/\/$/, "");
 
 const RUTAS_FLETES_ENDPOINT = "/api/rutas-fletes-ambiocom";
+const COTIZACIONES_ENDPOINT = "/api/cotizaciones-alcoholes";
 
 const api = axios.create({
     baseURL: API_URL,
@@ -1130,6 +1131,8 @@ export default function CotizadorAmbiocom() {
     const [form, setForm] = useState(DEFAULT_FORM);
     const [autoMode, setAutoMode] = useState(true);
     const [historial, setHistorial] = useState([]);
+    const [historialLoading, setHistorialLoading] = useState(false);
+    const [savingCotizacion, setSavingCotizacion] = useState(false);
     const [currentFilter, setCurrentFilter] = useState("all");
     const [currentEstadoFilter, setCurrentEstadoFilter] = useState("all");
     const [currentSearch, setCurrentSearch] = useState("");
@@ -1266,25 +1269,111 @@ export default function CotizadorAmbiocom() {
         };
     }, []);
 
-    useEffect(() => {
+    const HISTORIAL_CACHE_KEY = "cotizaciones-alcoholes-cache-v1";
+    const HISTORIAL_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
+
+    const normalizarCotizacion = (q = {}) => ({
+        ...q,
+        estado: q.estado || "enviada",
+        fecha: q.fecha || q.createdAt || new Date().toISOString(),
+    });
+
+    const leerHistorialCache = () => {
         try {
-            const raw = localStorage.getItem("quotes-history");
-            const loaded = raw ? JSON.parse(raw) : [];
+            const raw = localStorage.getItem(HISTORIAL_CACHE_KEY);
+            if (!raw) return null;
 
-            setHistorial(
-                Array.isArray(loaded)
-                    ? loaded.map((q) => ({ ...q, estado: q.estado || "enviada" }))
-                    : []
-            );
+            const parsed = JSON.parse(raw);
+
+            if (!Array.isArray(parsed?.data)) return null;
+
+            return {
+                data: parsed.data,
+                savedAt: Number(parsed.savedAt) || 0,
+            };
         } catch {
-            setHistorial([]);
+            return null;
         }
-    }, []);
-
-    const persistHistorial = (next) => {
-        setHistorial(next);
-        localStorage.setItem("quotes-history", JSON.stringify(next));
     };
+
+    const guardarHistorialCache = (data) => {
+        try {
+            localStorage.setItem(
+                HISTORIAL_CACHE_KEY,
+                JSON.stringify({
+                    savedAt: Date.now(),
+                    data,
+                })
+            );
+        } catch (error) {
+            console.warn("No se pudo guardar caché de cotizaciones:", error);
+        }
+    };
+
+    const actualizarHistorialLocal = (updater) => {
+        setHistorial((prev) => {
+            const next = typeof updater === "function" ? updater(prev) : updater;
+            guardarHistorialCache(next);
+            return next;
+        });
+    };
+
+    const cargarHistorial = async ({ force = false } = {}) => {
+        const cache = leerHistorialCache();
+
+        if (cache?.data?.length) {
+            setHistorial(cache.data);
+        }
+
+        const cacheEstaVigente =
+            cache?.savedAt && Date.now() - cache.savedAt < HISTORIAL_CACHE_TTL_MS;
+
+        if (!force && cacheEstaVigente) {
+            return;
+        }
+
+        try {
+            setHistorialLoading(true);
+
+            const { data } = await api.get(COTIZACIONES_ENDPOINT, {
+                params: {
+                    limit: 500,
+                    activo: "true",
+                },
+            });
+
+            const rows = Array.isArray(data?.data)
+                ? data.data
+                : Array.isArray(data)
+                    ? data
+                    : [];
+
+            const normalizedRows = rows.map(normalizarCotizacion);
+
+            setHistorial(normalizedRows);
+            guardarHistorialCache(normalizedRows);
+        } catch (error) {
+            console.error("Error cargando cotizaciones:", error);
+
+            if (!cache?.data?.length) {
+                setHistorial([]);
+            }
+
+            setToast({
+                open: true,
+                message:
+                    error?.response?.data?.message ||
+                    "No se pudo cargar el historial de cotizaciones.",
+                severity: "error",
+            });
+        } finally {
+            setHistorialLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        cargarHistorial();
+    }, []);
 
     const destinosMatrizOptions = useMemo(() => {
         const mapa = new Map();
@@ -1580,7 +1669,7 @@ export default function CotizadorAmbiocom() {
         }));
     };
 
-    const guardar = () => {
+    const guardar = async () => {
         if (!form.comercial) {
             showToast("Selecciona un comercial primero", "error");
             return;
@@ -1592,15 +1681,16 @@ export default function CotizadorAmbiocom() {
         }
 
         const entry = {
-            id: Date.now(),
-            fecha: Date.now(),
+            fecha: new Date(),
             comercial: form.comercial,
             cliente: String(form.cliente).trim(),
             estado: "enviada",
+
             producto: result.prod,
             sector: result.sector,
             origen: result.origen,
             ciudad: result.ciudad,
+
             rutaFleteId: form.rutaFleteId,
             rutaFlete: result.rutaFlete
                 ? {
@@ -1612,25 +1702,54 @@ export default function CotizadorAmbiocom() {
                     fletePromedio: result.fleteCOP,
                 }
                 : null,
+
             tipo: result.tipo,
             volPed: result.volPed,
             volMen: result.volMen,
             trm: result.trm,
+
             pv: result.pv,
             pe: result.pe,
             peCOP: result.peCOP,
+
             margenObjetivo: result.margenObjetivo,
             costoTotalUSD: result.costoTotalUSD,
+
             fleteCOP: result.fleteCOP,
             fleteUSD: result.fleteUSD,
+
             recipUSD: result.recipUSD,
             util: result.util,
             margen: result.margen,
+
             recipData: result.recipData,
         };
 
-        persistHistorial([entry, ...historial]);
-        showToast(`Cotización guardada para ${entry.cliente}`);
+        try {
+            setSavingCotizacion(true);
+
+            const { data } = await api.post(COTIZACIONES_ENDPOINT, entry);
+
+            const saved = data?.data || data;
+
+            actualizarHistorialLocal((prev) => [
+                normalizarCotizacion(saved),
+                ...prev,
+            ]);
+
+            showToast(`Cotización guardada para ${saved.cliente}`);
+            setView("historial");
+        } catch (error) {
+            console.error("Error guardando cotización:", error);
+
+            showToast(
+                error?.response?.data?.message ||
+                "No se pudo guardar la cotización.",
+                "error"
+            );
+        } finally {
+            setSavingCotizacion(false);
+        }
     };
 
     const copiar = async () => {
@@ -1719,26 +1838,67 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
     }, [filtered]);
 
     const selectedQuote = useMemo(
-        () => historial.find((q) => q.id === selectedId),
+        () => historial.find((q) => q._id === selectedId),
         [historial, selectedId]
     );
 
-    const cambiarEstado = (id, nuevoEstado) => {
-        const next = historial.map((q) =>
-            q.id === id ? { ...q, estado: nuevoEstado } : q
-        );
+    const cambiarEstado = async (_id, nuevoEstado) => {
+        try {
+            const { data } = await api.patch(
+                `${COTIZACIONES_ENDPOINT}/${_id}/estado`,
+                {
+                    estado: nuevoEstado,
+                }
+            );
 
-        persistHistorial(next);
-        showToast(`Estado: ${ESTADOS[nuevoEstado].n}`);
+            const updated = data?.data || data;
+
+            actualizarHistorialLocal((prev) =>
+                prev.map((q) =>
+                    q._id === _id
+                        ? normalizarCotizacion({
+                            ...updated,
+                            estado: updated.estado || nuevoEstado,
+                            fecha: updated.fecha || updated.createdAt || q.fecha,
+                        })
+                        : q
+                )
+            );
+
+            showToast(`Estado: ${ESTADOS[nuevoEstado].n}`);
+        } catch (error) {
+            console.error("Error cambiando estado:", error);
+
+            showToast(
+                error?.response?.data?.message ||
+                "No se pudo cambiar el estado.",
+                "error"
+            );
+        }
     };
 
-    const eliminarActual = () => {
+    const eliminarActual = async () => {
         if (selectedId == null) return;
         if (!window.confirm("¿Eliminar esta cotización del historial?")) return;
 
-        persistHistorial(historial.filter((q) => q.id !== selectedId));
-        setSelectedId(null);
-        showToast("Cotización eliminada");
+        try {
+            await api.delete(`${COTIZACIONES_ENDPOINT}/${selectedId}`);
+
+            actualizarHistorialLocal((prev) =>
+                prev.filter((q) => q._id !== selectedId)
+            );
+
+            setSelectedId(null);
+            showToast("Cotización eliminada");
+        } catch (error) {
+            console.error("Error eliminando cotización:", error);
+
+            showToast(
+                error?.response?.data?.message ||
+                "No se pudo eliminar la cotización.",
+                "error"
+            );
+        }
     };
 
     const recargarEnCotizador = () => {
@@ -2875,6 +3035,7 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                 >
                                     <Button
                                         variant="contained"
+                                        disabled={savingCotizacion}
                                         startIcon={<SaveAltOutlinedIcon />}
                                         onClick={guardar}
                                         sx={{
@@ -2887,7 +3048,7 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                             "&:hover": { bgcolor: "#0E9123" },
                                         }}
                                     >
-                                        Guardar
+                                        {savingCotizacion ? "Guardando..." : "Guardar"}
                                     </Button>
 
                                     <Button
@@ -2937,6 +3098,11 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                 {
                     view === "historial" && (
                         <Box sx={{ width: "100%" }}>
+                            {historialLoading && (
+                                <Alert severity="info" sx={{ mb: 2, borderRadius: "14px" }}>
+                                    Cargando historial de cotizaciones...
+                                </Alert>
+                            )}
                             <Box
                                 sx={{
                                     display: "grid",
@@ -2945,6 +3111,7 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                     mb: 2,
                                 }}
                             >
+
                                 <SummaryCard label="Cotizaciones" value={filtered.length} accent />
 
                                 <SummaryCard
@@ -3186,7 +3353,7 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
 
                                                     return (
                                                         <TableRow
-                                                            key={q.id}
+                                                            key={q._id}
                                                             hover
                                                             sx={{
                                                                 cursor: "pointer",
@@ -3198,10 +3365,10 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                                                     fontSize: 12,
                                                                 },
                                                                 "&:hover": {
-                                                                    bgcolor: "rgba(31,26,232,.025)",
+                                                                    bgcolor: "rgba(31,26,232,025)",
                                                                 },
                                                             }}
-                                                            onClick={() => setSelectedId(q.id)}
+                                                            onClick={() => setSelectedId(q._id)}
                                                         >
                                                             <TableCell sx={{ color: COLORS.secondary, whiteSpace: "nowrap" }}>
                                                                 {fDate(q.fecha)}
@@ -3263,7 +3430,7 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                                                         size="small"
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
-                                                                            setSelectedId(q.id);
+                                                                            setSelectedId(q._id);
                                                                         }}
                                                                     >
                                                                         <VisibilityOutlinedIcon fontSize="small" />
@@ -3340,7 +3507,7 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                         return (
                                             <Button
                                                 key={key}
-                                                onClick={() => cambiarEstado(selectedQuote.id, key)}
+                                                onClick={() => cambiarEstado(selectedQuote._id, key)}
                                                 startIcon={<Icon sx={{ fontSize: 16 }} />}
                                                 sx={{
                                                     minWidth: 0,
