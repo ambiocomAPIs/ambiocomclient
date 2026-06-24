@@ -97,46 +97,10 @@ const tieneNumeroMayorACero = (v) => {
 const inferirEstadoVehiculo = (lecturas = {}) => {
 
 
-  if (tieneValor(lecturas.hora_llegada)) {
-    return "EN PLANTA";
-  }
-
-  // if (
-  //   tieneValor(lecturas.hora_llegada) &&
-  //   tieneValor(lecturas.hora_salida) &&
-  //   !tieneNumeroMayorACero(lecturas.final_contador_ambiocom) &&
-  //   !tieneNumeroMayorACero(lecturas.volumen_ambiocom_contador) &&
-  //   !tieneNumeroMayorACero(lecturas.volumen_contador_gravimetrico)
-  // ) {
-  //   return "RECHAZADO AMBIOCOM";
-  // }
-
   if (
     tieneValor(lecturas.hora_llegada) &&
-    tieneValor(lecturas.productos) &&
-    tieneValor(lecturas.muestreador_analista_laboratorio) &&
-    !tieneNumeroMayorACero(lecturas.peso_neto_contador_ambiocom) &&
-    !tieneNumeroMayorACero(lecturas.volumen_ambiocom_contador) &&
-    !tieneNumeroMayorACero(lecturas.volumen_contador_gravimetrico)
-  ) {
-    return "APROBADO AMBIOCOM";
-  }
-
-  if (
-    tieneValor(lecturas.hora_llegada) &&
-    tieneValor(lecturas.muestreador_analista_laboratorio) &&
-    tieneNumeroMayorACero(lecturas.inicio_contador_ambiocom) &&
-    tieneNumeroMayorACero(lecturas.inicio_volumen_ambiocom) &&
-    tieneNumeroMayorACero(lecturas.responsable) &&
-    tieneNumeroMayorACero(lecturas.tanque_salida) &&
-    !tieneNumeroMayorACero(lecturas.kilos_peso_final) &&
-    !tieneValor(lecturas.hora_salida)
-  ) {
-    return "EN CARGUE";
-  }
-
-  if (
-    tieneValor(lecturas.hora_llegada) &&
+    tieneValor(lecturas.producto) &&
+    tieneValor(lecturas.cliente) &&
     tieneValor(lecturas.muestreador_analista_laboratorio) &&
     tieneNumeroMayorACero(lecturas.volumen_despachar) &&
     tieneNumeroMayorACero(lecturas.inicio_contador_ambiocom) &&
@@ -145,18 +109,23 @@ const inferirEstadoVehiculo = (lecturas = {}) => {
     tieneNumeroMayorACero(lecturas.final_volumen_ambiocom) &&
     tieneNumeroMayorACero(lecturas.grado_alcoholico_lab) &&
     tieneNumeroMayorACero(lecturas.densidadlab_alcohol_tanque) &&
-    tieneNumeroMayorACero(lecturas.responsable) &&
-    tieneNumeroMayorACero(lecturas.tanque_salida) &&
+    tieneValor(lecturas.tanque_salida) &&
     tieneNumeroMayorACero(lecturas.peso_neto_bascula_ambiocom) &&
     tieneValor(lecturas.hora_salida) &&
-    !tieneNumeroMayorACero(lecturas.cantidad_recibida_cliente) &&
-    !tieneNumeroMayorACero(lecturas.kilos_peso_neto)
+    tieneNumeroMayorACero(lecturas.cantidad_recibida_cliente) &&
+    tieneNumeroMayorACero(lecturas.kilos_peso_neto) &&
+    tieneValor(lecturas[LLEGADA_DESTINO_KEY]) &&
+    tieneValor(lecturas[PUNTUALIDAD_CLIENTE_KEY]) &&
+    tieneValor(lecturas.número_tornagia) &&
+    tieneValor(lecturas.remision_factura)
   ) {
-    return "EN TRANSITO";
+    return "APROBADO POR EL CLIENTE";
   }
 
   if (
     tieneValor(lecturas.hora_llegada) &&
+    tieneValor(lecturas.producto) &&
+    tieneValor(lecturas.cliente) &&
     tieneValor(lecturas.muestreador_analista_laboratorio) &&
     tieneNumeroMayorACero(lecturas.volumen_despachar) &&
     tieneNumeroMayorACero(lecturas.inicio_contador_ambiocom) &&
@@ -165,8 +134,7 @@ const inferirEstadoVehiculo = (lecturas = {}) => {
     tieneNumeroMayorACero(lecturas.final_volumen_ambiocom) &&
     tieneNumeroMayorACero(lecturas.grado_alcoholico_lab) &&
     tieneNumeroMayorACero(lecturas.densidadlab_alcohol_tanque) &&
-    tieneNumeroMayorACero(lecturas.responsable) &&
-    tieneNumeroMayorACero(lecturas.tanque_salida) &&
+    tieneValor(lecturas.tanque_salida) &&
     tieneNumeroMayorACero(lecturas.peso_neto_bascula_ambiocom) &&
     tieneValor(lecturas.hora_salida) &&
     tieneNumeroMayorACero(lecturas.cantidad_recibida_cliente) &&
@@ -177,6 +145,8 @@ const inferirEstadoVehiculo = (lecturas = {}) => {
 
   if (
     tieneValor(lecturas.hora_llegada) &&
+    tieneValor(lecturas.producto) &&
+    tieneValor(lecturas.cliente) &&
     tieneValor(lecturas.muestreador_analista_laboratorio) &&
     tieneNumeroMayorACero(lecturas.volumen_despachar) &&
     tieneNumeroMayorACero(lecturas.inicio_contador_ambiocom) &&
@@ -185,34 +155,54 @@ const inferirEstadoVehiculo = (lecturas = {}) => {
     tieneNumeroMayorACero(lecturas.final_volumen_ambiocom) &&
     tieneNumeroMayorACero(lecturas.grado_alcoholico_lab) &&
     tieneNumeroMayorACero(lecturas.densidadlab_alcohol_tanque) &&
-    tieneNumeroMayorACero(lecturas.responsable) &&
-    tieneNumeroMayorACero(lecturas.tanque_salida) &&
+    tieneValor(lecturas.tanque_salida) &&
     tieneNumeroMayorACero(lecturas.peso_neto_bascula_ambiocom) &&
     tieneValor(lecturas.hora_salida) &&
-    tieneNumeroMayorACero(lecturas.cantidad_recibida_cliente) &&
-    tieneNumeroMayorACero(lecturas.kilos_peso_neto) &&
-    tieneValor(lecturas.LLEGADA_DESTINO_KEY) &&
-    tieneValor(lecturas.PUNTUALIDAD_CLIENTE_KEY)
+    !tieneNumeroMayorACero(lecturas.cantidad_recibida_cliente) &&
+    !tieneNumeroMayorACero(lecturas.kilos_peso_neto)
   ) {
-    return "APROBADO POR EL CLIENTE";
+    return "EN TRANSITO";
   }
 
-  // if (tieneValor(lecturas.grado_alcoholico_lab) || tieneValor(lecturas.densidadlab_alcohol_tanque) || tieneValor(lecturas.muestreador_analista_laboratorio)) {
-  //   return "APROBADO CON OBSERVACIONES";
-  // }
+  if (
+    tieneValor(lecturas.hora_llegada) &&
+    tieneValor(lecturas.producto) &&
+    tieneValor(lecturas.cliente) &&
+    tieneValor(lecturas.muestreador_analista_laboratorio) &&
+    tieneNumeroMayorACero(lecturas.inicio_contador_ambiocom) &&
+    tieneNumeroMayorACero(lecturas.inicio_volumen_ambiocom) &&
+    // tieneNumeroMayorACero(lecturas.responsable) &&
+    tieneValor(lecturas.tanque_salida) &&
+    !tieneNumeroMayorACero(lecturas.kilos_peso_final) &&
+    !tieneValor(lecturas.hora_salida)
+  ) {
+    return "EN CARGUE";
+  }
 
-  // if (tieneValor(lecturas.grado_alcoholico_lab) || tieneValor(lecturas.densidadlab_alcohol_tanque) || tieneValor(lecturas.muestreador_analista_laboratorio)) {
-  //   return "RECHAZADO POR CLIENTE";
-  // }
+  if (
+    tieneValor(lecturas.hora_llegada) &&
+    tieneValor(lecturas.producto) &&
+    tieneValor(lecturas.muestreador_analista_laboratorio) &&
+    !tieneNumeroMayorACero(lecturas.peso_neto_contador_ambiocom) &&
+    !tieneNumeroMayorACero(lecturas.volumen_ambiocom_contador) &&
+    !tieneNumeroMayorACero(lecturas.volumen_contador_gravimetrico)
+  ) {
+    return "APROBADO AMBIOCOM";
+  }
+
+  if (
+    tieneValor(lecturas.hora_llegada) &&
+    !tieneValor(lecturas.producto) &&
+    !tieneValor(lecturas.muestreador_analista_laboratorio) &&
+    !tieneNumeroMayorACero(lecturas.peso_neto_contador_ambiocom) &&
+    !tieneNumeroMayorACero(lecturas.volumen_ambiocom_contador) &&
+    !tieneNumeroMayorACero(lecturas.volumen_contador_gravimetrico)
+  ) { return "EN PLANTA"; }  // probado
 
   return "";
 };
 
-const RESPONSABLE_RECIBO_ROLES = [
-  "developer",
-  "liderlogistica",
-  "auxiliarlogistica2",
-];
+const RESPONSABLE_RECIBO_ROLES = ["developer", "liderlogistica", "auxiliarlogistica2",];
 const LLEGADA_DESTINO_KEY = "llegada_destino";
 const PUNTUALIDAD_CLIENTE_KEY = "puntualidad_en_cliente";
 
@@ -534,16 +524,14 @@ const IngresoDataDespachoModal = ({
   const PRODUCTOS_URL = "https://ambiocomserver.onrender.com/api/alcoholesdespacho";
 
   // =============   Contextos   ===============================
-  // rol real desde cookie/session (AuthContext)
   const { rol, loadingAuth, isAuth } = useAuth();
   const { tanques, loading: loadingTanques } = useTanques();
   //============================================================
   const roleNorm = String(rol || "")
     .toLowerCase()
     .trim();
-  //evalua que roles pueden editar el campo
-  const canEditResponsableRecibo =
-    isAuth && RESPONSABLE_RECIBO_ROLES.includes(roleNorm);
+
+  const canEditResponsableRecibo = isAuth && RESPONSABLE_RECIBO_ROLES.includes(roleNorm);
 
   const [fieldErrors, setFieldErrors] = useState({});
   const [catalogos, setCatalogos] = useState({
@@ -813,7 +801,7 @@ const IngresoDataDespachoModal = ({
         };
       });
 
-      // ✅ cache
+      // cache
       saveCache("conductores", conductores);
       saveCache("clientes", clientes);
       saveCache("transportadoras", transportadoras);
@@ -959,29 +947,6 @@ const IngresoDataDespachoModal = ({
     refreshProductosTTL();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
-
-  // "EN CARGUE" para vehiculo_rechazado en NUEVO
-  // useEffect(() => {
-  //   if (!open) return;
-  //   if (isEdit) return;
-
-  //   setForm((prev) => {
-  //     const lecturas = prev?.lecturas ?? {};
-  //     const actual = lecturas?.[VEHICULO_RECHAZADO_KEY];
-
-  //     // Si ya tiene valor (por draft o usuario), no lo piso
-  //     if (actual != null && String(actual).trim() !== "") return prev;
-
-  //     return {
-  //       ...prev,
-  //       lecturas: {
-  //         ...lecturas,
-  //         [VEHICULO_RECHAZADO_KEY]: "EN CARGUE",
-  //       },
-  //     };
-  //   });
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [open, isEdit]);
 
   useEffect(() => {
     if (!open) return;
@@ -1946,14 +1911,14 @@ const IngresoDataDespachoModal = ({
             };
 
             try {
-              setSaving(true); // 🔒 bloquea el botón
-              await onSave(payload); // espera el POST/PUT/PATCH
+              setSaving(true); // bloquea el botón
+              await onSave(payload);
 
               if (formCacheKey) clearFormDraft(formCacheKey);
             } catch (error) {
               console.error(error);
             } finally {
-              setSaving(false); // 🔓 vuelve a habilitar el botón
+              setSaving(false);
             }
           }}
         >

@@ -51,9 +51,9 @@ export async function exportarBitacoraPDF(headerData, notes) {
   doc.setFont("times", "normal");
 
   // 🔹 Cargar logo desde /public
-  const logoUrl = "/logoambiocomconfondo.png";
+  const logoUrl = "/LogoCompany/logoambiocomsinfondo.png"; 
   const logoBase64 = await toBase64(logoUrl);
-  doc.addImage(logoBase64, "PNG", 9, 7, 60, 15);
+  doc.addImage(logoBase64, "PNG", 9, 7, 60, 18);
 
   // 🔹 Fondo con gradiente para el título
   drawGradientRect(doc, 0, 28, 210, 12, [41, 128, 185], [46, 204, 113]);

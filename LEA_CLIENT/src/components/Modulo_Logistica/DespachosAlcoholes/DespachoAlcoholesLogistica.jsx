@@ -725,7 +725,7 @@ export default function TablaDespachosLogistica() {
     if (valor === "EN PLANTA") {
       return commonWrapper(
         <FactoryIcon sx={{ color: "#9616ff" }} />,
-        "Vehículo rechazado"
+        "Vehículo en planta"
       );
     }
 

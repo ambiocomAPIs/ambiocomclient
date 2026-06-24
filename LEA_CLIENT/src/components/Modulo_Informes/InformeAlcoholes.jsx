@@ -357,7 +357,7 @@ const InformeAlcoholes = () => {
     }
     // Si la contraseña es correcta, activa edición:
     setVolumenEditableId(zona.id);
-    setVolumenEditableValor(zona.volumenEditable || volumenTotalZona); // Asumiendo que guardas el editable en zona.volumenEditable o usa el calculado
+    setVolumenEditableValor(zona.volumenEditable || volumenTotalZona); 
   };
 
   // Función para guardar volumen editable:

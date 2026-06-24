@@ -87,6 +87,7 @@ import TablaMedicionesAgua from '../PTAP/TablaMedicionesAgua.jsx';
 //modulo comerciales
 import ConductoresReadOnlyPage from '../Modulo_Comerciales/ConductoresReadOnlyPage.jsx';
 import CotizadorAmbiocom from '../Modulo_Comerciales/CotizadorAmbiocom.jsx';
+import RutasFletesAmbiocom from "../Modulo_Comerciales/RutasFletesAmbiocom.jsx"
 //energia
 import TablaMedicionesDiariaEnergia from '../Energia_CON/TablaMedicionesEnergia.jsx'
 //Modulo DEV
@@ -108,7 +109,7 @@ import {
     ptapIcon, GraphIcon, BarGraphIcon, BarGraphComparativeIcon, robotAssistanceIcon, bitacoraIcon, StopWatchIcon, PdfIcon, DatabaseAdministratorIcon, workerIcon,
     TankGraphIcon, CounterIcon, MoneyGraphIcon, EnergyIcon, EnergyDataIcon, InOutMaderaCarbonIcon, InformeIcon, TankWithLiquidIcon, ReportIcon,
     Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon, PersonalIcons, plannerIconDate, logsIcon, VesselTkIcon, VesselTkIconChemical, ListToDoIcon, ArcadeIcon,
-    WaterTankIcon, VentasIcon, WaterKeyIcon, DestileryIcon, LoteTankIcon, ProveedorIcon
+    WaterTankIcon, VentasIcon, WaterKeyIcon, DestileryIcon, LoteTankIcon, ProveedorIcon, financeIconMoney, rutaIcon, CalderaIcon
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -216,10 +217,10 @@ export default function EmpresarialPrincipalSchedulerApp() {
         {
             text: 'Informes',
             key: 'Informes',
-            roles: ["admin", "developer"],
+            roles: ["admin", "developer", "supervisor"],
             icon: <img src={InformeIcon} alt="Informes" style={{ width: 25, height: 25 }} />,
             subItems: [
-                { text: 'Inventario OH', subKey: 'Inventariodeoh', /* roles: ["admin","supervisor"], */ icon: <img src={ReportIcon} alt="Inventariodeoh" style={{ width: 25, height: 25 }} /> },
+                { text: 'Inventario OH', subKey: 'Inventariodeoh', roles: ["admin", "developer", "supervisor", "gerente"], icon: <img src={ReportIcon} alt="Inventariodeoh" style={{ width: 25, height: 25 }} /> },
                 { text: 'CarbonYmadera', subKey: 'modulomantenimiento', /* roles: ["admin"], */ icon: <img src={ReportIcon} alt="InventariodeCarbonYmadera" style={{ width: 25, height: 25 }} /> },
             ],
         },
@@ -232,7 +233,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'Inventario de insumos', subKey: 'Inventariodeinsumos', /* roles: ["admin","supervisor"], */ icon: <img src={inventoryIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Tanques Jornaleros', subKey: 'Tanquesjornaleros', roles: ["admin", "developer", "liderlogistica", "supervisor"], icon: <img src={rulerIcon} alt="tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
                 { text: 'Bitacora Supervisores', subKey: 'bitacoradeturnosupervisores', /* roles: ["admin","supervisor"], */ icon: <img src={bitacoraIcon} alt="bitacoradeturnosupervisores" style={{ width: 25, height: 25 }} /> },
-                { text: 'Patio Carbon-Madera', subKey: 'patiodecarbonymadera', /* roles: ["admin","supervisor"], */ icon: <img src={coalInventoryIcon} alt="patiodecarbonymadera" style={{ width: 25, height: 25 }} /> },
+                { text: 'Patio Carbon-Madera', subKey: 'patiodecarbonymadera', /* roles: ["admin","supervisor"], */ icon: <img src={CalderaIcon} alt="patiodecarbonymadera" style={{ width: 25, height: 25 }} /> },
                 { text: 'Inventario Combust', subKey: 'inventariodecarbonymadera', /* roles: ["admin","supervisor"], */ icon: <img src={coalInventoryIcon} alt="Tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
                 { text: 'Horas Extras', subKey: 'horasextrassupervisores', /* roles: ["admin","supervisor"], */ icon: <img src={StopWatchIcon} alt="horasextrassupervisores" style={{ width: 25, height: 25 }} /> },
                 { text: 'CRUD Tanques', subKey: 'tanquescrud', /* roles: ["admin"], */ icon: <img src={tanqueIcon} alt="tanquescrud" style={{ width: 25, height: 25 }} /> },
@@ -395,7 +396,8 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 },
                 { text: 'Grafica Niveles Tanques Jornaleros', subKey: 'nivelestanquesjornalerospaginavistacomercial', roles: ["admin", "supervisor", "gerente", "developer", "comercial"], icon: <img src={TankGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
                 { text: 'Conductores Info', subKey: 'conductoresreadonly', roles: ["admin", "supervisor", "gerente", "developer", "comercial"], icon: <img src={Driver} alt="conductoresreadonly" style={{ width: 25, height: 25 }} /> },
-                { text: 'Cotizador Alcoholes', subKey: 'cotizadoralcoholes', roles: ["admin", "supervisor", "gerente", "developer", "comercial"], icon: <img src={Driver} alt="conductoresreadonly" style={{ width: 25, height: 25 }} /> },
+                { text: 'Rutas y Fletes', subKey: 'rutasyfletes', roles: ["admin", "supervisor", "gerente", "developer", "comercial"], icon: <img src={rutaIcon} alt="rutasyfletes" style={{ width: 25, height: 25 }} /> },
+                { text: 'Cotizador Alcoholes', subKey: 'cotizadoralcoholes', roles: ["admin", "supervisor", "gerente", "developer", "comercial"], icon: <img src={financeIconMoney} alt="conductoresreadonly" style={{ width: 25, height: 25 }} /> },
             ],
         },
         {
@@ -510,10 +512,8 @@ export default function EmpresarialPrincipalSchedulerApp() {
 
     const renderContent = () => {
 
-        // rolesAllowed debe calcularse acá (antes lo estabas usando sin definir)
         const rolesAllowed = getRolesForMenuKey(selectedMenu);
 
-        // validacion para que no le renderice a ciertos roles proteccion adicional
         if (rolesAllowed && !canAccess(rolesAllowed)) {
             return <ModuloEnMantenimiento />; //o modulo unauthorized
         }
@@ -571,6 +571,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'nivelestanquesjornalerospaginavistacomercial': return <GraficoNivelesTanquesPorDiaPageComponente NivelesTanquesContext={nivelesTanques} />;
             case 'conductoresreadonly': return <ConductoresReadOnlyPage />;
             case 'cotizadoralcoholes': return <CotizadorAmbiocom />;
+            case 'rutasyfletes': return <RutasFletesAmbiocom />;
             //Modulo Desarrollador
             case 'taskandrequeriments': return <TaskRequerimentDev />;
             case 'basededatos': return <ConsultasHttpDb />;
@@ -685,7 +686,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                         // textTransform: "uppercase",
                     }}
                 >
-                    Portal Coclí SM26
+                    Portal Coclí
                 </Typography>
             </Toolbar>
             <Divider />
