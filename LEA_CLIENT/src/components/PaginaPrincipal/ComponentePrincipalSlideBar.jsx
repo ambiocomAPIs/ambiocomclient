@@ -45,6 +45,7 @@ import BitacoraDeSupervisores from '../Bitacora/BitacoraComponentesProduccion'
 import PanelHoras from '../PanelHoras';
 import InventarioCarbonMadera from '../InventarioCarbonMadera';
 import PatioCarbonMadera from '../ModuloProduccion/PatioCarbonMadera.jsx'
+import SeguimientoTotalizadores from '../ModuloProduccion/SeguimientoTotalizadores.jsx'
 // Modulo de graficos y analisis
 import GraficoNivelesTanquesPorDiaPageComponente from '../TanquesVistaNiveles/GraficaNivelesDiariosPorMes/GraficaNivelesDiarioTanquesJornalerosComponente.jsx';
 import Comparativomensualinsumosquimicos from '../Modulos_API/DataAnalisis/Comparativomensualinsumosquimicos.jsx';
@@ -109,7 +110,7 @@ import {
     ptapIcon, GraphIcon, BarGraphIcon, BarGraphComparativeIcon, robotAssistanceIcon, bitacoraIcon, StopWatchIcon, PdfIcon, DatabaseAdministratorIcon, workerIcon,
     TankGraphIcon, CounterIcon, MoneyGraphIcon, EnergyIcon, EnergyDataIcon, InOutMaderaCarbonIcon, InformeIcon, TankWithLiquidIcon, ReportIcon,
     Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon, PersonalIcons, plannerIconDate, logsIcon, VesselTkIcon, VesselTkIconChemical, ListToDoIcon, ArcadeIcon,
-    WaterTankIcon, VentasIcon, WaterKeyIcon, DestileryIcon, LoteTankIcon, ProveedorIcon, financeIconMoney, rutaIcon, CalderaIcon
+    WaterTankIcon, VentasIcon, WaterKeyIcon, DestileryIcon, LoteTankIcon, ProveedorIcon, financeIconMoney, rutaIcon, CalderaIcon, DataSeguimientoIocn, weightliftIcon
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -232,8 +233,9 @@ export default function EmpresarialPrincipalSchedulerApp() {
             subItems: [
                 { text: 'Inventario de insumos', subKey: 'Inventariodeinsumos', /* roles: ["admin","supervisor"], */ icon: <img src={inventoryIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Tanques Jornaleros', subKey: 'Tanquesjornaleros', roles: ["admin", "developer", "liderlogistica", "supervisor"], icon: <img src={rulerIcon} alt="tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
-                { text: 'Bitacora Supervisores', subKey: 'bitacoradeturnosupervisores', /* roles: ["admin","supervisor"], */ icon: <img src={bitacoraIcon} alt="bitacoradeturnosupervisores" style={{ width: 25, height: 25 }} /> },
                 { text: 'Patio Carbon-Madera', subKey: 'patiodecarbonymadera', /* roles: ["admin","supervisor"], */ icon: <img src={CalderaIcon} alt="patiodecarbonymadera" style={{ width: 25, height: 25 }} /> },
+                { text: 'Seguimiento_Producción', subKey: 'seguimientototalizadores', /* roles: ["admin","supervisor"], */ icon: <img src={DataSeguimientoIocn} alt="patiodecarbonymadera" style={{ width: 25, height: 25 }} /> },
+                { text: 'Bitacora Supervisores', subKey: 'bitacoradeturnosupervisores', /* roles: ["admin","supervisor"], */ icon: <img src={bitacoraIcon} alt="bitacoradeturnosupervisores" style={{ width: 25, height: 25 }} /> },
                 { text: 'Inventario Combust', subKey: 'inventariodecarbonymadera', /* roles: ["admin","supervisor"], */ icon: <img src={coalInventoryIcon} alt="Tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
                 { text: 'Horas Extras', subKey: 'horasextrassupervisores', /* roles: ["admin","supervisor"], */ icon: <img src={StopWatchIcon} alt="horasextrassupervisores" style={{ width: 25, height: 25 }} /> },
                 { text: 'CRUD Tanques', subKey: 'tanquescrud', /* roles: ["admin"], */ icon: <img src={tanqueIcon} alt="tanquescrud" style={{ width: 25, height: 25 }} /> },
@@ -357,10 +359,15 @@ export default function EmpresarialPrincipalSchedulerApp() {
         },
         {
             text: 'Planta de Aguas', roles: ["admin", "developer", "supervisor", "operarioaguas"], icon: <img src={ptapIcon} alt="plantadeaguas" style={{ width: 25, height: 25 }} />, key: 'plantadeaguas', subItems: [
-                { text: 'Medidores', subKey: 'registrodemedidores', roles: ["admin", "developer", "supervisor", "operarioaguas"], icon: <img src={CounterIcon} alt="Medidores" style={{ width: 25, height: 25 }} /> },
+                { text: 'Medidores Aguas', subKey: 'registrodemedidores', roles: ["admin", "developer", "supervisor", "operarioaguas", "sistemadegestion"], icon: <img src={CounterIcon} alt="Medidores" style={{ width: 25, height: 25 }} /> },
                 { text: 'Análisis Agua', subKey: 'formatoseguimientoaguas', roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio", "operarioaguas"], icon: <img src={WaterKeyIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
                 { text: 'Regeneracion', subKey: 'regeneracionresinas', roles: ["admin", "developer", "supervisor", "operarioaguas"], icon: <img src={WaterTankIcon} alt="regeneracionresinas" style={{ width: 35, height: 36, marginLeft: -4 }} /> },
                 { text: 'Trazabilidad Regeneracion', subKey: 'TrazabilidadRegistroRegeneracionResinas', roles: ["admin", "developer", "gerente", "laboratorio", "supervisor"], icon: <img src={WaterTankIcon} alt="formatoaguas" style={{ width: 35, height: 36, marginLeft: -4 }} /> },
+            ],
+        },
+        {
+            text: 'SIG & TH', roles: ["admin", "developer", "sistemadegestion", "gerente"], icon: <img src={weightliftIcon} alt="plantadeaguas" style={{ width: 25, height: 25 }} />, key: 'sistemadegestionytalentohumano', subItems: [
+                { text: 'Medidores Aguas', subKey: 'registrodemedidoressig', roles: ["admin", "developer", "supervisor", "operarioaguas", "sistemadegestion"], icon: <img src={CounterIcon} alt="Medidores" style={{ width: 25, height: 25 }} /> },
             ],
         },
         {
@@ -543,6 +550,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'moduloingresosmaderacarbon': return <TablaRegistroCarbonMadera />;
             //Produccion
             case 'patiodecarbonymadera': return <PatioCarbonMadera />; 
+            case 'seguimientototalizadores': return <SeguimientoTotalizadores />; 
             //informes
             case 'Inventariodeoh': return <InformeAlcoholes />;
             //logistica
@@ -567,6 +575,8 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'Trazabilidadregistrodelotesdeproduccion': return <TrazabilidadRegistroDeLotesDeProduccion />;
             //PTAP
             case 'regeneracionresinas': return <TableFormatoRegeneracionResinas />;
+            // SIG & TH
+            case 'registrodemedidoressig': return <TablaMedicionesAgua />;
             // Comerciale
             case 'nivelestanquesjornalerospaginavistacomercial': return <GraficoNivelesTanquesPorDiaPageComponente NivelesTanquesContext={nivelesTanques} />;
             case 'conductoresreadonly': return <ConductoresReadOnlyPage />;
