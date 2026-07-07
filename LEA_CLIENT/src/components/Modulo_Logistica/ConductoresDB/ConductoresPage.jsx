@@ -27,6 +27,8 @@ import {
   Select,
   MenuItem,
   Tooltip,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 
 import EditIcon from "@mui/icons-material/Edit";
@@ -38,15 +40,20 @@ import ClearIcon from "@mui/icons-material/Clear";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import PhoneIcon from "@mui/icons-material/Phone";
 
+// Ajusta esta ruta únicamente si ExcelDownloadButton está en otra carpeta.
+import ExcelDownloadButton from "../../../utils/Export_Data_General/ExcelDownloadData";
+
 const API_URL = "https://ambiocomserver.onrender.com/api/conductores";
 
 // Debounce simple sin librerías
 const useDebouncedValue = (value, delay = 250) => {
   const [debounced, setDebounced] = useState(value);
+
   useEffect(() => {
     const t = setTimeout(() => setDebounced(value), delay);
     return () => clearTimeout(t);
   }, [value, delay]);
+
   return debounced;
 };
 
@@ -55,9 +62,16 @@ const ConductoresPage = () => {
   const [editingId, setEditingId] = useState(null);
   const [transportadoras, setTransportadoras] = useState([]);
 
-  // buscador
+  // Buscador
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 250);
+
+  // Snackbar para confirmar la copia de la tabla
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   const [form, setForm] = useState({
     nombres: "",
@@ -75,6 +89,23 @@ const ConductoresPage = () => {
       error?.message ||
       "Ocurrió un error inesperado."
     );
+  };
+
+  const mostrarSnackbar = (message, severity = "success") => {
+    setSnackbar({
+      open: true,
+      message,
+      severity,
+    });
+  };
+
+  const handleCloseSnackbar = (_, reason) => {
+    if (reason === "clickaway") return;
+
+    setSnackbar((prev) => ({
+      ...prev,
+      open: false,
+    }));
   };
 
   // ===============================
@@ -102,6 +133,7 @@ const ConductoresPage = () => {
       const res = await axios.get(
         "https://ambiocomserver.onrender.com/api/transportadoraslogistica"
       );
+
       setTransportadoras(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       console.error("Error al obtener transportadoras:", error);
@@ -129,6 +161,7 @@ const ConductoresPage = () => {
       carroseria: "",
       contacto: "",
     });
+
     setEditingId(null);
   };
 
@@ -153,6 +186,7 @@ const ConductoresPage = () => {
           title: "Campos obligatorios",
           text: "Debes diligenciar Nombres y Apellidos.",
         });
+
         return;
       }
 
@@ -203,6 +237,7 @@ const ConductoresPage = () => {
       carroseria: conductor.carroseria,
       contacto: conductor.contacto || "",
     });
+
     setEditingId(conductor._id);
 
     Swal.fire({
@@ -246,7 +281,7 @@ const ConductoresPage = () => {
         showConfirmButton: false,
       });
 
-      // Si estabas editando el mismo registro, resetea (patrón igual al resto)
+      // Si estabas editando el mismo registro, resetea
       if (editingId === id) resetForm();
 
       fetchConductores();
@@ -263,10 +298,11 @@ const ConductoresPage = () => {
   };
 
   // ===============================
-  // FILTRO BUSCADOR (rápido)
+  // FILTRO BUSCADOR
   // ===============================
   const conductoresFiltrados = useMemo(() => {
     const q = (debouncedSearch || "").trim().toLowerCase();
+
     if (!q) return conductores;
 
     return conductores.filter((c) => {
@@ -287,6 +323,110 @@ const ConductoresPage = () => {
       );
     });
   }, [conductores, debouncedSearch]);
+
+  // Data utilizada tanto para copiar como para descargar Excel.
+  // Respeta la búsqueda actual y no incluye IDs ni la columna de acciones.
+  const datosTabla = useMemo(() => {
+    return conductoresFiltrados.map((conductor) => ({
+      Conductor: `${conductor.nombres || ""} ${
+        conductor.apellidos || ""
+      }`.trim(),
+      Placa: conductor.placaVehiculo ?? "",
+      Transportadora: conductor.empresa ?? "",
+      Carrocería: conductor.carroseria ?? "",
+      Contacto: conductor.contacto ?? "",
+    }));
+  }, [conductoresFiltrados]);
+
+  // ===============================
+  // COPIAR TABLA CON CLIC DERECHO
+  // ===============================
+  const limpiarValorParaCopiar = (value) => {
+    return String(value ?? "")
+      .replace(/\t/g, " ")
+      .replace(/\r?\n/g, " ")
+      .trim();
+  };
+
+  const copiarConFallback = (texto) => {
+    const textarea = document.createElement("textarea");
+
+    textarea.value = texto;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    textarea.style.opacity = "0";
+    textarea.style.pointerEvents = "none";
+
+    document.body.appendChild(textarea);
+
+    textarea.focus();
+    textarea.select();
+
+    const copiado = document.execCommand("copy");
+
+    document.body.removeChild(textarea);
+
+    if (!copiado) {
+      throw new Error("El navegador no permitió copiar la tabla.");
+    }
+  };
+
+  const handleCopyTable = async () => {
+    if (datosTabla.length === 0) {
+      mostrarSnackbar("No hay información para copiar.", "warning");
+      return;
+    }
+
+    try {
+      const columnas = [
+        "Conductor",
+        "Placa",
+        "Transportadora",
+        "Carrocería",
+        "Contacto",
+      ];
+
+      const encabezado = columnas.join("\t");
+
+      const filas = datosTabla.map((fila) =>
+        columnas
+          .map((columna) => limpiarValorParaCopiar(fila[columna]))
+          .join("\t")
+      );
+
+      const textoTabla = [encabezado, ...filas].join("\n");
+
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.clipboard &&
+        window.isSecureContext
+      ) {
+        await navigator.clipboard.writeText(textoTabla);
+      } else {
+        copiarConFallback(textoTabla);
+      }
+
+      mostrarSnackbar(
+        `Tabla copiada: ${datosTabla.length} registro${
+          datosTabla.length === 1 ? "" : "s"
+        }.`,
+        "success"
+      );
+    } catch (error) {
+      console.error("Error al copiar la tabla:", error);
+
+      mostrarSnackbar(
+        "No se pudo copiar la tabla al portapapeles.",
+        "error"
+      );
+    }
+  };
+
+  const handleTableContextMenu = (event) => {
+    event.preventDefault();
+    handleCopyTable();
+  };
 
   const total = conductores.length;
   const filtrados = conductoresFiltrados.length;
@@ -310,11 +450,13 @@ const ConductoresPage = () => {
 
               <Stack direction="row" spacing={1} mt={1} flexWrap="wrap">
                 <Chip size="small" label={`Total Data: ${total}`} />
+
                 <Chip
                   size="small"
                   color={debouncedSearch ? "primary" : "default"}
                   label={`Data Filtrada: ${filtrados}`}
                 />
+
                 {debouncedSearch && (
                   <Chip size="small" label={`Filtro: "${debouncedSearch}"`} />
                 )}
@@ -388,6 +530,7 @@ const ConductoresPage = () => {
             <Grid item xs={12} sm={6} md={2.5}>
               <FormControl fullWidth size="small">
                 <InputLabel id="empresa-label">Transportadora</InputLabel>
+
                 <Select
                   labelId="empresa-label"
                   name="empresa"
@@ -439,6 +582,7 @@ const ConductoresPage = () => {
                   mt: 0.5,
                   justifyContent: "flex-start",
                   alignItems: "center",
+                  flexWrap: "wrap",
                 }}
               >
                 <Button
@@ -458,6 +602,7 @@ const ConductoresPage = () => {
                     size="small"
                     onClick={async () => {
                       resetForm();
+
                       await Swal.fire({
                         icon: "info",
                         title: "Edición cancelada",
@@ -476,6 +621,7 @@ const ConductoresPage = () => {
                   size="small"
                   onClick={async () => {
                     await fetchConductores();
+
                     Swal.fire({
                       icon: "success",
                       title: "Actualizado",
@@ -488,6 +634,17 @@ const ConductoresPage = () => {
                 >
                   Refrescar
                 </Button>
+
+                <ExcelDownloadButton
+                  data={datosTabla}
+                  filename="conductores.xlsx"
+                  sheetName="Conductores"
+                  buttonText="Excel"
+                  variant="contained"
+                  color="success"
+                  size="small"
+                  disabled={datosTabla.length === 0}
+                />
               </Box>
             </Grid>
           </Grid>
@@ -498,6 +655,7 @@ const ConductoresPage = () => {
           <TableContainer
             component={Paper}
             elevation={0}
+            onContextMenu={handleTableContextMenu}
             sx={{
               maxHeight: "68vh",
               borderRadius: 3,
@@ -542,6 +700,7 @@ const ConductoresPage = () => {
                   <TableRow>
                     <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
                       <Typography fontWeight={800}>No hay resultados</Typography>
+
                       <Typography variant="body2" color="text.secondary">
                         {debouncedSearch
                           ? "Prueba cambiando el texto de búsqueda."
@@ -577,6 +736,7 @@ const ConductoresPage = () => {
                             <Typography sx={{ fontWeight: 800 }}>
                               {nombreCompleto || "-"}
                             </Typography>
+
                             <Typography
                               variant="caption"
                               color="text.secondary"
@@ -602,6 +762,7 @@ const ConductoresPage = () => {
                               fontSize="small"
                               sx={{ color: "#607D8B" }}
                             />
+
                             <Typography variant="body2">
                               {c.empresa || "-"}
                             </Typography>
@@ -671,6 +832,25 @@ const ConductoresPage = () => {
           </TableContainer>
         </CardContent>
       </Card>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={2500}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "center",
+        }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: "100%", fontWeight: 700 }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
