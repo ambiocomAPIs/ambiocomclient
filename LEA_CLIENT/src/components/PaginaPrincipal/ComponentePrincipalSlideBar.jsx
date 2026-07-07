@@ -441,7 +441,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
         },
         // { text: 'Registro Trabajadores', roles: ["admin", "developer"], icon: <img src={workerIcon} alt="empleadosambiocom" style={{ width: 25, height: 25 }} />, key: 'empleadosambiocom' },
         {
-            text: 'Administrator DEV', roles: ["admin", "developer"], icon: <img src={DevIcon} alt="basededatos" style={{ width: 25, height: 25 }} />, key: 'basededatoscomponent',
+            text: 'Administrator DEV', roles: ["admin", "developer", "liderlogistica"], icon: <img src={DevIcon} alt="basededatos" style={{ width: 25, height: 25 }} />, key: 'basededatoscomponent',
             subItems: [
                 { text: 'Task & Reqeriments', subKey: 'taskandrequeriments', roles: ["admin", "developer"], icon: <img src={ListToDoIcon} alt="taskandrequeriments" style={{ width: 25, height: 25 }} /> },
                 { text: 'R-I-C-E', subKey: 'ricescrum', roles: ["admin", "developer", "liderlogistica"], icon: <img src={ListToDoIcon} alt="taskandrequeriments" style={{ width: 25, height: 25 }} /> },
