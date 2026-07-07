@@ -208,7 +208,7 @@ const ProgramacionDespachoDiariaPage = () => {
 
   const { rol } = useAuth();
 
-  const canEditFechaEstimadaEntrega = ["developer", "comercial"].includes(normalizeText(rol).toLowerCase());
+  const canEditFechaEstimadaEntrega = ["developer", "comercial", "liderlogistica", "torrecontrollogistica"].includes(normalizeText(rol).toLowerCase());
 
   const [rows, setRows] = useState([]);
   const [editingId, setEditingId] = useState(null);
