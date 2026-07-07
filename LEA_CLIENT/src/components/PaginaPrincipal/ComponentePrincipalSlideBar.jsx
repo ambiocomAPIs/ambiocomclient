@@ -45,7 +45,7 @@ import BitacoraDeSupervisores from '../Bitacora/BitacoraComponentesProduccion'
 import PanelHoras from '../PanelHoras';
 import InventarioCarbonMadera from '../InventarioCarbonMadera';
 import PatioCarbonMadera from '../ModuloProduccion/PatioCarbonMadera.jsx'
-// import SeguimientoTotalizadores from '../ModuloProduccion/SeguimientoTotalizadores.jsx'
+import SeguimientoTotalizadores from '../ModuloProduccion/SeguimientoTotalizadores.jsx'
 // Modulo de graficos y analisis
 import GraficoNivelesTanquesPorDiaPageComponente from '../TanquesVistaNiveles/GraficaNivelesDiariosPorMes/GraficaNivelesDiarioTanquesJornalerosComponente.jsx';
 import Comparativomensualinsumosquimicos from '../Modulos_API/DataAnalisis/Comparativomensualinsumosquimicos.jsx';
@@ -234,7 +234,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'Inventario de insumos', subKey: 'Inventariodeinsumos', /* roles: ["admin","supervisor"], */ icon: <img src={inventoryIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Tanques Jornaleros', subKey: 'Tanquesjornaleros', roles: ["admin", "developer", "liderlogistica", "supervisor"], icon: <img src={rulerIcon} alt="tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
                 { text: 'Patio Carbon-Madera', subKey: 'patiodecarbonymadera', /* roles: ["admin","supervisor"], */ icon: <img src={CalderaIcon} alt="patiodecarbonymadera" style={{ width: 25, height: 25 }} /> },
-                // { text: 'Seguimiento_Producción', subKey: 'seguimientototalizadores', /* roles: ["admin","supervisor"], */ icon: <img src={DataSeguimientoIocn} alt="patiodecarbonymadera" style={{ width: 25, height: 25 }} /> },
+                { text: 'Seguimiento_Producción', subKey: 'seguimientototalizadores', /* roles: ["admin","supervisor"], */ icon: <img src={DataSeguimientoIocn} alt="patiodecarbonymadera" style={{ width: 25, height: 25 }} /> },
                 { text: 'Bitacora Supervisores', subKey: 'bitacoradeturnosupervisores', /* roles: ["admin","supervisor"], */ icon: <img src={bitacoraIcon} alt="bitacoradeturnosupervisores" style={{ width: 25, height: 25 }} /> },
                 { text: 'Inventario Combust', subKey: 'inventariodecarbonymadera', /* roles: ["admin","supervisor"], */ icon: <img src={coalInventoryIcon} alt="Tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
                 { text: 'Horas Extras', subKey: 'horasextrassupervisores', /* roles: ["admin","supervisor"], */ icon: <img src={StopWatchIcon} alt="horasextrassupervisores" style={{ width: 25, height: 25 }} /> },
@@ -444,7 +444,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             text: 'Administrator DEV', roles: ["admin", "developer"], icon: <img src={DevIcon} alt="basededatos" style={{ width: 25, height: 25 }} />, key: 'basededatoscomponent',
             subItems: [
                 { text: 'Task & Reqeriments', subKey: 'taskandrequeriments', roles: ["admin", "developer"], icon: <img src={ListToDoIcon} alt="taskandrequeriments" style={{ width: 25, height: 25 }} /> },
-                { text: 'R-I-C-E', subKey: 'ricescrum', roles: ["admin", "developer"], icon: <img src={ListToDoIcon} alt="taskandrequeriments" style={{ width: 25, height: 25 }} /> },
+                { text: 'R-I-C-E', subKey: 'ricescrum', roles: ["admin", "developer", "liderlogistica"], icon: <img src={ListToDoIcon} alt="taskandrequeriments" style={{ width: 25, height: 25 }} /> },
                 { text: 'Base de datos', subKey: 'basededatos', roles: ["admin", "developer"], icon: <img src={DatabaseAdministratorIcon} alt="basededatos" style={{ width: 25, height: 25 }} /> },
                 { text: 'Logs Traffic', subKey: 'logstraffic', roles: ["admin", "developer"], icon: <img src={logsIcon} alt="logstraffic" style={{ width: 25, height: 25 }} /> },
             ],
@@ -452,10 +452,10 @@ export default function EmpresarialPrincipalSchedulerApp() {
 
         {
             text: 'Pausa Activa', roles: ["admin", "developer"], icon: <img src={ArcadeIcon} alt="pausaactiva" style={{ width: 25, height: 25 }} />, key: 'pausaactiva',
-            subItems: [
-                { text: 'Trivia SM26', roles: ["admin", "developer"], icon: <img src={ArcadeIcon} alt="trivia" style={{ width: 25, height: 25 }} />, key: 'trivia' },
-                { text: 'SNAKE', roles: ["admin", "developer"], icon: <img src={ArcadeIcon} alt="snake" style={{ width: 25, height: 25 }} />, key: 'snake' },
-            ],
+            // subItems: [
+            //     { text: 'Trivia SM26', roles: ["admin", "developer"], icon: <img src={ArcadeIcon} alt="trivia" style={{ width: 25, height: 25 }} />, key: 'trivia' },
+            //     { text: 'SNAKE', roles: ["admin", "developer"], icon: <img src={ArcadeIcon} alt="snake" style={{ width: 25, height: 25 }} />, key: 'snake' },
+            // ],
         },
         { text: 'Assistance', roles: ["admin", "developer"], icon: <img src={robotAssistanceIcon} alt="robotassistance" style={{ width: 25, height: 25 }} />, key: 'robotassistance' },
     ];
@@ -550,7 +550,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'moduloingresosmaderacarbon': return <TablaRegistroCarbonMadera />;
             //Produccion
             case 'patiodecarbonymadera': return <PatioCarbonMadera />; 
-            // case 'seguimientototalizadores': return <SeguimientoTotalizadores />; 
+            case 'seguimientototalizadores': return <SeguimientoTotalizadores />; 
             //informes
             case 'Inventariodeoh': return <InformeAlcoholes />;
             //logistica
