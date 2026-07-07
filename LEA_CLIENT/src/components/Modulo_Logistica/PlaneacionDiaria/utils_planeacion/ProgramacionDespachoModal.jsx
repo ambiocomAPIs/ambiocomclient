@@ -155,7 +155,7 @@ const ProgramacionDespachoModal = ({
             disabled={!canEditFechaEstimadaEntrega || submitting}
             helperText={
               !canEditFechaEstimadaEntrega
-                ? "Solo comercial o developer pueden editar este campo"
+                ? "Solo comercial, torre de control o lider logistica pueden editar este campo"
                 : ""
             }
             FormHelperTextProps={{
