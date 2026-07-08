@@ -24,6 +24,8 @@ import {
   Chip,
   Stack,
   Divider,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 
 import EditIcon from "@mui/icons-material/Edit";
@@ -35,6 +37,7 @@ import WaterDropIcon from "@mui/icons-material/WaterDrop";
 
 import GraficaConsumoDiarioPTAP from "./utils_PTAP/GraficaConsumoDiario";
 import ModalIngresoMedicionContadoresAgua from "./utils_PTAP/Modal_PTAP/ModalIngresoMedicionContadoresAgua";
+import ExcelDownloadButton from "../../utils/Export_Data_General/ExcelDownloadData";
 
 import { styled } from "@mui/material/styles";
 import Tooltip, { tooltipClasses } from "@mui/material/Tooltip";
@@ -87,6 +90,12 @@ const obtenerRangoDefault = () => {
   };
 };
 
+const limpiarValorCopiado = (valor) =>
+  String(valor ?? "")
+    .replace(/\t/g, " ")
+    .replace(/\r?\n/g, " ")
+    .trim();
+
 export default function TablaMedicionesAgua() {
   const rangoDefault = obtenerRangoDefault();
 
@@ -107,6 +116,12 @@ export default function TablaMedicionesAgua() {
   const [cargando, setCargando] = useState(false);
 
   const [ordenAZ, setOrdenAZ] = useState(false);
+
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    mensaje: "",
+    severidad: "success",
+  });
 
   const [form, setForm] = useState({
     fecha: "",
@@ -172,6 +187,7 @@ export default function TablaMedicionesAgua() {
 
   const eliminarMedicion = async (id) => {
     if (!window.confirm("¿Eliminar esta medición?")) return;
+
     await axios.delete(`${API_MEDICIONES}/${id}`);
     obtenerMediciones();
   };
@@ -179,14 +195,20 @@ export default function TablaMedicionesAgua() {
   /* ================= CRUD COLUMNAS ================= */
   const guardarColumna = async () => {
     await axios.post(API_COLUMNAS, nuevaColumna);
-    setNuevaColumna({ nombre: "", key: "", unidad: "m³" });
+
+    setNuevaColumna({
+      nombre: "",
+      key: "",
+      unidad: "m³",
+    });
+
     setOpenColumna(false);
     obtenerColumnas();
   };
 
   /* ================= ORDEN + FILTRO ================= */
   const medicionesOrdenadas = useMemo(() => {
-    let data = [...mediciones];
+    const data = [...mediciones];
 
     data.sort((a, b) => {
       const fechaA = parseFecha(a.fecha);
@@ -198,31 +220,60 @@ export default function TablaMedicionesAgua() {
     return data;
   }, [mediciones, ordenAZ]);
 
-  /* ================= RENDER CONSUMO ================= */
-  const renderConsumo = (row, index, key) => {
-    const actual = row.lecturas[key] ?? 0;
-
-    const medicionesCronologicas = [...medicionesOrdenadas].sort(
+  const medicionesCronologicas = useMemo(() => {
+    return [...medicionesOrdenadas].sort(
       (a, b) => parseFecha(a.fecha) - parseFecha(b.fecha)
     );
+  }, [medicionesOrdenadas]);
+
+  /* ================= CONSUMO POR FILA ================= */
+  const calcularConsumoFila = (row, key) => {
+    const indexCronologico = medicionesCronologicas.findIndex(
+      (medicion) => medicion._id === row._id
+    );
+
+    if (indexCronologico <= 0) return 0;
+
+    const actual = Number(row.lecturas?.[key] ?? 0);
+    const anterior = Number(
+      medicionesCronologicas[indexCronologico - 1]?.lecturas?.[key] ?? 0
+    );
+
+    return actual - anterior;
+  };
+
+  /* ================= RENDER CONSUMO ================= */
+  const renderConsumo = (row, index, key) => {
+    const actual = row.lecturas?.[key] ?? 0;
 
     const indexCronologico = medicionesCronologicas.findIndex(
-      (m) => m._id === row._id
+      (medicion) => medicion._id === row._id
     );
 
     if (indexCronologico === 0) {
       return verConsumo ? (
-        <Typography sx={{ fontWeight: 700, color: "#757575" }}>0</Typography>
+        <Typography
+          component="span"
+          sx={{
+            fontWeight: 700,
+            color: "#757575",
+          }}
+        >
+          0
+        </Typography>
       ) : (
         actual
       );
     }
 
-    const anterior = medicionesCronologicas[indexCronologico - 1].lecturas[key] ?? 0;
-    const diff = actual - anterior;
+    const diff = calcularConsumoFila(row, key);
 
     const color =
-      diff === 0 ? "#757575" : diff > CONSUMO_ALTO ? "#C62828" : "#2E7D32";
+      diff === 0
+        ? "#757575"
+        : diff > CONSUMO_ALTO
+          ? "#C62828"
+          : "#2E7D32";
 
     if (!verConsumo) {
       return (
@@ -232,22 +283,30 @@ export default function TablaMedicionesAgua() {
       );
     }
 
-    return <Typography sx={{ fontWeight: 700, color }}>{diff}</Typography>;
+    return (
+      <Typography
+        component="span"
+        sx={{
+          fontWeight: 700,
+          color,
+        }}
+      >
+        {diff}
+      </Typography>
+    );
   };
 
   /* ================= ACUMULADO ================= */
   const calcularAcumulado = (key) => {
     let total = 0;
 
-    const medicionesCronologicas = [...medicionesOrdenadas].sort(
-      (a, b) => parseFecha(a.fecha) - parseFecha(b.fecha)
-    );
+    medicionesCronologicas.forEach((row, index) => {
+      if (index === 0) return;
 
-    medicionesCronologicas.forEach((row, i) => {
-      if (i === 0) return;
-
-      const actual = row.lecturas[key] ?? 0;
-      const anterior = medicionesCronologicas[i - 1].lecturas[key] ?? 0;
+      const actual = Number(row.lecturas?.[key] ?? 0);
+      const anterior = Number(
+        medicionesCronologicas[index - 1]?.lecturas?.[key] ?? 0
+      );
 
       const diff = actual - anterior;
 
@@ -259,11 +318,160 @@ export default function TablaMedicionesAgua() {
     return total;
   };
 
+  /* ================= TOTAL CONSUMO PLANTA ================= */
+  const consumoTotalPlanta = useMemo(() => {
+    return columnas.reduce(
+      (total, columna) => total + calcularAcumulado(columna.key),
+      0
+    );
+  }, [columnas, medicionesCronologicas]);
+
+  /* ================= DATOS PARA GRÁFICA ================= */
   const medicionesParaGrafica = useMemo(() => {
     return [...medicionesOrdenadas].sort(
       (a, b) => parseFecha(a.fecha) - parseFecha(b.fecha)
     );
   }, [medicionesOrdenadas]);
+
+  /* ================= DATOS PARA EXCEL ================= */
+  const datosParaExcel = useMemo(() => {
+    const filas = medicionesOrdenadas.map((row) => {
+      const filaExcel = {
+        Fecha: row.fecha || "",
+        Hora: row.hora || "",
+      };
+
+      columnas.forEach((columna) => {
+        const nombreColumna = `${columna.nombre} (${columna.unidad})`;
+
+        filaExcel[nombreColumna] = verConsumo
+          ? calcularConsumoFila(row, columna.key)
+          : row.lecturas?.[columna.key] ?? 0;
+      });
+
+      filaExcel.Observaciones = row.observaciones || "";
+      filaExcel.Operador = row.operador || "";
+
+      return filaExcel;
+    });
+
+    const filaAcumulados = {
+      Fecha: "CONSUMO ACUMULADO",
+      Hora: "",
+    };
+
+    columnas.forEach((columna) => {
+      const nombreColumna = `${columna.nombre} (${columna.unidad})`;
+      filaAcumulados[nombreColumna] = calcularAcumulado(columna.key);
+    });
+
+    filaAcumulados.Observaciones = `Consumo total planta: ${consumoTotalPlanta} m³`;
+    filaAcumulados.Operador = "";
+
+    return [...filas, filaAcumulados];
+  }, [
+    medicionesOrdenadas,
+    medicionesCronologicas,
+    columnas,
+    verConsumo,
+    consumoTotalPlanta,
+  ]);
+
+  /* ================= COPIAR TABLA ================= */
+  const copiarTextoAlPortapapeles = async (texto) => {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(texto);
+      return;
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = texto;
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    textarea.style.top = "0";
+
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    const copiado = document.execCommand("copy");
+    document.body.removeChild(textarea);
+
+    if (!copiado) {
+      throw new Error("No fue posible copiar la tabla.");
+    }
+  };
+
+  const copiarTabla = async (event) => {
+    event.preventDefault();
+
+    try {
+      if (!medicionesOrdenadas.length) {
+        setSnackbar({
+          open: true,
+          mensaje: "No hay información para copiar.",
+          severidad: "warning",
+        });
+        return;
+      }
+
+      const encabezados = [
+        "Fecha",
+        "Hora",
+        ...columnas.map(
+          (columna) => `${columna.nombre} (${columna.unidad})`
+        ),
+        "Observaciones",
+        "Operador",
+      ];
+
+      const filas = medicionesOrdenadas.map((row) => {
+        const valoresMedidores = columnas.map((columna) =>
+          verConsumo
+            ? calcularConsumoFila(row, columna.key)
+            : row.lecturas?.[columna.key] ?? 0
+        );
+
+        return [
+          row.fecha || "",
+          row.hora || "",
+          ...valoresMedidores,
+          row.observaciones || "",
+          row.operador || "",
+        ];
+      });
+
+      const filaAcumulado = [
+        "CONSUMO ACUMULADO",
+        "",
+        ...columnas.map((columna) => calcularAcumulado(columna.key)),
+        `Consumo total planta: ${consumoTotalPlanta} m³`,
+        "",
+      ];
+
+      const textoTabla = [encabezados, ...filas, filaAcumulado]
+        .map((fila) =>
+          fila.map((valor) => limpiarValorCopiado(valor)).join("\t")
+        )
+        .join("\n");
+
+      await copiarTextoAlPortapapeles(textoTabla);
+
+      setSnackbar({
+        open: true,
+        mensaje: "Tabla copiada correctamente. Ya puedes pegarla en Excel.",
+        severidad: "success",
+      });
+    } catch (error) {
+      console.error("Error al copiar la tabla:", error);
+
+      setSnackbar({
+        open: true,
+        mensaje: "No fue posible copiar la tabla.",
+        severidad: "error",
+      });
+    }
+  };
 
   /* ================= RENDER ================= */
   return (
@@ -304,7 +512,7 @@ export default function TablaMedicionesAgua() {
                 color: "#1A237E",
                 fontWeight: 800,
                 letterSpacing: "-0.5px",
-                mt: -1
+                mt: -1,
               }}
             >
               Medición diaria de contadores de agua
@@ -322,7 +530,7 @@ export default function TablaMedicionesAgua() {
             </Typography>
           </Box>
 
-          <Stack direction="row" spacing={1} flexWrap="wrap">
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
             <Chip
               label={`${medicionesOrdenadas.length} registros`}
               color="primary"
@@ -335,6 +543,17 @@ export default function TablaMedicionesAgua() {
               color="info"
               variant="outlined"
               sx={{ fontWeight: 700 }}
+            />
+
+            <Chip
+              icon={<WaterDropIcon />}
+              label={`Consumo total planta: ${consumoTotalPlanta} m³`}
+              color="success"
+              variant="outlined"
+              sx={{
+                fontWeight: 800,
+                backgroundColor: "#F1F8E9",
+              }}
             />
           </Stack>
         </Box>
@@ -379,6 +598,7 @@ export default function TablaMedicionesAgua() {
                 minWidth: 170,
               }}
             />
+
             <Button
               variant="contained"
               onClick={() => obtenerMediciones()}
@@ -410,6 +630,7 @@ export default function TablaMedicionesAgua() {
                 ? "Orden: A-Z (Antiguas primero)"
                 : "Orden: Z-A (Recientes primero)"}
             </Button>
+
             <Button
               variant={verConsumo ? "contained" : "outlined"}
               startIcon={<WaterDropIcon />}
@@ -436,6 +657,17 @@ export default function TablaMedicionesAgua() {
             >
               Gráfica
             </Button>
+
+            <ExcelDownloadButton
+              data={datosParaExcel}
+              filename={`mediciones_agua_${fechaDesde}_${fechaHasta}.xlsx`}
+              sheetName="Mediciones agua"
+              buttonText="Exportar Excel"
+              variant="contained"
+              color="success"
+              size="medium"
+              disabled={cargando}
+            />
           </Stack>
         </Box>
       </Paper>
@@ -444,12 +676,15 @@ export default function TablaMedicionesAgua() {
       <TableContainer
         component={Paper}
         elevation={3}
+        onContextMenu={copiarTabla}
+        title="Haz clic derecho para copiar la tabla"
         sx={{
           maxHeight: "68vh",
           overflow: "auto",
           borderRadius: 4,
           border: "1px solid #DDE3EA",
           boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
+          cursor: "context-menu",
         }}
       >
         <Table
@@ -493,9 +728,9 @@ export default function TablaMedicionesAgua() {
               <TableCell align="center">Fecha</TableCell>
               <TableCell align="center">Hora</TableCell>
 
-              {columnas.map((c) => (
-                <TableCell key={c.key} align="center">
-                  {c.nombre} ({c.unidad})
+              {columnas.map((columna) => (
+                <TableCell key={columna.key} align="center">
+                  {columna.nombre} ({columna.unidad})
                 </TableCell>
               ))}
 
@@ -506,7 +741,7 @@ export default function TablaMedicionesAgua() {
           </TableHead>
 
           <TableBody>
-            {medicionesOrdenadas.map((row, i) => (
+            {medicionesOrdenadas.map((row, index) => (
               <TableRow key={row._id}>
                 <TableCell align="center" sx={{ fontWeight: 700 }}>
                   {row.fecha}
@@ -514,9 +749,9 @@ export default function TablaMedicionesAgua() {
 
                 <TableCell align="center">{row.hora}</TableCell>
 
-                {columnas.map((c) => (
-                  <TableCell key={c.key} align="center">
-                    {renderConsumo(row, i, c.key)}
+                {columnas.map((columna) => (
+                  <TableCell key={columna.key} align="center">
+                    {renderConsumo(row, index, columna.key)}
                   </TableCell>
                 ))}
 
@@ -531,7 +766,9 @@ export default function TablaMedicionesAgua() {
                   {row.observaciones || "-"}
                 </TableCell>
 
-                <TableCell align="center">{row.operador || "-"}</TableCell>
+                <TableCell align="center">
+                  {row.operador || "-"}
+                </TableCell>
 
                 <TableCell align="center">
                   <IconButton
@@ -589,13 +826,22 @@ export default function TablaMedicionesAgua() {
             >
               <TableCell colSpan={2}>Consumo acumulado</TableCell>
 
-              {columnas.map((c) => (
-                <TableCell key={c.key} align="center">
-                  {calcularAcumulado(c.key)} m³
+              {columnas.map((columna) => (
+                <TableCell key={columna.key} align="center">
+                  {calcularAcumulado(columna.key)} m³
                 </TableCell>
               ))}
 
-              <TableCell colSpan={3} />
+              <TableCell
+                colSpan={3}
+                align="center"
+                sx={{
+                  backgroundColor: "#C8E6C9",
+                  color: "#1B5E20 !important",
+                }}
+              >
+                Total planta: {consumoTotalPlanta} m³
+              </TableCell>
             </TableRow>
           </TableBody>
         </Table>
@@ -628,6 +874,7 @@ export default function TablaMedicionesAgua() {
               observaciones: "",
               lecturas: {},
             });
+
             setOpenFila(true);
           }}
         />
@@ -654,7 +901,12 @@ export default function TablaMedicionesAgua() {
       />
 
       {/* ================= MODAL COLUMNA ================= */}
-      <Dialog open={openColumna} fullWidth maxWidth="xs">
+      <Dialog
+        open={openColumna}
+        onClose={() => setOpenColumna(false)}
+        fullWidth
+        maxWidth="xs"
+      >
         <DialogTitle sx={{ fontWeight: 800, color: "#1A237E" }}>
           Nuevo medidor
         </DialogTitle>
@@ -666,7 +918,10 @@ export default function TablaMedicionesAgua() {
             margin="dense"
             value={nuevaColumna.nombre}
             onChange={(e) =>
-              setNuevaColumna({ ...nuevaColumna, nombre: e.target.value })
+              setNuevaColumna({
+                ...nuevaColumna,
+                nombre: e.target.value,
+              })
             }
           />
 
@@ -676,7 +931,10 @@ export default function TablaMedicionesAgua() {
             margin="dense"
             value={nuevaColumna.key}
             onChange={(e) =>
-              setNuevaColumna({ ...nuevaColumna, key: e.target.value })
+              setNuevaColumna({
+                ...nuevaColumna,
+                key: e.target.value,
+              })
             }
           />
 
@@ -686,7 +944,10 @@ export default function TablaMedicionesAgua() {
             margin="dense"
             value={nuevaColumna.unidad}
             onChange={(e) =>
-              setNuevaColumna({ ...nuevaColumna, unidad: e.target.value })
+              setNuevaColumna({
+                ...nuevaColumna,
+                unidad: e.target.value,
+              })
             }
           />
         </DialogContent>
@@ -780,6 +1041,39 @@ export default function TablaMedicionesAgua() {
           />
         </Box>
       </Dialog>
+
+      {/* ================= SNACKBAR ================= */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "center",
+        }}
+        onClose={() =>
+          setSnackbar((prev) => ({
+            ...prev,
+            open: false,
+          }))
+        }
+      >
+        <Alert
+          severity={snackbar.severidad}
+          variant="filled"
+          onClose={() =>
+            setSnackbar((prev) => ({
+              ...prev,
+              open: false,
+            }))
+          }
+          sx={{
+            width: "100%",
+            fontWeight: 700,
+          }}
+        >
+          {snackbar.mensaje}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

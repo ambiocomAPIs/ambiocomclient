@@ -24,6 +24,7 @@ import {
   InputLabel,
   TextField,
   Button,
+  Chip,
 } from "@mui/material";
 
 /* ================= UTILS ================= */
@@ -158,6 +159,14 @@ export default function GraficaConsumoDiarioPTAP({
 
     return totales;
   }, [data, columnas]);
+
+  /* ================= TOTAL CONSUMO PLANTA ================= */
+  const consumoTotalPlanta = useMemo(() => {
+    return columnas.reduce(
+      (total, columna) => total + (acumulados[columna.key] || 0),
+      0
+    );
+  }, [acumulados, columnas]);
 
   /* ================= HANDLERS ================= */
   const handleChangeSeries = (event) => {
@@ -301,12 +310,31 @@ export default function GraficaConsumoDiarioPTAP({
           gap: 2,
         }}
       >
-        <Typography
-          variant="subtitle1"
-          sx={{ fontWeight: 600, color: "#1A237E" }}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            flexWrap: "wrap",
+          }}
         >
-          Consumo diario de agua (m³)
-        </Typography>
+          <Typography
+            variant="subtitle1"
+            sx={{ fontWeight: 600, color: "#1A237E" }}
+          >
+            Consumo diario de agua (m³)
+          </Typography>
+
+          <Chip
+            label={`Consumo total planta: ${consumoTotalPlanta.toFixed(2)} m³`}
+            color="success"
+            variant="outlined"
+            sx={{
+              fontWeight: 800,
+              backgroundColor: "#F1F8E9",
+            }}
+          />
+        </Box>
 
         <Box
           ref={buttonsRef}
