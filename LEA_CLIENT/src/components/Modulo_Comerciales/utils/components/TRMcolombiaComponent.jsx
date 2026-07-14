@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Alert, Box, Button, Stack, Typography } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
@@ -122,9 +122,52 @@ function useTrmColombia() {
 export default function TrmColombiaCard({
   colors = DEFAULT_COLORS,
   onUseTrm,
+  onTrmLoaded,
   showToast,
 }) {
   const trmLive = useTrmColombia();
+
+  /*
+   * Guardamos los callbacks en referencias para evitar que la TRM se vuelva
+   * a aplicar por cada renderizado del componente padre.
+   */
+  const onUseTrmRef = useRef(onUseTrm);
+  const onTrmLoadedRef = useRef(onTrmLoaded);
+
+  useEffect(() => {
+    onUseTrmRef.current = onUseTrm;
+  }, [onUseTrm]);
+
+  useEffect(() => {
+    onTrmLoadedRef.current = onTrmLoaded;
+  }, [onTrmLoaded]);
+
+  /*
+   * Envía automáticamente la TRM al cotizador cuando:
+   * 1. termina la consulta inicial;
+   * 2. termina una consulta iniciada con el botón "Actualizar".
+   *
+   * Si el padre no envía onTrmLoaded, reutiliza onUseTrm para conservar
+   * compatibilidad con la implementación anterior.
+   */
+  useEffect(() => {
+    if (
+      trmLive.loading ||
+      !Number.isFinite(trmLive.valor) ||
+      !trmLive.updatedAt
+    ) {
+      return;
+    }
+
+    const aplicarTrm =
+      onTrmLoadedRef.current || onUseTrmRef.current;
+
+    aplicarTrm?.(trmLive.valor);
+  }, [
+    trmLive.loading,
+    trmLive.valor,
+    trmLive.updatedAt,
+  ]);
 
   const fechaDesde = trmLive.vigenciaDesde
     ? new Date(trmLive.vigenciaDesde).toLocaleDateString("es-CO", {
@@ -150,7 +193,7 @@ export default function TrmColombiaCard({
     : "—";
 
   const handleUseTrm = () => {
-    if (!trmLive.valor) {
+    if (!Number.isFinite(trmLive.valor)) {
       showToast?.("No hay TRM disponible para aplicar", "error");
       return;
     }
@@ -234,7 +277,7 @@ export default function TrmColombiaCard({
               size="small"
               variant="contained"
               onClick={handleUseTrm}
-              disabled={!trmLive.valor}
+              disabled={!Number.isFinite(trmLive.valor)}
               sx={{
                 borderRadius: "12px",
                 textTransform: "none",
@@ -304,7 +347,7 @@ export default function TrmColombiaCard({
               >
                 {trmLive.loading
                   ? "Consultando..."
-                  : trmLive.valor
+                  : Number.isFinite(trmLive.valor)
                     ? `$${trmLive.valor.toLocaleString("es-CO", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
@@ -313,9 +356,23 @@ export default function TrmColombiaCard({
               </Typography>
             </Box>
 
-            <MiniCard label="Vigencia desde" value={fechaDesde} colors={colors} />
-            <MiniCard label="Vigencia hasta" value={fechaHasta} colors={colors} />
-            <MiniCard label="Actualizado" value={actualizado} colors={colors} />
+            <MiniCard
+              label="Vigencia desde"
+              value={fechaDesde}
+              colors={colors}
+            />
+
+            <MiniCard
+              label="Vigencia hasta"
+              value={fechaHasta}
+              colors={colors}
+            />
+
+            <MiniCard
+              label="Actualizado"
+              value={actualizado}
+              colors={colors}
+            />
           </Box>
         )}
       </Box>

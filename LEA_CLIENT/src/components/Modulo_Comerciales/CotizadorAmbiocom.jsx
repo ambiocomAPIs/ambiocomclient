@@ -1130,16 +1130,12 @@ export default function CotizadorAmbiocom() {
     const [view, setView] = useState("cotizar");
     const [form, setForm] = useState(() => {
         const initialForm = { ...DEFAULT_FORM };
-        const initialTrm = toNumberSafe(initialForm.trm) || 4200;
-        const initialPeCOP = toNumberSafe(initialForm.pe);
-
         return {
             ...initialForm,
-            peUSD:
-                initialForm.peUSD ??
-                (initialPeCOP != null && initialTrm > 0
-                    ? (initialPeCOP / initialTrm).toFixed(4)
-                    : ""),
+            // La TRM ya no inicia con un valor quemado. Se llena cuando
+            // TrmColombiaCard termina de consultar la TRM vigente.
+            trm: "",
+            peUSD: initialForm.peUSD ?? "",
         };
     });
     const [peInputMode, setPeInputMode] = useState("cop");
@@ -1491,7 +1487,7 @@ export default function CotizadorAmbiocom() {
         const sector = form.sector;
         const origen = form.origen;
         const ciudad = form.ciudad;
-        const trm = Number.parseFloat(form.trm) || 4200;
+        const trm = Number.parseFloat(form.trm) || 0;
         const volMen = Number.parseFloat(form.volMensual) || 40000;
 
         const peCOPInput = toNumberSafe(form.pe);
@@ -1549,7 +1545,7 @@ export default function CotizadorAmbiocom() {
             const litros = rd.cap * cant;
 
             volT = litros;
-            recipUSD = (rd.cop * cant) / amort / trm / litros;
+            recipUSD = trm > 0 ? (rd.cop * cant) / amort / trm / litros : 0;
             recipDesc = `${cant} × ${rd.n} | amort. ${amort}`;
             recipData = { tipo: rec, cant, amort };
         }
@@ -1744,13 +1740,27 @@ export default function CotizadorAmbiocom() {
         setForm((prev) => ({ ...prev, pventa: "" }));
     };
 
-    const usarTrmLive = (valorTrm) => {
-        if (!valorTrm) {
-            showToast("No hay TRM disponible para aplicar", "error");
+    const usarTrmLive = (valorTrm, { silent = false } = {}) => {
+        const trmConsultada = toNumberSafe(valorTrm);
+
+        if (trmConsultada == null || trmConsultada <= 0) {
+            if (!silent) {
+                showToast("No hay TRM disponible para aplicar", "error");
+            }
             return;
         }
 
-        update("trm", Math.round(valorTrm));
+        const trmActualizada = Math.round(trmConsultada);
+
+        update("trm", trmActualizada);
+
+        if (!silent) {
+            showToast(`TRM actualizada aplicada: ${fCOP(trmActualizada)}`);
+        }
+    };
+
+    const cargarTrmConsultadaAutomaticamente = (valorTrm) => {
+        usarTrmLive(valorTrm, { silent: true });
     };
 
     const guardar = async () => {
@@ -2353,12 +2363,12 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                 >
                                     {[
                                         ["PV", `$${f3(result.pv)}`],
+                                        ["TRM ACTUALIZADA", result.trm > 0 ? fCOP(result.trm) : "Consultando…"],
                                         [
                                             "Margen",
                                             result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D",
                                         ],
                                         ["Utilidad", result.util != null ? `$${f3(result.util)}` : "N/D"],
-                                        ["TRM", fCOP(result.trm)],
                                     ].map(([label, value]) => (
                                         <Box
                                             key={label}
@@ -2432,6 +2442,15 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                         />
                                     </Box>
                                 </Panel>
+
+                                <TrmColombiaCard
+                                    colors={COLORS}
+                                    // Aplicación manual desde el botón de la tarjeta.
+                                    onUseTrm={usarTrmLive}
+                                    // Aplicación automática cuando termina la consulta.
+                                    onTrmLoaded={cargarTrmConsultadaAutomaticamente}
+                                    showToast={showToast}
+                                />
 
                                 <Panel icon={ScienceOutlinedIcon} title="Producto y precio">
                                     <Box
@@ -2578,7 +2597,7 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                                 }}
                                             >
                                                 <TextInput
-                                                    label="TRM (COP / USD)"
+                                                    label="TRM ACTUALIZADA (COP / USD)"
                                                     type="number"
                                                     value={form.trm}
                                                     onChange={(v) => update("trm", v)}
@@ -2917,11 +2936,6 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                                 </Box>
                                             </Box>
                                         </Box>
-                                        <TrmColombiaCard
-                                            colors={COLORS}
-                                            onUseTrm={usarTrmLive}
-                                            showToast={showToast}
-                                        />
                                     </Stack>
                                 </Panel>
                             </Stack>
