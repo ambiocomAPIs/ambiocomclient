@@ -337,7 +337,7 @@ const InformeAlcoholes = () => {
     }
   };
 
-  const pedirContraseñaYEditar = async (zona) => {
+  const pedirContraseñaYEditar = async (zona, volumenCalculadoZona) => {
     const { value: password } = await Swal.fire({
       title: "Autorización requerida",
       input: "password",
@@ -355,9 +355,12 @@ const InformeAlcoholes = () => {
       Swal.fire("Error", "Contraseña incorrecta", "error");
       return;
     }
-    // Si la contraseña es correcta, activa edición:
+    // Si ya existe un volumen físico ajustado, lo conserva como valor inicial.
+    // De lo contrario, toma el volumen calculado por nivel × factor de esta zona.
+    const valorActual = zona.volumenEditable ?? volumenCalculadoZona;
+
     setVolumenEditableId(zona.id);
-    setVolumenEditableValor(zona.volumenEditable || volumenTotalZona); 
+    setVolumenEditableValor(String(valorActual));
   };
 
   // Función para guardar volumen editable:
@@ -371,6 +374,41 @@ const InformeAlcoholes = () => {
     );
     setVolumenEditableId(null);
     setVolumenEditableValor("");
+  };
+
+  const handleGenerarInforme = async () => {
+    if (!fechaSeleccionada) {
+      await Swal.fire({
+        icon: "warning",
+        title: "Fecha requerida",
+        text: "Selecciona una fecha antes de generar el informe.",
+        confirmButtonText: "Entendido",
+      });
+      return;
+    }
+
+    try {
+      Swal.fire({
+        title: "Generando informe...",
+        text: "Preparando el archivo PDF",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
+      await exportarInformeAlcoholesPDF(fechaSeleccionada, zonas);
+      Swal.close();
+    } catch (error) {
+      console.error("Error generando el PDF:", error);
+
+      await Swal.fire({
+        icon: "error",
+        title: "No se pudo generar el informe",
+        text:
+          error?.message ||
+          "Ocurrió un error durante la creación del archivo PDF.",
+      });
+    }
   };
 
   return (
@@ -549,19 +587,7 @@ const InformeAlcoholes = () => {
           <Button
             variant="contained"
             size="medium"
-            onClick={async () => {
-              if (!fechaSeleccionada) {
-                alert("Por favor selecciona una fecha antes de generar el informe.");
-                return;
-              }
-
-              try {
-                await exportarInformeAlcoholesPDF(fechaSeleccionada, zonas);
-              } catch (error) {
-                console.error("Error generando el PDF:", error);
-                alert("Ocurrió un error al generar el PDF.");
-              }
-            }}
+            onClick={handleGenerarInforme}
             sx={{
               backgroundImage: "linear-gradient(45deg, #1D4ED8, #1E40AF)",
               color: "#fff",
@@ -894,7 +920,9 @@ const InformeAlcoholes = () => {
                       <Typography
                         component="span"
                         sx={{ cursor: "pointer", fontWeight: "bold" }}
-                        onDoubleClick={() => pedirContraseñaYEditar(zona)}
+                        onDoubleClick={() =>
+                          pedirContraseñaYEditar(zona, volumenTotalZona)
+                        }
                       >
                         {(zona.volumenEditable ?? volumenTotalZona).toLocaleString("es-CO")} L
                       </Typography>

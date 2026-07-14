@@ -45,6 +45,29 @@ function ensureSpace(doc, currentY, neededSpace, bottomMargin = 25) {
   return currentY;
 }
 
+// Mantiene el cálculo original basado en nivel × factor.
+function calcularVolumenOriginalZona(zona) {
+  return (zona?.tanques || []).reduce(
+    (acc, t) =>
+      acc +
+      (Number(t.NivelTanque) || 0) * (Number(t.Factor) || 0),
+    0
+  );
+}
+
+// Si el usuario ajustó físicamente el volumen, ese valor tiene prioridad.
+// Si no existe ajuste, se conserva el cálculo original.
+function obtenerVolumenInformeZona(zona) {
+  const tieneVolumenAjustado =
+    zona?.volumenEditable !== undefined &&
+    zona?.volumenEditable !== null &&
+    zona?.volumenEditable !== "";
+
+  return tieneVolumenAjustado
+    ? Number(zona.volumenEditable) || 0
+    : calcularVolumenOriginalZona(zona);
+}
+
 async function crearGraficaBarras(zonas) {
   return new Promise((resolve) => {
     const canvas = document.createElement("canvas");
@@ -52,13 +75,8 @@ async function crearGraficaBarras(zonas) {
     canvas.height = 450;
     const ctx = canvas.getContext("2d");
 
-    const labels = zonas.map(z => z.nombre);
-    const data = zonas.map(z =>
-      z.tanques.reduce(
-        (acc, t) => acc + (Number(t.NivelTanque) || 0) * (Number(t.Factor) || 0),
-        0
-      )
-    );
+    const labels = zonas.map((z) => z.nombre);
+    const data = zonas.map((z) => obtenerVolumenInformeZona(z));
 
     const colors = [
       "#2C7BE5", "#27AE60", "#F39C12", "#E74C3C", "#8E44AD",
@@ -150,8 +168,17 @@ export async function exportarInformeAlcoholesPDF(fecha, zonas) {
   let costoTotalGeneral = 0;
 
   const logoUrl = "/LogoCompany/logoambiocomsinfondo.png";
-  const logoBase64 = await toBase64(logoUrl);
-  doc.addImage(logoBase64, "PNG", 9, 5, 65, 20);
+
+  // Si el logo no carga, el informe continúa y se descarga sin detenerse.
+  try {
+    const logoBase64 = await toBase64(logoUrl);
+    doc.addImage(logoBase64, "PNG", 9, 5, 65, 20);
+  } catch (error) {
+    console.warn(
+      "No fue posible cargar el logo. El PDF se generará sin logo:",
+      error
+    );
+  }
 
   drawGradientRect(doc, 0, 28, 210, 12, [41, 128, 185], [46, 204, 113]);
   doc.setFont("DejaVuSans", "bold");
@@ -247,10 +274,12 @@ export async function exportarInformeAlcoholesPDF(fecha, zonas) {
       },
     });
 
-    const volumenTotalZona = zona.tanques.reduce(
-      (acc, t) => acc + (Number(t.NivelTanque) || 0) * (Number(t.Factor) || 0),
-      0
-    );
+    const volumenCalculadoZona = calcularVolumenOriginalZona(zona);
+    const volumenTotalZona = obtenerVolumenInformeZona(zona);
+    const tieneVolumenAjustado =
+      zona.volumenEditable !== undefined &&
+      zona.volumenEditable !== null &&
+      zona.volumenEditable !== "";
 
     const costoZona =
       volumenTotalZona * (Number(zona.costoLitro) || 0);
@@ -271,6 +300,23 @@ export async function exportarInformeAlcoholesPDF(fecha, zonas) {
     );
 
     startY += 6;
+
+    // Conserva la trazabilidad del cálculo original cuando hubo ajuste físico.
+    if (tieneVolumenAjustado) {
+      startY = ensureSpace(doc, startY, 8);
+      doc.setFont("DejaVuSans", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text(
+        `Volumen calculado por nivel × factor: ${volumenCalculadoZona.toLocaleString(
+          "es-CO",
+          { maximumFractionDigits: 2 }
+        )} L`,
+        30,
+        startY
+      );
+      startY += 5;
+    }
 
     startY = ensureSpace(doc, startY, 10);
 
