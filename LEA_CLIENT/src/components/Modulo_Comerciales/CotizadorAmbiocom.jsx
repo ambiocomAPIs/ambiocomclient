@@ -1128,7 +1128,21 @@ function DispatchMiniCard({ label, value }) {
 
 export default function CotizadorAmbiocom() {
     const [view, setView] = useState("cotizar");
-    const [form, setForm] = useState(DEFAULT_FORM);
+    const [form, setForm] = useState(() => {
+        const initialForm = { ...DEFAULT_FORM };
+        const initialTrm = toNumberSafe(initialForm.trm) || 4200;
+        const initialPeCOP = toNumberSafe(initialForm.pe);
+
+        return {
+            ...initialForm,
+            peUSD:
+                initialForm.peUSD ??
+                (initialPeCOP != null && initialTrm > 0
+                    ? (initialPeCOP / initialTrm).toFixed(4)
+                    : ""),
+        };
+    });
+    const [peInputMode, setPeInputMode] = useState("cop");
     const [autoMode, setAutoMode] = useState(true);
     const [historial, setHistorial] = useState([]);
     const [historialLoading, setHistorialLoading] = useState(false);
@@ -1480,7 +1494,18 @@ export default function CotizadorAmbiocom() {
         const trm = Number.parseFloat(form.trm) || 4200;
         const volMen = Number.parseFloat(form.volMensual) || 40000;
 
-        const peCOP = toNumberSafe(form.pe) || 0;
+        const peCOPInput = toNumberSafe(form.pe);
+        const peUSDInput = toNumberSafe(form.peUSD);
+
+        let peCOP = 0;
+
+        if (peInputMode === "usd" && peUSDInput != null && trm > 0) {
+            peCOP = peUSDInput * trm;
+        } else if (peCOPInput != null) {
+            peCOP = peCOPInput;
+        } else if (peUSDInput != null && trm > 0) {
+            peCOP = peUSDInput * trm;
+        }
 
         const rutaFromSelect = rutaFleteSeleccionada?.row || null;
 
@@ -1589,7 +1614,7 @@ export default function CotizadorAmbiocom() {
             recipDesc,
             isSeco,
         };
-    }, [form, matrizFletes, rutaFleteSeleccionada]);
+    }, [form, matrizFletes, rutaFleteSeleccionada, peInputMode]);
 
     const suggestedPrice = result.sug;
 
@@ -1600,6 +1625,42 @@ export default function CotizadorAmbiocom() {
 
         setForm((prev) => (prev.pventa === next ? prev : { ...prev, pventa: next }));
     }, [autoMode, suggestedPrice]);
+
+    const updatePuntoEquilibrioCOP = (value) => {
+        setPeInputMode("cop");
+
+        setForm((prev) => {
+            const trmActual = toNumberSafe(prev.trm) || 0;
+            const peCOP = toNumberSafe(value);
+
+            return {
+                ...prev,
+                pe: value,
+                peUSD:
+                    peCOP != null && trmActual > 0
+                        ? (peCOP / trmActual).toFixed(4)
+                        : "",
+            };
+        });
+    };
+
+    const updatePuntoEquilibrioUSD = (value) => {
+        setPeInputMode("usd");
+
+        setForm((prev) => {
+            const trmActual = toNumberSafe(prev.trm) || 0;
+            const peUSD = toNumberSafe(value);
+
+            return {
+                ...prev,
+                peUSD: value,
+                pe:
+                    peUSD != null && trmActual > 0
+                        ? (peUSD * trmActual).toFixed(2)
+                        : "",
+            };
+        });
+    };
 
     const update = (key, value) => {
         setForm((prev) => {
@@ -1621,6 +1682,32 @@ export default function CotizadorAmbiocom() {
                     rutaFleteId: "",
                     tipoDespacho: "",
                     volumen: "",
+                };
+            }
+
+            if (key === "trm") {
+                const nuevaTrm = toNumberSafe(value) || 0;
+                const peCOP = toNumberSafe(prev.pe);
+                const peUSD = toNumberSafe(prev.peUSD);
+
+                if (peInputMode === "usd") {
+                    return {
+                        ...prev,
+                        trm: value,
+                        pe:
+                            peUSD != null && nuevaTrm > 0
+                                ? (peUSD * nuevaTrm).toFixed(2)
+                                : "",
+                    };
+                }
+
+                return {
+                    ...prev,
+                    trm: value,
+                    peUSD:
+                        peCOP != null && nuevaTrm > 0
+                            ? (peCOP / nuevaTrm).toFixed(4)
+                            : "",
                 };
             }
 
@@ -1663,10 +1750,7 @@ export default function CotizadorAmbiocom() {
             return;
         }
 
-        setForm((prev) => ({
-            ...prev,
-            trm: Math.round(valorTrm),
-        }));
+        update("trm", Math.round(valorTrm));
     };
 
     const guardar = async () => {
@@ -1918,9 +2002,15 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
             trm: selectedQuote.trm,
             pe:
                 selectedQuote.peCOP != null
-                    ? Math.round(Number(selectedQuote.peCOP))
+                    ? Number(selectedQuote.peCOP).toFixed(2)
                     : selectedQuote.pe != null && selectedQuote.trm
-                        ? Math.round(Number(selectedQuote.pe) * Number(selectedQuote.trm))
+                        ? (Number(selectedQuote.pe) * Number(selectedQuote.trm)).toFixed(2)
+                        : "",
+            peUSD:
+                selectedQuote.pe != null
+                    ? Number(selectedQuote.pe).toFixed(4)
+                    : selectedQuote.peCOP != null && selectedQuote.trm
+                        ? (Number(selectedQuote.peCOP) / Number(selectedQuote.trm)).toFixed(4)
                         : "",
             pventa: Number(selectedQuote.pv).toFixed(3),
             recipiente: selectedQuote.recipData?.tipo || "garrafa",
@@ -1928,6 +2018,7 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
             cantRecip: selectedQuote.recipData?.cant || 50,
         });
 
+        setPeInputMode("cop");
         setAutoMode(false);
         setSelectedId(null);
         setView("cotizar");
@@ -2401,15 +2492,34 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                                 <TextInput
                                                     label="Punto Equilibrio base COP/L"
                                                     type="number"
-                                                    value={form.pe}
-                                                    onChange={(v) => update("pe", v)}
+                                                    value={form.pe ?? ""}
+                                                    onChange={updatePuntoEquilibrioCOP}
+                                                    helperText={
+                                                        peInputMode === "cop"
+                                                            ? "Valor principal; USD se convierte automáticamente."
+                                                            : "Calculado desde el valor manual en USD."
+                                                    }
+                                                    InputProps={{
+                                                        startAdornment: (
+                                                            <InputAdornment position="start">COP</InputAdornment>
+                                                        ),
+                                                    }}
                                                 />
                                                 <TextInput
                                                     label="Punto Equilibrio base USD/L"
                                                     type="number"
-                                                    value={result.pe ? result.pe.toFixed(4) : ""}
-                                                    onChange={() => { }}
-                                                    InputProps={{ readOnly: true }}
+                                                    value={form.peUSD ?? ""}
+                                                    onChange={updatePuntoEquilibrioUSD}
+                                                    helperText={
+                                                        peInputMode === "usd"
+                                                            ? "Valor principal; COP se convierte automáticamente."
+                                                            : "Calculado desde el valor manual en COP."
+                                                    }
+                                                    InputProps={{
+                                                        startAdornment: (
+                                                            <InputAdornment position="start">USD</InputAdornment>
+                                                        ),
+                                                    }}
                                                 />
                                             </Box>
                                         </Stack>
