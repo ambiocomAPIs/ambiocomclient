@@ -14,7 +14,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  MenuItem
+  MenuItem,
+  CircularProgress
 } from "@mui/material";
 import { Tooltip } from "@mui/material";
 import Swal from "sweetalert2";
@@ -24,7 +25,6 @@ import CloseIcon from '@mui/icons-material/Close';
 
 import { useNivelesDiariosTanques } from "../../utils/Context/NivelesDiariosTanquesContext";
 
-import { exportarInformeAlcoholesPDF } from "./utils_Informes/GenerarPdfInformeAlcoholes";
 // Modals imported
 import ModalInformesHistoricos from "./utils_Informes/ModalInformesHistoricos";
 
@@ -157,8 +157,102 @@ const InformeAlcoholes = () => {
     }, 0);
   }, [tanquesDisponibles]);
 
-  if (nivelesTanquesLoading) {
-    return <Typography>⏳ Cargando datos...</Typography>;
+  if (!hydrated || nivelesTanquesLoading) {
+    return (
+      <Box
+        sx={{
+          minHeight: "calc(100vh - 80px)",
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          px: 3,
+          background:
+            "linear-gradient(135deg, rgba(248,250,252,1) 0%, rgba(239,246,255,1) 50%, rgba(240,253,250,1) 100%)",
+        }}
+      >
+        <Paper
+          elevation={0}
+          sx={{
+            width: "100%",
+            maxWidth: 470,
+            px: { xs: 3, sm: 5 },
+            py: { xs: 4, sm: 5 },
+            borderRadius: 4,
+            textAlign: "center",
+            border: "1px solid rgba(148, 163, 184, 0.22)",
+            boxShadow: "0 22px 60px rgba(15, 23, 42, 0.10)",
+            backgroundColor: "rgba(255,255,255,0.92)",
+            backdropFilter: "blur(10px)",
+          }}
+        >
+          <Box
+            sx={{
+              width: 78,
+              height: 78,
+              mx: "auto",
+              mb: 2.5,
+              borderRadius: "50%",
+              display: "grid",
+              placeItems: "center",
+              background:
+                "linear-gradient(135deg, rgba(37,99,235,0.12), rgba(5,150,105,0.12))",
+            }}
+          >
+            <CircularProgress
+              size={46}
+              thickness={4}
+              sx={{ color: "#2563eb" }}
+            />
+          </Box>
+
+          <Typography
+            variant="h6"
+            fontWeight={700}
+            color="#334155"
+            sx={{ mb: 1 }}
+          >
+            Preparando informe de alcoholes
+          </Typography>
+
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ lineHeight: 1.7 }}
+          >
+            {!hydrated
+              ? "Recuperando la información guardada..."
+              : "Consultando los niveles diarios de los tanques..."}
+          </Typography>
+
+          <Box
+            sx={{
+              mt: 3,
+              height: 5,
+              width: "100%",
+              overflow: "hidden",
+              borderRadius: 999,
+              backgroundColor: "rgba(148,163,184,0.18)",
+              position: "relative",
+              "&::after": {
+                content: '""',
+                position: "absolute",
+                inset: 0,
+                width: "42%",
+                borderRadius: 999,
+                background:
+                  "linear-gradient(90deg, #2563eb 0%, #0ea5e9 55%, #059669 100%)",
+                animation: "informeLoading 1.35s ease-in-out infinite",
+              },
+              "@keyframes informeLoading": {
+                "0%": { transform: "translateX(-110%)" },
+                "100%": { transform: "translateX(260%)" },
+              },
+            }}
+          />
+        </Paper>
+      </Box>
+    );
   }
 
   const agregarZona = () => {
@@ -396,7 +490,14 @@ const InformeAlcoholes = () => {
         didOpen: () => Swal.showLoading(),
       });
 
+      // Carga jsPDF, autoTable y Chart.js solo cuando se genera el informe.
+      // Esto evita bloquear el primer render del componente.
+      const { exportarInformeAlcoholesPDF } = await import(
+        "./utils_Informes/GenerarPdfInformeAlcoholes"
+      );
+
       await exportarInformeAlcoholesPDF(fechaSeleccionada, zonas);
+
       Swal.close();
     } catch (error) {
       console.error("Error generando el PDF:", error);
