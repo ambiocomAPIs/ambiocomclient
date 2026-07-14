@@ -2329,6 +2329,7 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                             <MenuItem value="">— Seleccionar —</MenuItem>
                                             <MenuItem value="emily">Emily López</MenuItem>
                                             <MenuItem value="vanessa">Vanessa Sarmiento</MenuItem>
+                                            <MenuItem value="vanessa">Juan Carlos</MenuItem>
                                             <MenuItem value="marcelo">Marcelo Garrido</MenuItem>
                                         </SelectInput>
 
