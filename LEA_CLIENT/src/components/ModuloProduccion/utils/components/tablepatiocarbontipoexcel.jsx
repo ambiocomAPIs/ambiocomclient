@@ -435,6 +435,8 @@ export const createBlankDailyRow = (date, activeCarbons) => ({
       paladasCV: "",
       paladasCN: "",
       ajuste: "",
+      consumo: "",
+      final: "",
     };
     return acc;
   }, {}),
@@ -452,6 +454,8 @@ export const normalizeMonthlyRows = (rows, carbons) =>
         paladasCV: "",
         paladasCN: "",
         ajuste: "",
+        consumo: "",
+        final: "",
       };
       return acc;
     }, {}),
@@ -472,6 +476,8 @@ const hasUsefulMonthlyRowData = (row = {}) => {
       carbon.paladasCV,
       carbon.paladasCN,
       carbon.ajuste,
+      carbon.consumo,
+      carbon.final,
     ].some(hasFilledValue)
   );
 };
@@ -1522,21 +1528,63 @@ function MonthlyExcelSheet({
         tolvaPrincipal: row.tolvaPrincipal ?? "",
         tolvasAuxiliares: row.tolvasAuxiliares ?? "",
         observacion: row.observacion ?? "",
+
+        // Cada material se guarda como una fila de Excel ya calculada:
+        // datos base + resultado de las fórmulas del día.
         carbons: carbons.reduce((acc, carbon) => {
-          const data = row.carbons?.[carbon.id] || {};
           const result = row.carbonResults?.[carbon.id] || {};
-          const ingreso = row.carbonIngresoMatches?.[carbon.id];
 
           acc[carbon.id] = {
-            inicial: data.inicial ?? "",
-            entrada: ingreso?.hasIngreso ? result.entrada : data.entrada ?? "",
-            paladasCV: data.paladasCV ?? "",
-            paladasCN: data.paladasCN ?? "",
-            ajuste: data.ajuste ?? "",
+            inicial: toSafeNumber(result.inicial),
+            entrada: toSafeNumber(result.entrada),
+            paladasCV: toSafeNumber(result.paladasCV),
+            paladasCN: toSafeNumber(result.paladasCN),
+            ajuste: toSafeNumber(result.ajuste),
+            consumo: toSafeNumber(result.salida),
+            final: toSafeNumber(result.final),
           };
 
           return acc;
         }, {}),
+
+        // También se persisten las columnas calculadas del resumen del día.
+        totales: {
+          entradas: toSafeNumber(row.totalEntradas),
+          entradaCarbon: toSafeNumber(row.totalEntradaCarbon),
+          entradaMadera: toSafeNumber(row.totalEntradaMadera),
+          entradaBagazo: toSafeNumber(row.totalEntradaBagazo),
+
+          ajusteCarbon: toSafeNumber(row.totalAjusteCarbon),
+          ajusteMadera: toSafeNumber(row.totalAjusteMadera),
+          ajusteBagazo: toSafeNumber(row.totalAjusteBagazo),
+
+          consumo: toSafeNumber(row.totalConsumo),
+          consumoCarbon: toSafeNumber(row.totalCarbon),
+          consumoMadera: toSafeNumber(row.totalMadera),
+          consumoBagazo: toSafeNumber(row.totalBagazo),
+
+          finalPatio: toSafeNumber(row.totalFinalPatio),
+          finalCarbonPatio: toSafeNumber(row.totalFinalCarbonPatio),
+          finalMaderaPatio: toSafeNumber(row.totalFinalMaderaPatio),
+          finalBagazoPatio: toSafeNumber(row.totalFinalBagazoPatio),
+
+          final: toSafeNumber(row.totalFinal),
+          finalCarbon: toSafeNumber(row.totalFinalCarbon),
+          finalMadera: toSafeNumber(row.totalFinalMadera),
+          finalBagazo: toSafeNumber(row.totalFinalBagazo),
+
+          tolvas: toSafeNumber(row.totalTolvas),
+          tolvaCarbon: toSafeNumber(row.tolvaCarbon),
+          tolvaMadera: toSafeNumber(row.tolvaMadera),
+          tolvaBagazo: toSafeNumber(row.tolvaBagazo),
+
+          porcentajeCarbon: toSafeNumber(row.carbonPercent),
+          porcentajeMadera: toSafeNumber(row.maderaPercent),
+          porcentajeBagazo: toSafeNumber(row.bagazoPercent),
+
+          consumoAcumulado: toSafeNumber(row.consumoAcumulado),
+          mixPercentByItem: row.mixPercentByItem || {},
+        },
       }))
       .filter(hasUsefulMonthlyRowData);
   }, [calculatedRows, carbons]);
@@ -1560,33 +1608,160 @@ function MonthlyExcelSheet({
     }, 0);
   }, [calculatedRows, carbons]);
 
-  const validateSavedAutomaticIncome = useCallback(
+  const validatePersistedExcelRows = useCallback(
     (savedRows = []) => {
+      const tolerance = 0.01;
       const savedByDate = savedRows.reduce((acc, row) => {
         const fecha = normalizeDateKey(row.fecha || row.id);
         if (fecha) acc[fecha] = row;
         return acc;
       }, {});
 
+      const calculatedByDate = calculatedRows.reduce((acc, row) => {
+        const fecha = normalizeDateKey(row.fecha || row.id);
+        if (fecha) acc[fecha] = row;
+        return acc;
+      }, {});
+
+      const requiredCarbonFields = [
+        "inicial",
+        "entrada",
+        "paladasCV",
+        "paladasCN",
+        "ajuste",
+        "consumo",
+        "final",
+      ];
+
+      const requiredTotalFields = [
+        "entradas",
+        "entradaCarbon",
+        "entradaMadera",
+        "entradaBagazo",
+        "ajusteCarbon",
+        "ajusteMadera",
+        "ajusteBagazo",
+        "consumo",
+        "consumoCarbon",
+        "consumoMadera",
+        "consumoBagazo",
+        "finalPatio",
+        "finalCarbonPatio",
+        "finalMaderaPatio",
+        "finalBagazoPatio",
+        "final",
+        "finalCarbon",
+        "finalMadera",
+        "finalBagazo",
+        "tolvas",
+        "tolvaCarbon",
+        "tolvaMadera",
+        "tolvaBagazo",
+        "porcentajeCarbon",
+        "porcentajeMadera",
+        "porcentajeBagazo",
+        "consumoAcumulado",
+      ];
+
       const differences = [];
 
-      calculatedRows.forEach((row) => {
-        const fecha = normalizeDateKey(row.fecha);
+      rowsToPersist.forEach((expectedRow) => {
+        const fecha = expectedRow.fecha;
         const savedRow = savedByDate[fecha];
+        const calculatedRow = calculatedByDate[fecha];
+
+        if (!savedRow) {
+          differences.push({
+            fecha,
+            campo: "fila",
+            detalle: "La fecha no fue devuelta por MongoDB después de guardar.",
+          });
+          return;
+        }
 
         carbons.forEach((carbon) => {
-          const ingreso = row.carbonIngresoMatches?.[carbon.id];
-          if (!ingreso?.hasIngreso) return;
+          const savedCarbon = savedRow.carbons?.[carbon.id];
 
-          const expected = toSafeNumber(row.carbonResults?.[carbon.id]?.entrada);
-          const saved = toSafeNumber(savedRow?.carbons?.[carbon.id]?.entrada);
-
-          if (!savedRow || Math.abs(expected - saved) > 0.005) {
+          if (!savedCarbon) {
             differences.push({
               fecha,
               material: carbon.name,
-              expected,
-              saved,
+              campo: "material",
+              detalle: "No se persistió el bloque del material.",
+            });
+            return;
+          }
+
+          requiredCarbonFields.forEach((field) => {
+            const value = savedCarbon[field];
+
+            if (
+              value === null ||
+              value === undefined ||
+              value === "" ||
+              !Number.isFinite(Number(value))
+            ) {
+              differences.push({
+                fecha,
+                material: carbon.name,
+                campo: field,
+                detalle: "La celda calculada no quedó persistida como número.",
+              });
+            }
+          });
+
+          const inicial = toSafeNumber(savedCarbon.inicial);
+          const entrada = toSafeNumber(savedCarbon.entrada);
+          const ajuste = toSafeNumber(savedCarbon.ajuste);
+          const consumo = toSafeNumber(savedCarbon.consumo);
+          const final = toSafeNumber(savedCarbon.final);
+          const expectedFinal = inicial + entrada + ajuste - consumo;
+
+          if (Math.abs(final - expectedFinal) > tolerance) {
+            differences.push({
+              fecha,
+              material: carbon.name,
+              campo: "final",
+              esperado: expectedFinal,
+              guardado: final,
+              detalle: "El final persistido no cumple la fórmula.",
+            });
+          }
+
+          const ingresoAutomatico =
+            calculatedRow?.carbonIngresoMatches?.[carbon.id];
+
+          if (ingresoAutomatico?.hasIngreso) {
+            const expectedEntrada = toSafeNumber(
+              calculatedRow?.carbonResults?.[carbon.id]?.entrada
+            );
+
+            if (Math.abs(entrada - expectedEntrada) > tolerance) {
+              differences.push({
+                fecha,
+                material: carbon.name,
+                campo: "entrada",
+                esperado: expectedEntrada,
+                guardado: entrada,
+                detalle: "El ingreso automático no quedó actualizado.",
+              });
+            }
+          }
+        });
+
+        requiredTotalFields.forEach((field) => {
+          const value = savedRow.totales?.[field];
+
+          if (
+            value === null ||
+            value === undefined ||
+            value === "" ||
+            !Number.isFinite(Number(value))
+          ) {
+            differences.push({
+              fecha,
+              campo: `totales.${field}`,
+              detalle: "La columna de resumen no quedó persistida.",
             });
           }
         });
@@ -1594,7 +1769,7 @@ function MonthlyExcelSheet({
 
       return differences;
     },
-    [calculatedRows, carbons]
+    [rowsToPersist, calculatedRows, carbons]
   );
 
   const handleSaveRows = useCallback(async () => {
@@ -1621,17 +1796,12 @@ function MonthlyExcelSheet({
       return;
     }
 
-    if (!hasUnsavedChanges && pendingAutomaticIncomeCount === 0) {
-      showActionSnack("No hay cambios pendientes por guardar.", "info");
-      return;
-    }
-
     const result = await Swal.fire({
       icon: "question",
-      title: "¿Guardar consumos?",
-      html: `Se guardarán <b>${rowsToPersist.length}</b> fila(s) del rango <b>${desde}</b> a <b>${hasta}</b>.<br/>Cruces automáticos pendientes: <b>${pendingAutomaticIncomeCount}</b>.`,
+      title: "¿Guardar tabla y recalcular?",
+      html: `Se persistirán <b>${rowsToPersist.length}</b> fila(s), incluyendo inicial, entradas, paladas, ajustes, consumo, final y columnas de resumen.<br/><br/>El backend recalculará cronológicamente desde la primera fecha afectada hasta el último registro existente.<br/><br/>Cruces automáticos detectados: <b>${pendingAutomaticIncomeCount}</b>.`,
       showCancelButton: true,
-      confirmButtonText: "Sí, guardar",
+      confirmButtonText: "Sí, guardar todo",
       cancelButtonText: "Cancelar",
       confirmButtonColor: "#059669",
       cancelButtonColor: "#64748b",
@@ -1644,8 +1814,8 @@ function MonthlyExcelSheet({
       setSaving(true);
 
       Swal.fire({
-        title: "Guardando consumos",
-        text: "Validando que la información quede persistida en MongoDB...",
+        title: "Guardando como hoja de cálculo",
+        text: "Recalculando y persistiendo todas las celdas en MongoDB...",
         allowOutsideClick: false,
         allowEscapeKey: false,
         didOpen: () => Swal.showLoading(),
@@ -1676,14 +1846,14 @@ function MonthlyExcelSheet({
       );
 
       const persistedRows = verifiedData.registros || savedData?.registros || [];
-      const differences = validateSavedAutomaticIncome(persistedRows);
+      const differences = validatePersistedExcelRows(persistedRows);
 
       if (differences.length > 0) {
         Swal.close();
         await Swal.fire({
           icon: "warning",
           title: "Guardado con diferencias",
-          html: `La información se envió, pero <b>${differences.length}</b> cruce(s) de ingresos no quedaron iguales en la base de datos. Revisa consola para el detalle.`,
+          html: `MongoDB respondió, pero se detectaron <b>${differences.length}</b> diferencia(s) en las celdas persistidas.<br/><br/>Revisa la consola para ver fecha, material y campo.`,
           confirmButtonText: "Entendido",
         });
         console.table(differences);
@@ -1696,12 +1866,16 @@ function MonthlyExcelSheet({
       setHasUnsavedChanges(false);
       onAfterSave?.(persistedRows);
 
+      const recalculationText = savedData?.recalculados
+        ? ` Se recalcularon ${savedData.recalculados} fecha(s) desde ${savedData.recalcularDesde} hasta ${savedData.recalcularHasta}.`
+        : "";
+
       Swal.close();
       await Swal.fire({
         icon: "success",
-        title: "Información guardada",
-        text: "Los consumos y los cruces automáticos quedaron validados contra la base de datos.",
-        timer: 1800,
+        title: "Tabla persistida correctamente",
+        text: `Los datos base y calculados quedaron guardados con sus valores nuevos.${recalculationText}`,
+        timer: 2600,
         showConfirmButton: false,
       });
     } catch (error) {
@@ -1712,7 +1886,7 @@ function MonthlyExcelSheet({
         title: "No se pudo guardar",
         text:
           error.message ||
-          "Ocurrió un error guardando los consumos de combustibles.",
+          "Ocurrió un error guardando y recalculando los consumos de combustibles.",
         confirmButtonText: "Entendido",
       });
     } finally {
@@ -1721,7 +1895,6 @@ function MonthlyExcelSheet({
   }, [
     dateRange?.desde,
     dateRange?.hasta,
-    hasUnsavedChanges,
     pendingAutomaticIncomeCount,
     rowsToPersist,
     ingresosCombustiblesRows.length,
@@ -1729,9 +1902,8 @@ function MonthlyExcelSheet({
     ingresosCombustiblesIndex.totalToneladas,
     onSave,
     consumosApiBaseUrl,
-    validateSavedAutomaticIncome,
+    validatePersistedExcelRows,
     onAfterSave,
-    showActionSnack,
   ]);
 
   const footerCarbonTotals = useMemo(() => {

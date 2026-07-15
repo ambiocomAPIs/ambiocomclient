@@ -53,8 +53,14 @@ const TanquesList = ({ tanquesContext }) => {
       const res = await axios.get("https://ambiocomserver.onrender.com/api/tanques", {
         withCredentials: true,
       });
+
       setTanques(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
+      console.error(
+        "Error cargando tanques:",
+        error.response?.data || error
+      );
+
       Swal.fire("Error", "No se pudieron cargar los tanques", "error");
     }
   };
@@ -82,25 +88,36 @@ const TanquesList = ({ tanquesContext }) => {
 
       if (data._id && operacionEjecutada === "update") {
         const res = await axios.put(
-          `https://ambiocomserver.onrender.com/api/tanques/${data._id}`, {
-          withCredentials: true,
-        },
-          data
+          `https://ambiocomserver.onrender.com/api/tanques/${data._id}`,
+          dataLimpia,
+          {
+            withCredentials: true,
+          }
         );
 
-        const tanqueActualizado = res?.data ?? data;
+        const tanqueActualizado = res?.data ?? {
+          ...data,
+          ...dataLimpia,
+        };
 
         setTanques((prev) =>
-          prev.map((t) => (t._id === data._id ? tanqueActualizado : t))
+          prev.map((t) =>
+            t._id === data._id ? tanqueActualizado : t
+          )
         );
 
-        Swal.fire("Actualizado", "Tanque actualizado correctamente", "success");
+        Swal.fire(
+          "Actualizado",
+          "Tanque actualizado correctamente",
+          "success"
+        );
       } else {
         const res = await axios.post(
-          "https://ambiocomserver.onrender.com/api/tanques", {
-          withCredentials: true,
-        },
-          dataLimpia
+          "https://ambiocomserver.onrender.com/api/tanques",
+          dataLimpia,
+          {
+            withCredentials: true,
+          }
         );
 
         const tanqueCreado = res?.data;
@@ -111,13 +128,42 @@ const TanquesList = ({ tanquesContext }) => {
           await fetchTanques();
         }
 
-        Swal.fire("Creado", "Tanque registrado correctamente", "success");
+        Swal.fire(
+          "Creado",
+          "Tanque registrado correctamente",
+          "success"
+        );
       }
     } catch (error) {
+      console.error(
+        "Error guardando tanque:",
+        error.response?.data || error
+      );
+
       if (error.response?.status === 400) {
-        Swal.fire("Error", error.response.data.error, "error");
+        Swal.fire(
+          "Error",
+          error.response?.data?.error || "Los datos ingresados no son válidos",
+          "error"
+        );
+      } else if (error.response?.status === 401) {
+        Swal.fire(
+          "Sesión no autorizada",
+          "Tu sesión expiró o no fue posible validar la autenticación",
+          "warning"
+        );
+      } else if (error.response?.status === 403) {
+        Swal.fire(
+          "Sin permisos",
+          "Tu usuario no tiene permisos para modificar tanques",
+          "warning"
+        );
       } else {
-        Swal.fire("Error", "No se pudo guardar el tanque", "error");
+        Swal.fire(
+          "Error",
+          error.response?.data?.error || "No se pudo guardar el tanque",
+          "error"
+        );
       }
     } finally {
       setModalOpen(false);
@@ -128,6 +174,7 @@ const TanquesList = ({ tanquesContext }) => {
 
   const handleDelete = async (id) => {
     const CLAVE_ELIMINAR = import.meta.env.VITE_DELETE_PASSWORD;
+
     const { value: password } = await Swal.fire({
       title: "Eliminar tanque",
       text: "Ingresa la contraseña para continuar",
@@ -149,9 +196,11 @@ const TanquesList = ({ tanquesContext }) => {
         if (!value) {
           return "Debes ingresar la contraseña";
         }
+
         if (value !== CLAVE_ELIMINAR) {
           return "La contraseña es incorrecta";
         }
+
         return null;
       },
     });
@@ -171,13 +220,47 @@ const TanquesList = ({ tanquesContext }) => {
 
     if (confirm.isConfirmed) {
       try {
-        await axios.delete(`https://ambiocomserver.onrender.com/api/tanques/${id}`, {
-          withCredentials: true,
-        });
-        setTanques((prev) => prev.filter((t) => t._id !== id));
-        Swal.fire("Eliminado", "Tanque eliminado correctamente", "success");
+        await axios.delete(
+          `https://ambiocomserver.onrender.com/api/tanques/${id}`,
+          {
+            withCredentials: true,
+          }
+        );
+
+        setTanques((prev) =>
+          prev.filter((t) => t._id !== id)
+        );
+
+        Swal.fire(
+          "Eliminado",
+          "Tanque eliminado correctamente",
+          "success"
+        );
       } catch (error) {
-        Swal.fire("Error", "No se pudo eliminar el tanque", "error");
+        console.error(
+          "Error eliminando tanque:",
+          error.response?.data || error
+        );
+
+        if (error.response?.status === 401) {
+          Swal.fire(
+            "Sesión no autorizada",
+            "Tu sesión expiró o no fue posible validar la autenticación",
+            "warning"
+          );
+        } else if (error.response?.status === 403) {
+          Swal.fire(
+            "Sin permisos",
+            "Tu usuario no tiene permisos para eliminar tanques",
+            "warning"
+          );
+        } else {
+          Swal.fire(
+            "Error",
+            "No se pudo eliminar el tanque",
+            "error"
+          );
+        }
       }
     }
   };
@@ -191,8 +274,16 @@ const TanquesList = ({ tanquesContext }) => {
       )
       .sort((a, b) =>
         ordenAsc
-          ? a.NombreTanque.localeCompare(b.NombreTanque, "es", { numeric: true })
-          : b.NombreTanque.localeCompare(a.NombreTanque, "es", { numeric: true })
+          ? String(a?.NombreTanque ?? "").localeCompare(
+              String(b?.NombreTanque ?? ""),
+              "es",
+              { numeric: true }
+            )
+          : String(b?.NombreTanque ?? "").localeCompare(
+              String(a?.NombreTanque ?? ""),
+              "es",
+              { numeric: true }
+            )
       );
   }, [tanques, search, ordenAsc]);
 
@@ -218,10 +309,19 @@ const TanquesList = ({ tanquesContext }) => {
           spacing={2}
         >
           <Box>
-            <Typography variant="h4" fontWeight="bold" color="primary.dark">
+            <Typography
+              variant="h4"
+              fontWeight="bold"
+              color="primary.dark"
+            >
               Gestión de Tanques
             </Typography>
-            <Typography variant="body2" color="text.secondary" mt={0.5}>
+
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              mt={0.5}
+            >
               Consulta, edición y visualización técnica de tanques
             </Typography>
           </Box>
@@ -261,11 +361,18 @@ const TanquesList = ({ tanquesContext }) => {
           alignItems={{ xs: "stretch", md: "center" }}
           justifyContent="space-between"
         >
-          <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={2}
+          >
             <Autocomplete
-              options={tanques.map((t) => `TK-${t.NombreTanque}`)}
+              options={tanques.map(
+                (t) => `TK-${t.NombreTanque}`
+              )}
               onInputChange={(e, value) =>
-                setSearch(String(value || "").replace("TK-", ""))
+                setSearch(
+                  String(value || "").replace("TK-", "")
+                )
               }
               renderInput={(params) => (
                 <TextField
@@ -274,7 +381,7 @@ const TanquesList = ({ tanquesContext }) => {
                   variant="outlined"
                   size="medium"
                   sx={{
-                    '& .MuiOutlinedInput-root': {
+                    "& .MuiOutlinedInput-root": {
                       height: 35,
                     },
                   }}
@@ -285,16 +392,26 @@ const TanquesList = ({ tanquesContext }) => {
                         <InputAdornment position="start">
                           <Search fontSize="small" />
                         </InputAdornment>
+
                         {params.InputProps.startAdornment}
                       </>
                     ),
                   }}
                 />
               )}
-              sx={{ width: { xs: "100%", md: 320 } }}
+              sx={{
+                width: {
+                  xs: "100%",
+                  md: 320,
+                },
+              }}
             />
 
-            <Tooltip title={`Ordenar ${ordenAsc ? "Z → A" : "A → Z"}`}>
+            <Tooltip
+              title={`Ordenar ${
+                ordenAsc ? "Z → A" : "A → Z"
+              }`}
+            >
               <IconButton
                 color="primary"
                 onClick={() => setOrdenAsc(!ordenAsc)}
@@ -315,7 +432,13 @@ const TanquesList = ({ tanquesContext }) => {
             label={`${tanquesFiltrados.length} tanque(s)`}
             color="primary"
             variant="outlined"
-            sx={{ fontWeight: 700, alignSelf: { xs: "flex-start", md: "center" } }}
+            sx={{
+              fontWeight: 700,
+              alignSelf: {
+                xs: "flex-start",
+                md: "center",
+              },
+            }}
           />
         </Stack>
       </Paper>
@@ -336,7 +459,7 @@ const TanquesList = ({ tanquesContext }) => {
             <TableRow>
               <TableCell
                 align="center"
-                colSpan={2}
+                colSpan={3}
                 sx={{
                   position: "sticky",
                   top: 0,
@@ -406,6 +529,7 @@ const TanquesList = ({ tanquesContext }) => {
               {[
                 "Nombre del Tanque",
                 "Disposición [Uso Actual]",
+                "Grado Alcohólico [% v/v]",
                 "Factor [L/m]",
                 "Factor [L/cm]",
                 "Volumen Total [L]",
@@ -416,7 +540,7 @@ const TanquesList = ({ tanquesContext }) => {
                   key={i}
                   sx={{
                     position: "sticky",
-                    top: 56, // altura aproximada de la primera fila sticky
+                    top: 56,
                     zIndex: 2,
                     backgroundColor: "#fafafa",
                   }}
@@ -434,7 +558,8 @@ const TanquesList = ({ tanquesContext }) => {
                 hover
                 sx={{
                   "&:hover": {
-                    backgroundColor: "rgba(25, 118, 210, 0.03)",
+                    backgroundColor:
+                      "rgba(25, 118, 210, 0.03)",
                   },
                 }}
               >
@@ -443,38 +568,72 @@ const TanquesList = ({ tanquesContext }) => {
                     label={`TK-${t.NombreTanque}`}
                     color="primary"
                     variant="outlined"
-                    sx={{ fontWeight: 700, minWidth: 90 }}
+                    sx={{
+                      fontWeight: 700,
+                      minWidth: 90,
+                    }}
                   />
                 </TableCell>
 
-                <TableCell align="center">{t.Disposicion || "N/A"}</TableCell>
-
-                <TableCell align="center">{t.Factor ?? "N/A"}</TableCell>
-
                 <TableCell align="center">
-                  {t.Factor ? (t.Factor / 100).toFixed(2) : "N/A"}
+                  {t.Disposicion || "N/A"}
                 </TableCell>
 
                 <TableCell align="center">
-                  {t.VolumenTotal ? `${t.VolumenTotal} L` : "N/A"}
-                </TableCell>
-
-                <TableCell align="center">
-                  {t.VolumenTotal
-                    ? `${(t.VolumenTotal / 1000).toFixed(2)} m³`
+                  {t.GradoAlcoholico !== null &&
+                  t.GradoAlcoholico !== undefined &&
+                  t.GradoAlcoholico !== "" &&
+                  !Number.isNaN(Number(t.GradoAlcoholico))
+                    ? `${Number(
+                        t.GradoAlcoholico
+                      ).toLocaleString("es-CO", {
+                        minimumFractionDigits: 1,
+                        maximumFractionDigits: 2,
+                      })} %`
                     : "N/A"}
                 </TableCell>
 
                 <TableCell align="center">
-                  <Tooltip title={`Visualizar tanque TK-${t.NombreTanque}`}>
+                  {t.Factor ?? "N/A"}
+                </TableCell>
+
+                <TableCell align="center">
+                  {t.Factor
+                    ? (Number(t.Factor) / 100).toFixed(2)
+                    : "N/A"}
+                </TableCell>
+
+                <TableCell align="center">
+                  {t.VolumenTotal
+                    ? `${t.VolumenTotal} L`
+                    : "N/A"}
+                </TableCell>
+
+                <TableCell align="center">
+                  {t.VolumenTotal
+                    ? `${(
+                        Number(t.VolumenTotal) / 1000
+                      ).toFixed(2)} m³`
+                    : "N/A"}
+                </TableCell>
+
+                <TableCell align="center">
+                  <Tooltip
+                    title={`Visualizar tanque TK-${t.NombreTanque}`}
+                  >
                     <IconButton
                       color="info"
-                      onClick={() => handleOpenVisual(t.NombreTanque)}
+                      onClick={() =>
+                        handleOpenVisual(t.NombreTanque)
+                      }
                       sx={{
-                        border: "1px solid rgba(2,136,209,0.25)",
-                        backgroundColor: "rgba(2,136,209,0.06)",
+                        border:
+                          "1px solid rgba(2,136,209,0.25)",
+                        backgroundColor:
+                          "rgba(2,136,209,0.06)",
                         "&:hover": {
-                          backgroundColor: "rgba(2,136,209,0.14)",
+                          backgroundColor:
+                            "rgba(2,136,209,0.14)",
                         },
                       }}
                     >
@@ -500,7 +659,9 @@ const TanquesList = ({ tanquesContext }) => {
                   <Tooltip title="Eliminar">
                     <IconButton
                       color="error"
-                      onClick={() => handleDelete(t._id)}
+                      onClick={() =>
+                        handleDelete(t._id)
+                      }
                     >
                       <Delete />
                     </IconButton>
@@ -511,8 +672,15 @@ const TanquesList = ({ tanquesContext }) => {
 
             {tanquesFiltrados.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
-                  <Typography variant="body1" color="text.secondary">
+                <TableCell
+                  colSpan={9}
+                  align="center"
+                  sx={{ py: 4 }}
+                >
+                  <Typography
+                    variant="body1"
+                    color="text.secondary"
+                  >
                     No se encontraron tanques.
                   </Typography>
                 </TableCell>
@@ -536,7 +704,9 @@ const TanquesList = ({ tanquesContext }) => {
 
       <TanqueVisualModal
         open={visualModalOpen}
-        onClose={() => setVisualModalOpen(false)}
+        onClose={() =>
+          setVisualModalOpen(false)
+        }
         nombreTanque={tanqueSeleccionadoVisual}
       />
     </Box>

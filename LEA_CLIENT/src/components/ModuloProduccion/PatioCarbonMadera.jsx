@@ -1137,6 +1137,70 @@ export default function ModuloSeguimientoCarbonMadera() {
     setQueryVersion((current) => current + 1);
   };
 
+  const handleConsumosAfterSave = useCallback((persistedRows = []) => {
+    if (!Array.isArray(persistedRows) || persistedRows.length === 0) return;
+
+    const rowsByMonth = persistedRows.reduce((acc, row) => {
+      const fecha = String(row?.fecha || row?.id || "").slice(0, 10);
+      const targetMonth = fecha.slice(0, 7);
+
+      if (!fecha || !targetMonth) return acc;
+
+      if (!acc[targetMonth]) {
+        acc[targetMonth] = [];
+      }
+
+      acc[targetMonth].push({
+        ...row,
+        id: fecha,
+        fecha,
+      });
+
+      return acc;
+    }, {});
+
+    setMonthlySheets((current) => {
+      const next = { ...current };
+
+      Object.entries(rowsByMonth).forEach(([targetMonth, savedRows]) => {
+        const currentRows = normalizeMonthlyRows(
+          next[targetMonth] || createMonthlySheet(targetMonth, carbons),
+          carbons
+        );
+
+        const savedByDate = savedRows.reduce((acc, row) => {
+          acc[row.fecha] = row;
+          return acc;
+        }, {});
+
+        const currentByDate = currentRows.reduce((acc, row) => {
+          const fecha = String(row?.fecha || row?.id || "").slice(0, 10);
+          if (fecha) acc[fecha] = row;
+          return acc;
+        }, {});
+
+        const mergedDates = Array.from(
+          new Set([...Object.keys(currentByDate), ...Object.keys(savedByDate)])
+        ).sort();
+
+        next[targetMonth] = mergedDates.map((fecha) => ({
+          ...(currentByDate[fecha] || {}),
+          ...(savedByDate[fecha] || {}),
+          id: fecha,
+          fecha,
+          carbons: {
+            ...(currentByDate[fecha]?.carbons || {}),
+            ...(savedByDate[fecha]?.carbons || {}),
+          },
+        }));
+      });
+
+      return next;
+    });
+
+    setQueryVersion((current) => current + 1);
+  }, [carbons]);
+
   const handleSheetChange = (rowId, path, value) => {
     setMonthlySheets((current) => {
       const rows = normalizeMonthlyRows(
@@ -1781,6 +1845,7 @@ export default function ModuloSeguimientoCarbonMadera() {
                 onCreateCurrentMonth={handleCreateCurrentMonth}
                 onCreateSelectedMonth={handleCreateSelectedMonth}
                 onInventorySummaryChange={handleInventorySummaryChange}
+                onAfterSave={handleConsumosAfterSave}
               />
             </Box>
           )}

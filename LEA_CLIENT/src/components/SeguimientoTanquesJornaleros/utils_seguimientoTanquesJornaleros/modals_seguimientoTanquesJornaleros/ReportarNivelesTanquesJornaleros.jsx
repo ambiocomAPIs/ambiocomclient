@@ -46,6 +46,25 @@ const swalTop = (options) =>
     },
   });
 
+// Normaliza el grado alcohólico para aceptar valores como 96,2 o 96.2
+const normalizarGradoAlcoholico = (valor) => {
+  if (
+    valor === null ||
+    valor === undefined ||
+    valor === ""
+  ) {
+    return null;
+  }
+
+  const numero = Number(
+    String(valor)
+      .trim()
+      .replace(",", ".")
+  );
+
+  return Number.isFinite(numero) ? numero : null;
+};
+
 const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
   const [loadingButton, setLoadingButton] = React.useState(false);
   const LOCAL_STORAGE_KEY = "nivelesTanquesJornalerosDraft";
@@ -208,15 +227,28 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
       }
 
       // 3. Construir payload copiando datos del origen, pero con nueva fecha
-      const payload = resOrigen.data.map((item) => ({
-        NombreTanque: item.NombreTanque,
-        NivelTanque: Number(item.NivelTanque || 0),
-        Responsable: item.Responsable || "",
-        Observaciones: item.Observaciones || "",
-        Factor: item.Factor,
-        Disposicion: item.Disposicion,
-        FechaRegistro: fechaDestino,
-      }));
+      const payload = resOrigen.data.map((item) => {
+        const tanqueMaestro = tanquesData.find(
+          (tanque) =>
+            String(tanque?.NombreTanque || "").trim() ===
+            String(item?.NombreTanque || "").trim()
+        );
+
+        return {
+          NombreTanque: item.NombreTanque,
+          NivelTanque: Number(item.NivelTanque || 0),
+          Responsable: item.Responsable || "",
+          Observaciones: item.Observaciones || "",
+          Factor: tanqueMaestro?.Factor ?? item.Factor,
+          Disposicion:
+            tanqueMaestro?.Disposicion ?? item.Disposicion,
+          GradoAlcoholico: normalizarGradoAlcoholico(
+            tanqueMaestro?.GradoAlcoholico ??
+              item.GradoAlcoholico
+          ),
+          FechaRegistro: fechaDestino,
+        };
+      });
 
       // 4. Guardar clon
       await axios.post(
@@ -277,8 +309,16 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
         Observaciones: observaciones,
         Factor: tanque.Factor,
         Disposicion: tanque.Disposicion,
+        GradoAlcoholico: normalizarGradoAlcoholico(
+          tanque.GradoAlcoholico
+        ),
         FechaRegistro: fecha,
       }));
+
+      console.log(
+        "Payload niveles diarios:",
+        payload
+      );
 
       if (modoEdicion) {
         await axios.put(

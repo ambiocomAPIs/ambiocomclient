@@ -3,6 +3,24 @@ import autoTable from "jspdf-autotable";
 
 import { registerDejaVuFont } from "../../../assets/fonts/DejaVuSans.js";
 
+const PAGE_WIDTH_MM = 210;
+const PAGE_CONTENT_BOTTOM = 278;
+const TABLE_MARGIN_X = 14;
+const TABLE_CONTENT_WIDTH =
+  PAGE_WIDTH_MM - TABLE_MARGIN_X * 2;
+
+const PDF_COLORS = {
+  blue: [41, 128, 185],
+  blueDark: [30, 64, 175],
+  purple: [126, 34, 206],
+  green: [22, 101, 52],
+  orange: [180, 83, 9],
+  slate: [71, 85, 105],
+  text: [30, 41, 59],
+  border: [203, 213, 225],
+  soft: [248, 250, 252],
+};
+
 const turnosShorted = [
   {
     value: "TurnoMañana(6:00-14:00)",
@@ -108,6 +126,16 @@ const tieneNumero = (value) =>
   value !== "" &&
   Number.isFinite(Number(value));
 
+const obtenerPrimerNumeroDisponible = (...values) => {
+  for (const value of values) {
+    if (tieneNumero(value)) {
+      return Number(value);
+    }
+  }
+
+  return null;
+};
+
 const formatearNumero = (
   value,
   decimals = 2
@@ -150,7 +178,7 @@ const asegurarEspacio = (
 ) => {
   if (
     currentY + requiredHeight <=
-    278
+    PAGE_CONTENT_BOTTOM
   ) {
     return currentY;
   }
@@ -158,6 +186,66 @@ const asegurarEspacio = (
   doc.addPage();
 
   return 20;
+};
+
+const dibujarSeparadorBloque = (
+  doc,
+  currentY,
+  title,
+  subtitle,
+  fillColor
+) => {
+  const y = asegurarEspacio(
+    doc,
+    currentY,
+    24
+  );
+
+  doc.setFillColor(...fillColor);
+  doc.roundedRect(
+    TABLE_MARGIN_X,
+    y,
+    TABLE_CONTENT_WIDTH,
+    15,
+    2,
+    2,
+    "F"
+  );
+
+  doc.setFont(
+    "DejaVuSans",
+    "bold"
+  );
+  doc.setFontSize(10.5);
+  doc.setTextColor(255, 255, 255);
+  doc.text(
+    String(title || "").toUpperCase(),
+    TABLE_MARGIN_X + 5,
+    y + 5.7,
+    {
+      maxWidth:
+        TABLE_CONTENT_WIDTH - 10,
+    }
+  );
+
+  if (subtitle) {
+    doc.setFont(
+      "DejaVuSans",
+      "normal"
+    );
+    doc.setFontSize(7.3);
+    doc.text(
+      subtitle,
+      TABLE_MARGIN_X + 5,
+      y + 11.2,
+      {
+        maxWidth:
+          TABLE_CONTENT_WIDTH - 10,
+      }
+    );
+  }
+
+  return y + 21;
 };
 
 const construirAnalisisLocal = (
@@ -365,7 +453,10 @@ export async function exportarBitacoraPDF(
   notes,
   resumenTotalizadores = null,
   resumenIngresosCombustibles = null,
-  resumenConsumosCombustibles = null
+  resumenConsumosCombustibles = null,
+  resumenRecepcionesAlcohol = null,
+  resumenDespachosAlcohol = null,
+  resumenNivelesTanques = null
 ) {
   const doc = new jsPDF({
     orientation: "p",
@@ -447,6 +538,10 @@ export async function exportarBitacoraPDF(
     20
   );
 
+  /*
+   * Encabezado original de la bitácora.
+   * Se conserva como listado vertical, sin tablas ni tarjetas.
+   */
   doc.text(
     `Turno: ${
       headerData.turno || ""
@@ -530,6 +625,19 @@ export async function exportarBitacoraPDF(
 
   let startY = 120;
 
+  if (
+    Object.keys(notes || {}).length ||
+    resumenTotalizadores
+  ) {
+    startY = dibujarSeparadorBloque(
+      doc,
+      startY,
+      "Reportes de bitácora",
+      "Novedades del turno y balance operativo de totalizadores",
+      PDF_COLORS.blue
+    );
+  }
+
   Object.keys(
     notes || {}
   ).forEach((section) => {
@@ -600,8 +708,11 @@ export async function exportarBitacoraPDF(
 
     doc.text(
       section,
-      14,
-      startY
+      TABLE_MARGIN_X,
+      startY,
+      {
+        maxWidth: TABLE_CONTENT_WIDTH,
+      }
     );
 
     doc.setFont(
@@ -643,6 +754,8 @@ export async function exportarBitacoraPDF(
       );
 
     autoTable(doc, {
+
+      tableWidth: TABLE_CONTENT_WIDTH,
       startY: startY + 4,
 
       head: [
@@ -654,10 +767,18 @@ export async function exportarBitacoraPDF(
 
       body: rows,
 
-      theme: "grid",
+      theme: "striped",
+
+      showHead: "everyPage",
+
+      rowPageBreak: "avoid",
 
       styles: {
         font: "DejaVuSans",
+        textColor: PDF_COLORS.text,
+        lineColor: PDF_COLORS.border,
+        lineWidth: 0.12,
+        overflow: "linebreak",
         fontSize: 10,
         cellPadding: 3,
       },
@@ -701,8 +822,8 @@ export async function exportarBitacoraPDF(
       },
 
       margin: {
-        left: 14,
-        right: 14,
+        left: TABLE_MARGIN_X,
+        right: TABLE_MARGIN_X,
       },
     });
 
@@ -766,11 +887,16 @@ export async function exportarBitacoraPDF(
         resumenTotalizadores.fecha ||
         "FECHA NO DISPONIBLE"
       }`,
-      14,
-      startY
+      TABLE_MARGIN_X,
+      startY,
+      {
+        maxWidth: TABLE_CONTENT_WIDTH,
+      }
     );
 
     autoTable(doc, {
+
+      tableWidth: TABLE_CONTENT_WIDTH,
       startY: startY + 5,
 
       head: [
@@ -895,10 +1021,18 @@ export async function exportarBitacoraPDF(
         ],
       ],
 
-      theme: "grid",
+      theme: "striped",
+
+      showHead: "everyPage",
+
+      rowPageBreak: "avoid",
 
       styles: {
         font: "DejaVuSans",
+        textColor: PDF_COLORS.text,
+        lineColor: PDF_COLORS.border,
+        lineWidth: 0.12,
+        overflow: "linebreak",
         fontSize: 8.5,
         cellPadding: 2.2,
         valign: "middle",
@@ -928,8 +1062,8 @@ export async function exportarBitacoraPDF(
       },
 
       margin: {
-        left: 14,
-        right: 14,
+        left: TABLE_MARGIN_X,
+        right: TABLE_MARGIN_X,
       },
     });
 
@@ -967,6 +1101,8 @@ export async function exportarBitacoraPDF(
       );
 
       autoTable(doc, {
+
+        tableWidth: TABLE_CONTENT_WIDTH,
         startY: startY + 3,
 
         head: [
@@ -1007,10 +1143,18 @@ export async function exportarBitacoraPDF(
           ]
         ),
 
-        theme: "grid",
+        theme: "striped",
+
+        showHead: "everyPage",
+
+        rowPageBreak: "avoid",
 
         styles: {
           font: "DejaVuSans",
+          textColor: PDF_COLORS.text,
+          lineColor: PDF_COLORS.border,
+          lineWidth: 0.12,
+          overflow: "linebreak",
           fontSize: 7.3,
           cellPadding: 1.7,
           halign: "right",
@@ -1035,8 +1179,8 @@ export async function exportarBitacoraPDF(
         },
 
         margin: {
-          left: 14,
-          right: 14,
+          left: TABLE_MARGIN_X,
+          right: TABLE_MARGIN_X,
         },
       });
 
@@ -1069,8 +1213,11 @@ export async function exportarBitacoraPDF(
 
     doc.text(
       "Análisis operativo del día anterior",
-      14,
-      startY
+      TABLE_MARGIN_X,
+      startY,
+      {
+        maxWidth: TABLE_CONTENT_WIDTH,
+      }
     );
 
     const observaciones =
@@ -1124,6 +1271,8 @@ export async function exportarBitacoraPDF(
     }
 
     autoTable(doc, {
+
+      tableWidth: TABLE_CONTENT_WIDTH,
       startY: startY + 3,
 
       head: [
@@ -1135,10 +1284,18 @@ export async function exportarBitacoraPDF(
 
       body: filasAnalisis,
 
-      theme: "grid",
+      theme: "striped",
+
+      showHead: "everyPage",
+
+      rowPageBreak: "avoid",
 
       styles: {
         font: "DejaVuSans",
+        textColor: PDF_COLORS.text,
+        lineColor: PDF_COLORS.border,
+        lineWidth: 0.12,
+        overflow: "linebreak",
         fontSize: 8.5,
         cellPadding: 2.5,
         valign: "top",
@@ -1181,14 +1338,1814 @@ export async function exportarBitacoraPDF(
       },
 
       margin: {
-        left: 14,
-        right: 14,
+        left: TABLE_MARGIN_X,
+        right: TABLE_MARGIN_X,
       },
     });
 
     startY =
       doc.lastAutoTable.finalY +
       10;
+  }
+
+  if (
+    resumenNivelesTanques ||
+    resumenRecepcionesAlcohol ||
+    resumenDespachosAlcohol
+  ) {
+    startY = dibujarSeparadorBloque(
+      doc,
+      startY,
+      "Alcoholes",
+      "Niveles de tanques jornaleros, recepciones, compras y despachos del día anterior",
+      PDF_COLORS.purple
+    );
+  }
+
+  /*
+   * Niveles de tanques jornaleros del día anterior.
+   * Se presenta una fila por cada tanque.
+   */
+  if (resumenNivelesTanques) {
+    startY = asegurarEspacio(
+      doc,
+      startY,
+      55
+    );
+
+    const fechaNiveles =
+      resumenNivelesTanques?.fecha ||
+      "FECHA NO DISPONIBLE";
+
+    const detalleTanques = Array.isArray(
+      resumenNivelesTanques?.detalle
+    )
+      ? resumenNivelesTanques.detalle
+      : [];
+
+    doc.setFont(
+      "times",
+      "bold"
+    );
+
+    doc.setFontSize(13);
+
+    doc.setTextColor(
+      41,
+      128,
+      185
+    );
+
+    doc.text(
+      `NIVELES DE TANQUES JORNALEROS — ${fechaNiveles}`,
+      TABLE_MARGIN_X,
+      startY,
+      {
+        maxWidth: TABLE_CONTENT_WIDTH,
+      }
+    );
+
+    if (detalleTanques.length) {
+      autoTable(doc, {
+        tableWidth: TABLE_CONTENT_WIDTH,
+        startY: startY + 5,
+
+        head: [
+          [
+            "Tanque",
+            "Producto / disposición",
+            "Nivel",
+            "Factor",
+            "Volumen (L)",
+            "Grado (% v/v)",
+            "Alcohol absoluto (L)",
+            "Responsable",
+            "Observación",
+          ],
+        ],
+
+        body: detalleTanques.map((item) => {
+          const nivel = Number(item?.nivel || 0);
+          const factor = Number(item?.factor || 0);
+
+          const volumenCalculado = tieneNumero(item?.volumen)
+            ? Number(item.volumen)
+            : nivel * factor;
+
+          const gradoNormalizado =
+            item?.gradoAlcoholico !== null &&
+            item?.gradoAlcoholico !== undefined &&
+            item?.gradoAlcoholico !== ""
+              ? Number(
+                  String(item.gradoAlcoholico)
+                    .trim()
+                    .replace(",", ".")
+                )
+              : null;
+
+          const gradoAlcoholico =
+            gradoNormalizado !== null &&
+            Number.isFinite(gradoNormalizado)
+              ? gradoNormalizado
+              : null;
+
+          const alcoholAbsoluto =
+            gradoAlcoholico !== null
+              ? volumenCalculado * (gradoAlcoholico / 100)
+              : null;
+
+          return [
+            item?.tanque || "Sin definir",
+            item?.disposicion || "Sin definir",
+            formatearNumero(nivel, 3),
+            formatearNumero(factor, 4),
+            formatearNumero(volumenCalculado, 2),
+            gradoAlcoholico !== null
+              ? `${formatearNumero(gradoAlcoholico, 2)} %`
+              : "—",
+            alcoholAbsoluto !== null
+              ? formatearNumero(alcoholAbsoluto, 2)
+              : "—",
+            item?.responsable || "—",
+            item?.observaciones || "—",
+          ];
+        }),
+
+        theme: "striped",
+        showHead: "everyPage",
+        rowPageBreak: "avoid",
+
+        styles: {
+          font: "DejaVuSans",
+          textColor: PDF_COLORS.text,
+          lineColor: PDF_COLORS.border,
+          lineWidth: 0.12,
+          overflow: "linebreak",
+          fontSize: 5.7,
+          cellPadding: 1.15,
+          valign: "middle",
+        },
+
+        headStyles: {
+          fillColor: PDF_COLORS.blueDark,
+          textColor: 255,
+          halign: "center",
+          valign: "middle",
+        },
+
+        columnStyles: {
+          0: {
+            cellWidth: 15,
+            fontStyle: "bold",
+            halign: "center",
+          },
+          1: {
+            cellWidth: 28,
+          },
+          2: {
+            cellWidth: 14,
+            halign: "right",
+          },
+          3: {
+            cellWidth: 16,
+            halign: "right",
+          },
+          4: {
+            cellWidth: 22,
+            halign: "right",
+            fontStyle: "bold",
+          },
+          5: {
+            cellWidth: 18,
+            halign: "right",
+          },
+          6: {
+            cellWidth: 24,
+            halign: "right",
+            fontStyle: "bold",
+          },
+          7: {
+            cellWidth: 21,
+          },
+          8: {
+            cellWidth: 24,
+          },
+        },
+
+        margin: {
+          left: TABLE_MARGIN_X,
+          right: TABLE_MARGIN_X,
+        },
+      });
+
+      startY =
+        doc.lastAutoTable.finalY +
+        10;
+    } else {
+      autoTable(doc, {
+        tableWidth: TABLE_CONTENT_WIDTH,
+        startY: startY + 5,
+
+        head: [["Información"]],
+
+        body: [
+          [
+            resumenNivelesTanques?.mensaje ||
+              "No se registraron niveles de tanques jornaleros para la fecha consultada.",
+          ],
+        ],
+
+        theme: "striped",
+        showHead: "everyPage",
+        rowPageBreak: "avoid",
+
+        styles: {
+          font: "DejaVuSans",
+          textColor: PDF_COLORS.text,
+          lineColor: PDF_COLORS.border,
+          lineWidth: 0.12,
+          overflow: "linebreak",
+          fontSize: 9,
+          cellPadding: 3,
+          valign: "middle",
+        },
+
+        headStyles: {
+          fillColor: PDF_COLORS.slate,
+          textColor: 255,
+          halign: "center",
+        },
+
+        margin: {
+          left: TABLE_MARGIN_X,
+          right: TABLE_MARGIN_X,
+        },
+      });
+
+      startY =
+        doc.lastAutoTable.finalY +
+        10;
+    }
+  }
+
+  /*
+   * Recepciones o compras de alcoholes del día anterior.
+   */
+  if (resumenRecepcionesAlcohol) {
+    startY = asegurarEspacio(
+      doc,
+      startY,
+      85
+    );
+
+    const fechaRecepciones =
+      resumenRecepcionesAlcohol
+        ?.fecha ||
+      "FECHA NO DISPONIBLE";
+
+    const resumen =
+      resumenRecepcionesAlcohol
+        ?.resumen || {};
+
+    const porProducto =
+      Array.isArray(
+        resumenRecepcionesAlcohol
+          ?.porProducto
+      )
+        ? resumenRecepcionesAlcohol.porProducto
+        : [];
+
+    const detalle =
+      Array.isArray(
+        resumenRecepcionesAlcohol
+          ?.detalle
+      )
+        ? resumenRecepcionesAlcohol.detalle
+        : [];
+
+    const totalRecepciones = Number(
+      resumen?.totalRecepciones ||
+        resumenRecepcionesAlcohol
+          ?.totalRegistros ||
+        0
+    );
+
+    const tieneRecepciones =
+      totalRecepciones > 0 ||
+      detalle.length > 0;
+
+    doc.setFont(
+      "times",
+      "bold"
+    );
+
+    doc.setFontSize(13);
+
+    doc.setTextColor(
+      41,
+      128,
+      185
+    );
+
+    doc.text(
+      `RECEPCIONES / COMPRAS DE ALCOHOLES — ${fechaRecepciones}`,
+      TABLE_MARGIN_X,
+      startY,
+      {
+        maxWidth: TABLE_CONTENT_WIDTH,
+      }
+    );
+
+    autoTable(doc, {
+
+      tableWidth: TABLE_CONTENT_WIDTH,
+      startY: startY + 5,
+
+      head: [
+        [
+          "Indicador",
+          "Resultado",
+        ],
+      ],
+
+      body: [
+        [
+          "Recepciones registradas",
+          formatearNumero(
+            totalRecepciones,
+            0
+          ),
+        ],
+
+        [
+          "Cantidad recibida reportada",
+          `${formatearNumero(
+            resumen?.cantidadRecibida,
+            2
+          )} L`,
+        ],
+
+        [
+          "Volumen recepcionado en planta",
+          `${formatearNumero(
+            resumen?.volumenRecepcionado,
+            2
+          )} L`,
+        ],
+
+        [
+          "Peso neto enviado por proveedor",
+          `${formatearNumero(
+            resumen?.pesoEnviadoProveedor,
+            2
+          )} kg`,
+        ],
+
+        [
+          "Peso registrado en Ambiocom",
+          `${formatearNumero(
+            resumen?.pesoAmbiocom,
+            2
+          )} kg`,
+        ],
+
+        [
+          "Vehículos aprobados",
+          formatearNumero(
+            resumen?.aprobados,
+            0
+          ),
+        ],
+
+        [
+          "Vehículos rechazados",
+          formatearNumero(
+            resumen?.rechazados,
+            0
+          ),
+        ],
+
+        [
+          "Vehículos en proceso",
+          formatearNumero(
+            resumen?.enProceso,
+            0
+          ),
+        ],
+      ],
+
+      theme: "striped",
+
+      showHead: "everyPage",
+
+      rowPageBreak: "avoid",
+
+      styles: {
+        font: "DejaVuSans",
+        textColor: PDF_COLORS.text,
+        lineColor: PDF_COLORS.border,
+        lineWidth: 0.12,
+        overflow: "linebreak",
+        fontSize: 8.5,
+        cellPadding: 2.2,
+        valign: "middle",
+      },
+
+      headStyles: {
+        fillColor: [
+          30,
+          64,
+          175,
+        ],
+
+        textColor: 255,
+        halign: "center",
+      },
+
+      columnStyles: {
+        0: {
+          cellWidth: 112,
+          fontStyle: "bold",
+        },
+
+        1: {
+          cellWidth: 64,
+          halign: "right",
+        },
+      },
+
+      margin: {
+        left: TABLE_MARGIN_X,
+        right: TABLE_MARGIN_X,
+      },
+    });
+
+    startY =
+      doc.lastAutoTable.finalY +
+      8;
+
+    if (porProducto.length) {
+      startY = asegurarEspacio(
+        doc,
+        startY,
+        45
+      );
+
+      doc.setFont(
+        "times",
+        "bold"
+      );
+
+      doc.setFontSize(11);
+
+      doc.setTextColor(
+        41,
+        128,
+        185
+      );
+
+      doc.text(
+        "Resumen de recepciones por producto",
+        14,
+        startY
+      );
+
+      autoTable(doc, {
+
+        tableWidth: TABLE_CONTENT_WIDTH,
+        startY: startY + 3,
+
+        head: [
+          [
+            "Producto",
+            "Recepciones",
+            "Cantidad reportada (L)",
+            "Volumen planta (L)",
+            "Peso Ambiocom (kg)",
+          ],
+        ],
+
+        body: porProducto.map(
+          (item) => [
+            item?.producto ||
+              "Sin definir",
+
+            formatearNumero(
+              item?.recepciones,
+              0
+            ),
+
+            formatearNumero(
+              item?.cantidadRecibida,
+              2
+            ),
+
+            formatearNumero(
+              item?.volumenRecepcionado,
+              2
+            ),
+
+            formatearNumero(
+              item?.pesoAmbiocom,
+              2
+            ),
+          ]
+        ),
+
+        theme: "striped",
+
+        showHead: "everyPage",
+
+        rowPageBreak: "avoid",
+
+        styles: {
+          font: "DejaVuSans",
+          textColor: PDF_COLORS.text,
+          lineColor: PDF_COLORS.border,
+          lineWidth: 0.12,
+          overflow: "linebreak",
+          fontSize: 7.2,
+          cellPadding: 1.8,
+          valign: "middle",
+          halign: "right",
+        },
+
+        headStyles: {
+          fillColor: [
+            37,
+            99,
+            235,
+          ],
+
+          textColor: 255,
+          halign: "center",
+        },
+
+        columnStyles: {
+          0: {
+            cellWidth: 48,
+            halign: "left",
+          },
+
+          1: {
+            cellWidth: 25,
+            halign: "center",
+          },
+
+          2: {
+            cellWidth: 35,
+          },
+
+          3: {
+            cellWidth: 34,
+          },
+
+          4: {
+            cellWidth: 34,
+          },
+        },
+
+        margin: {
+          left: TABLE_MARGIN_X,
+          right: TABLE_MARGIN_X,
+        },
+      });
+
+      startY =
+        doc.lastAutoTable.finalY +
+        8;
+    }
+
+    if (detalle.length) {
+      startY = asegurarEspacio(
+        doc,
+        startY,
+        55
+      );
+
+      doc.setFont(
+        "times",
+        "bold"
+      );
+
+      doc.setFontSize(11);
+
+      doc.setTextColor(
+        41,
+        128,
+        185
+      );
+
+      doc.text(
+        "Detalle de vehículos y recepción",
+        14,
+        startY
+      );
+
+      autoTable(doc, {
+
+        tableWidth: TABLE_CONTENT_WIDTH,
+        startY: startY + 3,
+
+        head: [
+          [
+            "Producto",
+            "Proveedor",
+            "Remisión",
+            "Placa",
+            "Tanque",
+            "Cliente (L)",
+            "Planta (L)",
+            "Estado",
+          ],
+        ],
+
+        body: detalle.map(
+          (item) => [
+            item?.producto ||
+              "Sin definir",
+
+            item?.proveedor ||
+              "Sin definir",
+
+            item?.remision ||
+              "—",
+
+            item?.placa ||
+              "—",
+
+            item?.tanqueRecepcion ||
+              "—",
+
+            formatearNumero(
+              item?.cantidadRecibida,
+              2
+            ),
+
+            formatearNumero(
+              item?.volumenRecepcionado,
+              2
+            ),
+
+            item?.estadoVehiculo ||
+              "Sin estado",
+          ]
+        ),
+
+        theme: "striped",
+
+        showHead: "everyPage",
+
+        rowPageBreak: "avoid",
+
+        styles: {
+          font: "DejaVuSans",
+          textColor: PDF_COLORS.text,
+          lineColor: PDF_COLORS.border,
+          lineWidth: 0.12,
+          overflow: "linebreak",
+          fontSize: 6.4,
+          cellPadding: 1.35,
+          valign: "middle",
+        },
+
+        headStyles: {
+          fillColor: [
+            30,
+            64,
+            175,
+          ],
+
+          textColor: 255,
+          halign: "center",
+        },
+
+        columnStyles: {
+          0: {
+            cellWidth: 25,
+          },
+
+          1: {
+            cellWidth: 30,
+          },
+
+          2: {
+            cellWidth: 20,
+          },
+
+          3: {
+            cellWidth: 16,
+            halign: "center",
+          },
+
+          4: {
+            cellWidth: 18,
+          },
+
+          5: {
+            cellWidth: 20,
+            halign: "right",
+          },
+
+          6: {
+            cellWidth: 20,
+            halign: "right",
+          },
+
+          7: {
+            cellWidth: 27,
+            halign: "center",
+          },
+        },
+
+        didParseCell(data) {
+          if (
+            data.section ===
+              "body" &&
+            data.column.index === 7
+          ) {
+            const estado = String(
+              data.cell.raw || ""
+            ).toUpperCase();
+
+            if (estado === "RECHAZADO") {
+              data.cell.styles.textColor =
+                [198, 40, 40];
+              data.cell.styles.fontStyle =
+                "bold";
+            } else if (
+              estado === "APROBADO"
+            ) {
+              data.cell.styles.textColor =
+                [22, 101, 52];
+              data.cell.styles.fontStyle =
+                "bold";
+            }
+          }
+        },
+
+        margin: {
+          left: TABLE_MARGIN_X,
+          right: TABLE_MARGIN_X,
+        },
+      });
+
+      startY =
+        doc.lastAutoTable.finalY +
+        8;
+
+      const observacionesRecepciones =
+        detalle
+          .filter((item) =>
+            String(
+              item?.observaciones || ""
+            ).trim()
+          )
+          .map((item) => [
+            item?.producto ||
+              "Sin definir",
+
+            item?.placa ||
+              "Sin placa",
+
+            item?.observaciones ||
+              "",
+          ]);
+
+      if (
+        observacionesRecepciones.length
+      ) {
+        startY = asegurarEspacio(
+          doc,
+          startY,
+          35
+        );
+
+        autoTable(doc, {
+
+          tableWidth: TABLE_CONTENT_WIDTH,
+          startY,
+
+          head: [
+            [
+              "Producto",
+              "Vehículo",
+              "Observación",
+            ],
+          ],
+
+          body:
+            observacionesRecepciones,
+
+          theme: "striped",
+
+          showHead: "everyPage",
+
+          rowPageBreak: "avoid",
+
+          styles: {
+            font: "DejaVuSans",
+            textColor: PDF_COLORS.text,
+            lineColor: PDF_COLORS.border,
+            lineWidth: 0.12,
+            overflow: "linebreak",
+            fontSize: 7.5,
+            cellPadding: 2,
+            valign: "top",
+          },
+
+          headStyles: {
+            fillColor: [
+              100,
+              116,
+              139,
+            ],
+
+            textColor: 255,
+            halign: "center",
+          },
+
+          columnStyles: {
+            0: {
+              cellWidth: 40,
+            },
+
+            1: {
+              cellWidth: 30,
+              halign: "center",
+            },
+
+            2: {
+              cellWidth: 106,
+            },
+          },
+
+          margin: {
+            left: TABLE_MARGIN_X,
+            right: TABLE_MARGIN_X,
+          },
+        });
+
+        startY =
+          doc.lastAutoTable.finalY +
+          8;
+      }
+    }
+
+    if (!tieneRecepciones) {
+      startY = asegurarEspacio(
+        doc,
+        startY,
+        30
+      );
+
+      autoTable(doc, {
+
+        tableWidth: TABLE_CONTENT_WIDTH,
+        startY,
+
+        head: [
+          [
+            "Información",
+          ],
+        ],
+
+        body: [
+          [
+            resumenRecepcionesAlcohol
+              ?.mensaje ||
+              "No se registraron recepciones o compras de alcoholes para la fecha consultada.",
+          ],
+        ],
+
+        theme: "striped",
+
+        showHead: "everyPage",
+
+        rowPageBreak: "avoid",
+
+        styles: {
+          font: "DejaVuSans",
+          textColor: PDF_COLORS.text,
+          lineColor: PDF_COLORS.border,
+          lineWidth: 0.12,
+          overflow: "linebreak",
+          fontSize: 9,
+          cellPadding: 3,
+          valign: "middle",
+        },
+
+        headStyles: {
+          fillColor: [
+            100,
+            116,
+            139,
+          ],
+
+          textColor: 255,
+          halign: "center",
+        },
+
+        margin: {
+          left: TABLE_MARGIN_X,
+          right: TABLE_MARGIN_X,
+        },
+      });
+
+      startY =
+        doc.lastAutoTable.finalY +
+        10;
+    }
+  }
+
+
+  /*
+   * Despachos de alcoholes del día anterior.
+   */
+  if (resumenDespachosAlcohol) {
+    startY = asegurarEspacio(
+      doc,
+      startY,
+      90
+    );
+
+    const fechaDespachos =
+      resumenDespachosAlcohol
+        ?.fecha ||
+      "FECHA NO DISPONIBLE";
+
+    const resumen =
+      resumenDespachosAlcohol
+        ?.resumen || {};
+
+    const porProducto =
+      Array.isArray(
+        resumenDespachosAlcohol
+          ?.porProducto
+      )
+        ? resumenDespachosAlcohol.porProducto
+        : [];
+
+    const porCliente =
+      Array.isArray(
+        resumenDespachosAlcohol
+          ?.porCliente
+      )
+        ? resumenDespachosAlcohol.porCliente
+        : [];
+
+    const detalle =
+      Array.isArray(
+        resumenDespachosAlcohol
+          ?.detalle
+      )
+        ? resumenDespachosAlcohol.detalle
+        : [];
+
+    const totalDespachos = Number(
+      resumen?.totalDespachos ||
+        resumenDespachosAlcohol
+          ?.totalRegistros ||
+        0
+    );
+
+    const tieneDespachos =
+      totalDespachos > 0 ||
+      detalle.length > 0;
+
+    doc.setFont(
+      "times",
+      "bold"
+    );
+
+    doc.setFontSize(13);
+
+    doc.setTextColor(
+      41,
+      128,
+      185
+    );
+
+    doc.text(
+      `DESPACHOS DE ALCOHOLES — ${fechaDespachos}`,
+      TABLE_MARGIN_X,
+      startY,
+      {
+        maxWidth: TABLE_CONTENT_WIDTH,
+      }
+    );
+
+    autoTable(doc, {
+
+      tableWidth: TABLE_CONTENT_WIDTH,
+      startY: startY + 5,
+
+      head: [
+        [
+          "Indicador",
+          "Resultado",
+        ],
+      ],
+
+      body: [
+        [
+          "Despachos registrados",
+          formatearNumero(
+            totalDespachos,
+            0
+          ),
+        ],
+
+        [
+          "Volumen programado / facturado",
+          `${formatearNumero(
+            resumen?.volumenFacturado,
+            2
+          )} L`,
+        ],
+
+        [
+          "Volumen medido por contador",
+          `${formatearNumero(
+            resumen?.volumenDespachado,
+            2
+          )} L`,
+        ],
+
+        [
+          "Peso neto báscula Ambiocom",
+          `${formatearNumero(
+            resumen?.pesoNeto,
+            2
+          )} kg`,
+        ],
+
+        [
+          "En cargue",
+          formatearNumero(
+            resumen?.enCargue,
+            0
+          ),
+        ],
+
+        [
+          "En tránsito",
+          formatearNumero(
+            resumen?.enTransito,
+            0
+          ),
+        ],
+
+        [
+          "En cliente",
+          formatearNumero(
+            resumen?.enCliente,
+            0
+          ),
+        ],
+
+        [
+          "Aprobados por cliente",
+          formatearNumero(
+            resumen?.aprobadosCliente,
+            0
+          ),
+        ],
+
+        [
+          "Aprobados con observaciones",
+          formatearNumero(
+            resumen?.aprobadosConObservaciones,
+            0
+          ),
+        ],
+
+        [
+          "Rechazados",
+          formatearNumero(
+            Number(
+              resumen?.rechazadosAmbiocom ||
+                0
+            ) +
+              Number(
+                resumen?.rechazadosCliente ||
+                  0
+              ),
+            0
+          ),
+        ],
+      ],
+
+      theme: "striped",
+
+      showHead: "everyPage",
+
+      rowPageBreak: "avoid",
+
+      styles: {
+        font: "DejaVuSans",
+        textColor: PDF_COLORS.text,
+        lineColor: PDF_COLORS.border,
+        lineWidth: 0.12,
+        overflow: "linebreak",
+        fontSize: 8.4,
+        cellPadding: 2.2,
+        valign: "middle",
+      },
+
+      headStyles: {
+        fillColor: [
+          126,
+          34,
+          206,
+        ],
+
+        textColor: 255,
+        halign: "center",
+      },
+
+      columnStyles: {
+        0: {
+          cellWidth: 112,
+          fontStyle: "bold",
+        },
+
+        1: {
+          cellWidth: 64,
+          halign: "right",
+        },
+      },
+
+      margin: {
+        left: TABLE_MARGIN_X,
+        right: TABLE_MARGIN_X,
+      },
+    });
+
+    startY =
+      doc.lastAutoTable.finalY +
+      8;
+
+    if (porProducto.length) {
+      startY = asegurarEspacio(
+        doc,
+        startY,
+        45
+      );
+
+      doc.setFont(
+        "times",
+        "bold"
+      );
+
+      doc.setFontSize(11);
+
+      doc.setTextColor(
+        41,
+        128,
+        185
+      );
+
+      doc.text(
+        "Resumen de despachos por producto",
+        14,
+        startY
+      );
+
+      autoTable(doc, {
+
+        tableWidth: TABLE_CONTENT_WIDTH,
+        startY: startY + 3,
+
+        head: [
+          [
+            "Producto",
+            "Despachos",
+            "Volumen facturado (L)",
+            "Volumen contador (L)",
+            "Peso neto (kg)",
+          ],
+        ],
+
+        body: porProducto.map(
+          (item) => [
+            item?.producto ||
+              "Sin definir",
+
+            formatearNumero(
+              item?.despachos,
+              0
+            ),
+
+            formatearNumero(
+              item?.volumenFacturado,
+              2
+            ),
+
+            formatearNumero(
+              item?.volumenDespachado,
+              2
+            ),
+
+            formatearNumero(
+              item?.pesoNeto,
+              2
+            ),
+          ]
+        ),
+
+        theme: "striped",
+
+        showHead: "everyPage",
+
+        rowPageBreak: "avoid",
+
+        styles: {
+          font: "DejaVuSans",
+          textColor: PDF_COLORS.text,
+          lineColor: PDF_COLORS.border,
+          lineWidth: 0.12,
+          overflow: "linebreak",
+          fontSize: 7.2,
+          cellPadding: 1.8,
+          valign: "middle",
+          halign: "right",
+        },
+
+        headStyles: {
+          fillColor: [
+            147,
+            51,
+            234,
+          ],
+
+          textColor: 255,
+          halign: "center",
+        },
+
+        columnStyles: {
+          0: {
+            cellWidth: 48,
+            halign: "left",
+          },
+
+          1: {
+            cellWidth: 25,
+            halign: "center",
+          },
+
+          2: {
+            cellWidth: 35,
+          },
+
+          3: {
+            cellWidth: 34,
+          },
+
+          4: {
+            cellWidth: 34,
+          },
+        },
+
+        margin: {
+          left: TABLE_MARGIN_X,
+          right: TABLE_MARGIN_X,
+        },
+      });
+
+      startY =
+        doc.lastAutoTable.finalY +
+        8;
+    }
+
+    if (porCliente.length) {
+      startY = asegurarEspacio(
+        doc,
+        startY,
+        42
+      );
+
+      doc.setFont(
+        "times",
+        "bold"
+      );
+
+      doc.setFontSize(11);
+
+      doc.setTextColor(
+        41,
+        128,
+        185
+      );
+
+      doc.text(
+        "Resumen de despachos por cliente",
+        14,
+        startY
+      );
+
+      autoTable(doc, {
+
+        tableWidth: TABLE_CONTENT_WIDTH,
+        startY: startY + 3,
+
+        head: [
+          [
+            "Cliente",
+            "Despachos",
+            "Volumen facturado (L)",
+            "Volumen contador (L)",
+          ],
+        ],
+
+        body: porCliente.map(
+          (item) => [
+            item?.cliente ||
+              "Sin definir",
+
+            formatearNumero(
+              item?.despachos,
+              0
+            ),
+
+            formatearNumero(
+              item?.volumenFacturado,
+              2
+            ),
+
+            formatearNumero(
+              item?.volumenDespachado,
+              2
+            ),
+          ]
+        ),
+
+        theme: "striped",
+
+        showHead: "everyPage",
+
+        rowPageBreak: "avoid",
+
+        styles: {
+          font: "DejaVuSans",
+          textColor: PDF_COLORS.text,
+          lineColor: PDF_COLORS.border,
+          lineWidth: 0.12,
+          overflow: "linebreak",
+          fontSize: 7.5,
+          cellPadding: 1.9,
+          valign: "middle",
+        },
+
+        headStyles: {
+          fillColor: [
+            109,
+            40,
+            217,
+          ],
+
+          textColor: 255,
+          halign: "center",
+        },
+
+        columnStyles: {
+          0: {
+            cellWidth: 80,
+          },
+
+          1: {
+            cellWidth: 28,
+            halign: "center",
+          },
+
+          2: {
+            cellWidth: 34,
+            halign: "right",
+          },
+
+          3: {
+            cellWidth: 34,
+            halign: "right",
+          },
+        },
+
+        margin: {
+          left: TABLE_MARGIN_X,
+          right: TABLE_MARGIN_X,
+        },
+      });
+
+      startY =
+        doc.lastAutoTable.finalY +
+        8;
+    }
+
+    if (detalle.length) {
+      startY = asegurarEspacio(
+        doc,
+        startY,
+        58
+      );
+
+      doc.setFont(
+        "times",
+        "bold"
+      );
+
+      doc.setFontSize(11);
+
+      doc.setTextColor(
+        41,
+        128,
+        185
+      );
+
+      doc.text(
+        "Detalle de vehículos despachados",
+        14,
+        startY
+      );
+
+      autoTable(doc, {
+
+        tableWidth: TABLE_CONTENT_WIDTH,
+        startY: startY + 3,
+
+        head: [
+          [
+            "Producto",
+            "Cliente",
+            "Transportadora",
+            "Placa",
+            "Remisión",
+            "G.A. (% v/v)",
+            "Densidad",
+            "Facturado (L)",
+            "Contador (L)",
+            "Estado",
+          ],
+        ],
+
+        body: detalle.map(
+          (item) => [
+            item?.producto ||
+              "Sin definir",
+
+            item?.cliente ||
+              "Sin definir",
+
+            item?.transportadora ||
+              "Sin definir",
+
+            item?.placa ||
+              "—",
+
+            item?.remisionFactura ||
+              "—",
+
+            formatearNumero(
+              item?.gradoAlcoholico,
+              2
+            ),
+
+            formatearNumero(
+              item?.densidad,
+              5
+            ),
+
+            formatearNumero(
+              item?.volumenFacturado,
+              2
+            ),
+
+            formatearNumero(
+              item?.volumenDespachado,
+              2
+            ),
+
+            item?.estadoVehiculo ||
+              "Sin estado",
+          ]
+        ),
+
+        theme: "striped",
+
+        showHead: "everyPage",
+
+        rowPageBreak: "avoid",
+
+        styles: {
+          font: "DejaVuSans",
+          textColor: PDF_COLORS.text,
+          lineColor: PDF_COLORS.border,
+          lineWidth: 0.12,
+          overflow: "linebreak",
+          fontSize: 5.5,
+          cellPadding: 1.05,
+          valign: "middle",
+        },
+
+        headStyles: {
+          fillColor: [
+            126,
+            34,
+            206,
+          ],
+
+          textColor: 255,
+          halign: "center",
+        },
+
+        columnStyles: {
+          0: {
+            cellWidth: 19,
+          },
+
+          1: {
+            cellWidth: 22,
+          },
+
+          2: {
+            cellWidth: 22,
+          },
+
+          3: {
+            cellWidth: 13,
+            halign: "center",
+          },
+
+          4: {
+            cellWidth: 16,
+          },
+
+          5: {
+            cellWidth: 14,
+            halign: "right",
+          },
+
+          6: {
+            cellWidth: 14,
+            halign: "right",
+          },
+
+          7: {
+            cellWidth: 17,
+            halign: "right",
+          },
+
+          8: {
+            cellWidth: 17,
+            halign: "right",
+          },
+
+          9: {
+            cellWidth: 22,
+            halign: "center",
+          },
+        },
+
+        didParseCell(data) {
+          if (
+            data.section ===
+              "body" &&
+            data.column.index === 9
+          ) {
+            const estado = String(
+              data.cell.raw || ""
+            ).toUpperCase();
+
+            if (
+              estado.includes(
+                "RECHAZADO"
+              )
+            ) {
+              data.cell.styles.textColor =
+                [198, 40, 40];
+
+              data.cell.styles.fontStyle =
+                "bold";
+            } else if (
+              estado.includes(
+                "APROBADO"
+              )
+            ) {
+              data.cell.styles.textColor =
+                [22, 101, 52];
+
+              data.cell.styles.fontStyle =
+                "bold";
+            }
+          }
+        },
+
+        margin: {
+          left: TABLE_MARGIN_X,
+          right: TABLE_MARGIN_X,
+        },
+      });
+
+      startY =
+        doc.lastAutoTable.finalY +
+        8;
+
+      const novedadesDespachos =
+        detalle
+          .filter(
+            (item) =>
+              String(
+                item?.observaciones || ""
+              ).trim() ||
+              String(
+                item?.llegadaDestino || ""
+              ).trim() ||
+              String(
+                item?.puntualidadCliente || ""
+              ).trim()
+          )
+          .map((item) => [
+            item?.placa ||
+              "Sin placa",
+
+            item?.cliente ||
+              "Sin cliente",
+
+            item?.llegadaDestino ||
+              "—",
+
+            item?.puntualidadCliente ||
+              "—",
+
+            item?.observaciones ||
+              "",
+          ]);
+
+      if (novedadesDespachos.length) {
+        startY = asegurarEspacio(
+          doc,
+          startY,
+          40
+        );
+
+        autoTable(doc, {
+
+          tableWidth: TABLE_CONTENT_WIDTH,
+          startY,
+
+          head: [
+            [
+              "Vehículo",
+              "Cliente",
+              "Llegada destino",
+              "Puntualidad cliente",
+              "Observación",
+            ],
+          ],
+
+          body:
+            novedadesDespachos,
+
+          theme: "striped",
+
+          showHead: "everyPage",
+
+          rowPageBreak: "avoid",
+
+          styles: {
+            font: "DejaVuSans",
+            textColor: PDF_COLORS.text,
+            lineColor: PDF_COLORS.border,
+            lineWidth: 0.12,
+            overflow: "linebreak",
+            fontSize: 6.8,
+            cellPadding: 1.8,
+            valign: "top",
+          },
+
+          headStyles: {
+            fillColor: [
+              100,
+              116,
+              139,
+            ],
+
+            textColor: 255,
+            halign: "center",
+          },
+
+          columnStyles: {
+            0: {
+              cellWidth: 24,
+              halign: "center",
+            },
+
+            1: {
+              cellWidth: 40,
+            },
+
+            2: {
+              cellWidth: 30,
+              halign: "center",
+            },
+
+            3: {
+              cellWidth: 32,
+              halign: "center",
+            },
+
+            4: {
+              cellWidth: 50,
+            },
+          },
+
+          margin: {
+            left: TABLE_MARGIN_X,
+            right: TABLE_MARGIN_X,
+          },
+        });
+
+        startY =
+          doc.lastAutoTable.finalY +
+          8;
+      }
+    }
+
+    if (!tieneDespachos) {
+      startY = asegurarEspacio(
+        doc,
+        startY,
+        30
+      );
+
+      autoTable(doc, {
+
+        tableWidth: TABLE_CONTENT_WIDTH,
+        startY,
+
+        head: [
+          [
+            "Información",
+          ],
+        ],
+
+        body: [
+          [
+            resumenDespachosAlcohol
+              ?.mensaje ||
+              "No se registraron despachos de alcohol para la fecha consultada.",
+          ],
+        ],
+
+        theme: "striped",
+
+        showHead: "everyPage",
+
+        rowPageBreak: "avoid",
+
+        styles: {
+          font: "DejaVuSans",
+          textColor: PDF_COLORS.text,
+          lineColor: PDF_COLORS.border,
+          lineWidth: 0.12,
+          overflow: "linebreak",
+          fontSize: 9,
+          cellPadding: 3,
+          valign: "middle",
+        },
+
+        headStyles: {
+          fillColor: [
+            100,
+            116,
+            139,
+          ],
+
+          textColor: 255,
+          halign: "center",
+        },
+
+        margin: {
+          left: TABLE_MARGIN_X,
+          right: TABLE_MARGIN_X,
+        },
+      });
+
+      startY =
+        doc.lastAutoTable.finalY +
+        10;
+    }
+  }
+
+  if (
+    resumenIngresosCombustibles ||
+    resumenConsumosCombustibles
+  ) {
+    startY = dibujarSeparadorBloque(
+      doc,
+      startY,
+      "Carbón, madera y bagazo",
+      "Ingresos, consumos, ajustes y lecturas de tolvas",
+      PDF_COLORS.orange
+    );
   }
 
   /*
@@ -1262,11 +3219,16 @@ export async function exportarBitacoraPDF(
 
     doc.text(
       `INGRESOS DE COMBUSTIBLES — ${fechaIngresos}`,
-      14,
-      startY
+      TABLE_MARGIN_X,
+      startY,
+      {
+        maxWidth: TABLE_CONTENT_WIDTH,
+      }
     );
 
     autoTable(doc, {
+
+      tableWidth: TABLE_CONTENT_WIDTH,
       startY: startY + 5,
 
       head: [
@@ -1321,10 +3283,18 @@ export async function exportarBitacoraPDF(
         ],
       ],
 
-      theme: "grid",
+      theme: "striped",
+
+      showHead: "everyPage",
+
+      rowPageBreak: "avoid",
 
       styles: {
         font: "DejaVuSans",
+        textColor: PDF_COLORS.text,
+        lineColor: PDF_COLORS.border,
+        lineWidth: 0.12,
+        overflow: "linebreak",
         fontSize: 9,
         cellPadding: 2.5,
         valign: "middle",
@@ -1373,8 +3343,8 @@ export async function exportarBitacoraPDF(
       },
 
       margin: {
-        left: 14,
-        right: 14,
+        left: TABLE_MARGIN_X,
+        right: TABLE_MARGIN_X,
       },
     });
 
@@ -1409,6 +3379,8 @@ export async function exportarBitacoraPDF(
       );
 
       autoTable(doc, {
+
+        tableWidth: TABLE_CONTENT_WIDTH,
         startY: startY + 3,
 
         head: [
@@ -1440,10 +3412,18 @@ export async function exportarBitacoraPDF(
           ]
         ),
 
-        theme: "grid",
+        theme: "striped",
+
+        showHead: "everyPage",
+
+        rowPageBreak: "avoid",
 
         styles: {
           font: "DejaVuSans",
+          textColor: PDF_COLORS.text,
+          lineColor: PDF_COLORS.border,
+          lineWidth: 0.12,
+          overflow: "linebreak",
           fontSize: 8.2,
           cellPadding: 2,
           valign: "middle",
@@ -1483,8 +3463,8 @@ export async function exportarBitacoraPDF(
         },
 
         margin: {
-          left: 14,
-          right: 14,
+          left: TABLE_MARGIN_X,
+          right: TABLE_MARGIN_X,
         },
       });
 
@@ -1501,6 +3481,8 @@ export async function exportarBitacoraPDF(
       );
 
       autoTable(doc, {
+
+        tableWidth: TABLE_CONTENT_WIDTH,
         startY,
 
         head: [
@@ -1517,10 +3499,18 @@ export async function exportarBitacoraPDF(
           ],
         ],
 
-        theme: "grid",
+        theme: "striped",
+
+        showHead: "everyPage",
+
+        rowPageBreak: "avoid",
 
         styles: {
           font: "DejaVuSans",
+          textColor: PDF_COLORS.text,
+          lineColor: PDF_COLORS.border,
+          lineWidth: 0.12,
+          overflow: "linebreak",
           fontSize: 9,
           cellPadding: 3,
           valign: "middle",
@@ -1538,8 +3528,8 @@ export async function exportarBitacoraPDF(
         },
 
         margin: {
-          left: 14,
-          right: 14,
+          left: TABLE_MARGIN_X,
+          right: TABLE_MARGIN_X,
         },
       });
 
@@ -1594,6 +3584,121 @@ export async function exportarBitacoraPDF(
       resumenConsumosCombustibles
         ?.tolvas || {};
 
+    /*
+     * Composición de la mezcla consumida.
+     * El porcentaje se calcula sobre el consumo real de cada material.
+     */
+    const consumoCarbonTon = Number(
+      carbon?.consumoTon || 0
+    );
+
+    const consumoMaderaTon = Number(
+      madera?.consumoTon || 0
+    );
+
+    const consumoBagazoTon = Number(
+      bagazo?.consumoTon || 0
+    );
+
+    const consumoTotalMezclaTon =
+      consumoCarbonTon +
+      consumoMaderaTon +
+      consumoBagazoTon;
+
+    const porcentajeCarbon =
+      consumoTotalMezclaTon > 0
+        ? consumoCarbonTon / consumoTotalMezclaTon
+        : 0;
+
+    const porcentajeMadera =
+      consumoTotalMezclaTon > 0
+        ? consumoMaderaTon / consumoTotalMezclaTon
+        : 0;
+
+    const porcentajeBagazo =
+      consumoTotalMezclaTon > 0
+        ? consumoBagazoTon / consumoTotalMezclaTon
+        : 0;
+
+    const totalTolvasTon = tieneNumero(
+      tolvas?.total
+    )
+      ? Number(tolvas.total)
+      : Number(tolvas?.principal || 0) +
+        Number(tolvas?.auxiliares || 0);
+
+    const carbonEnTolvasTon =
+      totalTolvasTon * porcentajeCarbon;
+
+    const maderaEnTolvasTon =
+      totalTolvasTon * porcentajeMadera;
+
+    const bagazoEnTolvasTon =
+      totalTolvasTon * porcentajeBagazo;
+
+    /*
+     * El inventario de patio debe llegar desde el resumen de la API.
+     * Se admiten varios nombres para mantener compatibilidad.
+     * No se usa inventarioFinalCarbon/inventarioFinalMadera como respaldo,
+     * porque esos campos pueden incluir ya la fracción de las tolvas.
+     */
+    const stockPatioCarbonTon =
+      obtenerPrimerNumeroDisponible(
+        carbon?.inventarioFinalPatioTon,
+        carbon?.stockPatioTon,
+        carbon?.inventarioPatioTon,
+        resumen?.inventarioFinalCarbonPatio,
+        resumen?.stockPatioCarbon,
+        resumenConsumosCombustibles
+          ?.inventarioFinalCarbonPatio,
+        resumenConsumosCombustibles
+          ?.stockPatioCarbon
+      );
+
+    const stockPatioMaderaTon =
+      obtenerPrimerNumeroDisponible(
+        madera?.inventarioFinalPatioTon,
+        madera?.stockPatioTon,
+        madera?.inventarioPatioTon,
+        resumen?.inventarioFinalMaderaPatio,
+        resumen?.stockPatioMadera,
+        resumenConsumosCombustibles
+          ?.inventarioFinalMaderaPatio,
+        resumenConsumosCombustibles
+          ?.stockPatioMadera
+      );
+
+    const stockPatioBagazoTon =
+      obtenerPrimerNumeroDisponible(
+        bagazo?.inventarioFinalPatioTon,
+        bagazo?.stockPatioTon,
+        bagazo?.inventarioPatioTon,
+        resumen?.inventarioFinalBagazoPatio,
+        resumen?.stockPatioBagazo,
+        resumenConsumosCombustibles
+          ?.inventarioFinalBagazoPatio,
+        resumenConsumosCombustibles
+          ?.stockPatioBagazo
+      );
+
+    const stockTotalCarbonTon =
+      stockPatioCarbonTon === null
+        ? null
+        : stockPatioCarbonTon +
+          carbonEnTolvasTon;
+
+    const stockTotalMaderaTon =
+      stockPatioMaderaTon === null
+        ? null
+        : stockPatioMaderaTon +
+          maderaEnTolvasTon;
+
+    const stockTotalBagazoTon =
+      stockPatioBagazoTon === null
+        ? null
+        : stockPatioBagazoTon +
+          bagazoEnTolvasTon;
+
     const observacion = String(
       resumenConsumosCombustibles
         ?.observacion || ""
@@ -1629,11 +3734,16 @@ export async function exportarBitacoraPDF(
 
     doc.text(
       `CONSUMOS DE COMBUSTIBLES — ${fechaConsumos}`,
-      14,
-      startY
+      TABLE_MARGIN_X,
+      startY,
+      {
+        maxWidth: TABLE_CONTENT_WIDTH,
+      }
     );
 
     autoTable(doc, {
+
+      tableWidth: TABLE_CONTENT_WIDTH,
       startY: startY + 5,
 
       head: [
@@ -1642,6 +3752,7 @@ export async function exportarBitacoraPDF(
           "Paladas CV",
           "Paladas CN",
           "Consumo (t)",
+          "% mezcla",
           "Ajuste (t)",
         ],
       ],
@@ -1663,6 +3774,11 @@ export async function exportarBitacoraPDF(
           formatearNumero(
             carbon?.consumoTon,
             4
+          ),
+
+          formatearPorcentaje(
+            porcentajeCarbon,
+            1
           ),
 
           formatearNumero(
@@ -1689,6 +3805,11 @@ export async function exportarBitacoraPDF(
             4
           ),
 
+          formatearPorcentaje(
+            porcentajeMadera,
+            1
+          ),
+
           formatearNumero(
             madera?.ajusteTon,
             4
@@ -1711,6 +3832,11 @@ export async function exportarBitacoraPDF(
           formatearNumero(
             bagazo?.consumoTon,
             4
+          ),
+
+          formatearPorcentaje(
+            porcentajeBagazo,
+            1
           ),
 
           formatearNumero(
@@ -1737,6 +3863,13 @@ export async function exportarBitacoraPDF(
             4
           ),
 
+          formatearPorcentaje(
+            consumoTotalMezclaTon > 0
+              ? 1
+              : 0,
+            1
+          ),
+
           formatearNumero(
             total?.ajusteTon,
             4
@@ -1744,10 +3877,18 @@ export async function exportarBitacoraPDF(
         ],
       ],
 
-      theme: "grid",
+      theme: "striped",
+
+      showHead: "everyPage",
+
+      rowPageBreak: "avoid",
 
       styles: {
         font: "DejaVuSans",
+        textColor: PDF_COLORS.text,
+        lineColor: PDF_COLORS.border,
+        lineWidth: 0.12,
+        overflow: "linebreak",
         fontSize: 8.3,
         cellPadding: 2.2,
         valign: "middle",
@@ -1766,28 +3907,34 @@ export async function exportarBitacoraPDF(
 
       columnStyles: {
         0: {
-          cellWidth: 45,
+          cellWidth: 35,
           fontStyle: "bold",
           halign: "left",
         },
 
         1: {
-          cellWidth: 32,
+          cellWidth: 26,
           halign: "right",
         },
 
         2: {
-          cellWidth: 32,
+          cellWidth: 26,
           halign: "right",
         },
 
         3: {
-          cellWidth: 34,
+          cellWidth: 32,
           halign: "right",
         },
 
         4: {
-          cellWidth: 33,
+          cellWidth: 28,
+          halign: "right",
+          fontStyle: "bold",
+        },
+
+        5: {
+          cellWidth: 29,
           halign: "right",
         },
       },
@@ -1807,8 +3954,8 @@ export async function exportarBitacoraPDF(
       },
 
       margin: {
-        left: 14,
-        right: 14,
+        left: TABLE_MARGIN_X,
+        right: TABLE_MARGIN_X,
       },
     });
 
@@ -1846,6 +3993,8 @@ export async function exportarBitacoraPDF(
       );
 
       autoTable(doc, {
+
+        tableWidth: TABLE_CONTENT_WIDTH,
         startY: startY + 3,
 
         head: [
@@ -1889,10 +4038,18 @@ export async function exportarBitacoraPDF(
           ]
         ),
 
-        theme: "grid",
+        theme: "striped",
+
+        showHead: "everyPage",
+
+        rowPageBreak: "avoid",
 
         styles: {
           font: "DejaVuSans",
+          textColor: PDF_COLORS.text,
+          lineColor: PDF_COLORS.border,
+          lineWidth: 0.12,
+          overflow: "linebreak",
           fontSize: 7.4,
           cellPadding: 1.7,
           valign: "middle",
@@ -1942,8 +4099,8 @@ export async function exportarBitacoraPDF(
         },
 
         margin: {
-          left: 14,
-          right: 14,
+          left: TABLE_MARGIN_X,
+          right: TABLE_MARGIN_X,
         },
       });
 
@@ -1976,11 +4133,16 @@ export async function exportarBitacoraPDF(
 
     doc.text(
       "Lecturas registradas de tolvas",
-      14,
-      startY
+      TABLE_MARGIN_X,
+      startY,
+      {
+        maxWidth: TABLE_CONTENT_WIDTH,
+      }
     );
 
     autoTable(doc, {
+
+      tableWidth: TABLE_CONTENT_WIDTH,
       startY: startY + 3,
 
       head: [
@@ -2010,10 +4172,18 @@ export async function exportarBitacoraPDF(
         ],
       ],
 
-      theme: "grid",
+      theme: "striped",
+
+      showHead: "everyPage",
+
+      rowPageBreak: "avoid",
 
       styles: {
         font: "DejaVuSans",
+        textColor: PDF_COLORS.text,
+        lineColor: PDF_COLORS.border,
+        lineWidth: 0.12,
+        overflow: "linebreak",
         fontSize: 8.5,
         cellPadding: 2.5,
         halign: "right",
@@ -2047,8 +4217,8 @@ export async function exportarBitacoraPDF(
       },
 
       margin: {
-        left: 14,
-        right: 14,
+        left: TABLE_MARGIN_X,
+        right: TABLE_MARGIN_X,
       },
     });
 
@@ -2067,6 +4237,8 @@ export async function exportarBitacoraPDF(
       );
 
       autoTable(doc, {
+
+        tableWidth: TABLE_CONTENT_WIDTH,
         startY,
 
         head: [
@@ -2081,10 +4253,18 @@ export async function exportarBitacoraPDF(
           ],
         ],
 
-        theme: "grid",
+        theme: "striped",
+
+        showHead: "everyPage",
+
+        rowPageBreak: "avoid",
 
         styles: {
           font: "DejaVuSans",
+          textColor: PDF_COLORS.text,
+          lineColor: PDF_COLORS.border,
+          lineWidth: 0.12,
+          overflow: "linebreak",
           fontSize: 8.5,
           cellPadding: 3,
           valign: "top",
@@ -2102,8 +4282,263 @@ export async function exportarBitacoraPDF(
         },
 
         margin: {
-          left: 14,
-          right: 14,
+          left: TABLE_MARGIN_X,
+          right: TABLE_MARGIN_X,
+        },
+      });
+
+      startY =
+        doc.lastAutoTable.finalY +
+        8;
+    }
+
+    /*
+     * Resumen final de consumo, mezcla e inventario disponible.
+     * Stock total = inventario final de patio + participación en tolvas.
+     */
+    startY = asegurarEspacio(
+      doc,
+      startY,
+      55
+    );
+
+    doc.setFont(
+      "times",
+      "bold"
+    );
+
+    doc.setFontSize(11);
+    doc.setTextColor(41, 128, 185);
+
+    doc.text(
+      "Resumen final de combustibles",
+      TABLE_MARGIN_X,
+      startY,
+      {
+        maxWidth: TABLE_CONTENT_WIDTH,
+      }
+    );
+
+    const filasResumenCombustibles = [
+      [
+        "Carbón",
+        formatearNumero(
+          consumoCarbonTon,
+          4
+        ),
+        formatearPorcentaje(
+          porcentajeCarbon,
+          1
+        ),
+        stockPatioCarbonTon === null
+          ? "—"
+          : formatearNumero(
+              stockPatioCarbonTon,
+              4
+            ),
+        formatearNumero(
+          carbonEnTolvasTon,
+          4
+        ),
+        stockTotalCarbonTon === null
+          ? "—"
+          : formatearNumero(
+              stockTotalCarbonTon,
+              4
+            ),
+      ],
+      [
+        "Madera",
+        formatearNumero(
+          consumoMaderaTon,
+          4
+        ),
+        formatearPorcentaje(
+          porcentajeMadera,
+          1
+        ),
+        stockPatioMaderaTon === null
+          ? "—"
+          : formatearNumero(
+              stockPatioMaderaTon,
+              4
+            ),
+        formatearNumero(
+          maderaEnTolvasTon,
+          4
+        ),
+        stockTotalMaderaTon === null
+          ? "—"
+          : formatearNumero(
+              stockTotalMaderaTon,
+              4
+            ),
+      ],
+    ];
+
+    const incluirBagazoResumen =
+      consumoBagazoTon !== 0 ||
+      stockPatioBagazoTon !== null ||
+      bagazoEnTolvasTon !== 0;
+
+    if (incluirBagazoResumen) {
+      filasResumenCombustibles.push([
+        "Bagazo",
+        formatearNumero(
+          consumoBagazoTon,
+          4
+        ),
+        formatearPorcentaje(
+          porcentajeBagazo,
+          1
+        ),
+        stockPatioBagazoTon === null
+          ? "—"
+          : formatearNumero(
+              stockPatioBagazoTon,
+              4
+            ),
+        formatearNumero(
+          bagazoEnTolvasTon,
+          4
+        ),
+        stockTotalBagazoTon === null
+          ? "—"
+          : formatearNumero(
+              stockTotalBagazoTon,
+              4
+            ),
+      ]);
+    }
+
+    autoTable(doc, {
+      tableWidth: TABLE_CONTENT_WIDTH,
+      startY: startY + 3,
+
+      head: [
+        [
+          "Material",
+          "Consumo total (t)",
+          "% mezcla",
+          "Stock patio (t)",
+          "Participación tolvas (t)",
+          "Stock total (t)",
+        ],
+      ],
+
+      body: filasResumenCombustibles,
+      theme: "striped",
+      showHead: "everyPage",
+      rowPageBreak: "avoid",
+
+      styles: {
+        font: "DejaVuSans",
+        textColor: PDF_COLORS.text,
+        lineColor: PDF_COLORS.border,
+        lineWidth: 0.12,
+        overflow: "linebreak",
+        fontSize: 7.2,
+        cellPadding: 1.8,
+        valign: "middle",
+      },
+
+      headStyles: {
+        fillColor: [120, 53, 15],
+        textColor: 255,
+        halign: "center",
+      },
+
+      columnStyles: {
+        0: {
+          cellWidth: 28,
+          fontStyle: "bold",
+        },
+        1: {
+          cellWidth: 28,
+          halign: "right",
+        },
+        2: {
+          cellWidth: 23,
+          halign: "right",
+        },
+        3: {
+          cellWidth: 31,
+          halign: "right",
+        },
+        4: {
+          cellWidth: 34,
+          halign: "right",
+        },
+        5: {
+          cellWidth: 32,
+          halign: "right",
+          fontStyle: "bold",
+        },
+      },
+
+      didParseCell(data) {
+        if (
+          data.section === "body" &&
+          data.column.index === 5
+        ) {
+          data.cell.styles.fillColor =
+            [255, 247, 237];
+        }
+      },
+
+      margin: {
+        left: TABLE_MARGIN_X,
+        right: TABLE_MARGIN_X,
+      },
+    });
+
+    startY =
+      doc.lastAutoTable.finalY +
+      8;
+
+    const faltaStockPatio =
+      stockPatioCarbonTon === null ||
+      stockPatioMaderaTon === null;
+
+    if (faltaStockPatio) {
+      startY = asegurarEspacio(
+        doc,
+        startY,
+        25
+      );
+
+      autoTable(doc, {
+        tableWidth: TABLE_CONTENT_WIDTH,
+        startY,
+        body: [
+          [
+            "Nota",
+            "Para calcular el stock total, la API debe enviar el inventario final de patio por material mediante inventarioFinalPatioTon, inventarioFinalCarbonPatio/inventarioFinalMaderaPatio o stockPatioCarbon/stockPatioMadera.",
+          ],
+        ],
+        theme: "plain",
+        styles: {
+          font: "DejaVuSans",
+          textColor: PDF_COLORS.text,
+          lineColor: PDF_COLORS.border,
+          lineWidth: 0.12,
+          fontSize: 7.2,
+          cellPadding: 2.2,
+          valign: "top",
+        },
+        columnStyles: {
+          0: {
+            cellWidth: 22,
+            fontStyle: "bold",
+            textColor: [180, 83, 9],
+          },
+          1: {
+            cellWidth: 154,
+          },
+        },
+        margin: {
+          left: TABLE_MARGIN_X,
+          right: TABLE_MARGIN_X,
         },
       });
 
@@ -2123,6 +4558,8 @@ export async function exportarBitacoraPDF(
       );
 
       autoTable(doc, {
+
+        tableWidth: TABLE_CONTENT_WIDTH,
         startY,
 
         head: [
@@ -2139,10 +4576,18 @@ export async function exportarBitacoraPDF(
           ],
         ],
 
-        theme: "grid",
+        theme: "striped",
+
+        showHead: "everyPage",
+
+        rowPageBreak: "avoid",
 
         styles: {
           font: "DejaVuSans",
+          textColor: PDF_COLORS.text,
+          lineColor: PDF_COLORS.border,
+          lineWidth: 0.12,
+          overflow: "linebreak",
           fontSize: 9,
           cellPadding: 3,
           valign: "middle",
@@ -2160,8 +4605,8 @@ export async function exportarBitacoraPDF(
         },
 
         margin: {
-          left: 14,
-          right: 14,
+          left: TABLE_MARGIN_X,
+          right: TABLE_MARGIN_X,
         },
       });
 

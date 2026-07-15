@@ -221,6 +221,12 @@ function SeguimientoTKJornaleros({ NivelesTanquesContext }) {
       mapa[item.NombreTanque] = {
         factor: Number(item.Factor),
         capacidad: Number(item.VolumenTotal),
+        gradoAlcoholico:
+          item.GradoAlcoholico !== null &&
+          item.GradoAlcoholico !== undefined &&
+          item.GradoAlcoholico !== ""
+            ? Number(String(item.GradoAlcoholico).replace(",", "."))
+            : null,
       };
     });
 
@@ -494,6 +500,20 @@ function SeguimientoTKJornaleros({ NivelesTanquesContext }) {
             const nivel = Number(tanque.NivelTanque || 0);
             const factor = infoTanque.factor;
             const capacidad = infoTanque.capacidad;
+
+            const gradoAlcoholicoRegistro =
+              tanque.GradoAlcoholico !== null &&
+              tanque.GradoAlcoholico !== undefined &&
+              tanque.GradoAlcoholico !== ""
+                ? Number(String(tanque.GradoAlcoholico).replace(",", "."))
+                : null;
+
+            const gradoAlcoholico =
+              gradoAlcoholicoRegistro !== null &&
+              Number.isFinite(gradoAlcoholicoRegistro)
+                ? gradoAlcoholicoRegistro
+                : infoTanque.gradoAlcoholico;
+
             const volumen = nivel * factor;
 
             const porcentaje = capacidad > 0
@@ -625,6 +645,27 @@ function SeguimientoTKJornaleros({ NivelesTanquesContext }) {
 
                         <Typography fontWeight={800}>
                           {volumen.toLocaleString("es-CO")} L
+                        </Typography>
+                      </Box>
+
+                      {/* GRADO ALCOHÓLICO */}
+                      <Box sx={cardStyle}>
+                        <Typography variant="caption">
+                          Grado Alcohólico
+                        </Typography>
+
+                        <Typography fontWeight={800}>
+                          {gradoAlcoholico !== null &&
+                          gradoAlcoholico !== undefined &&
+                          Number.isFinite(Number(gradoAlcoholico))
+                            ? `${Number(gradoAlcoholico).toLocaleString(
+                                "es-CO",
+                                {
+                                  minimumFractionDigits: 1,
+                                  maximumFractionDigits: 2,
+                                }
+                              )} %`
+                            : "N/A"}
                         </Typography>
                       </Box>
                     </Box>

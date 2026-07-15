@@ -45,6 +45,15 @@ const INGRESOS_COMBUSTIBLES_BITACORA_API_URL =
 const CONSUMOS_COMBUSTIBLES_BITACORA_API_URL =
   "https://ambiocomserver.onrender.com/api/consumos-combustibles/bitacora/resumen";
 
+const RECEPCIONES_ALCOHOL_BITACORA_API_URL =
+  "https://ambiocomserver.onrender.com/api/recepcion-alcoholes/bitacora/resumen";
+
+const DESPACHOS_ALCOHOL_BITACORA_API_URL =
+  "https://ambiocomserver.onrender.com/api/despacho-alcoholes/bitacora/resumen";
+
+const NIVELES_TANQUES_BITACORA_API_URL =
+  "https://ambiocomserver.onrender.com/api/tanquesjornaleros/bitacora/resumen";
+
 /*
  * Estos son los turnos que deben llevar el balance completo
  * de los movimientos realizados el día inmediatamente anterior.
@@ -121,6 +130,96 @@ const crearResumenIngresosVacio = (
   },
 
   proveedores: [],
+  detalle: [],
+});
+
+const crearResumenRecepcionesAlcoholVacio = (
+  fecha,
+  mensaje = ""
+) => ({
+  fecha,
+  exists: false,
+  sinDatos: true,
+
+  mensaje:
+    mensaje ||
+    "No se encontraron recepciones o compras de alcoholes para el día anterior.",
+
+  totalRegistros: 0,
+
+  resumen: {
+    totalRecepciones: 0,
+    cantidadRecibida: 0,
+    volumenRecepcionado: 0,
+    pesoEnviadoProveedor: 0,
+    pesoAmbiocom: 0,
+    aprobados: 0,
+    rechazados: 0,
+    enProceso: 0,
+    sinEstado: 0,
+  },
+
+  porProducto: [],
+  detalle: [],
+});
+
+
+const crearResumenDespachosAlcoholVacio = (
+  fecha,
+  mensaje = ""
+) => ({
+  fecha,
+  exists: false,
+  sinDatos: true,
+
+  mensaje:
+    mensaje ||
+    "No se encontraron despachos de alcohol para el día anterior.",
+
+  totalRegistros: 0,
+
+  resumen: {
+    totalDespachos: 0,
+    volumenFacturado: 0,
+    volumenDespachado: 0,
+    pesoNeto: 0,
+
+    enPlanta: 0,
+    rechazadosAmbiocom: 0,
+    aprobadosAmbiocom: 0,
+    enCargue: 0,
+    enTransito: 0,
+    enCliente: 0,
+    aprobadosCliente: 0,
+    aprobadosConObservaciones: 0,
+    rechazadosCliente: 0,
+    sinEstado: 0,
+
+    puntualesDestino: 0,
+    retrasadosDestino: 0,
+    puntualesCliente: 0,
+    retrasadosCliente: 0,
+  },
+
+  porProducto: [],
+  porCliente: [],
+  detalle: [],
+});
+
+const crearResumenNivelesTanquesVacio = (
+  fecha,
+  mensaje = ""
+) => ({
+  fecha,
+  exists: false,
+  sinDatos: true,
+
+  mensaje:
+    mensaje ||
+    "No se encontraron niveles de tanques jornaleros para el día anterior.",
+
+  totalRegistros: 0,
+  volumenTotal: 0,
   detalle: [],
 });
 
@@ -328,10 +427,6 @@ function BitacoraComponentProduccion({
     }
   };
 
-  /*
-   * Consulta de ingresos de carbón y madera
-   * registrados durante el día anterior.
-   */
   const consultarIngresosCombustiblesDiaAnterior =
     async () => {
       const fechaAnterior = obtenerDiaAnterior(
@@ -392,10 +487,185 @@ function BitacoraComponentProduccion({
       }
     };
 
-  /*
-   * Consulta de consumos, ajustes, paladas y tolvas
-   * correspondientes al día anterior.
-   */
+  const consultarRecepcionesAlcoholDiaAnterior =
+    async () => {
+      const fechaAnterior = obtenerDiaAnterior(
+        headerData.fecha
+      );
+
+      if (!fechaAnterior) {
+        throw new Error(
+          "No fue posible calcular la fecha anterior para consultar las recepciones de alcohol."
+        );
+      }
+
+      try {
+        const response = await axios.get(
+          `${RECEPCIONES_ALCOHOL_BITACORA_API_URL}/${fechaAnterior}`,
+          {
+            withCredentials: true,
+
+            headers: {
+              Accept: "application/json",
+            },
+          }
+        );
+
+        const data = response.data?.data;
+
+        if (!data) {
+          return crearResumenRecepcionesAlcoholVacio(
+            fechaAnterior,
+            "La consulta no devolvió información de recepciones de alcohol."
+          );
+        }
+
+        return {
+          ...data,
+
+          exists:
+            response.data?.exists === true,
+
+          sinDatos:
+            response.data?.exists !== true,
+
+          mensaje:
+            response.data?.message ||
+            "Consulta de recepciones de alcohol realizada correctamente.",
+        };
+      } catch (error) {
+        if (error?.response?.status === 404) {
+          return crearResumenRecepcionesAlcoholVacio(
+            fechaAnterior,
+
+            error?.response?.data?.message ||
+              "No se encontraron recepciones de alcohol para el día anterior."
+          );
+        }
+
+        throw error;
+      }
+    };
+
+
+  const consultarDespachosAlcoholDiaAnterior =
+    async () => {
+      const fechaAnterior = obtenerDiaAnterior(
+        headerData.fecha
+      );
+
+      if (!fechaAnterior) {
+        throw new Error(
+          "No fue posible calcular la fecha anterior para consultar los despachos de alcohol."
+        );
+      }
+
+      try {
+        const response = await axios.get(
+          `${DESPACHOS_ALCOHOL_BITACORA_API_URL}/${fechaAnterior}`,
+          {
+            withCredentials: true,
+
+            headers: {
+              Accept: "application/json",
+            },
+          }
+        );
+
+        const data = response.data?.data;
+
+        if (!data) {
+          return crearResumenDespachosAlcoholVacio(
+            fechaAnterior,
+            "La consulta no devolvió información de despachos de alcohol."
+          );
+        }
+
+        return {
+          ...data,
+
+          exists:
+            response.data?.exists === true,
+
+          sinDatos:
+            response.data?.exists !== true,
+
+          mensaje:
+            response.data?.message ||
+            "Consulta de despachos de alcohol realizada correctamente.",
+        };
+      } catch (error) {
+        if (error?.response?.status === 404) {
+          return crearResumenDespachosAlcoholVacio(
+            fechaAnterior,
+
+            error?.response?.data?.message ||
+              "No se encontraron despachos de alcohol para el día anterior."
+          );
+        }
+
+        throw error;
+      }
+    };
+
+  const consultarNivelesTanquesDiaAnterior = async () => {
+    const fechaAnterior = obtenerDiaAnterior(
+      headerData.fecha
+    );
+
+    if (!fechaAnterior) {
+      throw new Error(
+        "No fue posible calcular la fecha anterior para consultar los niveles de tanques jornaleros."
+      );
+    }
+
+    try {
+      const response = await axios.get(
+        `${NIVELES_TANQUES_BITACORA_API_URL}/${fechaAnterior}`,
+        {
+          withCredentials: true,
+
+          headers: {
+            Accept: "application/json",
+          },
+        }
+      );
+
+      const data = response.data?.data;
+
+      if (!data) {
+        return crearResumenNivelesTanquesVacio(
+          fechaAnterior,
+          "La consulta no devolvió información de niveles de tanques jornaleros."
+        );
+      }
+
+      return {
+        ...data,
+
+        exists:
+          response.data?.exists === true,
+
+        sinDatos:
+          response.data?.exists !== true,
+
+        mensaje:
+          response.data?.message ||
+          "Consulta de niveles de tanques jornaleros realizada correctamente.",
+      };
+    } catch (error) {
+      if (error?.response?.status === 404) {
+        return crearResumenNivelesTanquesVacio(
+          fechaAnterior,
+          error?.response?.data?.message ||
+            "No se encontraron niveles de tanques jornaleros para el día anterior."
+        );
+      }
+
+      throw error;
+    }
+  };
+
   const consultarConsumosCombustiblesDiaAnterior =
     async () => {
       const fechaAnterior = obtenerDiaAnterior(
@@ -443,11 +713,7 @@ function BitacoraComponentProduccion({
             "Consulta de consumos de combustibles realizada correctamente.",
         };
       } catch (error) {
-        /*
-         * Aunque el endpoint responda 404,
-         * el PDF seguirá generándose y mostrará
-         * que no hubo consumos registrados.
-         */
+  
         if (error?.response?.status === 404) {
           return crearResumenConsumosVacio(
             fechaAnterior,
@@ -481,16 +747,12 @@ function BitacoraComponentProduccion({
       setExportando(true);
 
       let resumenTotalizadores = null;
+      let resumenNivelesTanques = null;
       let resumenIngresosCombustibles = null;
       let resumenConsumosCombustibles = null;
+      let resumenRecepcionesAlcohol = null;
+      let resumenDespachosAlcohol = null;
 
-      /*
-       * Turno 1: 06:00 a 14:00
-       * Turno 4: 06:00 a 18:00
-       *
-       * Estos turnos generan el cierre consolidado
-       * correspondiente al día inmediatamente anterior.
-       */
       if (
         debeConsultarDiaAnterior(
           headerData.turno
@@ -498,18 +760,29 @@ function BitacoraComponentProduccion({
       ) {
         [
           resumenTotalizadores,
+          resumenNivelesTanques,
           resumenIngresosCombustibles,
           resumenConsumosCombustibles,
+          resumenRecepcionesAlcohol,
+          resumenDespachosAlcohol,
         ] = await Promise.all([
           consultarResumenDiaAnterior(),
+          consultarNivelesTanquesDiaAnterior(),
           consultarIngresosCombustiblesDiaAnterior(),
           consultarConsumosCombustiblesDiaAnterior(),
+          consultarRecepcionesAlcoholDiaAnterior(),
+          consultarDespachosAlcoholDiaAnterior(),
         ]);
       }
 
       console.log(
         "Resumen totalizadores:",
         resumenTotalizadores
+      );
+
+      console.log(
+        "Resumen niveles de tanques jornaleros:",
+        resumenNivelesTanques
       );
 
       console.log(
@@ -522,6 +795,16 @@ function BitacoraComponentProduccion({
         resumenConsumosCombustibles
       );
 
+      console.log(
+        "Resumen recepciones de alcohol:",
+        resumenRecepcionesAlcohol
+      );
+
+      console.log(
+        "Resumen despachos de alcohol:",
+        resumenDespachosAlcohol
+      );
+
       /*
        * El generador recibe ahora:
        *
@@ -530,13 +813,19 @@ function BitacoraComponentProduccion({
        * 3. Totalizadores
        * 4. Ingresos
        * 5. Consumos
+       * 6. Recepciones o compras de alcoholes
+       * 7. Despachos de alcoholes
+       * 8. Niveles de tanques jornaleros
        */
       await exportarBitacoraPDF(
         headerData,
         notes,
         resumenTotalizadores,
         resumenIngresosCombustibles,
-        resumenConsumosCombustibles
+        resumenConsumosCombustibles,
+        resumenRecepcionesAlcohol,
+        resumenDespachosAlcohol,
+        resumenNivelesTanques
       );
 
       const totalIngresos = Number(
@@ -559,6 +848,37 @@ function BitacoraComponentProduccion({
           ?.resumen?.total?.ajusteTon || 0
       );
 
+      const totalRecepcionesAlcohol = Number(
+        resumenRecepcionesAlcohol
+          ?.resumen?.totalRecepciones || 0
+      );
+
+      const totalVolumenAlcohol = Number(
+        resumenRecepcionesAlcohol
+          ?.resumen?.volumenRecepcionado || 0
+      );
+
+
+      const totalDespachosAlcohol = Number(
+        resumenDespachosAlcohol
+          ?.resumen?.totalDespachos || 0
+      );
+
+      const totalVolumenDespachado = Number(
+        resumenDespachosAlcohol
+          ?.resumen?.volumenDespachado || 0
+      );
+
+      const totalTanquesJornaleros = Number(
+        resumenNivelesTanques
+          ?.totalRegistros || 0
+      );
+
+      const volumenTotalTanques = Number(
+        resumenNivelesTanques
+          ?.volumenTotal || 0
+      );
+
       let mensaje =
         "Bitácora generada correctamente.";
 
@@ -566,8 +886,11 @@ function BitacoraComponentProduccion({
 
       if (
         resumenTotalizadores ||
+        resumenNivelesTanques ||
         resumenIngresosCombustibles ||
-        resumenConsumosCombustibles
+        resumenConsumosCombustibles ||
+        resumenRecepcionesAlcohol ||
+        resumenDespachosAlcohol
       ) {
         const mensajes = [];
 
@@ -623,14 +946,78 @@ function BitacoraComponentProduccion({
           }
         }
 
+        if (resumenNivelesTanques) {
+          if (totalTanquesJornaleros > 0) {
+            mensajes.push(
+              `con ${totalTanquesJornaleros} tanque(s) jornalero(s) y ${volumenTotalTanques.toLocaleString(
+                "es-CO",
+                {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 2,
+                }
+              )} L calculados`
+            );
+          } else {
+            mensajes.push(
+              "sin niveles de tanques jornaleros en el día anterior"
+            );
+          }
+        }
+
+        if (resumenRecepcionesAlcohol) {
+          if (
+            totalRecepcionesAlcohol > 0 ||
+            totalVolumenAlcohol > 0
+          ) {
+            mensajes.push(
+              `con ${totalRecepcionesAlcohol} recepción(es) de alcohol por ${totalVolumenAlcohol.toLocaleString(
+                "es-CO",
+                {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 2,
+                }
+              )} L medidos en planta`
+            );
+          } else {
+            mensajes.push(
+              "sin recepciones de alcohol en el día anterior"
+            );
+          }
+        }
+
+
+        if (resumenDespachosAlcohol) {
+          if (
+            totalDespachosAlcohol > 0 ||
+            totalVolumenDespachado > 0
+          ) {
+            mensajes.push(
+              `con ${totalDespachosAlcohol} despacho(s) de alcohol por ${totalVolumenDespachado.toLocaleString(
+                "es-CO",
+                {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 2,
+                }
+              )} L medidos por contador`
+            );
+          } else {
+            mensajes.push(
+              "sin despachos de alcohol en el día anterior"
+            );
+          }
+        }
+
         mensaje = `Bitácora generada ${mensajes.join(
           " y "
         )}.`;
 
         if (
           resumenTotalizadores?.sinDatos ||
+          resumenNivelesTanques?.sinDatos ||
           resumenIngresosCombustibles?.sinDatos ||
-          resumenConsumosCombustibles?.sinDatos
+          resumenConsumosCombustibles?.sinDatos ||
+          resumenRecepcionesAlcohol?.sinDatos ||
+          resumenDespachosAlcohol?.sinDatos
         ) {
           severity = "warning";
         }

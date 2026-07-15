@@ -233,12 +233,12 @@ export default function EmpresarialPrincipalSchedulerApp() {
             subItems: [
                 { text: 'Inventario de insumos', subKey: 'Inventariodeinsumos', /* roles: ["admin","supervisor"], */ icon: <img src={inventoryIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Tanques Jornaleros', subKey: 'Tanquesjornaleros', roles: ["admin", "developer", "liderlogistica", "supervisor"], icon: <img src={rulerIcon} alt="tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
+                { text: 'CRUD Tanques', subKey: 'tanquescrud', /* roles: ["admin"], */ icon: <img src={tanqueIcon} alt="tanquescrud" style={{ width: 25, height: 25 }} /> },
                 { text: 'Patio Carbon-Madera', subKey: 'patiodecarbonymadera', /* roles: ["admin","supervisor"], */ icon: <img src={CalderaIcon} alt="patiodecarbonymadera" style={{ width: 25, height: 25 }} /> },
                 { text: 'Seguimiento_Producción', subKey: 'seguimientototalizadores', /* roles: ["admin","supervisor"], */ icon: <img src={DataSeguimientoIocn} alt="patiodecarbonymadera" style={{ width: 25, height: 25 }} /> },
                 { text: 'Bitacora Supervisores', subKey: 'bitacoradeturnosupervisores', /* roles: ["admin","supervisor"], */ icon: <img src={bitacoraIcon} alt="bitacoradeturnosupervisores" style={{ width: 25, height: 25 }} /> },
                 { text: 'Inventario Combust', subKey: 'inventariodecarbonymadera', /* roles: ["admin","supervisor"], */ icon: <img src={coalInventoryIcon} alt="Tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
                 { text: 'Horas Extras', subKey: 'horasextrassupervisores', /* roles: ["admin","supervisor"], */ icon: <img src={StopWatchIcon} alt="horasextrassupervisores" style={{ width: 25, height: 25 }} /> },
-                { text: 'CRUD Tanques', subKey: 'tanquescrud', /* roles: ["admin"], */ icon: <img src={tanqueIcon} alt="tanquescrud" style={{ width: 25, height: 25 }} /> },
                 {
                     text: 'Despachos y Recepciones',
                     key: 'produccion-logistica',
@@ -439,7 +439,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'Energia CON', subKey: 'energiaambiocom', /* roles: ["admin","energia"], */ icon: <img src={EnergyDataIcon} alt="Energia" style={{ width: 25, height: 25 }} /> },
             ],
         },
-        // { text: 'Registro Trabajadores', roles: ["admin", "developer"], icon: <img src={workerIcon} alt="empleadosambiocom" style={{ width: 25, height: 25 }} />, key: 'empleadosambiocom' },
+        { text: 'Registro Trabajadores', roles: ["admin", "developer"], icon: <img src={workerIcon} alt="empleadosambiocom" style={{ width: 25, height: 25 }} />, key: 'empleadosambiocom' },
         {
             text: 'Administrator DEV', roles: ["admin", "developer",  "liderlogistica"], icon: <img src={DevIcon} alt="basededatos" style={{ width: 25, height: 25 }} />, key: 'basededatoscomponent',
             subItems: [

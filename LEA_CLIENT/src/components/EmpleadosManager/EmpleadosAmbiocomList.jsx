@@ -37,7 +37,7 @@ function EmpleadosManager() {
 
   const fetchEmpleados = async () => {
     try {
-      const { data } = await axios.get('https://ambiocomserver.onrender.com/api/empleadosambiocom', {withCredentials:true });
+      const { data } = await axios.get('https://ambiocomserver.onrender.com/api/empleadosambiocom', { withCredentials: true });
       setEmpleados(data);
     } catch (error) {
       console.error('Error al cargar empleados:', error);
@@ -101,17 +101,49 @@ function EmpleadosManager() {
   const guardarEmpleado = async () => {
     try {
       if (modoEdicion) {
-        await axios.put(`https://ambiocomserver.onrender.com/api/empleadosambiocom/${empleadoActual._id}`,{withCredentials:true}, empleadoActual);
-        Swal.fire('Actualizado', 'Empleado actualizado correctamente', 'success');
+        await axios.put(
+          `https://ambiocomserver.onrender.com/api/empleadosambiocom/${empleadoActual._id}`,
+          empleadoActual,
+          {
+            withCredentials: true,
+          }
+        );
+
+        Swal.fire(
+          'Actualizado',
+          'Empleado actualizado correctamente',
+          'success'
+        );
       } else {
-        await axios.post('https://ambiocomserver.onrender.com/api/empleadosambiocom',{withCredentials:true}, empleadoActual);
-        Swal.fire('Registrado', 'Empleado registrado correctamente', 'success');
+        await axios.post(
+          'https://ambiocomserver.onrender.com/api/empleadosambiocom',
+          empleadoActual,
+          {
+            withCredentials: true,
+          }
+        );
+
+        Swal.fire(
+          'Registrado',
+          'Empleado registrado correctamente',
+          'success'
+        );
       }
-      fetchEmpleados();
+
+      await fetchEmpleados();
       handleClose();
     } catch (error) {
-      console.error('Error al guardar empleado:', error);
-      Swal.fire('Error', 'No se pudo guardar el empleado', 'error');
+      console.error('Error completo al guardar empleado:', error);
+      console.error('Código:', error.response?.status);
+      console.error('Respuesta del servidor:', error.response?.data);
+
+      Swal.fire(
+        'Error',
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        'No se pudo guardar el empleado',
+        'error'
+      );
     }
   };
 
@@ -133,7 +165,7 @@ function EmpleadosManager() {
 
     if (confirmar.isConfirmed) {
       try {
-        await axios.delete(`https://ambiocomserver.onrender.com/api/empleadosambiocom/${id}`,{withCredentials:true},);
+        await axios.delete(`https://ambiocomserver.onrender.com/api/empleadosambiocom/${id}`, { withCredentials: true },);
         fetchEmpleados();
         Swal.fire('Eliminado', 'Empleado eliminado exitosamente', 'success');
       } catch (error) {
@@ -144,15 +176,15 @@ function EmpleadosManager() {
   };
 
   return (
-<Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', padding: 2, mt: 6 }}>
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', padding: 2, mt: 6 }}>
       <Button variant="contained" sx={{ mb: 1, alignSelf: 'flex-start' }} onClick={handleOpen}>Nuevo Empleado</Button>
- <TableContainer
-    component={Paper}
-    sx={{
-      flexGrow: 1,
-      overflowY: 'auto',  // scroll vertical en la tabla si sobrepasa
-      maxHeight: 'calc(100vh - 160px)', // ajustar según el alto del header y botón
-    }}
+      <TableContainer
+        component={Paper}
+        sx={{
+          flexGrow: 1,
+          overflowY: 'auto',  // scroll vertical en la tabla si sobrepasa
+          maxHeight: 'calc(100vh - 160px)', // ajustar según el alto del header y botón
+        }}
       >
         <Table>
           <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
