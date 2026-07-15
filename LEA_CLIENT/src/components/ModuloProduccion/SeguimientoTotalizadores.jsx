@@ -261,6 +261,19 @@ const showToast = (icon, title) => {
   });
 };
 
+const showAutoSaveToast = (icon, title) => {
+  Swal.fire({
+    toast: true,
+    position: "bottom-start",
+    icon,
+    title,
+    timer: icon === "error" ? 4200 : 2400,
+    timerProgressBar: true,
+    showConfirmButton: false,
+    showCloseButton: true,
+  });
+};
+
 const normalizeRowsFromDias = (dias = [], monthKey) => {
   const baseRows = createRowsForMonth(monthKey);
 
@@ -1634,6 +1647,12 @@ export default function SeguimientoTotalizadoresU400({
 
       lastAutoSaveErrorRef.current = "";
       setSaveState("Autoguardado en BD");
+      showAutoSaveToast(
+        "success",
+        dirtyPayloads.length === 1
+          ? "Información autoguardada correctamente"
+          : `${dirtyPayloads.length} meses autoguardados correctamente`
+      );
     } catch (error) {
       const message = getErrorMessage(
         error,
@@ -1642,10 +1661,8 @@ export default function SeguimientoTotalizadoresU400({
 
       setSaveState("Error guardando BD");
 
-      if (lastAutoSaveErrorRef.current !== message) {
-        lastAutoSaveErrorRef.current = message;
-        showToast("error", message);
-      }
+      lastAutoSaveErrorRef.current = message;
+      showAutoSaveToast("error", `Error en autoguardado: ${message}`);
     } finally {
       isSavingRef.current = false;
 
