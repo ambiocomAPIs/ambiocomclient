@@ -1,9 +1,17 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
+    Alert,
     Box,
     Button,
     Chip,
+    CircularProgress,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle,
     Paper,
+    Snackbar,
     Stack,
     Table,
     TableBody,
@@ -20,7 +28,9 @@ import {
 
 import {
     Add,
+    DeleteOutline,
     Download,
+    EditOutlined,
     FilterAlt,
     Search,
 } from "@mui/icons-material";
@@ -90,6 +100,70 @@ const formInicial = {
     tdsAnion: "",
     alcalinidadAnion: "",
 };
+
+const convertirRegistroAForm = (registro) => ({
+    fecha: registro?.fecha ? String(registro.fecha).slice(0, 10) : "",
+    responsable: registro?.responsable ?? "",
+
+    phCarbon: registro?.carbonActivado?.ph ?? "",
+    conductividadCarbon: registro?.carbonActivado?.conductividad ?? "",
+    durezaCarbon: registro?.carbonActivado?.dureza ?? "",
+    siliceCarbon: registro?.carbonActivado?.silice ?? "",
+    tdsCarbon: registro?.carbonActivado?.tds ?? "",
+    alcalinidadCarbon: registro?.carbonActivado?.alcalinidad ?? "",
+
+    phCation: registro?.cation?.ph ?? "",
+    durezaCation: registro?.cation?.dureza ?? "",
+    acidoSulfurico: registro?.cation?.acidoSulfurico ?? "",
+
+    phAnion: registro?.anion?.ph ?? "",
+    conductividad: registro?.anion?.conductividad ?? "",
+    siliceAnion: registro?.anion?.silice ?? "",
+    tdsAnion: registro?.anion?.tds ?? "",
+    alcalinidadAnion: registro?.anion?.alcalinidad ?? "",
+    consumoSoda: registro?.anion?.consumoSoda ?? "",
+
+    estadoCation: registro?.estadoCation ?? "No",
+    estadoAnion: registro?.estadoAnion ?? "No",
+    reporteCicoq: registro?.reporteCicoq ?? "No",
+    correoNotificado: registro?.correoNotificado ?? "No",
+    observaciones: registro?.observaciones ?? "Ninguna",
+});
+
+const construirPayloadDesdeForm = (formulario) => ({
+    fecha: formulario.fecha,
+    responsable: formulario.responsable,
+
+    carbonActivado: {
+        ph: formulario.phCarbon,
+        conductividad: formulario.conductividadCarbon,
+        dureza: formulario.durezaCarbon,
+        silice: formulario.siliceCarbon,
+        tds: formulario.tdsCarbon,
+        alcalinidad: formulario.alcalinidadCarbon,
+    },
+
+    cation: {
+        ph: formulario.phCation,
+        dureza: formulario.durezaCation,
+        acidoSulfurico: formulario.acidoSulfurico,
+    },
+
+    anion: {
+        ph: formulario.phAnion,
+        conductividad: formulario.conductividad,
+        silice: formulario.siliceAnion,
+        tds: formulario.tdsAnion,
+        alcalinidad: formulario.alcalinidadAnion,
+        consumoSoda: formulario.consumoSoda,
+    },
+
+    estadoCation: formulario.estadoCation,
+    estadoAnion: formulario.estadoAnion,
+    reporteCicoq: formulario.reporteCicoq,
+    correoNotificado: formulario.correoNotificado,
+    observaciones: formulario.observaciones,
+});
 
 const getChipColor = (valor) => {
     if (valor === "OK" || valor === "Sí" || valor === "Si") return "success";
@@ -169,6 +243,15 @@ export default function RegeneracionesTrenTabla() {
         fechaHasta: "",
     });
     const [buscando, setBuscando] = useState(false);
+    const [guardando, setGuardando] = useState(false);
+    const [eliminando, setEliminando] = useState(false);
+    const [registroEditandoId, setRegistroEditandoId] = useState(null);
+    const [registroAEliminar, setRegistroAEliminar] = useState(null);
+    const [notificacion, setNotificacion] = useState({
+        open: false,
+        severity: "success",
+        message: "",
+    });
 
     const cargarRegistros = async (params = {}) => {
         try {
@@ -272,72 +355,172 @@ export default function RegeneracionesTrenTabla() {
         });
     };
 
+    const mostrarNotificacion = (message, severity = "success") => {
+        setNotificacion({
+            open: true,
+            severity,
+            message,
+        });
+    };
+
+    const cerrarNotificacion = (_, reason) => {
+        if (reason === "clickaway") return;
+
+        setNotificacion((prev) => ({
+            ...prev,
+            open: false,
+        }));
+    };
+
     const abrirModal = () => {
-        setForm(formInicial);
+        setRegistroEditandoId(null);
+        setForm({ ...formInicial });
+        setOpenModal(true);
+    };
+
+    const abrirModalEditar = (registro) => {
+        const id = registro?._id || registro?.id;
+
+        if (!id) {
+            mostrarNotificacion(
+                "No fue posible identificar el registro seleccionado.",
+                "error"
+            );
+            return;
+        }
+
+        setRegistroEditandoId(id);
+        setForm(convertirRegistroAForm(registro));
         setOpenModal(true);
     };
 
     const cerrarModal = () => {
+        if (guardando) return;
+
         setOpenModal(false);
+        setRegistroEditandoId(null);
+        setForm({ ...formInicial });
     };
 
-    const crearRegistro = async () => {
+    const recargarRangoActual = async () => {
+        await cargarRegistros({
+            fechaDesde: filtrosFecha.fechaDesde,
+            fechaHasta: filtrosFecha.fechaHasta,
+        });
+    };
+
+    const guardarRegistro = async () => {
+        if (guardando) return;
+
+        if (!form.fecha || !form.responsable?.trim()) {
+            mostrarNotificacion(
+                "La fecha y el responsable son obligatorios.",
+                "warning"
+            );
+            return;
+        }
+
         try {
-            const nuevoRegistro = {
-                fecha: form.fecha,
-                responsable: form.responsable,
+            setGuardando(true);
 
-                carbonActivado: {
-                    ph: form.phCarbon,
-                    conductividad: form.conductividadCarbon,
-                    dureza: form.durezaCarbon,
-                    silice: form.siliceCarbon,
-                    tds: form.tdsCarbon,
-                    alcalinidad: form.alcalinidadCarbon,
-                },
+            const esEdicion = Boolean(registroEditandoId);
+            const url = esEdicion
+                ? `${API_URL}/${registroEditandoId}`
+                : API_URL;
 
-                cation: {
-                    ph: form.phCation,
-                    dureza: form.durezaCation,
-                    acidoSulfurico: form.acidoSulfurico,
-                },
-
-                anion: {
-                    ph: form.phAnion,
-                    conductividad: form.conductividad,
-                    silice: form.siliceAnion,
-                    tds: form.tdsAnion,
-                    alcalinidad: form.alcalinidadAnion,
-                    consumoSoda: form.consumoSoda,
-                },
-
-                estadoCation: form.estadoCation,
-                estadoAnion: form.estadoAnion,
-                reporteCicoq: form.reporteCicoq,
-                correoNotificado: form.correoNotificado,
-                observaciones: form.observaciones,
-            };
-
-            const response = await fetch(API_URL, {
-                method: "POST",
+            const response = await fetch(url, {
+                method: esEdicion ? "PUT" : "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify(nuevoRegistro),
+                body: JSON.stringify(construirPayloadDesdeForm(form)),
             });
+
+            const result = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                throw new Error("Error creando regeneración");
+                throw new Error(
+                    result.message ||
+                    (esEdicion
+                        ? "Error actualizando la regeneración."
+                        : "Error creando la regeneración.")
+                );
             }
 
-            cerrarModal();
+            setOpenModal(false);
+            setRegistroEditandoId(null);
+            setForm({ ...formInicial });
 
-            await cargarRegistros({
-                fechaDesde: filtrosFecha.fechaDesde,
-                fechaHasta: filtrosFecha.fechaHasta,
-            });
+            await recargarRangoActual();
+
+            mostrarNotificacion(
+                esEdicion
+                    ? "Registro actualizado correctamente."
+                    : "Registro creado correctamente.",
+                "success"
+            );
         } catch (error) {
             console.error("Error guardando regeneración:", error);
+            mostrarNotificacion(
+                error.message || "No fue posible guardar el registro.",
+                "error"
+            );
+        } finally {
+            setGuardando(false);
+        }
+    };
+
+    const solicitarEliminarRegistro = (registro) => {
+        setRegistroAEliminar(registro);
+    };
+
+    const cerrarConfirmacionEliminar = () => {
+        if (eliminando) return;
+        setRegistroAEliminar(null);
+    };
+
+    const confirmarEliminarRegistro = async () => {
+        const id = registroAEliminar?._id || registroAEliminar?.id;
+
+        if (!id) {
+            mostrarNotificacion(
+                "No fue posible identificar el registro a eliminar.",
+                "error"
+            );
+            setRegistroAEliminar(null);
+            return;
+        }
+
+        try {
+            setEliminando(true);
+
+            const response = await fetch(`${API_URL}/${id}`, {
+                method: "DELETE",
+            });
+
+            const result = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(
+                    result.message || "Error eliminando la regeneración."
+                );
+            }
+
+            setRegistroAEliminar(null);
+            await recargarRangoActual();
+
+            mostrarNotificacion(
+                "Registro eliminado correctamente.",
+                "success"
+            );
+        } catch (error) {
+            console.error("Error eliminando regeneración:", error);
+            mostrarNotificacion(
+                error.message || "No fue posible eliminar el registro.",
+                "error"
+            );
+        } finally {
+            setEliminando(false);
         }
     };
 
@@ -477,7 +660,7 @@ export default function RegeneracionesTrenTabla() {
                     borderColor: "divider",
                 }}
             >
-                <Table stickyHeader size="small" sx={{ minWidth: 1450 }}>
+                <Table stickyHeader size="small" sx={{ minWidth: 1600 }}>
                     <TableHead>
                         <TableRow>
                             <TableCell rowSpan={2} align="center" sx={{ ...generalHeaderSx, minWidth: 110 }}>
@@ -518,6 +701,14 @@ export default function RegeneracionesTrenTabla() {
 
                             <TableCell rowSpan={2} align="center" sx={{ ...seguimientoHeaderSx, minWidth: 260 }}>
                                 Observaciones
+                            </TableCell>
+
+                            <TableCell
+                                rowSpan={2}
+                                align="center"
+                                sx={{ ...generalHeaderSx, minWidth: 115 }}
+                            >
+                                Acciones
                             </TableCell>
                         </TableRow>
 
@@ -591,7 +782,7 @@ export default function RegeneracionesTrenTabla() {
                     <TableBody>
                         {registrosPorFecha.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={22} align="center" sx={{ py: 6 }}>
+                                <TableCell colSpan={23} align="center" sx={{ py: 6 }}>
                                     <Typography fontWeight={700}>
                                         No hay registros para mostrar
                                     </Typography>
@@ -705,6 +896,39 @@ export default function RegeneracionesTrenTabla() {
                                     <TableCell>
                                         {valorSeguro(registro.observaciones)}
                                     </TableCell>
+
+                                    <TableCell align="center">
+                                        <Stack
+                                            direction="row"
+                                            spacing={0.5}
+                                            justifyContent="center"
+                                            alignItems="center"
+                                        >
+                                            <Tooltip title="Editar registro" arrow>
+                                                <IconButton
+                                                    size="small"
+                                                    color="primary"
+                                                    onClick={() => abrirModalEditar(registro)}
+                                                    disabled={guardando || eliminando}
+                                                    aria-label={`Editar registro del ${valorSeguro(registro.fecha)}`}
+                                                >
+                                                    <EditOutlined fontSize="small" />
+                                                </IconButton>
+                                            </Tooltip>
+
+                                            <Tooltip title="Eliminar registro" arrow>
+                                                <IconButton
+                                                    size="small"
+                                                    color="error"
+                                                    onClick={() => solicitarEliminarRegistro(registro)}
+                                                    disabled={guardando || eliminando}
+                                                    aria-label={`Eliminar registro del ${valorSeguro(registro.fecha)}`}
+                                                >
+                                                    <DeleteOutline fontSize="small" />
+                                                </IconButton>
+                                            </Tooltip>
+                                        </Stack>
+                                    </TableCell>
                                 </TableRow>
                             ))
                         )}
@@ -738,7 +962,7 @@ export default function RegeneracionesTrenTabla() {
                             <TableCell align="center">Total: {resumen.totalSoda} Kg</TableCell>
 
                             {/* 🔵 SEGUIMIENTO */}
-                            <TableCell colSpan={5} align="center">
+                            <TableCell colSpan={6} align="center">
                                 Cálculo basado en los registros filtrados
                             </TableCell>
                         </TableRow>
@@ -749,12 +973,76 @@ export default function RegeneracionesTrenTabla() {
             <RegistroModal
                 open={openModal}
                 onClose={cerrarModal}
-                onSave={crearRegistro}
+                onSave={guardarRegistro}
                 form={form}
                 setForm={setForm}
                 estadoOptions={siNoOptions}
                 siNoOptions={siNoOptions}
             />
+
+            <Dialog
+                open={Boolean(registroAEliminar)}
+                onClose={cerrarConfirmacionEliminar}
+                maxWidth="xs"
+                fullWidth
+            >
+                <DialogTitle sx={{ fontWeight: 800 }}>
+                    Eliminar registro
+                </DialogTitle>
+
+                <DialogContent>
+                    <DialogContentText>
+                        ¿Seguro que deseas eliminar el registro del{" "}
+                        <strong>
+                            {valorSeguro(registroAEliminar?.fecha)}
+                        </strong>
+                        {" "}correspondiente a{" "}
+                        <strong>
+                            {valorSeguro(registroAEliminar?.responsable)}
+                        </strong>
+                        ? Esta acción no se puede deshacer.
+                    </DialogContentText>
+                </DialogContent>
+
+                <DialogActions sx={{ px: 3, pb: 2 }}>
+                    <Button
+                        onClick={cerrarConfirmacionEliminar}
+                        disabled={eliminando}
+                    >
+                        Cancelar
+                    </Button>
+
+                    <Button
+                        variant="contained"
+                        color="error"
+                        onClick={confirmarEliminarRegistro}
+                        disabled={eliminando}
+                        startIcon={
+                            eliminando
+                                ? <CircularProgress size={18} color="inherit" />
+                                : <DeleteOutline />
+                        }
+                    >
+                        {eliminando ? "Eliminando..." : "Eliminar"}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Snackbar
+                open={notificacion.open}
+                autoHideDuration={4000}
+                onClose={cerrarNotificacion}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            >
+                <Alert
+                    onClose={cerrarNotificacion}
+                    severity={notificacion.severity}
+                    variant="filled"
+                    sx={{ width: "100%" }}
+                >
+                    {notificacion.message}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 }

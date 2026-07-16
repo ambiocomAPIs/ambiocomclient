@@ -224,16 +224,19 @@ const crearResumenNivelesTanquesVacio = (
 });
 
 const crearResumenConsumosVacio = (
-  fecha,
+  fechaBitacora,
   mensaje = ""
 ) => ({
-  fecha,
+  fecha: null,
+  fechaBitacora,
+  fechaSolicitada: fechaBitacora,
+  fechaCierreInventario: null,
   exists: false,
   sinDatos: true,
 
   mensaje:
     mensaje ||
-    "No se encontraron consumos de combustibles para el día anterior.",
+    "No existe un cierre de combustibles anterior a la fecha de la bitácora.",
 
   resumen: {
     carbon: {
@@ -241,6 +244,12 @@ const crearResumenConsumosVacio = (
       ajusteTon: 0,
       paladasCV: 0,
       paladasCN: 0,
+      porcentajeMezcla: null,
+      porcentajeMezclaPct: null,
+      inventarioFinalPatioTon: null,
+      participacionTolvasTon: null,
+      inventarioFinalTon: null,
+      stockTotalTon: null,
     },
 
     madera: {
@@ -248,6 +257,12 @@ const crearResumenConsumosVacio = (
       ajusteTon: 0,
       paladasCV: 0,
       paladasCN: 0,
+      porcentajeMezcla: null,
+      porcentajeMezclaPct: null,
+      inventarioFinalPatioTon: null,
+      participacionTolvasTon: null,
+      inventarioFinalTon: null,
+      stockTotalTon: null,
     },
 
     bagazo: {
@@ -255,6 +270,12 @@ const crearResumenConsumosVacio = (
       ajusteTon: 0,
       paladasCV: 0,
       paladasCN: 0,
+      porcentajeMezcla: null,
+      porcentajeMezclaPct: null,
+      inventarioFinalPatioTon: null,
+      participacionTolvasTon: null,
+      inventarioFinalTon: null,
+      stockTotalTon: null,
     },
 
     total: {
@@ -262,15 +283,44 @@ const crearResumenConsumosVacio = (
       ajusteTon: 0,
       paladasCV: 0,
       paladasCN: 0,
+      inventarioFinalPatioTon: null,
+      inventarioFinalTon: null,
+      stockTotalTon: null,
     },
   },
 
+  stock: {
+    carbon: {
+      patio: null,
+      tolvas: null,
+      total: null,
+    },
+
+    madera: {
+      patio: null,
+      tolvas: null,
+      total: null,
+    },
+
+    bagazo: {
+      patio: null,
+      tolvas: null,
+      total: null,
+    },
+
+    general: null,
+  },
+
+  totales: {},
   materiales: [],
 
   tolvas: {
     principal: 0,
     auxiliares: 0,
     total: 0,
+    carbon: null,
+    madera: null,
+    bagazo: null,
   },
 
   observacion: "",
@@ -668,19 +718,24 @@ function BitacoraComponentProduccion({
 
   const consultarConsumosCombustiblesDiaAnterior =
     async () => {
-      const fechaAnterior = obtenerDiaAnterior(
+      /*
+       * Se envía la fecha de la bitácora como límite.
+       * El backend busca el registro activo disponible más próximo
+       * estrictamente anterior, aunque existan días sin registros.
+       */
+      const fechaBitacora = normalizarFechaISO(
         headerData.fecha
       );
 
-      if (!fechaAnterior) {
+      if (!fechaBitacora) {
         throw new Error(
-          "No fue posible calcular la fecha anterior para consultar los consumos de combustibles."
+          "No fue posible determinar la fecha de la bitácora para consultar el último cierre de combustibles."
         );
       }
 
       try {
         const response = await axios.get(
-          `${CONSUMOS_COMBUSTIBLES_BITACORA_API_URL}/${fechaAnterior}`,
+          `${CONSUMOS_COMBUSTIBLES_BITACORA_API_URL}/${fechaBitacora}`,
           {
             withCredentials: true,
 
@@ -694,8 +749,8 @@ function BitacoraComponentProduccion({
 
         if (!data) {
           return crearResumenConsumosVacio(
-            fechaAnterior,
-            "La consulta no devolvió información de consumos de combustibles."
+            fechaBitacora,
+            "La consulta no devolvió información del último cierre de combustibles."
           );
         }
 
@@ -710,16 +765,15 @@ function BitacoraComponentProduccion({
 
           mensaje:
             response.data?.message ||
-            "Consulta de consumos de combustibles realizada correctamente.",
+            "Consulta del último cierre de combustibles realizada correctamente.",
         };
       } catch (error) {
-  
         if (error?.response?.status === 404) {
           return crearResumenConsumosVacio(
-            fechaAnterior,
+            fechaBitacora,
 
             error?.response?.data?.message ||
-              "No se encontraron consumos de combustibles para el día anterior."
+              "No existe un cierre de combustibles anterior a la fecha de la bitácora."
           );
         }
 

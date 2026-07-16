@@ -57,11 +57,22 @@ const DiccionarioUnidadDefault = {
  ➤ Lavador de gases: Fuera de línea \n`,
   U550: "Verificación de presión.",
   U600: "Cambio de filtros.",
-  U650: "Revisión de sensores.",
+  U650:  `
+  ㅤ
+  ➤ V.alivio: %. 
+  ➤ V.reposicion: %.
+  ➤ D670:   mca.
+  ➤ MP670 : Operando.
+  \n`,
   U700: "Análisis de fallas previas.",
-  U800: "Limpieza de sistema.",
-  U900: "Verificar niveles.",
-  U950: "Prueba de rendimiento.",
+  U950:  `
+  ㅤ
+  ➤ MP90X  operando 
+  ➤ Proceso:  lb/d   Balsa 950: LLenando.      
+  ➤ Potable:  lb/d  
+  ➤ 921 y sahara: Operan normalmente
+  ➤ Presion: Bar
+  \n`,
 };
 
 

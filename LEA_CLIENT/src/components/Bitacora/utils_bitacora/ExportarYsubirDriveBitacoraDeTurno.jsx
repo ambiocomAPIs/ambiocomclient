@@ -136,6 +136,42 @@ const obtenerPrimerNumeroDisponible = (...values) => {
   return null;
 };
 
+const normalizarPorcentajeDecimal = (value) => {
+  if (!tieneNumero(value)) {
+    return null;
+  }
+
+  const numero = Number(value);
+
+  if (numero < 0) {
+    return null;
+  }
+
+  /*
+   * La API puede enviar el porcentaje como fracción (0,65)
+   * o como porcentaje completo (65). Ambos formatos son válidos.
+   */
+  if (numero > 1 && numero <= 100) {
+    return numero / 100;
+  }
+
+  return numero <= 1
+    ? numero
+    : null;
+};
+
+const formatearFechaISO = (value) => {
+  const fecha = String(value || "").trim();
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+    return fecha || "—";
+  }
+
+  const [year, month, day] = fecha.split("-");
+
+  return `${day}/${month}/${year}`;
+};
+
 const formatearNumero = (
   value,
   decimals = 2
@@ -193,38 +229,96 @@ const dibujarSeparadorBloque = (
   currentY,
   title,
   subtitle,
-  fillColor
+  fillColor,
+  etapa = ""
 ) => {
   const y = asegurarEspacio(
     doc,
     currentY,
-    24
+    30
+  );
+
+  const x = TABLE_MARGIN_X;
+  const width = TABLE_CONTENT_WIDTH;
+  const height = 20;
+  const numeroEtapa = String(etapa || "")
+    .replace(/\D/g, "")
+    .padStart(2, "0");
+
+  /*
+   * Separador gerencial por etapa:
+   * - Fondo claro para mantener una lectura limpia.
+   * - Borde y acento lateral con el color de la sección.
+   * - Número de etapa para facilitar la lectura ejecutiva.
+   * - Enlace interno para regresar al índice de la primera página.
+   */
+  doc.setFillColor(...PDF_COLORS.soft);
+  doc.setDrawColor(...fillColor);
+  doc.setLineWidth(0.45);
+  doc.roundedRect(
+    x,
+    y,
+    width,
+    height,
+    2.5,
+    2.5,
+    "FD"
   );
 
   doc.setFillColor(...fillColor);
   doc.roundedRect(
-    TABLE_MARGIN_X,
+    x,
     y,
-    TABLE_CONTENT_WIDTH,
-    15,
-    2,
-    2,
+    4,
+    height,
+    2.5,
+    2.5,
     "F"
   );
+  doc.rect(
+    x + 2,
+    y,
+    2,
+    height,
+    "F"
+  );
+
+  doc.circle(
+    x + 12,
+    y + height / 2,
+    5.3,
+    "F"
+  );
+
+  if (numeroEtapa) {
+    doc.setFont(
+      "DejaVuSans",
+      "bold"
+    );
+    doc.setFontSize(8.5);
+    doc.setTextColor(255, 255, 255);
+    doc.text(
+      numeroEtapa,
+      x + 12,
+      y + 11.4,
+      {
+        align: "center",
+      }
+    );
+  }
 
   doc.setFont(
     "DejaVuSans",
     "bold"
   );
-  doc.setFontSize(10.5);
-  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(10.4);
+  doc.setTextColor(...PDF_COLORS.text);
   doc.text(
     String(title || "").toUpperCase(),
-    TABLE_MARGIN_X + 5,
-    y + 5.7,
+    x + 21,
+    y + 7.6,
     {
-      maxWidth:
-        TABLE_CONTENT_WIDTH - 10,
+      maxWidth: width - 72,
     }
   );
 
@@ -233,19 +327,245 @@ const dibujarSeparadorBloque = (
       "DejaVuSans",
       "normal"
     );
-    doc.setFontSize(7.3);
+    doc.setFontSize(7.1);
+    doc.setTextColor(...PDF_COLORS.slate);
     doc.text(
       subtitle,
-      TABLE_MARGIN_X + 5,
-      y + 11.2,
+      x + 21,
+      y + 13.6,
       {
-        maxWidth:
-          TABLE_CONTENT_WIDTH - 10,
+        maxWidth: width - 72,
       }
     );
   }
 
-  return y + 21;
+  const linkWidth = 38;
+  const linkHeight = 7.5;
+  const linkX = x + width - linkWidth - 5;
+  const linkY = y + 6.25;
+
+  doc.setFillColor(...fillColor);
+  doc.roundedRect(
+    linkX,
+    linkY,
+    linkWidth,
+    linkHeight,
+    1.8,
+    1.8,
+    "F"
+  );
+
+  doc.setFont(
+    "DejaVuSans",
+    "bold"
+  );
+  doc.setFontSize(6.5);
+  doc.setTextColor(255, 255, 255);
+  doc.text(
+    "VOLVER AL ÍNDICE",
+    linkX + linkWidth / 2,
+    linkY + 4.9,
+    {
+      align: "center",
+    }
+  );
+
+  if (typeof doc.link === "function") {
+    doc.link(
+      linkX,
+      linkY,
+      linkWidth,
+      linkHeight,
+      {
+        pageNumber: 1,
+        top: 108,
+      }
+    );
+  }
+
+  return y + 27;
+};
+
+const dibujarIndiceEjecutivo = (
+  doc,
+  entradas = []
+) => {
+  const secciones = entradas.filter(
+    (entrada) =>
+      entrada &&
+      Number.isFinite(
+        Number(entrada.pageNumber)
+      )
+  );
+
+  if (!secciones.length) {
+    return;
+  }
+
+  doc.setPage(1);
+
+  const x = TABLE_MARGIN_X;
+  const y = 113;
+  const width = TABLE_CONTENT_WIDTH;
+  const headerHeight = 10;
+  const rowHeight = 8.2;
+  const totalHeight =
+    headerHeight +
+    secciones.length * rowHeight +
+    3;
+
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(...PDF_COLORS.border);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(
+    x,
+    y,
+    width,
+    totalHeight,
+    2.5,
+    2.5,
+    "FD"
+  );
+
+  drawGradientRect(
+    doc,
+    x,
+    y,
+    width,
+    headerHeight,
+    PDF_COLORS.blueDark,
+    PDF_COLORS.green
+  );
+
+  doc.setFont(
+    "DejaVuSans",
+    "bold"
+  );
+  doc.setFontSize(8.8);
+  doc.setTextColor(255, 255, 255);
+  doc.text(
+    "ÍNDICE EJECUTIVO DEL INFORME",
+    x + 5,
+    y + 6.4
+  );
+
+  doc.setFont(
+    "DejaVuSans",
+    "normal"
+  );
+  doc.setFontSize(6.2);
+  doc.text(
+    "Seleccione una etapa para ir directamente a su información",
+    x + width - 5,
+    y + 6.4,
+    {
+      align: "right",
+    }
+  );
+
+  secciones.forEach(
+    (entrada, index) => {
+      const rowY =
+        y + headerHeight +
+        index * rowHeight;
+      const color =
+        entrada.color ||
+        PDF_COLORS.blue;
+
+      if (index % 2 === 0) {
+        doc.setFillColor(...PDF_COLORS.soft);
+        doc.rect(
+          x + 0.4,
+          rowY,
+          width - 0.8,
+          rowHeight,
+          "F"
+        );
+      }
+
+      doc.setFillColor(...color);
+      doc.circle(
+        x + 7,
+        rowY + rowHeight / 2,
+        2.7,
+        "F"
+      );
+
+      doc.setFont(
+        "DejaVuSans",
+        "bold"
+      );
+      doc.setFontSize(6.6);
+      doc.setTextColor(255, 255, 255);
+      doc.text(
+        String(index + 1),
+        x + 7,
+        rowY + 5.2,
+        {
+          align: "center",
+        }
+      );
+
+      doc.setFont(
+        "DejaVuSans",
+        "bold"
+      );
+      doc.setFontSize(7.4);
+      doc.setTextColor(...PDF_COLORS.text);
+      doc.text(
+        entrada.title,
+        x + 13,
+        rowY + 3.8,
+        {
+          maxWidth: width - 52,
+        }
+      );
+
+      doc.setFont(
+        "DejaVuSans",
+        "normal"
+      );
+      doc.setFontSize(5.8);
+      doc.setTextColor(...PDF_COLORS.slate);
+      doc.text(
+        entrada.subtitle || "",
+        x + 13,
+        rowY + 6.6,
+        {
+          maxWidth: width - 52,
+        }
+      );
+
+      doc.setFont(
+        "DejaVuSans",
+        "bold"
+      );
+      doc.setFontSize(7);
+      doc.setTextColor(...color);
+      doc.text(
+        `PÁG. ${entrada.pageNumber}`,
+        x + width - 6,
+        rowY + 5.15,
+        {
+          align: "right",
+        }
+      );
+
+      if (typeof doc.link === "function") {
+        doc.link(
+          x + 0.5,
+          rowY,
+          width - 1,
+          rowHeight,
+          {
+            pageNumber:
+              entrada.pageNumber,
+            top: 10,
+          }
+        );
+      }
+    }
+  );
 };
 
 const construirAnalisisLocal = (
@@ -623,7 +943,29 @@ export async function exportarBitacoraPDF(
   const currentPriority =
     getPriority(currentTurno);
 
-  let startY = 120;
+  /*
+   * Se reservan las páginas de inicio de cada etapa para construir
+   * el índice ejecutivo clicable al finalizar el documento.
+   */
+  const paginasSecciones = {};
+
+  const tieneIndiceEjecutivo = Boolean(
+    Object.keys(notes || {}).length ||
+      resumenTotalizadores ||
+      resumenNivelesTanques ||
+      resumenRecepcionesAlcohol ||
+      resumenDespachosAlcohol ||
+      resumenIngresosCombustibles ||
+      resumenConsumosCombustibles
+  );
+
+  /*
+   * El espacio del índice se reserva en la primera página.
+   * El índice se dibuja al final, cuando ya conocemos las páginas reales.
+   */
+  let startY = tieneIndiceEjecutivo
+    ? 165
+    : 120;
 
   if (
     Object.keys(notes || {}).length ||
@@ -632,10 +974,14 @@ export async function exportarBitacoraPDF(
     startY = dibujarSeparadorBloque(
       doc,
       startY,
-      "Reportes de bitácora",
-      "Novedades del turno y balance operativo de totalizadores",
-      PDF_COLORS.blue
+      "Producción y balance operativo",
+      "Novedades del turno, producción, REN y conciliación de totalizadores",
+      PDF_COLORS.blue,
+      "01"
     );
+
+    paginasSecciones.produccion =
+      doc.getNumberOfPages();
   }
 
   Object.keys(
@@ -1358,8 +1704,12 @@ export async function exportarBitacoraPDF(
       startY,
       "Alcoholes",
       "Niveles de tanques jornaleros, recepciones, compras y despachos del día anterior",
-      PDF_COLORS.purple
+      PDF_COLORS.purple,
+      "02"
     );
+
+    paginasSecciones.alcoholes =
+      doc.getNumberOfPages();
   }
 
   /*
@@ -3142,10 +3492,14 @@ export async function exportarBitacoraPDF(
     startY = dibujarSeparadorBloque(
       doc,
       startY,
-      "Carbón, madera y bagazo",
-      "Ingresos, consumos, ajustes y lecturas de tolvas",
-      PDF_COLORS.orange
+      "Combustibles sólidos",
+      "Ingresos, consumos, inventarios y lecturas de carbón, madera, bagazo y tolvas",
+      PDF_COLORS.orange,
+      "03"
     );
+
+    paginasSecciones.combustibles =
+      doc.getNumberOfPages();
   }
 
   /*
@@ -3548,7 +3902,7 @@ export async function exportarBitacoraPDF(
     startY = asegurarEspacio(
       doc,
       startY,
-      80
+      125
     );
 
     const fechaConsumos =
@@ -3585,9 +3939,42 @@ export async function exportarBitacoraPDF(
         ?.tolvas || {};
 
     /*
-     * Composición de la mezcla consumida.
-     * El porcentaje se calcula sobre el consumo real de cada material.
+     * El endpoint de bitácora entrega estos valores directamente desde
+     * registro.totales. Se conservan ambas referencias para compatibilidad:
+     * - stock: estructura preparada para el informe.
+     * - totales: valores persistidos por el módulo de consumos.
      */
+    const stock =
+      resumenConsumosCombustibles
+        ?.stock || {};
+
+    const totalesPersistidos =
+      resumenConsumosCombustibles
+        ?.totales || {};
+
+    /*
+     * El backend entrega el cierre disponible más próximo
+     * estrictamente anterior a la fecha de la bitácora.
+     * Ese cierre se presenta como stock de apertura.
+     */
+    const fechaCierreInventario =
+      normalizeDate(
+        resumenConsumosCombustibles
+          ?.fechaCierreInventario ||
+          resumenConsumosCombustibles
+            ?.fechaStock ||
+          fechaConsumos
+      ) || fechaConsumos;
+
+    const fechaAperturaInventario =
+      normalizeDate(
+        resumenConsumosCombustibles
+          ?.fechaAperturaInventario ||
+          currentDate
+      ) ||
+      currentDate ||
+      "FECHA NO DISPONIBLE";
+
     const consumoCarbonTon = Number(
       carbon?.consumoTon || 0
     );
@@ -3605,20 +3992,69 @@ export async function exportarBitacoraPDF(
       consumoMaderaTon +
       consumoBagazoTon;
 
+    /*
+     * Se prioriza la composición calculada y enviada por el módulo.
+     * Si no llega, se calcula a partir del consumo del día anterior.
+     */
+    const porcentajeCarbonReportado =
+      normalizarPorcentajeDecimal(
+        obtenerPrimerNumeroDisponible(
+          carbon?.porcentajeMezcla,
+          carbon?.porcentaje,
+          resumen?.porcentajeCarbon,
+          resumen?.mezcla?.carbon,
+          resumenConsumosCombustibles
+            ?.porcentajes?.carbon,
+          totalesPersistidos?.porcentajeCarbon
+        )
+      );
+
+    const porcentajeMaderaReportado =
+      normalizarPorcentajeDecimal(
+        obtenerPrimerNumeroDisponible(
+          madera?.porcentajeMezcla,
+          madera?.porcentaje,
+          resumen?.porcentajeMadera,
+          resumen?.mezcla?.madera,
+          resumenConsumosCombustibles
+            ?.porcentajes?.madera,
+          totalesPersistidos?.porcentajeMadera
+        )
+      );
+
+    const porcentajeBagazoReportado =
+      normalizarPorcentajeDecimal(
+        obtenerPrimerNumeroDisponible(
+          bagazo?.porcentajeMezcla,
+          bagazo?.porcentaje,
+          resumen?.porcentajeBagazo,
+          resumen?.mezcla?.bagazo,
+          resumenConsumosCombustibles
+            ?.porcentajes?.bagazo,
+          totalesPersistidos?.porcentajeBagazo
+        )
+      );
+
     const porcentajeCarbon =
-      consumoTotalMezclaTon > 0
-        ? consumoCarbonTon / consumoTotalMezclaTon
-        : 0;
+      porcentajeCarbonReportado ??
+      (consumoTotalMezclaTon > 0
+        ? consumoCarbonTon /
+          consumoTotalMezclaTon
+        : 0);
 
     const porcentajeMadera =
-      consumoTotalMezclaTon > 0
-        ? consumoMaderaTon / consumoTotalMezclaTon
-        : 0;
+      porcentajeMaderaReportado ??
+      (consumoTotalMezclaTon > 0
+        ? consumoMaderaTon /
+          consumoTotalMezclaTon
+        : 0);
 
     const porcentajeBagazo =
-      consumoTotalMezclaTon > 0
-        ? consumoBagazoTon / consumoTotalMezclaTon
-        : 0;
+      porcentajeBagazoReportado ??
+      (consumoTotalMezclaTon > 0
+        ? consumoBagazoTon /
+          consumoTotalMezclaTon
+        : 0);
 
     const totalTolvasTon = tieneNumero(
       tolvas?.total
@@ -3627,22 +4063,60 @@ export async function exportarBitacoraPDF(
       : Number(tolvas?.principal || 0) +
         Number(tolvas?.auxiliares || 0);
 
-    const carbonEnTolvasTon =
-      totalTolvasTon * porcentajeCarbon;
-
-    const maderaEnTolvasTon =
-      totalTolvasTon * porcentajeMadera;
-
-    const bagazoEnTolvasTon =
-      totalTolvasTon * porcentajeBagazo;
-
     /*
-     * El inventario de patio debe llegar desde el resumen de la API.
-     * Se admiten varios nombres para mantener compatibilidad.
-     * No se usa inventarioFinalCarbon/inventarioFinalMadera como respaldo,
-     * porque esos campos pueden incluir ya la fracción de las tolvas.
+     * Se admiten valores ya calculados por el módulo.
+     * Solo se distribuye el total de tolvas cuando la API
+     * no envía la participación por material.
      */
-    const stockPatioCarbonTon =
+    let carbonEnTolvasTon =
+      obtenerPrimerNumeroDisponible(
+        carbon?.participacionTolvasTon,
+        carbon?.stockTolvasTon,
+        resumen?.tolvasPorMaterial?.carbon,
+        resumenConsumosCombustibles
+          ?.tolvasPorMaterial?.carbon,
+        stock?.carbon?.tolvas,
+        totalesPersistidos?.tolvaCarbon
+      );
+
+    let maderaEnTolvasTon =
+      obtenerPrimerNumeroDisponible(
+        madera?.participacionTolvasTon,
+        madera?.stockTolvasTon,
+        resumen?.tolvasPorMaterial?.madera,
+        resumenConsumosCombustibles
+          ?.tolvasPorMaterial?.madera,
+        stock?.madera?.tolvas,
+        totalesPersistidos?.tolvaMadera
+      );
+
+    let bagazoEnTolvasTon =
+      obtenerPrimerNumeroDisponible(
+        bagazo?.participacionTolvasTon,
+        bagazo?.stockTolvasTon,
+        resumen?.tolvasPorMaterial?.bagazo,
+        resumenConsumosCombustibles
+          ?.tolvasPorMaterial?.bagazo,
+        stock?.bagazo?.tolvas,
+        totalesPersistidos?.tolvaBagazo
+      );
+
+    if (carbonEnTolvasTon === null) {
+      carbonEnTolvasTon =
+        totalTolvasTon * porcentajeCarbon;
+    }
+
+    if (maderaEnTolvasTon === null) {
+      maderaEnTolvasTon =
+        totalTolvasTon * porcentajeMadera;
+    }
+
+    if (bagazoEnTolvasTon === null) {
+      bagazoEnTolvasTon =
+        totalTolvasTon * porcentajeBagazo;
+    }
+
+    let stockPatioCarbonTon =
       obtenerPrimerNumeroDisponible(
         carbon?.inventarioFinalPatioTon,
         carbon?.stockPatioTon,
@@ -3652,10 +4126,12 @@ export async function exportarBitacoraPDF(
         resumenConsumosCombustibles
           ?.inventarioFinalCarbonPatio,
         resumenConsumosCombustibles
-          ?.stockPatioCarbon
+          ?.stockPatioCarbon,
+        stock?.carbon?.patio,
+        totalesPersistidos?.finalCarbonPatio
       );
 
-    const stockPatioMaderaTon =
+    let stockPatioMaderaTon =
       obtenerPrimerNumeroDisponible(
         madera?.inventarioFinalPatioTon,
         madera?.stockPatioTon,
@@ -3665,10 +4141,12 @@ export async function exportarBitacoraPDF(
         resumenConsumosCombustibles
           ?.inventarioFinalMaderaPatio,
         resumenConsumosCombustibles
-          ?.stockPatioMadera
+          ?.stockPatioMadera,
+        stock?.madera?.patio,
+        totalesPersistidos?.finalMaderaPatio
       );
 
-    const stockPatioBagazoTon =
+    let stockPatioBagazoTon =
       obtenerPrimerNumeroDisponible(
         bagazo?.inventarioFinalPatioTon,
         bagazo?.stockPatioTon,
@@ -3678,26 +4156,156 @@ export async function exportarBitacoraPDF(
         resumenConsumosCombustibles
           ?.inventarioFinalBagazoPatio,
         resumenConsumosCombustibles
-          ?.stockPatioBagazo
+          ?.stockPatioBagazo,
+        stock?.bagazo?.patio,
+        totalesPersistidos?.finalBagazoPatio
       );
 
+    /*
+     * El módulo ya calcula inventarioFinalCarbon/inventarioFinalMadera
+     * incluyendo patio y participación en tolvas. Esos valores tienen
+     * prioridad para que el PDF coincida exactamente con los chips.
+     */
+    const stockTotalCarbonReportado =
+      obtenerPrimerNumeroDisponible(
+        carbon?.stockTotalTon,
+        carbon?.inventarioFinalTon,
+        resumen?.inventarioFinalCarbon,
+        total?.inventarioFinalCarbon,
+        resumen?.monthlyTotals?.inventarioFinalCarbon,
+        resumenConsumosCombustibles
+          ?.monthlyTotals?.inventarioFinalCarbon,
+        resumen?.stockTotalCarbon,
+        resumen?.stockByMaterial?.["Carbón"],
+        resumenConsumosCombustibles
+          ?.inventorySummary?.stockByMaterial?.["Carbón"],
+        resumenConsumosCombustibles
+          ?.stockByMaterial?.["Carbón"],
+        resumenConsumosCombustibles
+          ?.inventarioFinalCarbon,
+        resumenConsumosCombustibles
+          ?.stockCarbon,
+        stock?.carbon?.total,
+        totalesPersistidos?.finalCarbon
+      );
+
+    const stockTotalMaderaReportado =
+      obtenerPrimerNumeroDisponible(
+        madera?.stockTotalTon,
+        madera?.inventarioFinalTon,
+        resumen?.inventarioFinalMadera,
+        total?.inventarioFinalMadera,
+        resumen?.monthlyTotals?.inventarioFinalMadera,
+        resumenConsumosCombustibles
+          ?.monthlyTotals?.inventarioFinalMadera,
+        resumen?.stockTotalMadera,
+        resumen?.stockByMaterial?.["Madera"],
+        resumenConsumosCombustibles
+          ?.inventorySummary?.stockByMaterial?.["Madera"],
+        resumenConsumosCombustibles
+          ?.stockByMaterial?.["Madera"],
+        resumenConsumosCombustibles
+          ?.inventarioFinalMadera,
+        resumenConsumosCombustibles
+          ?.stockMadera,
+        stock?.madera?.total,
+        totalesPersistidos?.finalMadera
+      );
+
+    const stockTotalBagazoReportado =
+      obtenerPrimerNumeroDisponible(
+        bagazo?.stockTotalTon,
+        bagazo?.inventarioFinalTon,
+        resumen?.inventarioFinalBagazo,
+        total?.inventarioFinalBagazo,
+        resumen?.monthlyTotals?.inventarioFinalBagazo,
+        resumenConsumosCombustibles
+          ?.monthlyTotals?.inventarioFinalBagazo,
+        resumen?.stockTotalBagazo,
+        resumen?.stockByMaterial?.["Bagazo"],
+        resumenConsumosCombustibles
+          ?.inventorySummary?.stockByMaterial?.["Bagazo"],
+        resumenConsumosCombustibles
+          ?.stockByMaterial?.["Bagazo"],
+        resumenConsumosCombustibles
+          ?.inventarioFinalBagazo,
+        resumenConsumosCombustibles
+          ?.stockBagazo,
+        stock?.bagazo?.total,
+        totalesPersistidos?.finalBagazo
+      );
+
+    if (
+      stockPatioCarbonTon === null &&
+      stockTotalCarbonReportado !== null
+    ) {
+      stockPatioCarbonTon =
+        stockTotalCarbonReportado -
+        carbonEnTolvasTon;
+    }
+
+    if (
+      stockPatioMaderaTon === null &&
+      stockTotalMaderaReportado !== null
+    ) {
+      stockPatioMaderaTon =
+        stockTotalMaderaReportado -
+        maderaEnTolvasTon;
+    }
+
+    if (
+      stockPatioBagazoTon === null &&
+      stockTotalBagazoReportado !== null
+    ) {
+      stockPatioBagazoTon =
+        stockTotalBagazoReportado -
+        bagazoEnTolvasTon;
+    }
+
     const stockTotalCarbonTon =
-      stockPatioCarbonTon === null
+      stockTotalCarbonReportado ??
+      (stockPatioCarbonTon === null
         ? null
         : stockPatioCarbonTon +
-          carbonEnTolvasTon;
+          carbonEnTolvasTon);
 
     const stockTotalMaderaTon =
-      stockPatioMaderaTon === null
+      stockTotalMaderaReportado ??
+      (stockPatioMaderaTon === null
         ? null
         : stockPatioMaderaTon +
-          maderaEnTolvasTon;
+          maderaEnTolvasTon);
 
     const stockTotalBagazoTon =
-      stockPatioBagazoTon === null
+      stockTotalBagazoReportado ??
+      (stockPatioBagazoTon === null
         ? null
         : stockPatioBagazoTon +
-          bagazoEnTolvasTon;
+          bagazoEnTolvasTon);
+
+    const stockGeneralReportado =
+      obtenerPrimerNumeroDisponible(
+        stock?.general,
+        total?.stockTotalTon,
+        total?.inventarioFinalTon,
+        totalesPersistidos?.final
+      );
+
+    const valoresStockDisponibles = [
+      stockTotalCarbonTon,
+      stockTotalMaderaTon,
+      stockTotalBagazoTon,
+    ].filter((value) => value !== null);
+
+    const stockGeneralTon =
+      stockGeneralReportado ??
+      (valoresStockDisponibles.length
+        ? valoresStockDisponibles.reduce(
+            (acc, value) =>
+              acc + Number(value || 0),
+            0
+          )
+        : null);
 
     const observacion = String(
       resumenConsumosCombustibles
@@ -3733,7 +4341,148 @@ export async function exportarBitacoraPDF(
     );
 
     doc.text(
-      `CONSUMOS DE COMBUSTIBLES — ${fechaConsumos}`,
+      `BALANCE DE COMBUSTIBLES — APERTURA ${formatearFechaISO(
+        fechaAperturaInventario
+      )}`,
+      TABLE_MARGIN_X,
+      startY,
+      {
+        maxWidth: TABLE_CONTENT_WIDTH,
+      }
+    );
+
+    doc.setFont(
+      "DejaVuSans",
+      "normal"
+    );
+    doc.setFontSize(7.5);
+    doc.setTextColor(...PDF_COLORS.slate);
+    doc.text(
+      `El stock de apertura corresponde al último cierre disponible anterior a la bitácora: ${formatearFechaISO(
+        fechaCierreInventario
+      )}. Los consumos mostrados corresponden al mismo registro.`,
+      TABLE_MARGIN_X,
+      startY + 5,
+      {
+        maxWidth: TABLE_CONTENT_WIDTH,
+      }
+    );
+
+    autoTable(doc, {
+      tableWidth: TABLE_CONTENT_WIDTH,
+      startY: startY + 9,
+
+      body: [
+        [
+          "Stock apertura carbón",
+          stockTotalCarbonTon === null
+            ? "—"
+            : `${formatearNumero(
+                stockTotalCarbonTon,
+                4
+              )} t`,
+          "Stock apertura madera",
+          stockTotalMaderaTon === null
+            ? "—"
+            : `${formatearNumero(
+                stockTotalMaderaTon,
+                4
+              )} t`,
+        ],
+        [
+          "Stock general de apertura",
+          stockGeneralTon === null
+            ? "—"
+            : `${formatearNumero(
+                stockGeneralTon,
+                4
+              )} t`,
+          "Cierre de inventario",
+          formatearFechaISO(
+            fechaCierreInventario
+          ),
+        ],
+        [
+          "Consumo carbón",
+          `${formatearNumero(
+            consumoCarbonTon,
+            4
+          )} t`,
+          "Consumo madera",
+          `${formatearNumero(
+            consumoMaderaTon,
+            4
+          )} t`,
+        ],
+        [
+          "Consumo general",
+          `${formatearNumero(
+            consumoTotalMezclaTon,
+            4
+          )} t`,
+          "Combustible en tolvas",
+          `${formatearNumero(
+            totalTolvasTon,
+            4
+          )} t`,
+        ],
+      ],
+
+      theme: "grid",
+
+      styles: {
+        font: "DejaVuSans",
+        textColor: PDF_COLORS.text,
+        lineColor: PDF_COLORS.border,
+        lineWidth: 0.12,
+        fontSize: 8,
+        cellPadding: 2.4,
+        valign: "middle",
+      },
+
+      columnStyles: {
+        0: {
+          cellWidth: 48,
+          fontStyle: "bold",
+          fillColor: [255, 247, 237],
+        },
+        1: {
+          cellWidth: 40,
+          halign: "right",
+          fontStyle: "bold",
+        },
+        2: {
+          cellWidth: 48,
+          fontStyle: "bold",
+          fillColor: [255, 247, 237],
+        },
+        3: {
+          cellWidth: 40,
+          halign: "right",
+          fontStyle: "bold",
+        },
+      },
+
+      margin: {
+        left: TABLE_MARGIN_X,
+        right: TABLE_MARGIN_X,
+      },
+    });
+
+    startY =
+      doc.lastAutoTable.finalY +
+      8;
+
+    doc.setFont(
+      "times",
+      "bold"
+    );
+    doc.setFontSize(11);
+    doc.setTextColor(41, 128, 185);
+    doc.text(
+      `Consumo general del cierre ${formatearFechaISO(
+        fechaCierreInventario
+      )}`,
       TABLE_MARGIN_X,
       startY,
       {
@@ -3744,7 +4493,7 @@ export async function exportarBitacoraPDF(
     autoTable(doc, {
 
       tableWidth: TABLE_CONTENT_WIDTH,
-      startY: startY + 5,
+      startY: startY + 3,
 
       head: [
         [
@@ -4293,8 +5042,9 @@ export async function exportarBitacoraPDF(
     }
 
     /*
-     * Resumen final de consumo, mezcla e inventario disponible.
-     * Stock total = inventario final de patio + participación en tolvas.
+     * Detalle del stock de apertura.
+     * Stock de apertura = inventario final del patio al cierre anterior
+     * + participación del material en las tolvas.
      */
     startY = asegurarEspacio(
       doc,
@@ -4311,7 +5061,9 @@ export async function exportarBitacoraPDF(
     doc.setTextColor(41, 128, 185);
 
     doc.text(
-      "Resumen final de combustibles",
+      `Detalle del stock de apertura — ${formatearFechaISO(
+        fechaAperturaInventario
+      )}`,
       TABLE_MARGIN_X,
       startY,
       {
@@ -4418,11 +5170,11 @@ export async function exportarBitacoraPDF(
       head: [
         [
           "Material",
-          "Consumo total (t)",
+          "Consumo día anterior (t)",
           "% mezcla",
-          "Stock patio (t)",
-          "Participación tolvas (t)",
-          "Stock total (t)",
+          "Stock patio al cierre (t)",
+          "En tolvas al cierre (t)",
+          "Stock de apertura (t)",
         ],
       ],
 
@@ -4513,7 +5265,7 @@ export async function exportarBitacoraPDF(
         body: [
           [
             "Nota",
-            "Para calcular el stock total, la API debe enviar el inventario final de patio por material mediante inventarioFinalPatioTon, inventarioFinalCarbonPatio/inventarioFinalMaderaPatio o stockPatioCarbon/stockPatioMadera.",
+            "Para mostrar el stock de apertura, la API debe enviar el stock total calculado por material (inventarioFinalCarbon/inventarioFinalMadera, stockTotalTon o stockByMaterial) o, como respaldo, el inventario final de patio para sumarle la participación en tolvas.",
           ],
         ],
         theme: "plain",
@@ -4615,6 +5367,561 @@ export async function exportarBitacoraPDF(
         10;
     }
   }
+
+  /*
+   * Resumen ejecutivo para reportar producción.
+   *
+   * Este bloque no realiza consultas adicionales ni modifica los cálculos
+   * existentes. Reutiliza exactamente los mismos datos ya empleados en:
+   * - Balance de totalizadores U400.
+   * - Producción por niveles de TK402A/B.
+   * - Consumos de carbón y madera.
+   *
+   * Factores reportados:
+   * - REN: L de REN consumido / L de producto obtenido.
+   * - Carbón y madera: kg consumidos / L de alcohol producido.
+   * - Alerta gerencial cuando el factor supera 0,39 kg/L.
+   */
+  if (
+    resumenTotalizadores ||
+    resumenConsumosCombustibles
+  ) {
+    const totalsProduccion =
+      resumenTotalizadores?.totals || {};
+
+    const resumenCombustiblesProduccion =
+      resumenConsumosCombustibles?.resumen || {};
+
+    const carbonProduccion =
+      resumenCombustiblesProduccion?.carbon || {};
+
+    const maderaProduccion =
+      resumenCombustiblesProduccion?.madera || {};
+
+    const produccionTotalizadores =
+      obtenerPrimerNumeroDisponible(
+        totalsProduccion?.prodTotal
+      );
+
+    const produccionNiveles =
+      obtenerPrimerNumeroDisponible(
+        totalsProduccion?.tk402Total
+      );
+
+    const renTotalizadores =
+      obtenerPrimerNumeroDisponible(
+        totalsProduccion?.renConsumo
+      );
+
+    const renNiveles =
+      obtenerPrimerNumeroDisponible(
+        totalsProduccion?.renNivelTotal
+      );
+
+    const consumoCarbonResumenTon =
+      obtenerPrimerNumeroDisponible(
+        carbonProduccion?.consumoTon
+      );
+
+    const consumoMaderaResumenTon =
+      obtenerPrimerNumeroDisponible(
+        maderaProduccion?.consumoTon
+      );
+
+    const calcularFactorRen = (
+      consumoRen,
+      produccion
+    ) => {
+      if (
+        !tieneNumero(consumoRen) ||
+        !tieneNumero(produccion) ||
+        Number(produccion) <= 0
+      ) {
+        return null;
+      }
+
+      return (
+        Number(consumoRen) /
+        Number(produccion)
+      );
+    };
+
+    const FACTOR_COMBUSTIBLE_MAX_KG_L = 0.39;
+
+    const calcularFactorCombustibleKgL = (
+      consumoTon,
+      produccionLitros
+    ) => {
+      if (
+        !tieneNumero(consumoTon) ||
+        !tieneNumero(produccionLitros) ||
+        Number(produccionLitros) <= 0
+      ) {
+        return null;
+      }
+
+      /*
+       * Convierte toneladas a kilogramos y divide entre los litros
+       * de alcohol producido:
+       *
+       * factor = (consumo en t × 1.000 kg/t) / producción en L
+       */
+      return (
+        Number(consumoTon) *
+        1000
+      ) / Number(produccionLitros);
+    };
+
+    const datosResumenProduccion = [
+      {
+        fuente: "Totalizadores U400",
+        produccion: produccionTotalizadores,
+        consumoRen: renTotalizadores,
+      },
+      {
+        fuente: "Niveles TK402A/B",
+        produccion: produccionNiveles,
+        consumoRen: renNiveles,
+      },
+    ].map((item) => ({
+      ...item,
+      factorRen: calcularFactorRen(
+        item.consumoRen,
+        item.produccion
+      ),
+      factorCarbon: calcularFactorCombustibleKgL(
+        consumoCarbonResumenTon,
+        item.produccion
+      ),
+      factorMadera: calcularFactorCombustibleKgL(
+        consumoMaderaResumenTon,
+        item.produccion
+      ),
+    }));
+
+    const construirFilaResumenProduccion = (
+      item
+    ) => [
+      item.fuente,
+      tieneNumero(item.produccion)
+        ? formatearNumero(
+            item.produccion,
+            2
+          )
+        : "—",
+      tieneNumero(item.consumoRen)
+        ? formatearNumero(
+            item.consumoRen,
+            2
+          )
+        : "—",
+      item.factorRen === null
+        ? "—"
+        : formatearNumero(
+            item.factorRen,
+            4
+          ),
+      consumoCarbonResumenTon === null
+        ? "—"
+        : formatearNumero(
+            consumoCarbonResumenTon,
+            4
+          ),
+      item.factorCarbon === null
+        ? "—"
+        : formatearNumero(
+            item.factorCarbon,
+            4
+          ),
+      consumoMaderaResumenTon === null
+        ? "—"
+        : formatearNumero(
+            consumoMaderaResumenTon,
+            4
+          ),
+      item.factorMadera === null
+        ? "—"
+        : formatearNumero(
+            item.factorMadera,
+            4
+          ),
+    ];
+
+    const alertasFactoresCombustibles =
+      datosResumenProduccion.flatMap(
+        (item) => {
+          const alertas = [];
+
+          if (
+            item.factorCarbon !== null &&
+            item.factorCarbon >
+              FACTOR_COMBUSTIBLE_MAX_KG_L
+          ) {
+            alertas.push(
+              `${item.fuente}: el factor de carbón fue ${formatearNumero(
+                item.factorCarbon,
+                4
+              )} kg/L y superó el máximo de ${formatearNumero(
+                FACTOR_COMBUSTIBLE_MAX_KG_L,
+                2
+              )} kg/L.`
+            );
+          }
+
+          if (
+            item.factorMadera !== null &&
+            item.factorMadera >
+              FACTOR_COMBUSTIBLE_MAX_KG_L
+          ) {
+            alertas.push(
+              `${item.fuente}: el factor de madera fue ${formatearNumero(
+                item.factorMadera,
+                4
+              )} kg/L y superó el máximo de ${formatearNumero(
+                FACTOR_COMBUSTIBLE_MAX_KG_L,
+                2
+              )} kg/L.`
+            );
+          }
+
+          return alertas;
+        }
+      );
+
+    const fechaResumenProduccion =
+      resumenTotalizadores?.fecha ||
+      resumenConsumosCombustibles?.fecha ||
+      currentDate ||
+      "FECHA NO DISPONIBLE";
+
+    startY = asegurarEspacio(
+      doc,
+      startY,
+      105
+    );
+
+    startY = dibujarSeparadorBloque(
+      doc,
+      startY,
+      "Resumen para reportar producción",
+      "Cierre ejecutivo de producción y factores de consumo del día",
+      PDF_COLORS.green,
+      "04"
+    );
+
+    paginasSecciones.resumen =
+      doc.getNumberOfPages();
+
+    doc.setFont(
+      "times",
+      "bold"
+    );
+
+    doc.setFontSize(13);
+
+    doc.setTextColor(
+      22,
+      101,
+      52
+    );
+
+    doc.text(
+      `RESUMEN PARA REPORTAR PRODUCCIÓN — ${formatearFechaISO(
+        fechaResumenProduccion
+      )}`,
+      TABLE_MARGIN_X,
+      startY,
+      {
+        maxWidth: TABLE_CONTENT_WIDTH,
+      }
+    );
+
+    autoTable(doc, {
+      tableWidth: TABLE_CONTENT_WIDTH,
+      startY: startY + 5,
+
+      head: [
+        [
+          "Fuente de medición",
+          "Producción (L)",
+          "REN consumido (L)",
+          "Factor REN (L/L)",
+          "Carbón (t)",
+          "Factor carbón (kg/L)",
+          "Madera (t)",
+          "Factor madera (kg/L)",
+        ],
+      ],
+
+      body: datosResumenProduccion.map(
+        construirFilaResumenProduccion
+      ),
+
+      theme: "striped",
+      showHead: "everyPage",
+      rowPageBreak: "avoid",
+
+      styles: {
+        font: "DejaVuSans",
+        textColor: PDF_COLORS.text,
+        lineColor: PDF_COLORS.border,
+        lineWidth: 0.12,
+        overflow: "linebreak",
+        fontSize: 6.15,
+        cellPadding: 1.45,
+        valign: "middle",
+        halign: "right",
+      },
+
+      headStyles: {
+        fillColor: PDF_COLORS.green,
+        textColor: 255,
+        halign: "center",
+        valign: "middle",
+        fontStyle: "bold",
+      },
+
+      columnStyles: {
+        0: {
+          cellWidth: 34,
+          halign: "left",
+          fontStyle: "bold",
+        },
+        1: {
+          cellWidth: 22,
+        },
+        2: {
+          cellWidth: 22,
+        },
+        3: {
+          cellWidth: 22,
+          fontStyle: "bold",
+        },
+        4: {
+          cellWidth: 18,
+        },
+        5: {
+          cellWidth: 23,
+          fontStyle: "bold",
+        },
+        6: {
+          cellWidth: 18,
+        },
+        7: {
+          cellWidth: 23,
+          fontStyle: "bold",
+        },
+      },
+
+      didParseCell(data) {
+        if (
+          data.section !== "body" ||
+          ![3, 5, 7].includes(
+            data.column.index
+          )
+        ) {
+          return;
+        }
+
+        const datosFila =
+          datosResumenProduccion[
+            data.row.index
+          ];
+
+        const factorEvaluado =
+          data.column.index === 5
+            ? datosFila?.factorCarbon
+            : data.column.index === 7
+              ? datosFila?.factorMadera
+              : datosFila?.factorRen;
+
+        const superaLimite =
+          [5, 7].includes(
+            data.column.index
+          ) &&
+          factorEvaluado !== null &&
+          factorEvaluado >
+            FACTOR_COMBUSTIBLE_MAX_KG_L;
+
+        if (superaLimite) {
+          data.cell.styles.fillColor =
+            [254, 226, 226];
+          data.cell.styles.textColor =
+            [185, 28, 28];
+          data.cell.styles.fontStyle =
+            "bold";
+        } else {
+          data.cell.styles.fillColor =
+            [240, 253, 244];
+          data.cell.styles.textColor =
+            [22, 101, 52];
+        }
+      },
+
+      margin: {
+        left: TABLE_MARGIN_X,
+        right: TABLE_MARGIN_X,
+      },
+    });
+
+    startY =
+      doc.lastAutoTable.finalY +
+      5;
+
+    autoTable(doc, {
+      tableWidth: TABLE_CONTENT_WIDTH,
+      startY,
+
+      head: [["Control del factor de consumo"]],
+
+      body: alertasFactoresCombustibles.length
+        ? alertasFactoresCombustibles.map(
+            (alerta) => [alerta]
+          )
+        : [[
+            `Los factores de carbón y madera se encuentran dentro del máximo permitido de ${formatearNumero(
+              FACTOR_COMBUSTIBLE_MAX_KG_L,
+              2
+            )} kg/L.`,
+          ]],
+
+      theme: "striped",
+
+      styles: {
+        font: "DejaVuSans",
+        textColor: alertasFactoresCombustibles.length
+          ? [185, 28, 28]
+          : PDF_COLORS.green,
+        lineColor: PDF_COLORS.border,
+        lineWidth: 0.12,
+        overflow: "linebreak",
+        fontSize: 7.4,
+        cellPadding: 2.2,
+        valign: "top",
+        fontStyle: "bold",
+      },
+
+      headStyles: {
+        fillColor: alertasFactoresCombustibles.length
+          ? [185, 28, 28]
+          : PDF_COLORS.green,
+        textColor: 255,
+        halign: "center",
+      },
+
+      margin: {
+        left: TABLE_MARGIN_X,
+        right: TABLE_MARGIN_X,
+      },
+    });
+
+    startY =
+      doc.lastAutoTable.finalY +
+      5;
+
+    autoTable(doc, {
+      tableWidth: TABLE_CONTENT_WIDTH,
+      startY,
+
+      body: [
+        [
+          "Lectura gerencial",
+          `El factor REN indica cuántos litros de materia prima REN se consumieron por cada litro producido. Los factores de carbón y madera se calculan como kilogramos consumidos por cada litro de alcohol producido. El máximo de control para cada combustible es ${formatearNumero(
+            FACTOR_COMBUSTIBLE_MAX_KG_L,
+            2
+          )} kg/L. Cuando la producción es cero o no existe una lectura válida, el factor se presenta como — para evitar divisiones inválidas.`,
+        ],
+      ],
+
+      theme: "plain",
+
+      styles: {
+        font: "DejaVuSans",
+        textColor: PDF_COLORS.text,
+        lineColor: PDF_COLORS.border,
+        lineWidth: 0.12,
+        overflow: "linebreak",
+        fontSize: 7.2,
+        cellPadding: 2.2,
+        valign: "top",
+      },
+
+      columnStyles: {
+        0: {
+          cellWidth: 31,
+          fontStyle: "bold",
+          textColor: PDF_COLORS.green,
+        },
+        1: {
+          cellWidth: 151,
+        },
+      },
+
+      margin: {
+        left: TABLE_MARGIN_X,
+        right: TABLE_MARGIN_X,
+      },
+    });
+
+    startY =
+      doc.lastAutoTable.finalY +
+      10;
+  }
+
+  /*
+   * Índice ejecutivo con navegación interna.
+   * Se dibuja después de generar el contenido para utilizar los números
+   * reales de página de cada etapa, pero visualmente queda en la página 1.
+   */
+  const entradasIndiceEjecutivo = [
+    paginasSecciones.produccion
+      ? {
+          title:
+            "Producción y balance operativo",
+          subtitle:
+            "Novedades, REN, producción y conciliación de totalizadores",
+          pageNumber:
+            paginasSecciones.produccion,
+          color: PDF_COLORS.blue,
+        }
+      : null,
+    paginasSecciones.alcoholes
+      ? {
+          title: "Alcoholes",
+          subtitle:
+            "Niveles, recepciones, compras y despachos",
+          pageNumber:
+            paginasSecciones.alcoholes,
+          color: PDF_COLORS.purple,
+        }
+      : null,
+    paginasSecciones.combustibles
+      ? {
+          title: "Combustibles sólidos",
+          subtitle:
+            "Carbón, madera, bagazo, consumos, inventarios y tolvas",
+          pageNumber:
+            paginasSecciones.combustibles,
+          color: PDF_COLORS.orange,
+        }
+      : null,
+    paginasSecciones.resumen
+      ? {
+          title:
+            "Resumen para reportar producción",
+          subtitle:
+            "Producción, REN y factores de consumo para gerencia",
+          pageNumber:
+            paginasSecciones.resumen,
+          color: PDF_COLORS.green,
+        }
+      : null,
+  ].filter(Boolean);
+
+  dibujarIndiceEjecutivo(
+    doc,
+    entradasIndiceEjecutivo
+  );
 
   /*
    * Pie de página.
