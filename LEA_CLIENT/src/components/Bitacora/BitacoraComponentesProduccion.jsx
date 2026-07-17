@@ -216,7 +216,7 @@ const crearResumenNivelesTanquesVacio = (
 
   mensaje:
     mensaje ||
-    "No se encontraron niveles de tanques jornaleros para el día anterior.",
+    "No se encontraron niveles de tanques jornaleros registrados en la fecha de la bitácora.",
 
   totalRegistros: 0,
   volumenTotal: 0,
@@ -658,20 +658,25 @@ function BitacoraComponentProduccion({
       }
     };
 
-  const consultarNivelesTanquesDiaAnterior = async () => {
-    const fechaAnterior = obtenerDiaAnterior(
+  const consultarNivelesTanquesMismoDia = async () => {
+    /*
+     * Los niveles se consultan con la misma fecha de la bitácora.
+     * Los registros realizados en esa fecha representan
+     * operativamente el cierre del día anterior.
+     */
+    const fechaBitacora = normalizarFechaISO(
       headerData.fecha
     );
 
-    if (!fechaAnterior) {
+    if (!fechaBitacora) {
       throw new Error(
-        "No fue posible calcular la fecha anterior para consultar los niveles de tanques jornaleros."
+        "No fue posible determinar la fecha de la bitácora para consultar los niveles de tanques jornaleros."
       );
     }
 
     try {
       const response = await axios.get(
-        `${NIVELES_TANQUES_BITACORA_API_URL}/${fechaAnterior}`,
+        `${NIVELES_TANQUES_BITACORA_API_URL}/${fechaBitacora}`,
         {
           withCredentials: true,
 
@@ -685,13 +690,17 @@ function BitacoraComponentProduccion({
 
       if (!data) {
         return crearResumenNivelesTanquesVacio(
-          fechaAnterior,
+          fechaBitacora,
           "La consulta no devolvió información de niveles de tanques jornaleros."
         );
       }
 
       return {
         ...data,
+
+        fecha:
+          data?.fecha ||
+          fechaBitacora,
 
         exists:
           response.data?.exists === true,
@@ -706,9 +715,9 @@ function BitacoraComponentProduccion({
     } catch (error) {
       if (error?.response?.status === 404) {
         return crearResumenNivelesTanquesVacio(
-          fechaAnterior,
+          fechaBitacora,
           error?.response?.data?.message ||
-            "No se encontraron niveles de tanques jornaleros para el día anterior."
+            "No se encontraron niveles de tanques jornaleros para la fecha de la bitácora."
         );
       }
 
@@ -821,7 +830,7 @@ function BitacoraComponentProduccion({
           resumenDespachosAlcohol,
         ] = await Promise.all([
           consultarResumenDiaAnterior(),
-          consultarNivelesTanquesDiaAnterior(),
+          consultarNivelesTanquesMismoDia(),
           consultarIngresosCombustiblesDiaAnterior(),
           consultarConsumosCombustiblesDiaAnterior(),
           consultarRecepcionesAlcoholDiaAnterior(),
@@ -1013,7 +1022,7 @@ function BitacoraComponentProduccion({
             );
           } else {
             mensajes.push(
-              "sin niveles de tanques jornaleros en el día anterior"
+              "sin niveles de tanques jornaleros registrados en la fecha de la bitácora"
             );
           }
         }
