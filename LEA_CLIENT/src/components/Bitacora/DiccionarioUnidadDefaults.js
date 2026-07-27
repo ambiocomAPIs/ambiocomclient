@@ -69,7 +69,7 @@ const DiccionarioUnidadDefault = {
   ㅤ
   ➤MTC-901A y MTC901C 
   ➤MP-902C Operando
-  ➤ Proceso:  lb/d   Balsa 950: LLenando.      
+  ➤ Proceso:  lb/d      
   ➤ Potable:  lb/d  
   ➤ Presion: Bar
   \n`,
@@ -77,6 +77,7 @@ const DiccionarioUnidadDefault = {
   ㅤ
   ➤ MP-960A Operando
   ➤ MP90X  operando 
+  ➤ Balsa 950: LLenando. 
   ➤ 921 y sahara: Operan normalmente
   ➤ SOP-950
   ➤ Balsa 952/954 : Sin novedad
