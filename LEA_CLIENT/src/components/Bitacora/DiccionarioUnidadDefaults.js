@@ -1,6 +1,6 @@
 
 const DiccionarioUnidadDefault = {
-  "TRASLADO" : `
+  "TRASLADO": `
    ㅤ
    se inicia traslado del tanque 402AB al 801AB
    ◉ Hora Inicio: 00:00 
@@ -9,13 +9,13 @@ const DiccionarioUnidadDefault = {
    ◉ Hora Finaliza: 00:00 
    ➤ Registrado con Recibo : 240825T3 ✔
    `,
-  "RECIRCULACION" : `
+  "RECIRCULACION": `
    ㅤ
    se inicia recirculacion del tanque 402AB
    ◉ Hora Inicio: 00:00 
    ◉ Hora Finaliza: 00:00 
    `,
-  "AGUAS" : ` 
+  "AGUAS": ` 
    ㅤ
    ♦ Potable: ppm   lb/d
    ♦ Proceso: ppm   lb/d
@@ -57,7 +57,7 @@ const DiccionarioUnidadDefault = {
  ➤ Lavador de gases: Fuera de línea \n`,
   U550: "Verificación de presión.",
   U600: "Cambio de filtros.",
-  U650:  `
+  U650: `
   ㅤ
   ➤ V.alivio: %. 
   ➤ V.reposicion: %.
@@ -65,21 +65,23 @@ const DiccionarioUnidadDefault = {
   ➤ MP670 : Operando.
   \n`,
   U700: "Análisis de fallas previas.",
-  U900:  `
+  U900: `
   ㅤ
-  M-901A y MTC901C 
-  MP-902C Operando
-  MP-960A Operando
-  \n`,
-  U950:  `
-  ㅤ
-  ➤ MP90X  operando 
+  ➤MTC-901A y MTC901C 
+  ➤MP-902C Operando
   ➤ Proceso:  lb/d   Balsa 950: LLenando.      
   ➤ Potable:  lb/d  
-  ➤ 921 y sahara: Operan normalmente
   ➤ Presion: Bar
+  \n`,
+  U950: `
+  ㅤ
+  ➤ MP-960A Operando
+  ➤ MP90X  operando 
+  ➤ 921 y sahara: Operan normalmente
+  ➤ SOP-950
+  ➤ Balsa 952/954 : Sin novedad
   \n`,
 };
 
 
-export default DiccionarioUnidadDefault ;
+export default DiccionarioUnidadDefault;
