@@ -65,6 +65,12 @@ const DiccionarioUnidadDefault = {
   ➤ MP670 : Operando.
   \n`,
   U700: "Análisis de fallas previas.",
+  U900:  `
+  ㅤ
+  M-901A y MTC901C 
+  MP-902C Operando
+  MP-960A Operando
+  \n`,
   U950:  `
   ㅤ
   ➤ MP90X  operando 
