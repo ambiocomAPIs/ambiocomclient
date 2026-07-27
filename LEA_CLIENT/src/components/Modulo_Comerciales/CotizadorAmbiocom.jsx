@@ -5,6 +5,7 @@ import {
     Badge,
     Box,
     Button,
+    Checkbox,
     Chip,
     Container,
     Dialog,
@@ -12,6 +13,7 @@ import {
     DialogContent,
     DialogTitle,
     FormControl,
+    FormControlLabel,
     IconButton,
     InputAdornment,
     InputLabel,
@@ -56,7 +58,6 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 
 import {
-    RECIP,
     COM,
     ESTADOS_DB,
     ESTADO_ORDER,
@@ -92,6 +93,18 @@ const COLORS = {
     danger: "#DC2626",
     dangerBg: "#FEE2E2",
     infoBg: "#E8E7FE",
+};
+
+const ENVASES_CARGA_GRANEL = {
+    galon: { n: "Galón", cop: 12000 },
+    garrafa: { n: "Garrafa", cop: 22000 },
+    tambor: { n: "Tambor", cop: 115000 },
+    ibc: { n: "IBC", cop: 600000 },
+};
+
+const MODALIDAD_CARGA_LBL = {
+    granel: "Carga a granel / con envase",
+    seca: "Carga seca / flete estándar",
 };
 
 const RAW_API_URL =
@@ -1136,6 +1149,10 @@ export default function CotizadorAmbiocom() {
             // TrmColombiaCard termina de consultar la TRM vigente.
             trm: "",
             peUSD: initialForm.peUSD ?? "",
+            modalidadCarga: initialForm.modalidadCarga || "granel",
+            recipiente: initialForm.recipiente || "",
+            cantRecip: initialForm.cantRecip || 1,
+            incluirFleteRetorno: Boolean(initialForm.incluirFleteRetorno),
         };
     });
     const [peInputMode, setPeInputMode] = useState("cop");
@@ -1282,11 +1299,28 @@ export default function CotizadorAmbiocom() {
     const HISTORIAL_CACHE_KEY = "cotizaciones-alcoholes-cache-v1";
     const HISTORIAL_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
 
-    const normalizarCotizacion = (q = {}) => ({
-        ...q,
-        estado: q.estado || "enviada",
-        fecha: q.fecha || q.createdAt || new Date().toISOString(),
-    });
+    const normalizarCotizacion = (q = {}) => {
+        const fleteEnvioCOP =
+            toNumberSafe(q.fleteEnvioCOP) ??
+            toNumberSafe(q.rutaFlete?.fletePromedio) ??
+            toNumberSafe(q.fleteCOP) ??
+            0;
+        const fleteRetornoCOP = toNumberSafe(q.fleteRetornoCOP) ?? 0;
+
+        return {
+            ...q,
+            estado: q.estado || "enviada",
+            fecha: q.fecha || q.createdAt || new Date().toISOString(),
+            modalidadCarga:
+                q.modalidadCarga || (q.tipo === "seco" ? "seca" : "granel"),
+            incluirFleteRetorno:
+                Boolean(q.incluirFleteRetorno) || fleteRetornoCOP > 0,
+            fleteEnvioCOP,
+            fleteRetornoCOP,
+            fleteCOP:
+                toNumberSafe(q.fleteCOP) ?? fleteEnvioCOP + fleteRetornoCOP,
+        };
+    };
 
     const leerHistorialCache = () => {
         try {
@@ -1478,6 +1512,8 @@ export default function CotizadorAmbiocom() {
             ...prev,
             rutaFleteId: first.value,
             tipoDespacho: first.tipoDespacho,
+            // La ruta define el vehículo y el flete, pero no cambia la
+            // modalidad comercial elegida por el usuario.
             volumen: first.cantidadLitros || prev.volumen || "",
         }));
     }, [form.ciudad, form.rutaFleteId, opcionesDespachoMatriz]);
@@ -1519,7 +1555,9 @@ export default function CotizadorAmbiocom() {
             ? inferTipoDespacho(rutaFromMatch)
             : form.tipoDespacho || "ct10";
 
-        const isSeco = tipo === "seco";
+        const modalidadCarga =
+            form.modalidadCarga || (tipo === "seco" ? "seca" : "granel");
+        const isGranel = modalidadCarga === "granel";
 
         const cantidadRuta = toNumberSafe(rutaFromMatch?.cantidadLitros);
         const volPed =
@@ -1527,27 +1565,52 @@ export default function CotizadorAmbiocom() {
             cantidadRuta ||
             (tipo === "ct40" ? 40000 : tipo === "ct20" ? 20000 : 10000);
 
-        const fleteCOP = rutaFromMatch
+        const fleteEnvioCOP = rutaFromMatch
             ? calcularFletePromedioMatriz(rutaFromMatch)
             : null;
 
-        let volT = isSeco ? null : volPed;
+        const incluirFleteRetorno =
+            isGranel &&
+            Boolean(form.incluirFleteRetorno) &&
+            Number(fleteEnvioCOP || 0) > 0;
+
+        // Por definición comercial, el retorno se cotiza con el mismo valor
+        // del flete promedio de envío seleccionado en la matriz.
+        const fleteRetornoCOP = incluirFleteRetorno
+            ? Number(fleteEnvioCOP || 0)
+            : 0;
+
+        const fleteTotalCOP =
+            fleteEnvioCOP == null
+                ? null
+                : Number(fleteEnvioCOP) + Number(fleteRetornoCOP || 0);
+
+        const volT = volPed;
 
         let recipUSD = 0;
-        let recipDesc = "—";
+        let recipDesc = "No aplica";
         let recipData = null;
+        let recipCostoTotalCOP = 0;
 
-        if (isSeco) {
-            const rec = form.recipiente;
-            const amort = Math.max(1, Number.parseInt(form.amort, 10) || 6);
+        if (isGranel && form.recipiente) {
+            const rec = String(form.recipiente);
             const cant = Math.max(1, Number.parseInt(form.cantRecip, 10) || 1);
-            const rd = RECIP[rec] || RECIP.garrafa;
-            const litros = rd.cap * cant;
+            const rd = ENVASES_CARGA_GRANEL[rec];
 
-            volT = litros;
-            recipUSD = trm > 0 ? (rd.cop * cant) / amort / trm / litros : 0;
-            recipDesc = `${cant} × ${rd.n} | amort. ${amort}`;
-            recipData = { tipo: rec, cant, amort };
+            if (rd) {
+                recipCostoTotalCOP = rd.cop * cant;
+                recipUSD =
+                    trm > 0 && volT > 0
+                        ? recipCostoTotalCOP / trm / volT
+                        : 0;
+                recipDesc = `${cant} × ${rd.n} · ${fCOP(rd.cop)} c/u`;
+                recipData = {
+                    tipo: rec,
+                    cant,
+                    costoUnitarioCOP: rd.cop,
+                    costoTotalCOP: recipCostoTotalCOP,
+                };
+            }
         }
 
         const margenObjetivo = getMargenObjetivo({
@@ -1559,7 +1622,7 @@ export default function CotizadorAmbiocom() {
         const precioInfo = calcularPrecioSugeridoRealista({
             peCOP,
             trm,
-            fleteCOP,
+            fleteCOP: fleteTotalCOP,
             volumen: volT,
             recipienteUSD: recipUSD,
             otrosCostosUSD: 0,
@@ -1569,6 +1632,14 @@ export default function CotizadorAmbiocom() {
         const sug = precioInfo.precioSugerido;
         const pe = precioInfo.peUSD;
         const fleteUSD = precioInfo.fleteUSD;
+        const fleteEnvioUSD =
+            trm > 0 && volT > 0
+                ? Number(fleteEnvioCOP || 0) / trm / volT
+                : 0;
+        const fleteRetornoUSD =
+            trm > 0 && volT > 0
+                ? Number(fleteRetornoCOP || 0) / trm / volT
+                : 0;
         const costoTotalUSD = precioInfo.costoTotalUSD;
 
         const manualPv = Number.parseFloat(form.pventa);
@@ -1592,10 +1663,17 @@ export default function CotizadorAmbiocom() {
             otrosCostosUSD: precioInfo.otrosCostosUSD,
             precioSugerido: sug,
             fleteUSD,
+            fleteEnvioUSD,
+            fleteRetornoUSD,
             recipUSD,
+            recipCostoTotalCOP,
             volT,
             recipData,
-            fleteCOP,
+            fleteCOP: fleteTotalCOP,
+            fleteEnvioCOP,
+            fleteRetornoCOP,
+            incluirFleteRetorno,
+            modalidadCarga,
             rutaFlete: rutaFromMatch,
             rutaFleteId: rutaFromMatch ? getRutaKey(rutaFromMatch) : "",
             sug,
@@ -1608,7 +1686,7 @@ export default function CotizadorAmbiocom() {
             volMen,
             volPed,
             recipDesc,
-            isSeco,
+            isGranel,
         };
     }, [form, matrizFletes, rutaFleteSeleccionada, peInputMode]);
 
@@ -1667,6 +1745,9 @@ export default function CotizadorAmbiocom() {
                     ciudad: "",
                     rutaFleteId: "",
                     tipoDespacho: "",
+                    modalidadCarga: "granel",
+                    recipiente: "",
+                    incluirFleteRetorno: false,
                     volumen: "",
                 };
             }
@@ -1677,7 +1758,25 @@ export default function CotizadorAmbiocom() {
                     ciudad: value,
                     rutaFleteId: "",
                     tipoDespacho: "",
+                    modalidadCarga: "granel",
+                    recipiente: "",
+                    incluirFleteRetorno: false,
                     volumen: "",
+                };
+            }
+
+            if (key === "modalidadCarga") {
+                const modalidadCarga = value || "granel";
+
+                return {
+                    ...prev,
+                    modalidadCarga,
+                    recipiente:
+                        modalidadCarga === "granel" ? prev.recipiente : "",
+                    incluirFleteRetorno:
+                        modalidadCarga === "granel"
+                            ? Boolean(prev.incluirFleteRetorno)
+                            : false,
                 };
             }
 
@@ -1723,6 +1822,7 @@ export default function CotizadorAmbiocom() {
             ...prev,
             rutaFleteId,
             tipoDespacho: selected?.tipoDespacho || prev.tipoDespacho,
+            // La modalidad de carga se selecciona de forma independiente.
             volumen: selected?.cantidadLitros || prev.volumen,
         }));
     };
@@ -1793,11 +1893,12 @@ export default function CotizadorAmbiocom() {
                     tipoVehiculo: result.rutaFlete.tipoVehiculo,
                     especificacion: result.rutaFlete.especificacion,
                     cantidadLitros: result.rutaFlete.cantidadLitros,
-                    fletePromedio: result.fleteCOP,
+                    fletePromedio: result.fleteEnvioCOP,
                 }
                 : null,
 
             tipo: result.tipo,
+            modalidadCarga: result.modalidadCarga,
             volPed: result.volPed,
             volMen: result.volMen,
             trm: result.trm,
@@ -1811,8 +1912,14 @@ export default function CotizadorAmbiocom() {
 
             fleteCOP: result.fleteCOP,
             fleteUSD: result.fleteUSD,
+            fleteEnvioCOP: result.fleteEnvioCOP,
+            fleteEnvioUSD: result.fleteEnvioUSD,
+            incluirFleteRetorno: result.incluirFleteRetorno,
+            fleteRetornoCOP: result.fleteRetornoCOP,
+            fleteRetornoUSD: result.fleteRetornoUSD,
 
             recipUSD: result.recipUSD,
+            recipCostoTotalCOP: result.recipCostoTotalCOP,
             util: result.util,
             margen: result.margen,
 
@@ -1857,7 +1964,13 @@ Comercial: ${comercial}
 Producto: ${result.prod || "—"}
 Ruta: ${result.origen} → ${cityLabel(result.ciudad)}
 Transporte: ${TIPO_LBL[result.tipo] || "N/D"}
+Modalidad: ${MODALIDAD_CARGA_LBL[result.modalidadCarga] || "N/D"}
 Volumen: ${Number(form.volumen || 0).toLocaleString("es-CO")} L
+Envase: ${result.recipDesc}
+Costo total de envases: ${result.recipData ? fCOP(result.recipCostoTotalCOP) : "No incluido"}
+Flete de envío: ${fCOP(result.fleteEnvioCOP)}
+Flete de retorno: ${result.incluirFleteRetorno ? fCOP(result.fleteRetornoCOP) : "No incluido"}
+Flete total: ${fCOP(result.fleteCOP)}
 TRM: ${fCOP(result.trm)}
 Precio: $${result.pv.toFixed(3)} USD/L
 Utilidad: ${result.util != null ? `$${f3(result.util)}` : "N/D"}
@@ -2007,6 +2120,9 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
             ciudad: selectedQuote.ciudad,
             rutaFleteId: selectedQuote.rutaFleteId || "",
             tipoDespacho: selectedQuote.tipo,
+            modalidadCarga:
+                selectedQuote.modalidadCarga ||
+                (selectedQuote.tipo === "seco" ? "seca" : "granel"),
             volumen: selectedQuote.volPed,
             volMensual: selectedQuote.volMen,
             trm: selectedQuote.trm,
@@ -2023,9 +2139,11 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                         ? (Number(selectedQuote.peCOP) / Number(selectedQuote.trm)).toFixed(4)
                         : "",
             pventa: Number(selectedQuote.pv).toFixed(3),
-            recipiente: selectedQuote.recipData?.tipo || "garrafa",
-            amort: selectedQuote.recipData?.amort || 6,
-            cantRecip: selectedQuote.recipData?.cant || 50,
+            recipiente: selectedQuote.recipData?.tipo || "",
+            cantRecip: selectedQuote.recipData?.cant || 1,
+            incluirFleteRetorno:
+                Boolean(selectedQuote.incluirFleteRetorno) ||
+                Number(selectedQuote.fleteRetornoCOP || 0) > 0,
         });
 
         setPeInputMode("cop");
@@ -2050,12 +2168,18 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
             "Origen",
             "Destino",
             "Transporte",
+            "Modalidad de carga",
+            "Envase",
+            "Cantidad envases",
+            "Costo envases COP",
+            "Flete envío COP",
+            "Flete retorno COP",
+            "Flete total COP",
             "Volumen L",
             "TRM",
             "PE COP",
             "PE USD",
-            "Flete COP",
-            "Flete USD",
+            "Flete USD total",
             "Recipiente USD",
             "PV USD",
             "Utilidad USD",
@@ -2072,11 +2196,19 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
             q.origen,
             cityLabel(q.ciudad),
             TIPO_LBL[q.tipo],
+            MODALIDAD_CARGA_LBL[q.modalidadCarga] || "N/D",
+            q.recipData?.tipo
+                ? ENVASES_CARGA_GRANEL[q.recipData.tipo]?.n || q.recipData.tipo
+                : "No aplica",
+            q.recipData?.cant || 0,
+            q.recipData?.costoTotalCOP || q.recipCostoTotalCOP || 0,
+            q.fleteEnvioCOP ?? q.rutaFlete?.fletePromedio ?? q.fleteCOP ?? 0,
+            q.fleteRetornoCOP || 0,
+            q.fleteCOP || 0,
             q.volPed,
             q.trm,
             q.peCOP != null ? Math.round(q.peCOP) : "N/D",
             f3(q.pe),
-            q.fleteCOP != null ? Math.round(q.fleteCOP) : "N/D",
             f4(q.fleteUSD),
             f4(q.recipUSD),
             f3(q.pv),
@@ -2672,7 +2804,7 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                                 gridTemplateColumns: {
                                                     xs: "1fr",
                                                     md: "repeat(2, minmax(0,1fr))",
-                                                    lg: "repeat(4, minmax(0,1fr))",
+                                                    lg: "repeat(5, minmax(0,1fr))",
                                                 },
                                                 gap: 1.6,
                                             }}
@@ -2703,6 +2835,15 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                                         {d.label}
                                                     </MenuItem>
                                                 ))}
+                                            </SelectInput>
+
+                                            <SelectInput
+                                                label="Modalidad de carga"
+                                                value={form.modalidadCarga || "granel"}
+                                                onChange={(v) => update("modalidadCarga", v)}
+                                            >
+                                                <MenuItem value="granel">Carga a granel / con envase</MenuItem>
+                                                <MenuItem value="seca">Carga seca / flete estándar</MenuItem>
                                             </SelectInput>
 
                                             <SelectInput
@@ -2779,7 +2920,7 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                                         letterSpacing: ".06em",
                                                     }}
                                                 >
-                                                    Flete / L
+                                                    Flete total / L
                                                 </Typography>
 
                                                 <Typography sx={{ fontSize: 13, fontWeight: 950 }}>
@@ -2806,7 +2947,7 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                             </Box>
                                         </Box>
 
-                                        {result.isSeco && (
+                                        {result.isGranel && (
                                             <Box
                                                 sx={{
                                                     p: 1.9,
@@ -2825,7 +2966,7 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                                         mb: 1.35,
                                                     }}
                                                 >
-                                                    Recipientes
+                                                    Envase y retorno
                                                 </Typography>
 
                                                 <Box
@@ -2833,36 +2974,104 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                                         display: "grid",
                                                         gridTemplateColumns: {
                                                             xs: "1fr",
-                                                            md: "1.2fr .8fr .8fr",
+                                                            md: form.recipiente
+                                                                ? "minmax(0,1.4fr) minmax(180px,.6fr)"
+                                                                : "1fr",
                                                         },
                                                         gap: 1.6,
                                                     }}
                                                 >
                                                     <SelectInput
-                                                        label="Tipo de recipiente"
-                                                        value={form.recipiente}
+                                                        label="Envase (opcional)"
+                                                        value={form.recipiente || ""}
                                                         onChange={(v) => update("recipiente", v)}
                                                     >
-                                                        <MenuItem value="garrafa">Garrafa 20 L — $50.000</MenuItem>
-                                                        <MenuItem value="tambor">Tambor plástico 200 L — $110.000</MenuItem>
-                                                        <MenuItem value="tamborM">Tambor metálico 200 L — $200.000</MenuItem>
-                                                        <MenuItem value="ibc">IBC 1.000 L — $600.000</MenuItem>
+                                                        <MenuItem value="">— No incluir costo de envase —</MenuItem>
+                                                        {Object.entries(ENVASES_CARGA_GRANEL).map(
+                                                            ([key, envase]) => (
+                                                                <MenuItem key={key} value={key}>
+                                                                    {envase.n} — {fCOP(envase.cop)} c/u
+                                                                </MenuItem>
+                                                            )
+                                                        )}
                                                     </SelectInput>
 
-                                                    <TextInput
-                                                        label="Amortización"
-                                                        type="number"
-                                                        value={form.amort}
-                                                        onChange={(v) => update("amort", v)}
-                                                    />
-
-                                                    <TextInput
-                                                        label="Cantidad"
-                                                        type="number"
-                                                        value={form.cantRecip}
-                                                        onChange={(v) => update("cantRecip", v)}
-                                                    />
+                                                    {form.recipiente && (
+                                                        <TextInput
+                                                            label="Cantidad de envases"
+                                                            type="number"
+                                                            value={form.cantRecip}
+                                                            onChange={(v) => update("cantRecip", v)}
+                                                        />
+                                                    )}
                                                 </Box>
+
+                                                <FormControlLabel
+                                                    sx={{
+                                                        mt: 1.35,
+                                                        mx: 0,
+                                                        alignItems: "flex-start",
+                                                        "& .MuiFormControlLabel-label": {
+                                                            pt: 0.25,
+                                                        },
+                                                    }}
+                                                    control={
+                                                        <Checkbox
+                                                            checked={Boolean(form.incluirFleteRetorno)}
+                                                            onChange={(e) =>
+                                                                update(
+                                                                    "incluirFleteRetorno",
+                                                                    e.target.checked
+                                                                )
+                                                            }
+                                                            sx={{
+                                                                color: COLORS.brandBlue,
+                                                                "&.Mui-checked": {
+                                                                    color: COLORS.brandBlue,
+                                                                },
+                                                            }}
+                                                        />
+                                                    }
+                                                    label={
+                                                        <Box>
+                                                            <Typography
+                                                                sx={{
+                                                                    fontSize: 12.5,
+                                                                    fontWeight: 950,
+                                                                    color: COLORS.text,
+                                                                }}
+                                                            >
+                                                                Incluir flete de retorno de envases vacíos
+                                                            </Typography>
+                                                            <Typography
+                                                                sx={{
+                                                                    fontSize: 11,
+                                                                    color: COLORS.secondary,
+                                                                    mt: 0.2,
+                                                                }}
+                                                            >
+                                                                Se suma a la cotización un retorno por el mismo
+                                                                valor del flete promedio de envío y será pagado
+                                                                por el cliente.
+                                                            </Typography>
+                                                        </Box>
+                                                    }
+                                                />
+
+                                                {result.incluirFleteRetorno && (
+                                                    <Alert
+                                                        severity="info"
+                                                        sx={{
+                                                            mt: 1.25,
+                                                            borderRadius: "13px",
+                                                            fontSize: 11.5,
+                                                            fontWeight: 800,
+                                                        }}
+                                                    >
+                                                        Retorno incluido: {fCOP(result.fleteRetornoCOP)}.
+                                                        Flete logístico total: {fCOP(result.fleteCOP)}.
+                                                    </Alert>
+                                                )}
                                             </Box>
                                         )}
 
@@ -2926,7 +3135,7 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
 
                                                     <DispatchMiniCard
                                                         label="Modalidad"
-                                                        value={TIPO_SHORT[result.tipo] || "N/D"}
+                                                        value={MODALIDAD_CARGA_LBL[result.modalidadCarga] || "N/D"}
                                                     />
 
                                                     <DispatchMiniCard
@@ -3066,9 +3275,23 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                     </Typography>
 
                                     <CostBar label="Equilibrio" value={result.pe} max={result.pv || 1} color={COLORS.brandBlue} />
-                                    <CostBar label="Flete" value={result.fleteUSD || 0} max={result.pv || 1} color="#EF9F27" />
+                                    <CostBar
+                                        label="Flete envío"
+                                        value={result.fleteEnvioUSD || 0}
+                                        max={result.pv || 1}
+                                        color="#EF9F27"
+                                    />
 
-                                    {result.isSeco && (
+                                    {result.incluirFleteRetorno && (
+                                        <CostBar
+                                            label="Flete retorno"
+                                            value={result.fleteRetornoUSD || 0}
+                                            max={result.pv || 1}
+                                            color="#D97706"
+                                        />
+                                    )}
+
+                                    {result.isGranel && result.recipUSD > 0 && (
                                         <CostBar
                                             label="Recipiente"
                                             value={result.recipUSD}
@@ -3105,10 +3328,36 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
 
                                         <BreakdownRow label="Ruta" value={`${result.origen} → ${cityLabel(result.ciudad)}`} />
                                         <BreakdownRow label="Transporte" value={TIPO_LBL[result.tipo] || "N/D"} />
+                                        <BreakdownRow
+                                            label="Modalidad de carga"
+                                            value={MODALIDAD_CARGA_LBL[result.modalidadCarga] || "N/D"}
+                                        />
+                                        <BreakdownRow
+                                            label="Flete de envío"
+                                            value={fCOP(result.fleteEnvioCOP)}
+                                        />
 
-                                        {result.isSeco && (
-                                            <BreakdownRow label="Recipiente" value={result.recipDesc} />
+                                        {result.incluirFleteRetorno && (
+                                            <BreakdownRow
+                                                label="Flete de retorno"
+                                                value={fCOP(result.fleteRetornoCOP)}
+                                            />
                                         )}
+
+                                        {result.isGranel && result.recipData && (
+                                            <>
+                                                <BreakdownRow label="Envase" value={result.recipDesc} />
+                                                <BreakdownRow
+                                                    label="Costo total de envases"
+                                                    value={fCOP(result.recipCostoTotalCOP)}
+                                                />
+                                            </>
+                                        )}
+
+                                        <BreakdownRow
+                                            label="Flete total"
+                                            value={fCOP(result.fleteCOP)}
+                                        />
 
                                         <BreakdownRow label="Precio de venta" total value={`$${f3(result.pv)} USD/L`} />
 
@@ -3678,12 +3927,31 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                             />
 
                             <Detail label="Transporte" value={TIPO_LBL[selectedQuote.tipo] || "N/D"} />
+                            <Detail
+                                label="Modalidad de carga"
+                                value={
+                                    MODALIDAD_CARGA_LBL[selectedQuote.modalidadCarga] ||
+                                    (selectedQuote.tipo === "seco"
+                                        ? MODALIDAD_CARGA_LBL.seca
+                                        : MODALIDAD_CARGA_LBL.granel)
+                                }
+                            />
 
                             {selectedQuote.recipData && (
                                 <Detail
                                     label="Recipientes"
-                                    value={`${selectedQuote.recipData.cant} × ${RECIP[selectedQuote.recipData.tipo].n
-                                        } (amort. ${selectedQuote.recipData.amort})`}
+                                    value={`${selectedQuote.recipData.cant} × ${
+                                        ENVASES_CARGA_GRANEL[selectedQuote.recipData.tipo]?.n ||
+                                        selectedQuote.recipData.tipo
+                                    }${
+                                        selectedQuote.recipData.costoUnitarioCOP
+                                            ? ` · ${fCOP(
+                                                selectedQuote.recipData.costoUnitarioCOP
+                                            )} c/u`
+                                            : selectedQuote.recipData.amort
+                                                ? ` (amort. ${selectedQuote.recipData.amort})`
+                                                : ""
+                                    }`}
                                 />
                             )}
 
@@ -3706,23 +3974,47 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                         : "N/D"
                                 }
                             />
-                            {/* <Detail label="Flete USD" value={`${f4(selectedQuote.fleteUSD)} USD/L`} /> */}
                             <Detail
-                                label="Flete"
+                                label="Flete de envío"
+                                value={`${fCOP(
+                                    selectedQuote.fleteEnvioCOP ??
+                                    selectedQuote.rutaFlete?.fletePromedio ??
+                                    selectedQuote.fleteCOP
+                                )} COP`}
+                            />
+
+                            {(selectedQuote.incluirFleteRetorno ||
+                                Number(selectedQuote.fleteRetornoCOP || 0) > 0) && (
+                                <Detail
+                                    label="Flete de retorno"
+                                    value={`${fCOP(selectedQuote.fleteRetornoCOP)} COP`}
+                                />
+                            )}
+
+                            <Detail
+                                label="Flete total"
                                 value={
                                     selectedQuote?.fleteUSD != null
-                                        ? `${f4(Number(selectedQuote.fleteUSD))} USD/L - ${selectedQuote?.trm != null && Number(selectedQuote.trm) > 0
-                                            ? `${fCOP(Number(selectedQuote.fleteUSD) * Number(selectedQuote.trm))} COP/L`
-                                            : "COP N/D"
-                                        }`
-                                        : "N/D"
+                                        ? `${f4(Number(selectedQuote.fleteUSD))} USD/L · ${fCOP(
+                                            selectedQuote.fleteCOP
+                                        )} COP total`
+                                        : fCOP(selectedQuote.fleteCOP)
                                 }
                             />
                             {selectedQuote.recipUSD > 0 && (
-                                <Detail
-                                    label="Recipiente"
-                                    value={`${f4(selectedQuote.recipUSD)} USD/L`}
-                                />
+                                <>
+                                    <Detail
+                                        label="Costo total de envases"
+                                        value={fCOP(
+                                            selectedQuote.recipData?.costoTotalCOP ||
+                                            selectedQuote.recipCostoTotalCOP
+                                        )}
+                                    />
+                                    <Detail
+                                        label="Costo de envase por litro"
+                                        value={`${f4(selectedQuote.recipUSD)} USD/L`}
+                                    />
+                                </>
                             )}
 
                             <Stack

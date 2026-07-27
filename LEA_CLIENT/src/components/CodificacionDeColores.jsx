@@ -31,26 +31,19 @@ import HomeIcon from '@mui/icons-material/Home';
 import SearchIcon from '@mui/icons-material/Search';
 
 const CodificacionDeColoresComponent = React.memo(() => {
-  // Estado para la fecha y hora actual
   const [data, setDataColors] = useState([]);
   const [editingCell, setEditingCell] = useState({ rowIndex: null, column: null });
   const [tempValue, setTempValue] = useState('');
   const [ColumValue, setColumValue] = useState();
-  // propiedades del snackbar
   const [snackbarOpen, setSnackbarOpen] = useState(false);  // Estado para controlar el Snackbar
   const [snackbarMessage, setSnackbarMessage] = useState("");  // Mensaje del Snackbar
   const [snackbarSeverity, setSnackbarSeverity] = useState('');  // 'success' o 'error'
 
-  // carga de data
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // Visualizador de Pdf
   const [isModalOpen, setModalOpen] = useState(false);
-  // Abrir modal para carga masiva
   const [openUploadExcelModal, setOpenUploadExcelModal] = useState(false);
-  // Abrir modal para filtrar data
   const [isModalFilterOpen, setIsModalFilterOpen] = useState(false);
-  // trae los usurios del sesio storage
   const [usuario, setUsuario] = useState(null);
 
   useEffect(() => {
@@ -65,7 +58,6 @@ const CodificacionDeColoresComponent = React.memo(() => {
     }, []);
 
   useEffect(() => {
-    // Realizar la solicitud GET a la API
     axios.get('https://ambiocomserver.onrender.com/api/tableColors/dataColors')
       .then(response => {
         setDataColors(response.data);
@@ -81,7 +73,7 @@ const CodificacionDeColoresComponent = React.memo(() => {
         //setError('Error al cargar los datos');
         setLoading(false);
       });
-  }, []); // Este useEffect depende de la data, pero solo se ejecuta cuando data cambia.
+  }, []);
   
     if (error) {
       return <div>{error}</div>;
@@ -92,7 +84,6 @@ const CodificacionDeColoresComponent = React.memo(() => {
       const updatedField = editingCell.column;
       const updatedValue = tempValue;
     
-      // Si no hay _id, no intentamos actualizar
       if (!row || !row._id) return;
     
       const editedRow = {
@@ -138,7 +129,6 @@ const CodificacionDeColoresComponent = React.memo(() => {
     };
     axios.post('https://ambiocomserver.onrender.com/api/tableColors/dataColors', newFile)
       .then(response => {        
-        // Una vez agregada la fila en la base de datos, agregarla al estado local para que se muestre
         setDataColors(prevData => [response.data, ...prevData]);
       })
       .catch(err => {
@@ -154,7 +144,6 @@ const CodificacionDeColoresComponent = React.memo(() => {
   };
 
 const deleteRowData = (rowId) => {
-  // Primero, mostramos una alerta de confirmación utilizando SweetAlert
   Swal.fire({
     title: "¿Estás seguro?",
     text: "¡No podrás revertir esto!",
@@ -164,20 +153,16 @@ const deleteRowData = (rowId) => {
     cancelButtonColor: "#d33",
     confirmButtonText: "Sí, eliminar",
   }).then((result) => {
-    // Si el usuario confirma la eliminación
     if (result.isConfirmed) {
-      // Realizamos la eliminación de la fila
       axios.delete(`https://ambiocomserver.onrender.com/api/tableColors/dataColors/${rowId}`)
         .then(() => {
-          // Si la eliminación es exitosa, obtenemos los datos actualizados
           axios.get('https://ambiocomserver.onrender.com/api/tableColors/dataColors')
             .then(updatedDataResponse => {
-              setDataColors(updatedDataResponse.data); // Actualizamos el estado con los nuevos datos
+              setDataColors(updatedDataResponse.data);
               setSnackbarMessage('Datos eliminados correctamente');
               setSnackbarSeverity('success');
-              setSnackbarOpen(true); // Mostrar mensaje de éxito
+              setSnackbarOpen(true); 
 
-              // Mostramos una notificación de éxito con SweetAlert
               Swal.fire({
                 icon: 'success',
                 title: 'Fila eliminada',
@@ -189,7 +174,6 @@ const deleteRowData = (rowId) => {
               setSnackbarMessage(`Error al obtener datos: ${errorMessage}`);
               setSnackbarSeverity('error');
               setSnackbarOpen(true);
-              // Notificación de error en caso de que no se puedan obtener los datos
               Swal.fire({
                 icon: 'error',
                 title: 'Error al obtener los datos',
@@ -202,7 +186,6 @@ const deleteRowData = (rowId) => {
           setSnackbarMessage(`Error al eliminar la fila: ${errorMessage}`);
           setSnackbarSeverity('error');
           setSnackbarOpen(true);
-          // Notificación de error si la eliminación falla
           Swal.fire({
             icon: 'error',
             title: 'Error al eliminar la fila',
@@ -214,7 +197,7 @@ const deleteRowData = (rowId) => {
 };
 
 const exportExcelDataTable =()=> {
-  ExportExcelWithTemplate({data:data, module:"dataTableColors"}) //? se envia la data para exportar el excel
+  ExportExcelWithTemplate({data:data, module:"dataTableColors"}) 
 }
 
 const handleCloseModal = () => {
@@ -232,12 +215,10 @@ const handleChange = (event) => {
 
 const handleKeyDown = (event) => {
   if (event.key === 'Enter') {
-    // Al presionar Enter, desenfocamos el campo y luego guardamos los datos
-    event.target.blur(); // Esto activará el `onBlur` de inmediato
-    // Usamos setTimeout para asegurar que el blur se complete antes de guardar
+    event.target.blur();
     setTimeout(() => {
       handleBlur();
-    }, 100);  // Retraso de 100 ms para asegurarnos que el evento de blur haya pasado
+    }, 100); 
   }
 };
 
@@ -245,55 +226,46 @@ const handleSnackbarClose = () => {
   setSnackbarOpen(false);
 };
 
- // Ref para el TableBody
 const tableBodyRef = useRef(null);
 
 const clickColumFixed = (columnClicked) => {
   if(columnClicked == ColumValue)
   {
-    setColumValue(100000); // se fija un valor de columna que nunca vaya a existir
+    setColumValue(100000); 
   }else{
-    setColumValue(columnClicked); // se fija un valor de columna que nunca vaya a existir
+    setColumValue(columnClicked);
   }
 };
 
 
   useEffect(() => {
-    // Función para detectar clics fuera del TableBody
     const handleClickOutside = (event) => {
       if (tableBodyRef.current && !tableBodyRef.current.contains(event.target)) {
-        clickColumFixed(100000); // Fijar la columna en 100000 (valor que nunca existirá)
+        clickColumFixed(100000); 
       }
     };
 
-    // Añadir el event listener para clics en el documento
     document.addEventListener('mousedown', handleClickOutside);
-    // Limpiar el event listener cuando el componente se desmonte
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [ColumValue]);
 
   const filterData = (row) => {
-    // Campos a excluir de la data
-   // const excludedFields = ['_id', 'createdAt', 'updatedAt', '__v'];
-    const excludedFields = ['_id', 'updatedAt', 'createdAt', '__v']; // elimino createAt ya que es el ultimo en el objeto en la DB
+    const excludedFields = ['_id', 'updatedAt', 'createdAt', '__v']; 
   
-    // Filtrar las propiedades que no quieres mostrar
     return Object.keys(row)
-      .filter((key) => !excludedFields.includes(key)) // Excluye los campos no deseados
+      .filter((key) => !excludedFields.includes(key)) 
       .reduce((obj, key) => {
-        obj[key] = row[key]; // Solo incluye los campos que quieres
+        obj[key] = row[key]; 
         return obj;
       }, {});
   };
 
-    //? Función para abrir el modal
     const handleOpenModalUploadExcel = () => {     
       setOpenUploadExcelModal(true);
     };
   
-    //? Función para cerrar el modal
     const handleCloseModalUploadExcel = () => {
       setOpenUploadExcelModal(false);
     };
@@ -309,8 +281,8 @@ const clickColumFixed = (columnClicked) => {
   return (
     <TableContainer component={Paper}
         style={{
-          height: '100vh', // Ocupa el 100% de la altura de la ventana
-          overflow: 'auto', // Permite el desplazamiento vertical y horizontal
+          height: '100vh', 
+          overflow: 'auto', 
         }}
       >
       <Table style={{ width: '100%' }}>
@@ -323,20 +295,20 @@ const clickColumFixed = (columnClicked) => {
                   textAlign: 'center', 
                   fontWeight: 'bold', 
                   border: '1px solid rgba(224, 224, 224, 1)', 
-                  position: 'relative'  // Para que los botones se posicionen dentro de esta celda
+                  position: 'relative' 
                   }}
                >
               {/* Botón de filtro al inicio de la fila */}
              <Tooltip title="Filtro" enterDelay={100}>
               <IconButton
                style={{
-                position: 'absolute',  // Posicionamos el botón dentro de la celda
-                top: '15px',            // A 15px del borde superior de la celda
-                left: '10px',           // A 10px del borde izquierdo de la celda
-                zIndex: 1000,           // Asegura que el botón esté por encima de otros elementos
+                position: 'absolute', 
+                top: '15px',           
+                left: '10px',          
+                zIndex: 1000,          
                 outline: 'none'
                 }}
-                  onClick={() => openFilterModal()}  // Aquí puedes agregar la lógica para abrir el filtro
+                  onClick={() => openFilterModal()} 
                  >
                   <SearchIcon /> {/* Este es el ícono para el filtro */}
                </IconButton>
@@ -348,13 +320,13 @@ const clickColumFixed = (columnClicked) => {
               <Tooltip title="INICIO" enterDelay={100}>
                 <IconButton
                  style={{
-                  position: 'absolute',  // Posicionamos el botón dentro de la celda
-                  bottom: '15px',         // A 15px del fondo de la celda
-                  right: '10px',          // A 10px del borde derecho de la celda
-                  zIndex: 1000,           // Asegura que el botón esté por encima de otros elementos
+                  position: 'absolute',  
+                  bottom: '15px',        
+                  right: '10px',         
+                  zIndex: 1000,           
                   outline: 'none'
                  }}
-                   onClick={() => window.location = "/"}  // Redirige al inicio
+                   onClick={() => window.location = "/"}  
                  >
                     <HomeIcon /> {/* Este es el ícono de "Home" */}
                 </IconButton>
@@ -426,18 +398,18 @@ const clickColumFixed = (columnClicked) => {
        <TableCell
         colSpan={Object.keys(data[0] || {}).length}
         sx={{
-             position: 'relative', // Establecer posición relativa para que el z-index se pueda aplicar
-             zIndex: 1, // Asegurar que la tabla tenga un z-index inferior al spinner
+             position: 'relative',
+             zIndex: 1, 
         }}
        >
        {/* CircularProgress centrado en la página */}
         <div
          style={{
-           position: 'fixed', // Posición fija respecto a la ventana del navegador
-           top: '50%', // Centrado verticalmente
-           left: '50%', // Centrado horizontalmente
-           transform: 'translate(-50%, -50%)', // Ajuste para centrar exactamente
-           zIndex: 9999, // Asegura que esté por encima de la tabla
+           position: 'fixed', 
+           top: '50%', 
+           left: '50%', 
+           transform: 'translate(-50%, -50%)', 
+           zIndex: 9999, 
           }}
         >
           <CircularProgress size={150} />
@@ -448,17 +420,17 @@ const clickColumFixed = (columnClicked) => {
       Array.isArray(data) && data.length > 0 ? (
 
         data.map((row, rowIndex) => {
-          const filteredRow = filterData(row); // Filtrar la fila
+          const filteredRow = filterData(row); 
           const backgroundColor = "transparent"
           const color = "black"
 
           const colorMapping = {
-            VERDE: '#89e273',  // Color verde
-            ROJO: '#f39278',   // Color rojo
-            AZUL: '#78a4f3',   // Color azul
-            AMARILLO: '#fafc69', // Color amarillo
-            BLANCORAYADO: 'repeating-linear-gradient(45deg, #ffffff 0px, #ffffff 10px,rgb(231, 235, 238) 10px,rgb(214, 218, 221) 20px)', // Blanco con rayas grises
-            BLANCO: '#ffffff'   // Color blanco
+            VERDE: '#89e273',  
+            ROJO: '#f39278',   
+            AZUL: '#78a4f3',  
+            AMARILLO: '#fafc69',
+            BLANCORAYADO: 'repeating-linear-gradient(45deg, #ffffff 0px, #ffffff 10px,rgb(231, 235, 238) 10px,rgb(214, 218, 221) 20px)', 
+            BLANCO: '#ffffff'   
           };          
 
           return (
@@ -467,7 +439,7 @@ const clickColumFixed = (columnClicked) => {
               style={{                  
                textAlign: 'center',
                fontSize: "14px",
-               backgroundColor: 'rgba(229, 232, 232, 0.85)', // Color de fondo
+               backgroundColor: 'rgba(229, 232, 232, 0.85)', 
                color: color, 
                border: 'white 3px groove'
               }}              
@@ -481,7 +453,6 @@ const clickColumFixed = (columnClicked) => {
                     textAlign: 'center',
                     fontSize: "14px",
                     background: colIndex === 6 
-                    // Eliminar todos los espacios antes de buscar el color en el objeto colorMapping
                     ? colorMapping[filteredRow[column].replace(/\s+/g, '').toUpperCase()] // Mapeo de color sin espacios
                     : backgroundColor, // Color de fondo predeterminado                    
                     color: color, // Color de texto
@@ -521,7 +492,7 @@ const clickColumFixed = (columnClicked) => {
                       <HighlightOffIcon />
                     </IconButton>
                   ) : (
-                    filteredRow[column] // Mostrar el valor de la celda filtrada
+                    filteredRow[column] 
                   )}
                 </TableCell>
               ))}
@@ -551,7 +522,7 @@ const clickColumFixed = (columnClicked) => {
     <Snackbar
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
         open={snackbarOpen}
-        autoHideDuration={3000} // Se cierra automáticamente después de 3 segundos
+        autoHideDuration={3000} 
         onClose={handleSnackbarClose}
       >
         <Alert onClose={handleSnackbarClose} severity={snackbarSeverity}>

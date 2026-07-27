@@ -9,8 +9,7 @@ import RequireRole from "./utils/Context/AuthContext/RequireRole";
 import { TanquesProvider } from "./utils/Context/TanquesContext";
 import { NivelesDiariosTanquesProvider } from "./utils/Context/NivelesDiariosTanquesContext";
 import { EmpleadosProvider } from "./utils/Context/EmpleadosContext";
-//* Terminan los contextos
-
+// Componentes
 import SGMRC from "./components/Insumos_Modulo/SGMRC";
 import MesesCerrados from "./components/Insumos_Modulo/MesesCerrados";
 import UploadFile from "./components/Insumos_Modulo/Utils_Insumos/page/UploadFile";
@@ -48,7 +47,7 @@ function App() {
               <Routes>
                 <Route path="/" element={<LoginPrivateAccess />} />
                 <Route path="/principal" element={
-                  // <RequireRole roles={["admin", "supervisor"]}>   esto solo permite el ingreso a estos modulos
+                  // <RequireRole roles={["rol", "superrol"]}> 
                   <ComponentePrincipalSlidebar />
                   // </RequireRole>
                 } />
@@ -58,9 +57,7 @@ function App() {
                 <Route path="/colors" element={<CodificacionDeColoresComponent />} />
                 <Route path="/mesescerrados" element={<MesesCerrados />} />
                 {/* <Route path="/seguimientotanquesjornaleros" element={
-                  <RequireRole roles={["admin", "developer", "liderlogistica"]}>
                     <SeguimientoTKJornaleros />
-                  </RequireRole>}
                 /> */}
                 <Route path="/cargamasivatanquesjornaleros" element={<CargarMasivaTanquesDiariosExcel />} />
                 <Route path="/bitacoradeturnosproduccion" element={<BitacoraComponentProduccion />} />
