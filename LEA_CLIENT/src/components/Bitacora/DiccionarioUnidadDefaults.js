@@ -67,8 +67,9 @@ const DiccionarioUnidadDefault = {
   U700: "Análisis de fallas previas.",
   U900: `
   ㅤ
-  ➤MTC-901A y MTC901C 
-  ➤MP-902C Operando
+  ➤ MP90X  operando 
+  ➤ MTC-901A y MTC901C 
+  ➤ MP-902C Operando
   ➤ Proceso:  lb/d      
   ➤ Potable:  lb/d  
   ➤ Presion: Bar
@@ -76,7 +77,6 @@ const DiccionarioUnidadDefault = {
   U950: `
   ㅤ
   ➤ MP-960A Operando
-  ➤ MP90X  operando 
   ➤ Balsa 950: LLenando. 
   ➤ 921 y sahara: Operan normalmente
   ➤ SOP-950
