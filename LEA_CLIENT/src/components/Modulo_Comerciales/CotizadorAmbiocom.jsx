@@ -65,7 +65,6 @@ import {
     TIPO_SHORT,
     DEFAULT_FORM,
 } from "./utils/archivodb";
-import { obtenerDestinosColombia, } from "./utils/DestinosNacionalesDB"
 import { obtenerAlcoholesDespacho } from "./utils/AlcoholesDespachoDB";
 
 import TrmColombiaCard from "./utils/components/TRMcolombiaComponent";
@@ -110,7 +109,7 @@ const MODALIDAD_CARGA_LBL = {
 const RAW_API_URL =
     import.meta.env.VITE_API_URL ||
     import.meta.env.VITE_BACKEND_URL ||
-    "http://localhost:4041";
+    "https://ambiocomserver.onrender.com";
 
 const API_URL = RAW_API_URL.replace(/\/$/, "");
 
@@ -720,11 +719,18 @@ function TextInput({
     );
 }
 
-function SelectInput({ label, value, onChange, children }) {
+function SelectInput({
+    label,
+    value,
+    onChange,
+    children,
+    disabled = false,
+}) {
     return (
         <FormControl
             fullWidth
             size="small"
+            disabled={disabled}
             sx={{
                 "& .MuiInputLabel-root": {
                     fontSize: 13,
@@ -749,7 +755,12 @@ function SelectInput({ label, value, onChange, children }) {
             }}
         >
             <InputLabel>{label}</InputLabel>
-            <Select label={label} value={value} onChange={(e) => onChange(e.target.value)}>
+            <Select
+                label={label}
+                value={value}
+                disabled={disabled}
+                onChange={(e) => onChange(e.target.value)}
+            >
                 {children}
             </Select>
         </FormControl>
@@ -1164,8 +1175,6 @@ export default function CotizadorAmbiocom() {
     const [currentEstadoFilter, setCurrentEstadoFilter] = useState("all");
     const [currentSearch, setCurrentSearch] = useState("");
     const [selectedId, setSelectedId] = useState(null);
-    const [destinos, setDestinos] = useState([]);
-    const [destinosLoading, setDestinosLoading] = useState(false);
     const [alcoholesDespacho, setAlcoholesDespacho] = useState([]);
     const [alcoholesLoading, setAlcoholesLoading] = useState(false);
     const [matrizFletes, setMatrizFletes] = useState([]);
@@ -1176,45 +1185,6 @@ export default function CotizadorAmbiocom() {
         message: "",
         severity: "success",
     });
-
-    useEffect(() => {
-        let mounted = true;
-
-        const cargarDestinos = async () => {
-            try {
-                setDestinosLoading(true);
-
-                const result = await obtenerDestinosColombia();
-
-                if (!mounted) return;
-
-                setDestinos(Array.isArray(result?.data) ? result.data : []);
-
-                if (result?.warning) {
-                    showToast(result.warning, "warning");
-                }
-            } catch (error) {
-                if (!mounted) return;
-
-                setDestinos([]);
-
-                showToast(
-                    error?.message || "No se pudieron cargar los destinos.",
-                    "error"
-                );
-            } finally {
-                if (mounted) {
-                    setDestinosLoading(false);
-                }
-            }
-        };
-
-        cargarDestinos();
-
-        return () => {
-            mounted = false;
-        };
-    }, []);
 
     useEffect(() => {
         let mounted = true;
@@ -1419,13 +1389,18 @@ export default function CotizadorAmbiocom() {
         cargarHistorial();
     }, []);
 
-    const destinosMatrizOptions = useMemo(() => {
+    // La matriz de rutas y fletes es la única fuente del select de destinos.
+    // Solo se muestran ciudades con un flete válido para el origen seleccionado.
+    const destinosCotizador = useMemo(() => {
         const mapa = new Map();
 
         matrizFletes.forEach((row) => {
             const label = String(row?.ciudadDestino || "").trim();
+            const fletePromedio = calcularFletePromedioMatriz(row);
 
             if (!label) return;
+            if (fletePromedio == null || fletePromedio <= 0) return;
+            if (!matchOrigen(form.origen, row?.ciudadOrigen)) return;
 
             const key = normalizeText(label);
 
@@ -1438,13 +1413,32 @@ export default function CotizadorAmbiocom() {
         });
 
         return [...mapa.values()].sort((a, b) =>
-            a.label.localeCompare(b.label)
+            a.label.localeCompare(b.label, "es", {
+                sensitivity: "base",
+            })
         );
-    }, [matrizFletes]);
+    }, [matrizFletes, form.origen]);
 
-    const destinosCotizador = useMemo(() => {
-        return destinosMatrizOptions.length ? destinosMatrizOptions : destinos;
-    }, [destinosMatrizOptions, destinos]);
+    // Evita conservar una ciudad o una ruta que ya no exista en la matriz
+    // vigente o que haya quedado sin un valor de flete válido.
+    useEffect(() => {
+        if (matrizFletesLoading || !form.ciudad) return;
+
+        const ciudadSigueDisponible = destinosCotizador.some(
+            (destino) =>
+                normalizeText(destino.value) === normalizeText(form.ciudad)
+        );
+
+        if (ciudadSigueDisponible) return;
+
+        setForm((prev) => ({
+            ...prev,
+            ciudad: "",
+            rutaFleteId: "",
+            tipoDespacho: "",
+            volumen: "",
+        }));
+    }, [destinosCotizador, form.ciudad, matrizFletesLoading]);
 
     const opcionesDespachoMatriz = useMemo(() => {
         const ciudadBuscada = normalizeText(form.ciudad);
@@ -2820,15 +2814,24 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                             <SelectInput
                                                 label={
                                                     matrizFletesLoading
-                                                        ? "Cargando matriz de fletes..."
-                                                        : destinosLoading
-                                                            ? "Cargando destinos..."
-                                                            : "Ciudad destino"
+                                                        ? "Cargando rutas y fletes..."
+                                                        : "Ciudad destino"
                                                 }
                                                 value={form.ciudad}
                                                 onChange={(v) => update("ciudad", v)}
+                                                disabled={
+                                                    matrizFletesLoading ||
+                                                    Boolean(matrizFletesError) ||
+                                                    destinosCotizador.length === 0
+                                                }
                                             >
-                                                <MenuItem value="">— Seleccionar destino —</MenuItem>
+                                                <MenuItem value="">
+                                                    {matrizFletesLoading
+                                                        ? "Cargando destinos..."
+                                                        : destinosCotizador.length
+                                                            ? "— Seleccionar destino —"
+                                                            : "— Sin destinos con flete para este origen —"}
+                                                </MenuItem>
 
                                                 {destinosCotizador.map((d) => (
                                                     <MenuItem key={d.value} value={d.value}>
@@ -2850,8 +2853,19 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                                 label="Ruta / capacidad / flete"
                                                 value={form.rutaFleteId || ""}
                                                 onChange={updateRutaFlete}
+                                                disabled={
+                                                    !form.ciudad ||
+                                                    matrizFletesLoading ||
+                                                    opcionesDespachoMatriz.length === 0
+                                                }
                                             >
-                                                <MenuItem value="">— Seleccionar ruta —</MenuItem>
+                                                <MenuItem value="">
+                                                    {!form.ciudad
+                                                        ? "— Selecciona primero el destino —"
+                                                        : opcionesDespachoMatriz.length
+                                                            ? "— Seleccionar ruta —"
+                                                            : "— Sin rutas con flete para este destino —"}
+                                                </MenuItem>
 
                                                 {opcionesDespachoMatriz.map((item) => (
                                                     <MenuItem key={item.value} value={item.value}>
@@ -3940,18 +3954,16 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                             {selectedQuote.recipData && (
                                 <Detail
                                     label="Recipientes"
-                                    value={`${selectedQuote.recipData.cant} × ${
-                                        ENVASES_CARGA_GRANEL[selectedQuote.recipData.tipo]?.n ||
+                                    value={`${selectedQuote.recipData.cant} × ${ENVASES_CARGA_GRANEL[selectedQuote.recipData.tipo]?.n ||
                                         selectedQuote.recipData.tipo
-                                    }${
-                                        selectedQuote.recipData.costoUnitarioCOP
+                                        }${selectedQuote.recipData.costoUnitarioCOP
                                             ? ` · ${fCOP(
                                                 selectedQuote.recipData.costoUnitarioCOP
                                             )} c/u`
                                             : selectedQuote.recipData.amort
                                                 ? ` (amort. ${selectedQuote.recipData.amort})`
                                                 : ""
-                                    }`}
+                                        }`}
                                 />
                             )}
 
@@ -3985,11 +3997,11 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
 
                             {(selectedQuote.incluirFleteRetorno ||
                                 Number(selectedQuote.fleteRetornoCOP || 0) > 0) && (
-                                <Detail
-                                    label="Flete de retorno"
-                                    value={`${fCOP(selectedQuote.fleteRetornoCOP)} COP`}
-                                />
-                            )}
+                                    <Detail
+                                        label="Flete de retorno"
+                                        value={`${fCOP(selectedQuote.fleteRetornoCOP)} COP`}
+                                    />
+                                )}
 
                             <Detail
                                 label="Flete total"

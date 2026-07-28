@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useState, useMemo, useRef, useDeferredValue } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import {
@@ -11,6 +11,7 @@ import {
   Paper,
   Typography,
   Box,
+  CircularProgress,
   SpeedDial,
   SpeedDialAction,
   SpeedDialIcon,
@@ -45,6 +46,7 @@ import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import ManageSearchIcon from "@mui/icons-material/ManageSearch";
+import SearchIcon from "@mui/icons-material/Search";
 import StackedLineChartIcon from "@mui/icons-material/StackedLineChart";
 import LocalPrintshopIcon from "@mui/icons-material/LocalPrintshop";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
@@ -139,14 +141,169 @@ const renderIconoFleteFacturado = (valor) => {
   );
 };
 
+
+/* ================= OPTIMIZACIÓN DE CELDAS =================
+ * Se conserva exactamente la misma validación y los mismos colores.
+ * La diferencia es que cada celda se analiza una sola vez cuando cambian
+ * los registros filtrados o las columnas visibles.
+ */
+const VALORES_VACIOS = new Set(["", "null", "undefined", "nan"]);
+
+const esValorVacio = (valor) =>
+  valor === null ||
+  valor === undefined ||
+  valor === "" ||
+  (typeof valor === "string" &&
+    VALORES_VACIOS.has(valor.trim().toLowerCase()));
+
+const FilaRecepcionMemo = memo(function FilaRecepcionMemo({
+  filaPreparada,
+  onEditar,
+  onEliminar,
+  onAbrirEstado,
+}) {
+  const { row, celdas, porcentajeFaltante, colorFila } = filaPreparada;
+
+  return (
+    <TableRow
+      sx={{
+        backgroundColor:
+          porcentajeFaltante > 0 ? colorFila : "inherit",
+        transition: "background-color 0.3s ease",
+      }}
+    >
+      <TableCell
+        align="center"
+        sx={{
+          position: "sticky",
+          left: 0,
+          zIndex: 4,
+          backgroundColor:
+            porcentajeFaltante > 0 ? colorFila : "#dad9d9e3",
+          borderRight: "1px solid rgba(224,224,224,1)",
+          minWidth: 110,
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: 0.5,
+            width: "100%",
+          }}
+        >
+          <IconButton onClick={() => onEditar(row)}>
+            <EditIcon />
+          </IconButton>
+
+          <IconButton
+            color="error"
+            onClick={() => onEliminar(row._id)}
+          >
+            <DeleteIcon />
+          </IconButton>
+
+          <Box
+            onDoubleClick={() => onAbrirEstado(row)}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              {renderEstadoVehiculoIcon(
+                row.lecturas?.estado_vehiculo
+              )}
+            </Box>
+          </Box>
+        </Box>
+      </TableCell>
+
+      <TableCell align="center">{row.fecha}</TableCell>
+
+      {celdas.map(({ columna, valor, isEmptyGeneral }) => (
+        <TableCell
+          key={columna.key}
+          align="center"
+          sx={{
+            whiteSpace: "nowrap",
+            width: "1%",
+            background: isEmptyGeneral
+              ? "repeating-linear-gradient(45deg, rgba(255, 0, 76, 0.2), rgba(255,0,255,0.2) 10px, rgba(255,255,0,0.2) 10px, rgba(255,255,0,0.2) 20px)"
+              : undefined,
+            boxShadow: isEmptyGeneral
+              ? "inset 0 0 0 1px #d32f2f"
+              : undefined,
+          }}
+        >
+          <Tooltip
+            title={isEmptyGeneral ? "Dato faltante" : ""}
+            placement="top"
+            arrow
+            disableHoverListener={!isEmptyGeneral}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                width: "100%",
+              }}
+            >
+              {columna.key === "flete_facturado"
+                ? renderIconoFleteFacturado(valor)
+                : valor ?? ""}
+            </Box>
+          </Tooltip>
+        </TableCell>
+      ))}
+
+      <TableCell align="center">{row.observaciones}</TableCell>
+      <TableCell align="center">{row.responsable}</TableCell>
+    </TableRow>
+  );
+});
+
 /* ================= ENDPOINTS ================= */
 const API_RECEPCIONES = "https://ambiocomserver.onrender.com/api/recepcion-alcoholes";
 const API_COLUMNAS = "https://ambiocomserver.onrender.com/api/columna-recepcion-alcoholes";
+
+/* ================= RANGO PREDETERMINADO DE CONSULTA =================
+ * Mes actual + los tres meses anteriores.
+ * Ejemplo: si hoy es julio, consulta desde el 1 de abril hasta hoy.
+ */
+const formatearFechaInput = (fecha) => {
+  const year = fecha.getFullYear();
+  const month = String(fecha.getMonth() + 1).padStart(2, "0");
+  const day = String(fecha.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const obtenerRangoInicialRecepciones = () => {
+  const hoy = new Date();
+  const inicioTresMesesAnteriores = new Date(
+    hoy.getFullYear(),
+    hoy.getMonth() - 3,
+    1
+  );
+
+  return {
+    desde: formatearFechaInput(inicioTresMesesAnteriores),
+    hasta: formatearFechaInput(hoy),
+  };
+};
+
+const RANGO_INICIAL_RECEPCIONES = obtenerRangoInicialRecepciones();
 
 export default function TablaIngresoRecepcionesLogistica() {
   // refs del componente
   const tablaRef = useRef(null);
   const excelUploadRef = useRef(null);
+  const cargasPendientesRef = useRef(0);
+  const rangoConsultadoRef = useRef({ ...RANGO_INICIAL_RECEPCIONES });
 
   /* ================= STATE ================= */
   const [columnas, setColumnas] = useState([]);
@@ -155,8 +312,15 @@ export default function TablaIngresoRecepcionesLogistica() {
   const [openEditar, setOpenEditar] = useState(false);
   const [openColumna, setOpenColumna] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [fechaDesde, setFechaDesde] = useState("");
-  const [fechaHasta, setFechaHasta] = useState("");
+  const [fechaDesde, setFechaDesde] = useState(
+    RANGO_INICIAL_RECEPCIONES.desde
+  );
+  const [fechaHasta, setFechaHasta] = useState(
+    RANGO_INICIAL_RECEPCIONES.hasta
+  );
+  const [rangoAplicado, setRangoAplicado] = useState({
+    ...RANGO_INICIAL_RECEPCIONES,
+  });
   const [density, setDensity] = useState(1);
   const [columnasVisibles, setColumnasVisibles] = useState(
     columnas.map((c) => c.key)
@@ -173,6 +337,8 @@ export default function TablaIngresoRecepcionesLogistica() {
   const [openCharts, setOpenCharts] = useState(false);
   const [openEstadoModal, setOpenEstadoModal] = useState(false);
   const [estadoModalData, setEstadoModalData] = useState(null);
+  const [cargandoDatos, setCargandoDatos] = useState(true);
+  const [mensajeCarga, setMensajeCarga] = useState("Cargando datos...");
 
   const [form, setForm] = useState({
     fecha: "",
@@ -188,8 +354,25 @@ export default function TablaIngresoRecepcionesLogistica() {
     totalizable: false,
   });
 
+  const iniciarCargaDatos = (mensaje = "Cargando datos...") => {
+    cargasPendientesRef.current += 1;
+    setMensajeCarga(mensaje);
+    setCargandoDatos(true);
+  };
+
+  const finalizarCargaDatos = () => {
+    cargasPendientesRef.current = Math.max(
+      0,
+      cargasPendientesRef.current - 1
+    );
+
+    if (cargasPendientesRef.current === 0) {
+      setCargandoDatos(false);
+    }
+  };
+
   //funcion para abrir modal de resumen o observaciones
-  const abrirModalEstado = (row) => {
+  const abrirModalEstado = useCallback((row) => {
     setEstadoModalData({
       context: "modulo_recepcion",  // con esto el modal sabe desde que modulo estoy ejecutando y que data mostrar
       estado: row.lecturas?.estado_vehiculo || "",
@@ -202,7 +385,16 @@ export default function TablaIngresoRecepcionesLogistica() {
     });
 
     setOpenEstadoModal(true);
-  };
+  }, []);
+
+  const handleEditarFila = useCallback((row) => {
+    setEditId(row._id);
+    setForm({
+      ...row,
+      fecha: row.fecha || "",
+    });
+    setOpenEditar(true);
+  }, []);
   /* ================= CARGA INICIAL ================= */
   useEffect(() => {
     obtenerColumnas();
@@ -301,21 +493,44 @@ export default function TablaIngresoRecepcionesLogistica() {
 
   /* ================= API ================= */
   const obtenerColumnas = async () => {
+    iniciarCargaDatos("Cargando estructura de la tabla...");
+
     try {
       const { data } = await axios.get(API_COLUMNAS);
       setColumnas(data);
     } catch (e) {
       Swal.fire("Error", "No se pudieron cargar las columnas", "error");
+    } finally {
+      finalizarCargaDatos();
     }
   };
 
-  const obtenerMediciones = async () => {
+  const obtenerMediciones = async (rango = rangoConsultadoRef.current) => {
+    const desde = rango?.desde || RANGO_INICIAL_RECEPCIONES.desde;
+    const hasta = rango?.hasta || RANGO_INICIAL_RECEPCIONES.hasta;
+
+    iniciarCargaDatos(
+      `Consultando recepciones desde ${desde} hasta ${hasta}...`
+    );
+
     try {
       const { data } = await axios.get(API_RECEPCIONES, {
+        params: {
+          desde,
+          hasta,
+        },
         withCredentials: true,
       });
 
-      setMediciones(data);
+      // Compatible con la respuesta actual (arreglo) y con una futura
+      // respuesta estructurada del backend: { data: [...] }.
+      const registros = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.data)
+          ? data.data
+          : [];
+
+      setMediciones(registros);
     } catch (error) {
       console.error("Error obteniendo mediciones:", {
         status: error.response?.status,
@@ -330,16 +545,47 @@ export default function TablaIngresoRecepcionesLogistica() {
       );
 
       setMediciones([]);
+    } finally {
+      finalizarCargaDatos();
     }
   };
 
+  const consultarRecepcionesPorRango = async () => {
+    if (!fechaDesde || !fechaHasta) {
+      Swal.fire(
+        "Rango incompleto",
+        "Selecciona la fecha inicial y la fecha final.",
+        "warning"
+      );
+      return;
+    }
+
+    if (fechaDesde > fechaHasta) {
+      Swal.fire(
+        "Rango no válido",
+        "La fecha Desde no puede ser posterior a la fecha Hasta.",
+        "warning"
+      );
+      return;
+    }
+
+    const nuevoRango = {
+      desde: fechaDesde,
+      hasta: fechaHasta,
+    };
+
+    rangoConsultadoRef.current = nuevoRango;
+    setRangoAplicado(nuevoRango);
+    await obtenerMediciones(nuevoRango);
+  };
+
   /* ================= CRUD MEDICIONES ================= */
-  const handleGuardar = async () => {
+  const handleGuardar = async (payload) => {
     try {
       if (openEditar) {
-        await actualizarMedicion();
+        await actualizarMedicion(payload);
       } else {
-        await guardarMedicion();
+        await guardarMedicion(payload);
       }
     } catch (error) {
       console.error(error);
@@ -347,33 +593,80 @@ export default function TablaIngresoRecepcionesLogistica() {
     }
   };
 
-  const guardarMedicion = async () => {
-    await axios.post(API_RECEPCIONES, form, {
+  const guardarMedicion = async (payload) => {
+    await axios.post(API_RECEPCIONES, payload, {
       withCredentials: true,
     });
     setOpenFila(false);
     obtenerMediciones();
   };
 
-  const actualizarMedicion = async () => {
-    await axios.put(`${API_RECEPCIONES}/${editId}`, form, { withCredentials: true });
+  const actualizarMedicion = async (payload) => {
+    await axios.put(`${API_RECEPCIONES}/${editId}`, payload, { withCredentials: true });
     setOpenEditar(false);
     obtenerMediciones();
   };
 
-  const eliminarMedicion = async (id) => {
-    Swal.fire({
+  // const eliminarMedicion = useCallback(async (id) => {
+  //   Swal.fire({
+  //     title: "¿Eliminar este ingreso?",
+  //     icon: "warning",
+  //     showCancelButton: true,
+  //     confirmButtonText: "Sí, eliminar",
+  //     cancelButtonText: "Cancelar",
+  //   }).then((result) => {
+  //     if (!result.isConfirmed) return;
+  //     axios.delete(`${API_RECEPCIONES}/${id}`, { withCredentials: true });
+  //     obtenerMediciones();
+  //   });
+  // }, []);
+
+  const eliminarMedicion = useCallback(async (id) => {
+    const result = await Swal.fire({
       title: "¿Eliminar este ingreso?",
+      text: "Esta acción no se puede deshacer.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Sí, eliminar",
       cancelButtonText: "Cancelar",
-    }).then((result) => {
-      if (!result.isConfirmed) return;
-      axios.delete(`${API_RECEPCIONES}/${id}`, { withCredentials: true });
-      obtenerMediciones();
+      confirmButtonColor: "#d32f2f",
     });
-  };
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await axios.delete(`${API_RECEPCIONES}/${id}`, {
+        withCredentials: true,
+      });
+
+      setMediciones((registrosActuales) =>
+        registrosActuales.filter(
+          (registro) => registro._id !== id
+        )
+      );
+
+      await Swal.fire({
+        icon: "success",
+        title: "Registro eliminado",
+        text: "La recepción fue eliminada correctamente.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (error) {
+      console.error("Error eliminando la recepción:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
+
+      Swal.fire(
+        "Error",
+        error.response?.data?.message ||
+        "No se pudo eliminar la recepción.",
+        "error"
+      );
+    }
+  }, []);
 
   /* ================= CRUD COLUMNAS ================= */
   const guardarColumna = async () => {
@@ -399,13 +692,16 @@ export default function TablaIngresoRecepcionesLogistica() {
       return ordenFechaAsc ? fa - fb : fb - fa;
     });
 
-    if (fechaDesde) {
-      const fd = stringToDate(fechaDesde);
+    // Respaldo frontend: aplica únicamente el último rango consultado.
+    // Cuando el backend implemente el filtro, los datos ya llegarán limitados
+    // al rango y esta validación seguirá siendo inocua.
+    if (rangoAplicado.desde) {
+      const fd = stringToDate(rangoAplicado.desde);
       data = data.filter((m) => stringToDate(m.fecha) >= fd);
     }
 
-    if (fechaHasta) {
-      const fh = stringToDate(fechaHasta);
+    if (rangoAplicado.hasta) {
+      const fh = stringToDate(rangoAplicado.hasta);
       data = data.filter((m) => stringToDate(m.fecha) <= fh);
     }
 
@@ -422,7 +718,7 @@ export default function TablaIngresoRecepcionesLogistica() {
     });
 
     return data;
-  }, [mediciones, fechaDesde, fechaHasta, filtrosColumna, ordenFechaAsc]);
+  }, [mediciones, rangoAplicado, filtrosColumna, ordenFechaAsc]);
 
   const medicionesFiltradas = useMemo(() => {
     const q = normalizar(busquedaGlobal);
@@ -440,6 +736,73 @@ export default function TablaIngresoRecepcionesLogistica() {
     });
   }, [busquedaGlobal, medicionesOrdenadas]);
 
+  // Mantiene visible la tabla anterior mientras React procesa el análisis
+  // de las nuevas filas y celdas. El resultado final no cambia.
+  const medicionesFiltradasDiferidas = useDeferredValue(medicionesFiltradas);
+  const analizandoCeldas =
+    medicionesFiltradasDiferidas !== medicionesFiltradas;
+  const mostrarOverlayCarga = cargandoDatos || analizandoCeldas;
+  const textoOverlayCarga = cargandoDatos
+    ? mensajeCarga
+    : "Analizando celdas y preparando la tabla...";
+
+  /* ================= PREPARACIÓN MEMORIZADA DE CELDAS ================= */
+  const columnasVisiblesSet = useMemo(
+    () => new Set(columnasVisibles),
+    [columnasVisibles]
+  );
+
+  const columnasActivas = useMemo(
+    () =>
+      columnas.filter((columna) =>
+        columnasVisiblesSet.has(columna.key)
+      ),
+    [columnas, columnasVisiblesSet]
+  );
+
+  const filasPreparadas = useMemo(() => {
+    return medicionesFiltradasDiferidas.map((row) => {
+      let faltantes = 0;
+
+      const celdas = columnasActivas.map((columna) => {
+        const valor = row.lecturas?.[columna.key];
+        const isEmptyGeneral = esValorVacio(valor);
+
+        if (isEmptyGeneral) faltantes++;
+
+        return {
+          columna,
+          valor,
+          isEmptyGeneral,
+        };
+      });
+
+      const porcentajeFaltante =
+        columnasActivas.length > 0
+          ? faltantes / columnasActivas.length
+          : 0;
+
+      let colorFila = "inherit";
+
+      if (porcentajeFaltante > 0) {
+        if (porcentajeFaltante >= 0.8)
+          colorFila = "rgba(255, 0, 0, 0.75)";
+        else if (porcentajeFaltante >= 0.5)
+          colorFila = "rgba(255, 0, 0, 0.45)";
+        else if (porcentajeFaltante >= 0.3)
+          colorFila = "rgba(255, 0, 0, 0.25)";
+        else colorFila = "rgba(238, 173, 173, 0.71)";
+      }
+
+      return {
+        row,
+        celdas,
+        porcentajeFaltante,
+        colorFila,
+      };
+    });
+  }, [medicionesFiltradasDiferidas, columnasActivas]);
+
   /* ================= ACUMULADOS ================= */
   const acumuladosPorColumna = useMemo(() => {
     const map = {};
@@ -447,7 +810,7 @@ export default function TablaIngresoRecepcionesLogistica() {
     columnas.forEach((c) => {
       if (!c.totalizable) return;
 
-      const total = medicionesFiltradas.reduce((sum, m) => {
+      const total = medicionesFiltradasDiferidas.reduce((sum, m) => {
         const num = Number(m.lecturas?.[c.key]);
         return sum + (Number.isNaN(num) ? 0 : num);
       }, 0);
@@ -460,15 +823,18 @@ export default function TablaIngresoRecepcionesLogistica() {
     });
 
     return map;
-  }, [columnas, medicionesFiltradas]);
+  }, [columnas, medicionesFiltradasDiferidas]);
 
   /* ================= DENSIDAD TABLA ================= */
-  const tableDensityStyles = {
-    fontSize: `${0.75 * density}rem`,
-    padding: `${2 * density}px ${6 * density}px`,
-    lineHeight: 1.1 * density,
-    rowHeight: `${28 * density}px`,
-  };
+  const tableDensityStyles = useMemo(
+    () => ({
+      fontSize: `${0.75 * density}rem`,
+      padding: `${2 * density}px ${6 * density}px`,
+      lineHeight: 1.1 * density,
+      rowHeight: `${28 * density}px`,
+    }),
+    [density]
+  );
 
   /* ================= COPIAR TABLA ================= */
   const copiarTablaPortapapeles = () => {
@@ -538,6 +904,61 @@ export default function TablaIngresoRecepcionesLogistica() {
   /* ================= RENDER ================= */
   return (
     <Box sx={{ p: 0 }}>
+      {mostrarOverlayCarga && (
+        <Box
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+          sx={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 2000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "rgba(248, 250, 252, 0.78)",
+            backdropFilter: "blur(2.5px)",
+          }}
+        >
+          <Paper
+            elevation={10}
+            sx={{
+              minWidth: { xs: 280, sm: 390 },
+              maxWidth: "90vw",
+              px: 4,
+              py: 3.5,
+              borderRadius: 3,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 1.5,
+              border: "1px solid rgba(25, 118, 210, 0.16)",
+              backgroundColor: "rgba(255, 255, 255, 0.97)",
+            }}
+          >
+            <CircularProgress size={46} thickness={4.2} />
+
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 700, color: "#1A237E", textAlign: "center" }}
+            >
+              {textoOverlayCarga}
+            </Typography>
+
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ textAlign: "center" }}
+            >
+              {cargandoDatos
+                ? "Consultando y organizando la información del módulo."
+                : `Procesando ${medicionesFiltradas.length} registro${medicionesFiltradas.length === 1 ? "" : "s"
+                } para mostrar alertas, faltantes y acumulados.`}
+            </Typography>
+          </Paper>
+        </Box>
+      )}
+
       {/* ================= TITULO ================= */}
       <Box
         sx={{
@@ -1154,6 +1575,7 @@ export default function TablaIngresoRecepcionesLogistica() {
               type="date"
               label="Desde"
               size="small"
+              value={fechaDesde}
               InputLabelProps={{ shrink: true }}
               sx={{
                 mt: 0.5,
@@ -1175,6 +1597,7 @@ export default function TablaIngresoRecepcionesLogistica() {
               type="date"
               label="Hasta"
               size="small"
+              value={fechaHasta}
               InputLabelProps={{ shrink: true }}
               sx={{
                 mt: 0.5,
@@ -1190,6 +1613,29 @@ export default function TablaIngresoRecepcionesLogistica() {
               }}
               onChange={(e) => setFechaHasta(e.target.value)}
             />
+
+            <Divider orientation="vertical" flexItem />
+            <Tooltip title="Consultar recepciones en el rango seleccionado">
+              <span>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<SearchIcon />}
+                  onClick={consultarRecepcionesPorRango}
+                  disabled={cargandoDatos}
+                  sx={{
+                    height: 34,
+                    minWidth: 112,
+                    borderRadius: 1,
+                    textTransform: "none",
+                    fontWeight: 700,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Consultar
+                </Button>
+              </span>
+            </Tooltip>
           </Box>
         </Box>
       </Box>
@@ -1231,45 +1677,43 @@ export default function TablaIngresoRecepcionesLogistica() {
                 Fecha Registro
               </TableCell>
 
-              {columnas
-                .filter((c) => columnasVisibles.includes(c.key))
-                .map((c) => (
-                  <TableCell
-                    key={c.key}
-                    align="center"
-                    sx={{
-                      whiteSpace: "nowrap",
-                      width: "auto",
-                      maxWidth: "none",
-                      borderRight: "1px solid rgba(224, 224, 224, 1)",
-                    }}
-                  >
-                    {c.nombre}
-                    {filtrosVisibles && (
-                      <IconButton
-                        size="small"
-                        sx={{
-                          ml: 1,
-                          "&:focus": { outline: "none", boxShadow: "none" },
-                        }}
-                        onClick={(e) => {
-                          if (filtroActivo === c.key) {
-                            setFiltroActivo(null);
-                            setAnchorFiltro(null);
-                          } else {
-                            setFiltroActivo(c.key);
-                            setAnchorFiltro(e.currentTarget);
-                          }
-                        }}
-                      >
-                        <FilterListIcon
-                          color={filtrosColumna[c.key] ? "primary" : "inherit"}
-                          fontSize="small"
-                        />
-                      </IconButton>
-                    )}
-                  </TableCell>
-                ))}
+              {columnasActivas.map((c) => (
+                <TableCell
+                  key={c.key}
+                  align="center"
+                  sx={{
+                    whiteSpace: "nowrap",
+                    width: "auto",
+                    maxWidth: "none",
+                    borderRight: "1px solid rgba(224, 224, 224, 1)",
+                  }}
+                >
+                  {c.nombre}
+                  {filtrosVisibles && (
+                    <IconButton
+                      size="small"
+                      sx={{
+                        ml: 1,
+                        "&:focus": { outline: "none", boxShadow: "none" },
+                      }}
+                      onClick={(e) => {
+                        if (filtroActivo === c.key) {
+                          setFiltroActivo(null);
+                          setAnchorFiltro(null);
+                        } else {
+                          setFiltroActivo(c.key);
+                          setAnchorFiltro(e.currentTarget);
+                        }
+                      }}
+                    >
+                      <FilterListIcon
+                        color={filtrosColumna[c.key] ? "primary" : "inherit"}
+                        fontSize="small"
+                      />
+                    </IconButton>
+                  )}
+                </TableCell>
+              ))}
 
               <TableCell
                 align="center"
@@ -1301,165 +1745,15 @@ export default function TablaIngresoRecepcionesLogistica() {
               },
             }}
           >
-            {medicionesFiltradas.map((row) => {
-              const columnasActivas = columnas.filter((c) =>
-                columnasVisibles.includes(c.key)
-              );
-
-              let faltantes = 0;
-
-              columnasActivas.forEach((c) => {
-                const valor = row.lecturas?.[c.key];
-
-                const isEmptyGeneral =
-                  valor === null ||
-                  valor === undefined ||
-                  valor === "" ||
-                  (typeof valor === "string" &&
-                    ["", "null", "undefined", "nan"].includes(
-                      valor.trim().toLowerCase()
-                    ));
-
-                if (isEmptyGeneral) faltantes++;
-              });
-
-              const porcentajeFaltante =
-                columnasActivas.length > 0 ? faltantes / columnasActivas.length : 0;
-
-              let colorFila = "inherit";
-
-              if (porcentajeFaltante > 0) {
-                if (porcentajeFaltante >= 0.8) colorFila = "rgba(255, 0, 0, 0.75)";
-                else if (porcentajeFaltante >= 0.5) colorFila = "rgba(255, 0, 0, 0.45)";
-                else if (porcentajeFaltante >= 0.3) colorFila = "rgba(255, 0, 0, 0.25)";
-                else colorFila = "rgba(238, 173, 173, 0.71)";
-              }
-
-              return (
-                <TableRow
-                  key={row._id}
-                  sx={{
-                    backgroundColor:
-                      porcentajeFaltante > 0 ? colorFila : "inherit",
-                    transition: "background-color 0.3s ease",
-                  }}
-                >
-                  <TableCell
-                    align="center"
-                    sx={{
-                      position: "sticky",
-                      left: 0,
-                      zIndex: 4,
-                      backgroundColor:
-                        porcentajeFaltante > 0 ? colorFila : "#dad9d9e3",
-                      borderRight: "1px solid rgba(224,224,224,1)",
-                      minWidth: 110,
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        gap: 0.5,
-                        width: "100%",
-                      }}
-                    >
-                      <IconButton
-                        onClick={() => {
-                          setEditId(row._id);
-                          setForm({
-                            ...row,
-                            fecha: row.fecha || "",
-                          });
-                          setOpenEditar(true);
-                        }}
-                      >
-                        <EditIcon />
-                      </IconButton>
-
-                      <IconButton
-                        color="error"
-                        onClick={() => eliminarMedicion(row._id)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-
-                      <Box
-                        onDoubleClick={() => abrirModalEstado(row)}
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <Box sx={{ display: "flex", alignItems: "center" }}>
-                          {renderEstadoVehiculoIcon(
-                            row.lecturas?.estado_vehiculo
-                          )}
-                        </Box>
-                      </Box>
-                    </Box>
-                  </TableCell>
-
-                  <TableCell align="center">{row.fecha}</TableCell>
-
-                  {columnas
-                    .filter((c) => columnasVisibles.includes(c.key))
-                    .map((c) => {
-                      const valor = row.lecturas?.[c.key];
-
-                      const isEmptyGeneral =
-                        valor === null ||
-                        valor === undefined ||
-                        valor === "" ||
-                        (typeof valor === "string" &&
-                          ["", "null", "undefined", "nan"].includes(
-                            valor.trim().toLowerCase()
-                          ));
-
-                      return (
-                        <TableCell
-                          key={c.key}
-                          align="center"
-                          sx={{
-                            whiteSpace: "nowrap",
-                            width: "1%",
-                            background: isEmptyGeneral
-                              ? "repeating-linear-gradient(45deg, rgba(255, 0, 76, 0.2), rgba(255,0,255,0.2) 10px, rgba(255,255,0,0.2) 10px, rgba(255,255,0,0.2) 20px)"
-                              : undefined,
-                            boxShadow: isEmptyGeneral ? "inset 0 0 0 1px #d32f2f" : undefined,
-                          }}
-                        >
-                          <Tooltip
-                            title={isEmptyGeneral ? "Dato faltante" : ""}
-                            placement="top"
-                            arrow
-                            disableHoverListener={!isEmptyGeneral}
-                          >
-                            <Box
-                              sx={{
-                                display: "flex",
-                                justifyContent: "center",
-                                alignItems: "center",
-                                width: "100%",
-                              }}
-                            >
-                              {c.key === "flete_facturado"
-                                ? renderIconoFleteFacturado(valor)
-                                : valor ?? ""}
-                            </Box>
-                          </Tooltip>
-                        </TableCell>
-                      );
-                    })}
-
-                  <TableCell align="center">{row.observaciones}</TableCell>
-                  <TableCell align="center">{row.responsable}</TableCell>
-                </TableRow>
-              );
-            })}
+            {filasPreparadas.map((filaPreparada) => (
+              <FilaRecepcionMemo
+                key={filaPreparada.row._id}
+                filaPreparada={filaPreparada}
+                onEditar={handleEditarFila}
+                onEliminar={eliminarMedicion}
+                onAbrirEstado={abrirModalEstado}
+              />
+            ))}
 
             {/* ================= ACUMULADO ================= */}
             <TableRow>
@@ -1467,19 +1761,17 @@ export default function TablaIngresoRecepcionesLogistica() {
                 <b>Acumulado Total</b>
               </TableCell>
 
-              {columnas
-                .filter((c) => columnasVisibles.includes(c.key))
-                .map((c) => (
-                  <TableCell key={c.key} align="center">
-                    {c.totalizable ? (
-                      <b>
-                        {acumuladosPorColumna[c.key] ?? 0} {c.unidad || ""}
-                      </b>
-                    ) : (
-                      <span style={{ opacity: 0.4 }}>—</span>
-                    )}
-                  </TableCell>
-                ))}
+              {columnasActivas.map((c) => (
+                <TableCell key={c.key} align="center">
+                  {c.totalizable ? (
+                    <b>
+                      {acumuladosPorColumna[c.key] ?? 0} {c.unidad || ""}
+                    </b>
+                  ) : (
+                    <span style={{ opacity: 0.4 }}>—</span>
+                  )}
+                </TableCell>
+              ))}
 
               <TableCell colSpan={3} />
             </TableRow>
@@ -1541,8 +1833,7 @@ export default function TablaIngresoRecepcionesLogistica() {
         onSave={handleGuardar}
         columnas={columnas}
         isEdit={openEditar}
-        form={form}
-        setForm={setForm}
+        initialForm={form}
       />
       {/* ================= MODAL COLUMNA ================= */}
       <Dialog open={openColumna} fullWidth maxWidth="xs">
@@ -1721,7 +2012,7 @@ export default function TablaIngresoRecepcionesLogistica() {
       <ExcelUploadButton
         ref={excelUploadRef}
         url="https://ambiocomserver.onrender.com/api/recepcion-alcoholes/carga-masiva"
-        onSuccess={obtenerMediciones}
+        onSuccess={() => obtenerMediciones()}
       />
     </Box>
   );

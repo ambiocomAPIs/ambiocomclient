@@ -76,13 +76,22 @@ const buildTimeOptions = (stepMinutes = 1) => {
     return out;
 };
 
+const crearBorradorFormulario = (origen) => ({
+    ...(origen || {}),
+    fecha: origen?.fecha ?? "",
+    responsable: origen?.responsable ?? "",
+    observaciones: origen?.observaciones ?? "",
+    lecturas: {
+        ...(origen?.lecturas || {}),
+    },
+});
+
 const IngresoDataRecepcionModal = ({
     open,
     onClose,
     onSave,
     columnas = [],
-    form,
-    setForm,
+    initialForm,
     isEdit = false,
 }) => {
     const [colaboradoresLogistica, setColaboradoresLogistica] = useState([]);
@@ -94,7 +103,31 @@ const IngresoDataRecepcionModal = ({
     const timeOptions = useMemo(() => buildTimeOptions(1), []);
     const [fieldErrors, setFieldErrors] = useState({});
 
+    // Borrador local: escribir aquí no vuelve a renderizar toda la tabla padre.
+    const [form, setForm] = useState(() => crearBorradorFormulario(initialForm));
+
     const { tanques } = useTanques();
+
+    useEffect(() => {
+        if (!open) return;
+
+        const borrador = crearBorradorFormulario(initialForm);
+
+        // Conserva exactamente el comportamiento existente: PROCESO por defecto
+        // únicamente al crear un registro nuevo.
+        if (!isEdit) {
+            const estadoActual = String(
+                borrador?.lecturas?.estado_vehiculo ?? ""
+            ).trim();
+
+            if (!estadoActual) {
+                borrador.lecturas.estado_vehiculo = "PROCESO";
+            }
+        }
+
+        setForm(borrador);
+        setFieldErrors({});
+    }, [open, initialForm, isEdit]);
 
     useEffect(() => {
         if (!open) return;
@@ -197,27 +230,6 @@ const IngresoDataRecepcionModal = ({
 
         cargarDataMenuItemsSelect();
     }, [open]);
-
-    //CON ESTE effecto pongo por default el estado de En Proceso
-    useEffect(() => {
-        if (!open) return;
-        if (isEdit) return;
-
-        setForm((prev) => {
-            const lecturas = prev?.lecturas ?? {};
-            const actual = lecturas?.estado_vehiculo;
-
-            if (actual != null && String(actual).trim() !== "") return prev;
-
-            return {
-                ...prev,
-                lecturas: {
-                    ...lecturas,
-                    estado_vehiculo: "PROCESO",
-                },
-            };
-        });
-    }, [open, isEdit, setForm]);
 
     // funcion para validar el rango de la densidad y mostrar un helper
     const validateDensidad = (value) => {
