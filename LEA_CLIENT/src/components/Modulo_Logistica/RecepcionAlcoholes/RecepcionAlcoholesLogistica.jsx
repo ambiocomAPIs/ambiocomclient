@@ -7,6 +7,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TableFooter,
   TableRow,
   Paper,
   Typography,
@@ -722,6 +723,7 @@ export default function TablaIngresoRecepcionesLogistica() {
   const medicionesFiltradasDiferidas = useDeferredValue(medicionesFiltradas);
   const analizandoCeldas =
     medicionesFiltradasDiferidas !== medicionesFiltradas;
+  const totalRegistrosVisibles = medicionesFiltradasDiferidas.length;
   const mostrarOverlayCarga = cargandoDatos || analizandoCeldas;
   const textoOverlayCarga = cargandoDatos
     ? mensajeCarga
@@ -1601,19 +1603,19 @@ export default function TablaIngresoRecepcionesLogistica() {
                 <Button
                   variant="contained"
                   size="small"
-                  startIcon={<SearchIcon />}
+                  // startIcon={<SearchIcon />}
                   onClick={consultarRecepcionesPorRango}
                   disabled={cargandoDatos}
                   sx={{
                     height: 34,
-                    minWidth: 112,
+                    minWidth: 50,
                     borderRadius: 1,
                     textTransform: "none",
                     fontWeight: 700,
                     whiteSpace: "nowrap",
                   }}
                 >
-                  Consultar
+                  <SearchIcon />
                 </Button>
               </span>
             </Tooltip>
@@ -1757,6 +1759,98 @@ export default function TablaIngresoRecepcionesLogistica() {
               <TableCell colSpan={3} />
             </TableRow>
           </TableBody>
+
+          {/* ================= FOOTER STICKY: TOTALES Y REGISTROS ================= */}
+          <TableFooter>
+            <TableRow>
+              <TableCell
+                colSpan={2}
+                sx={{
+                  position: "sticky",
+                  bottom: 0,
+                  left: 0,
+                  zIndex: 8,
+                  backgroundColor: "#e8eef7",
+                  borderTop: "2px solid #1A237E",
+                  borderRight: "1px solid rgba(224, 224, 224, 1)",
+                  boxShadow: "0 -3px 8px rgba(0, 0, 0, 0.12)",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 1.5,
+                  }}
+                >
+                  <Typography
+                    component="span"
+                    sx={{
+                      fontSize: tableDensityStyles.fontSize,
+                      fontWeight: 800,
+                      color: "#1A237E",
+                    }}
+                  >
+                    Totales
+                  </Typography>
+
+                  <Typography
+                    component="span"
+                    sx={{
+                      fontSize: tableDensityStyles.fontSize,
+                      fontWeight: 700,
+                      color: "text.secondary",
+                    }}
+                  >
+                    {totalRegistrosVisibles} registro
+                    {totalRegistrosVisibles === 1 ? "" : "s"}
+                  </Typography>
+                </Box>
+              </TableCell>
+
+              {columnasActivas.map((c) => (
+                <TableCell
+                  key={`footer-total-${c.key}`}
+                  align="center"
+                  sx={{
+                    position: "sticky",
+                    bottom: 0,
+                    zIndex: 7,
+                    backgroundColor: "#e8eef7",
+                    borderTop: "2px solid #1A237E",
+                    borderRight: "1px solid rgba(224, 224, 224, 1)",
+                    boxShadow: "0 -3px 8px rgba(0, 0, 0, 0.12)",
+                    whiteSpace: "nowrap",
+                    fontSize: tableDensityStyles.fontSize,
+                    fontWeight: 800,
+                    color: "#1A237E",
+                  }}
+                >
+                  {c.totalizable ? (
+                    <>
+                      {acumuladosPorColumna[c.key] ?? 0} {c.unidad || ""}
+                    </>
+                  ) : (
+                    <span style={{ opacity: 0.4 }}>—</span>
+                  )}
+                </TableCell>
+              ))}
+
+              <TableCell
+                colSpan={2}
+                sx={{
+                  position: "sticky",
+                  bottom: 0,
+                  zIndex: 7,
+                  backgroundColor: "#e8eef7",
+                  borderTop: "2px solid #1A237E",
+                  boxShadow: "0 -3px 8px rgba(0, 0, 0, 0.12)",
+                }}
+              />
+            </TableRow>
+          </TableFooter>
         </Table>
       </TableContainer>
 
