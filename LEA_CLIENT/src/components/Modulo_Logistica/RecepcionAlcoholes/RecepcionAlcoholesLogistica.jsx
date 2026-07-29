@@ -375,49 +375,14 @@ export default function TablaIngresoRecepcionesLogistica() {
     setOpenEstadoModal(true);
   }, []);
 
-  // const handleEditarFila = useCallback((row) => {
-  //   setEditId(row._id);
-  //   setForm({
-  //     ...row,
-  //     fecha: row.fecha || "",
-  //   });
-  //   setOpenEditar(true);
-  // }, []);
-
-  const clonarLecturas = (lecturas = {}) => {
-  try {
-    return structuredClone(lecturas);
-  } catch {
-    return JSON.parse(JSON.stringify(lecturas));
-  }
-};
-
-const handleEditarFila = useCallback((row) => {
-  if (!row?._id) {
-    Swal.fire(
-      "Error",
-      "No fue posible identificar el registro seleccionado.",
-      "error"
-    );
-    return;
-  }
-
-  // Evita que ambos modos puedan quedar abiertos simultáneamente.
-  setOpenFila(false);
-
-  setEditId(row._id);
-
-  setForm({
-    _id: row._id,
-    fecha: row.fecha ?? "",
-    responsable: row.responsable ?? "",
-    observaciones: row.observaciones ?? "",
-    lecturas: clonarLecturas(row.lecturas ?? {}),
-  });
-
-  setOpenEditar(true);
-}, []);
-
+  const handleEditarFila = useCallback((row) => {
+    setEditId(row._id);
+    setForm({
+      ...row,
+      fecha: row.fecha || "",
+    });
+    setOpenEditar(true);
+  }, []);
   /* ================= CARGA INICIAL ================= */
   useEffect(() => {
     obtenerColumnas();
@@ -1841,6 +1806,7 @@ const handleEditarFila = useCallback((row) => {
 
       {/* ================= MODAL INGRESO ================= */}
       <IngresoDataRecepcionModal
+        key={openEditar && editId ? editId : "nueva-recepcion"}
         open={openFila || openEditar}
         onClose={() => {
           setOpenFila(false);
