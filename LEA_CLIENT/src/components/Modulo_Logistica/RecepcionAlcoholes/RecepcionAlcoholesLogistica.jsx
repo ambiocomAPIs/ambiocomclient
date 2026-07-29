@@ -141,12 +141,6 @@ const renderIconoFleteFacturado = (valor) => {
   );
 };
 
-
-/* ================= OPTIMIZACIÓN DE CELDAS =================
- * Se conserva exactamente la misma validación y los mismos colores.
- * La diferencia es que cada celda se analiza una sola vez cuando cambian
- * los registros filtrados o las columnas visibles.
- */
 const VALORES_VACIOS = new Set(["", "null", "undefined", "nan"]);
 
 const esValorVacio = (valor) =>
@@ -267,14 +261,9 @@ const FilaRecepcionMemo = memo(function FilaRecepcionMemo({
   );
 });
 
-/* ================= ENDPOINTS ================= */
 const API_RECEPCIONES = "https://ambiocomserver.onrender.com/api/recepcion-alcoholes";
 const API_COLUMNAS = "https://ambiocomserver.onrender.com/api/columna-recepcion-alcoholes";
 
-/* ================= RANGO PREDETERMINADO DE CONSULTA =================
- * Mes actual + los tres meses anteriores.
- * Ejemplo: si hoy es julio, consulta desde el 1 de abril hasta hoy.
- */
 const formatearFechaInput = (fecha) => {
   const year = fecha.getFullYear();
   const month = String(fecha.getMonth() + 1).padStart(2, "0");
@@ -371,10 +360,9 @@ export default function TablaIngresoRecepcionesLogistica() {
     }
   };
 
-  //funcion para abrir modal de resumen o observaciones
   const abrirModalEstado = useCallback((row) => {
     setEstadoModalData({
-      context: "modulo_recepcion",  // con esto el modal sabe desde que modulo estoy ejecutando y que data mostrar
+      context: "modulo_recepcion",  
       estado: row.lecturas?.estado_vehiculo || "",
       fecha: row.fecha || "",
       cliente: row.lecturas?.proveedor || "",
@@ -387,14 +375,49 @@ export default function TablaIngresoRecepcionesLogistica() {
     setOpenEstadoModal(true);
   }, []);
 
-  const handleEditarFila = useCallback((row) => {
-    setEditId(row._id);
-    setForm({
-      ...row,
-      fecha: row.fecha || "",
-    });
-    setOpenEditar(true);
-  }, []);
+  // const handleEditarFila = useCallback((row) => {
+  //   setEditId(row._id);
+  //   setForm({
+  //     ...row,
+  //     fecha: row.fecha || "",
+  //   });
+  //   setOpenEditar(true);
+  // }, []);
+
+  const clonarLecturas = (lecturas = {}) => {
+  try {
+    return structuredClone(lecturas);
+  } catch {
+    return JSON.parse(JSON.stringify(lecturas));
+  }
+};
+
+const handleEditarFila = useCallback((row) => {
+  if (!row?._id) {
+    Swal.fire(
+      "Error",
+      "No fue posible identificar el registro seleccionado.",
+      "error"
+    );
+    return;
+  }
+
+  // Evita que ambos modos puedan quedar abiertos simultáneamente.
+  setOpenFila(false);
+
+  setEditId(row._id);
+
+  setForm({
+    _id: row._id,
+    fecha: row.fecha ?? "",
+    responsable: row.responsable ?? "",
+    observaciones: row.observaciones ?? "",
+    lecturas: clonarLecturas(row.lecturas ?? {}),
+  });
+
+  setOpenEditar(true);
+}, []);
+
   /* ================= CARGA INICIAL ================= */
   useEffect(() => {
     obtenerColumnas();
@@ -522,8 +545,6 @@ export default function TablaIngresoRecepcionesLogistica() {
         withCredentials: true,
       });
 
-      // Compatible con la respuesta actual (arreglo) y con una futura
-      // respuesta estructurada del backend: { data: [...] }.
       const registros = Array.isArray(data)
         ? data
         : Array.isArray(data?.data)
@@ -692,9 +713,6 @@ export default function TablaIngresoRecepcionesLogistica() {
       return ordenFechaAsc ? fa - fb : fb - fa;
     });
 
-    // Respaldo frontend: aplica únicamente el último rango consultado.
-    // Cuando el backend implemente el filtro, los datos ya llegarán limitados
-    // al rango y esta validación seguirá siendo inocua.
     if (rangoAplicado.desde) {
       const fd = stringToDate(rangoAplicado.desde);
       data = data.filter((m) => stringToDate(m.fecha) >= fd);
@@ -736,8 +754,6 @@ export default function TablaIngresoRecepcionesLogistica() {
     });
   }, [busquedaGlobal, medicionesOrdenadas]);
 
-  // Mantiene visible la tabla anterior mientras React procesa el análisis
-  // de las nuevas filas y celdas. El resultado final no cambia.
   const medicionesFiltradasDiferidas = useDeferredValue(medicionesFiltradas);
   const analizandoCeldas =
     medicionesFiltradasDiferidas !== medicionesFiltradas;
