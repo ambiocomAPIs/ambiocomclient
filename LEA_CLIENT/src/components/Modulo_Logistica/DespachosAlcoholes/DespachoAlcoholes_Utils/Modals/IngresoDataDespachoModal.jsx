@@ -515,10 +515,12 @@ const IngresoDataDespachoModal = ({
   onClose,
   onSave,
   columnas = [],
-  form,
-  setForm,
+  form: externalForm,
+  setForm: _setExternalForm,
   isEdit = false,
 }) => {
+  void _setExternalForm;
+
   const CLIENTES_URL = "https://ambiocomserver.onrender.com/api/clienteslogistica";
   const TRANSPORTADORAS_URL = "https://ambiocomserver.onrender.com/api/transportadoraslogistica";
   const PRODUCTOS_URL = "https://ambiocomserver.onrender.com/api/alcoholesdespacho";
@@ -532,6 +534,18 @@ const IngresoDataDespachoModal = ({
     .trim();
 
   const canEditResponsableRecibo = isAuth && RESPONSABLE_RECIBO_ROLES.includes(roleNorm);
+
+  // El formulario se administra localmente dentro del modal.
+  // Así, cada tecla ya no obliga a renderizar nuevamente toda la tabla del componente padre.
+  const cloneForm = (source) => ({
+    ...(source ?? {}),
+    fecha: source?.fecha ?? "",
+    responsable: source?.responsable ?? "",
+    observaciones: source?.observaciones ?? "",
+    lecturas: { ...(source?.lecturas ?? {}) },
+  });
+
+  const [form, setForm] = useState(() => cloneForm(externalForm));
 
   const [fieldErrors, setFieldErrors] = useState({});
   const [catalogos, setCatalogos] = useState({
@@ -568,45 +582,45 @@ const IngresoDataDespachoModal = ({
     setForm((prev) => {
       const lecturasPrev = prev?.lecturas ?? {};
 
-      const nextLecturas = {
+      let nextLecturas = {
         ...lecturasPrev,
         [key]: value,
       };
 
+      // Los campos auxiliares de texto de Autocomplete no participan
+      // en fórmulas ni en la inferencia del estado del vehículo.
+      if (String(key).endsWith("__input")) {
+        return {
+          ...prev,
+          lecturas: nextLecturas,
+        };
+      }
+
       // Si el usuario cambia directamente el estado del vehículo,
-      // se respeta lo que seleccionó.
-      if (key === VEHICULO_RECHAZADO_KEY) {
-        return {
-          ...prev,
-          lecturas: nextLecturas,
-        };
+      // se respeta exactamente lo que seleccionó.
+      if (key !== VEHICULO_RECHAZADO_KEY) {
+        const estadoActual = String(
+          lecturasPrev?.[VEHICULO_RECHAZADO_KEY] ?? ""
+        ).trim();
+
+        const estadoManualProtegido =
+          ESTADOS_VEHICULO_MANUALES_PROTEGIDOS.has(estadoActual);
+
+        if (!estadoManualProtegido) {
+          const estadoAutomatico = inferirEstadoVehiculo(nextLecturas);
+
+          if (estadoAutomatico) {
+            nextLecturas[VEHICULO_RECHAZADO_KEY] = estadoAutomatico;
+          } else if (ESTADOS_VEHICULO_AUTOMATICOS.has(estadoActual)) {
+            nextLecturas[VEHICULO_RECHAZADO_KEY] = "";
+          }
+        }
       }
 
-      const estadoActual = String(
-        lecturasPrev?.[VEHICULO_RECHAZADO_KEY] ?? ""
-      ).trim();
-
-      const estadoManualProtegido =
-        ESTADOS_VEHICULO_MANUALES_PROTEGIDOS.has(estadoActual);
-
-      // Si el estado es rechazo u observación manual,
-      // el automático no debe pisarlo.
-      if (estadoManualProtegido) {
-        return {
-          ...prev,
-          lecturas: nextLecturas,
-        };
-      }
-
-      const estadoAutomatico = inferirEstadoVehiculo(nextLecturas);
-
-      if (estadoAutomatico) {
-        nextLecturas[VEHICULO_RECHAZADO_KEY] = estadoAutomatico;
-      } else if (ESTADOS_VEHICULO_AUTOMATICOS.has(estadoActual)) {
-        // Si antes tenía un estado automático, pero ya no hay datos
-        // que lo justifiquen, se limpia.
-        nextLecturas[VEHICULO_RECHAZADO_KEY] = "";
-      }
+      // Antes se hacía en un useEffect adicional, generando un segundo
+      // render por cada tecla. Ahora conserva los mismos cálculos en
+      // la misma actualización del campo.
+      nextLecturas = recalcBloqueadas(nextLecturas);
 
       return {
         ...prev,
@@ -719,14 +733,18 @@ const IngresoDataDespachoModal = ({
   };
 
   const setFieldError = (key, message) => {
-    setFieldErrors((prev) => ({
-      ...prev,
-      [key]: message,
-    }));
+    setFieldErrors((prev) => {
+      if (prev?.[key] === message) return prev;
+      return {
+        ...prev,
+        [key]: message,
+      };
+    });
   };
 
   const clearFieldError = (key) => {
     setFieldErrors((prev) => {
+      if (!Object.prototype.hasOwnProperty.call(prev, key)) return prev;
       const copy = { ...prev };
       delete copy[key];
       return copy;
@@ -915,6 +933,16 @@ const IngresoDataDespachoModal = ({
   useEffect(() => {
     if (!open) return;
 
+    setForm(cloneForm(externalForm));
+    setFieldErrors({});
+    setSaving(false);
+    // La copia se realiza únicamente al abrir/cambiar el registro externo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, externalForm, isEdit]);
+
+  useEffect(() => {
+    if (!open) return;
+
     const conductores = loadCacheMeta("conductores").data;
     const clientes = loadCacheMeta("clientes").data;
     const transportadoras = loadCacheMeta("transportadoras").data;
@@ -1052,27 +1080,6 @@ const IngresoDataDespachoModal = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  useEffect(() => {
-    if (!open) return;
-
-    setForm((prev) => {
-      const lecturasPrev = prev?.lecturas ?? {};
-      const lecturasNext = recalcBloqueadas(lecturasPrev);
-
-      let changed = false;
-      for (const k of columnasBloqueadas) {
-        if (safeStr(lecturasPrev?.[k]) !== safeStr(lecturasNext?.[k])) {
-          changed = true;
-          break;
-        }
-      }
-      if (!changed) return prev;
-
-      return { ...prev, lecturas: lecturasNext };
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, form?.lecturas]);
-
   const columnasOrdenadas = useMemo(() => columnas, [columnas]);
 
   const sxAllowed = {
@@ -1175,6 +1182,11 @@ const IngresoDataDespachoModal = ({
     return plan;
   };
 
+  const renderPlan = useMemo(
+    () => buildRenderPlan(columnasOrdenadas),
+    [columnasOrdenadas]
+  );
+
   // con esta condicion validamos si esta asociada remision o factura si no, inhabilite el check
   const faltaRemisionFactura = !String(form?.lecturas?.remision_factura ?? "").trim();
 
@@ -1264,7 +1276,7 @@ const IngresoDataDespachoModal = ({
                 />
               </Grid>
 
-              {buildRenderPlan(columnasOrdenadas).map((item, idx) => {
+              {renderPlan.map((item, idx) => {
                 if (item.type === "fixed_responsable") {
                   const isDisabled = !canEditResponsableRecibo;
                   const sxField = !isDisabled ? sxAllowed : sxDisabled;

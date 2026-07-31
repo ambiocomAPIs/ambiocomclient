@@ -83,6 +83,15 @@ const alertaDatoInvalido = (mensaje) => ({
   sx: ALERTAS.error,
 });
 
+const CELDAS_CON_VALIDACION = new Set([
+  "volumen_despachar",
+  "volumen_ambiocom_contador",
+  "peso_neto_bascula_ambiocom",
+  "peso_neto_contador_ambiocom",
+  "kilos_peso_neto",
+  "cantidad_recibida_cliente",
+]);
+
 export const getCellValidation = ({
   key,
   volumenFacturado,
@@ -94,6 +103,10 @@ export const getCellValidation = ({
   volumenRecibidoCliente,
   Densidad,
 }) => {
+  // La tabla llama esta función para muchas celdas. La mayoría no requieren
+  // comparación; salir aquí evita normalizar ocho valores innecesariamente.
+  if (!CELDAS_CON_VALIDACION.has(key)) return null;
+
   const facturado = normalizarNumero(volumenFacturado);
   const despachado = normalizarNumero(volumenDespachado);
 
