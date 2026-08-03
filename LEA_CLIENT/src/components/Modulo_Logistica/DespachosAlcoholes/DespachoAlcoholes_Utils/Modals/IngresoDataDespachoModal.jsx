@@ -887,7 +887,7 @@ const IngresoDataDespachoModal = ({
   };
 
 
-  const CAMPOS_PERMITEN_DECIMALES = ["densidadlab_alcohol_tanque", "grado_alcoholico_lab", "observaciones",]
+  const CAMPOS_PERMITEN_DECIMALES = ["densidadlab_alcohol_tanque", "grado_alcoholico_lab", "cantidad_recibida_cliente", "observaciones",]
 
   // funcion bloquea . ,
   const bloquearPegado = (key) => (e) => {
@@ -1805,8 +1805,11 @@ const IngresoDataDespachoModal = ({
                         value={form.lecturas?.[c.key] ?? ""}
                         onChange={(e) => {
                           if (isDisabled) return;
-
-                          const value = e.target.value;
+                          // const value = e.target.value;
+                          const value =
+                            c.key === "cantidad_recibida_cliente"
+                              ? e.target.value.replace(/,/g, ".")
+                              : e.target.value;
                           handleChangeLectura(c.key, value);
 
                           if (c.key === "densidadlab_alcohol_tanque") {
