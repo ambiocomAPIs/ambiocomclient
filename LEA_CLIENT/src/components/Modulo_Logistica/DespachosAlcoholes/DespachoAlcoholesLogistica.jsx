@@ -5,6 +5,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableContainer,
   TableHead,
   TableRow,
@@ -90,9 +91,7 @@ import ObservacionEstadoModal from "../utils_Logistica/Logistica_Modals/Observac
 import IngresoDataDespachoModal from "./DespachoAlcoholes_Utils/Modals/IngresoDataDespachoModal.jsx";
 import ChecklistDespachosModal from "./DespachoAlcoholes_Utils/Modals/ProgramacionDespachoCheckListModal.jsx";
 
-// componente para validar comparaciones en la tabla y resaltar alertas
 import { getCellValidation } from "./DespachoAlcoholes_Utils/Functions/validacionesDespacho.js";
-// Contexto usuario por roles
 import { useAuth } from "../../../utils/Context/AuthContext/AuthContext.jsx";
 
 /* ================= ENDPOINTS ================= */
@@ -391,6 +390,7 @@ const TablaResultadosMemo = memo(function TablaResultadosMemo({
   onToggleFiltro,
   tableDensityStyles,
   acumuladosPorColumna,
+  totalRegistrosVisibles,
   puedeEliminar,
   onEditar,
   onEliminar,
@@ -504,7 +504,7 @@ const TablaResultadosMemo = memo(function TablaResultadosMemo({
               height: tableDensityStyles.rowHeight,
             },
           }}
-        > 
+        >
           {filasAnalizadas.map((analisis) => (
             <FilaDespachoMemo
               key={analisis.row._id}
@@ -522,7 +522,7 @@ const TablaResultadosMemo = memo(function TablaResultadosMemo({
             />
           ))}
 
-          <TableRow>
+          {/* <TableRow>
             <TableCell colSpan={2}>
               <b>Acumulado Total</b>
             </TableCell>
@@ -539,8 +539,109 @@ const TablaResultadosMemo = memo(function TablaResultadosMemo({
               </TableCell>
             ))}
             <TableCell colSpan={3} />
-          </TableRow>
+          </TableRow> */}
         </TableBody>
+        {/* ================= FOOTER STICKY: TOTALES Y REGISTROS ================= */}
+        <TableFooter>
+          <TableRow>
+            {/* Acciones + Fecha Registro */}
+            <TableCell
+              colSpan={2}
+              sx={{
+                position: "sticky",
+                bottom: 0,
+                left: 0,
+                zIndex: 8,
+                backgroundColor: "#e8eef7",
+                borderTop: "2px solid #1A237E",
+                borderRight: "1px solid rgba(224, 224, 224, 1)",
+                boxShadow: "0 -3px 8px rgba(0, 0, 0, 0.12)",
+                whiteSpace: "nowrap",
+                padding: tableDensityStyles.padding,
+                lineHeight: tableDensityStyles.lineHeight,
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 1.5,
+                  width: "100%",
+                }}
+              >
+                <Typography
+                  component="span"
+                  sx={{
+                    fontSize: tableDensityStyles.fontSize,
+                    fontWeight: 800,
+                    color: "#1A237E",
+                  }}
+                >
+                  Totales
+                </Typography>
+
+                <Typography
+                  component="span"
+                  sx={{
+                    fontSize: tableDensityStyles.fontSize,
+                    fontWeight: 700,
+                    color: "text.secondary",
+                  }}
+                >
+                  {totalRegistrosVisibles} registro
+                  {totalRegistrosVisibles === 1 ? "" : "s"}
+                </Typography>
+              </Box>
+            </TableCell>
+
+            {/* Columnas dinámicas */}
+            {columnasActivas.map((columna) => (
+              <TableCell
+                key={`footer-total-${columna.key}`}
+                align="center"
+                sx={{
+                  position: "sticky",
+                  bottom: 0,
+                  zIndex: 7,
+                  backgroundColor: "#e8eef7",
+                  borderTop: "2px solid #1A237E",
+                  borderRight: "1px solid rgba(224, 224, 224, 1)",
+                  boxShadow: "0 -3px 8px rgba(0, 0, 0, 0.12)",
+                  whiteSpace: "nowrap",
+                  padding: tableDensityStyles.padding,
+                  lineHeight: tableDensityStyles.lineHeight,
+                  fontSize: tableDensityStyles.fontSize,
+                  fontWeight: 800,
+                  color: "#1A237E",
+                }}
+              >
+                {columna.totalizable ? (
+                  <>
+                    {acumuladosPorColumna[columna.key] ?? 0}{" "}
+                    {columna.unidad || ""}
+                  </>
+                ) : (
+                  <span style={{ opacity: 0.4 }}>—</span>
+                )}
+              </TableCell>
+            ))}
+
+            {/* Observaciones + Responsable */}
+            <TableCell
+              colSpan={2}
+              sx={{
+                position: "sticky",
+                bottom: 0,
+                zIndex: 7,
+                backgroundColor: "#e8eef7",
+                borderTop: "2px solid #1A237E",
+                boxShadow: "0 -3px 8px rgba(0, 0, 0, 0.12)",
+                padding: tableDensityStyles.padding,
+              }}
+            />
+          </TableRow>
+        </TableFooter>
       </Table>
     </TableContainer>
   );
@@ -568,20 +669,18 @@ export default function TablaDespachosLogistica() {
   const [fechaDesde, setFechaDesde] = useState(rangoDefault.desde);
   const [fechaHasta, setFechaHasta] = useState(rangoDefault.hasta);
   const [density, setDensity] = useState(1);
-  const [columnasVisibles, setColumnasVisibles] = useState(
-    columnas.map((c) => c.key)
-  ); // inicialmente todas visibles
+  const [columnasVisibles, setColumnasVisibles] = useState(columnas.map((c) => c.key));
   const [contextMenu, setContextMenu] = useState(null);
   const [filtrosVisibles, setFiltrosVisibles] = useState(false);
   const [filtrosColumna, setFiltrosColumna] = useState({});
-  const [filtroActivo, setFiltroActivo] = useState(null); // key de columna con filtro abierto o null
+  const [filtroActivo, setFiltroActivo] = useState(null);
   const [anchorFiltro, setAnchorFiltro] = useState(null);
   const [busquedaGlobal, setBusquedaGlobal] = useState("");
   const [busquedaActiva, setBusquedaActiva] = useState(true);
-  const [ordenFechaAsc, setOrdenFechaAsc] = useState(false); // true de mas viejo primero
+  const [ordenFechaAsc, setOrdenFechaAsc] = useState(false);
   const [modoInteligenteScroll, setModoInteligenteScroll] = useState(false);
   const [openCharts, setOpenCharts] = useState(false);
-  const [openChecklist, setOpenChecklist] = useState(false);  // modal checlist de programacion diaria
+  const [openChecklist, setOpenChecklist] = useState(false);
   const [openTutorial, setOpenTutorial] = useState(false);
   const [openIntroTutorial, setOpenIntroTutorial] = useState(false);
 
@@ -645,14 +744,12 @@ export default function TablaDespachosLogistica() {
       const tabla = tablaRef.current;
       if (!tabla) return;
 
-      // Si el click derecho fue sobre la "zona" de la tabla (aunque el target sea el backdrop)
       if (isPointInside(tabla, e.clientX, e.clientY)) {
-        e.preventDefault(); // evita el menú de Chrome SIEMPRE dentro de la tabla
+        e.preventDefault();
         setContextMenu({ mouseX: e.clientX - 2, mouseY: e.clientY - 4 });
       }
     };
 
-    // OJO: true = capture (clave para ganarle a MUI/backdrop)
     window.addEventListener("contextmenu", onGlobalContextMenu, true);
     return () =>
       window.removeEventListener("contextmenu", onGlobalContextMenu, true);
@@ -690,12 +787,11 @@ export default function TablaDespachosLogistica() {
 
       const canVertical = (goingDown && !atBottom) || (goingUp && !atTop);
 
-      e.preventDefault(); // queremos controlar el scroll dentro de la tabla
-
+      e.preventDefault();
       if (canVertical) {
-        el.scrollTop += e.deltaY; // mueve vertical
+        el.scrollTop += e.deltaY;
       } else {
-        el.scrollLeft += e.deltaY; // al llegar al límite, mueve horizontal
+        el.scrollLeft += e.deltaY;
       }
     };
 
@@ -710,7 +806,6 @@ export default function TablaDespachosLogistica() {
     };
   }, [modoInteligenteScroll]);
 
-  //Verifica acceso al rol
   const canAccess = (roles) => {
     if (loadingAuth) return false;
     if (!roles) return true;
@@ -729,7 +824,6 @@ export default function TablaDespachosLogistica() {
     "liderlogistica",
   ]);
 
-  //doble click para mostrar observaciones si un vehiculo ha sido rechazado o aprobado con observaciones
   const handleOpenClickVehiculo = useCallback((row) => {
     const estado = (row?.lecturas?.vehiculo_rechazado || "")
       .toString()
@@ -758,14 +852,12 @@ export default function TablaDespachosLogistica() {
     setOpenObsVehiculo(true);
   }, []);
 
-  //doble click para mostrar observaciones si un vehiculo ha llegado a tiempo
   const handleDblClickLlegadaATiempo = useCallback((row) => {
     const estado = (row?.lecturas?.llegada_destino || "")
       .toString()
       .toUpperCase()
       .trim();
 
-    // solo estos abren modal
     if (estado !== "PUNTUAL" && estado !== "RETRASADO") return;
 
     const observacion = (row?.observaciones || "").toString().trim();
@@ -806,7 +898,6 @@ export default function TablaDespachosLogistica() {
     setOpenObsVehiculo(true);
   }, []);
 
-  // Detectar click derecho para copiar tabla tipo SAP
   const handleContextMenu = useCallback((e) => {
     e.preventDefault();
     setContextMenu({ mouseX: e.clientX - 2, mouseY: e.clientY - 4 });
@@ -857,25 +948,9 @@ export default function TablaDespachosLogistica() {
 
   /* ================= CRUD MEDICIONES ================= */
 
-  // const handleGuardar = async () => {
-  //   try {
-  //     if (openEditar) {
-  //       await actualizarMedicion();
-  //     } else {
-  //       await guardarMedicion();
-  //     }
-  //   } catch (error) {
-  //     console.error(error);
-  //     Swal.fire("Error", "No se pudo guardar la información", "error");
-  //   }
-  // };
-
   const handleGuardar = async (payload) => {
     try {
       const dataToSave = payload ?? form;
-
-      console.log("DATA REAL QUE SE ENVÍA AL BACKEND:", dataToSave);
-
       if (openEditar) {
         await actualizarMedicion(dataToSave);
       } else {
@@ -901,18 +976,6 @@ export default function TablaDespachosLogistica() {
     setOpenEditar(false);
     obtenerMediciones();
   };
-
-  // const guardarMedicion = async () => {
-  //   await axios.post(API_DESPACHOS, form, { withCredentials: true });
-  //   setOpenFila(false);
-  //   obtenerMediciones();
-  // };
-
-  // const actualizarMedicion = async () => {
-  //   await axios.put(`${API_DESPACHOS}/${editId}`, form, { withCredentials: true });
-  //   setOpenEditar(false);
-  //   obtenerMediciones();
-  // };
 
   const eliminarMedicion = useCallback(async (id) => {
     const result = await Swal.fire({
@@ -975,11 +1038,9 @@ export default function TablaDespachosLogistica() {
     let data = [...mediciones].sort((a, b) => {
       const fa = stringToDate(a.fecha);
       const fb = stringToDate(b.fecha);
-      return ordenFechaAsc ? fa - fb : fb - fa; // funciona con el estado segun orden que se requiera
+      return ordenFechaAsc ? fa - fb : fb - fa;
     });
 
-
-    // Aplica filtros de columnas
     Object.entries(filtrosColumna).forEach(([key, valorFiltro]) => {
       if (valorFiltro.trim() !== "") {
         data = data.filter((m) => {
@@ -995,7 +1056,6 @@ export default function TablaDespachosLogistica() {
     return data;
   }, [mediciones, filtrosColumna, ordenFechaAsc]);
 
-  //filtro de busqueda avanzada
   const medicionesFiltradas = useMemo(() => {
     const q = normalizar(busquedaGlobal);
     if (!q) return medicionesOrdenadas;
@@ -1011,6 +1071,8 @@ export default function TablaDespachosLogistica() {
       return valores.some((v) => normalizar(v).includes(q));
     });
   }, [busquedaGlobal, medicionesOrdenadas]);
+
+  const totalRegistrosVisibles = medicionesFiltradas.length;
 
   const columnasVisiblesSet = useMemo(
     () => new Set(columnasVisibles),
@@ -1059,7 +1121,6 @@ export default function TablaDespachosLogistica() {
     [density]
   );
 
-  // Funcion que genera el texto y copia al portapapeles
   const copiarTablaPortapapeles = () => {
     const headers = [
       "Fecha Registro",
@@ -1098,13 +1159,11 @@ export default function TablaDespachosLogistica() {
       });
   };
 
-  //valores unico para filtro por columna
   const valoresUnicosFiltroActivo = useMemo(() => {
     if (!filtroActivo) return [];
 
     const set = new Set();
 
-    // Solo toma datos para LISTAR en el menú (no afecta la tabla)
     mediciones.forEach((m) => {
       const v = m.lecturas?.[filtroActivo] ?? "";
       set.add(v.toString().trim());
@@ -1112,7 +1171,6 @@ export default function TablaDespachosLogistica() {
 
     const arr = Array.from(set);
 
-    // vacío primero, luego alfabético
     arr.sort((a, b) => {
       if (a === "") return -1;
       if (b === "") return 1;
@@ -1122,7 +1180,6 @@ export default function TablaDespachosLogistica() {
     return arr;
   }, [filtroActivo, mediciones]);
 
-  // calcula el % de data faltante en una fila según las columnas visibles (para mostrar fondo rojo degradado)
   const calcularPorcentajeFaltante = (row) => {
     const columnasActivas = columnas.filter((c) =>
       columnasVisibles.includes(c.key)
@@ -1141,24 +1198,22 @@ export default function TablaDespachosLogistica() {
       }
     });
 
-    return faltantes / columnasActivas.length; // retorna valor entre 0 y 1
+    return faltantes / columnasActivas.length;
   };
 
-  // función para generar color dinámico según el % de datos faltantes en la fila (más rojo cuanto más falte)
   const obtenerColorFila = (porcentaje) => {
     if (porcentaje === 0) return "inherit";
-    // Escalonado por rangos
     if (porcentaje >= 0.8) {
-      return "rgba(255, 0, 0, 0.75)"; // rojo intenso
+      return "rgba(255, 0, 0, 0.75)";
     }
     if (porcentaje >= 0.5) {
-      return "rgba(255, 0, 0, 0.45)"; // rojo medio
+      return "rgba(255, 0, 0, 0.45)";
     }
     if (porcentaje >= 0.3) {
-      return "rgba(255, 0, 0, 0.25)"; // rojo leve
+      return "rgba(255, 0, 0, 0.25)";
     }
 
-    return "rgba(238, 173, 173, 0.71)"; // menos de 30% (muy suave)
+    return "rgba(238, 173, 173, 0.71)";
   };
 
   const renderIconoVehiculo = useCallback((estado) => {
@@ -1233,7 +1288,6 @@ export default function TablaDespachosLogistica() {
         "Rechazado por el Cliente"
       );
     }
-
 
     return null;
   }, []);
@@ -1314,50 +1368,6 @@ export default function TablaDespachosLogistica() {
     );
   }, []);
 
-  // //renderizado botones visuales estado llegada a tiempo o retraso
-  // const renderIconoTiempodeEntrega = (estado, tipo = "destino") => {
-  //   const valor = (estado ?? "").toString().toUpperCase().trim();
-
-  //   const labelBase =
-  //     tipo === "cliente" ? "Puntualidad en cliente" : "Llegada a destino";
-
-  //   const commonWrapper = (icon, title) => (
-  //     <Box
-  //       sx={{
-  //         display: "flex",
-  //         justifyContent: "center",
-  //         alignItems: "center",
-  //         width: "100%",
-  //       }}
-  //     >
-  //       <Tooltip title={title} arrow>
-  //         {icon}
-  //       </Tooltip>
-  //     </Box>
-  //   );
-
-  //   if (valor === "PUNTUAL" || valor === "CUMPLE") {
-  //     return commonWrapper(
-  //       <AlarmOnIcon sx={{ color: "#2e7d32" }} />,
-  //       `${labelBase}: Cumple`
-  //     );
-  //   }
-
-  //   if (valor === "RETRASADO" || valor === "NO CUMPLE") {
-  //     return commonWrapper(
-  //       <AlarmOffIcon sx={{ color: "#d32f2f" }} />,
-  //       `${labelBase}: No cumple`
-  //     );
-  //   }
-
-  //   return commonWrapper(
-  //     <ReportIcon sx={{ color: "#9e9e9e" }} />,
-  //     `${labelBase}: Sin datos`
-  //   );
-  // };
-
-
-  // helper para alertas de mermas segun tolerancia del 5%
   const renderIconoCumplimientoCliente = (row) => {
     // ===== Volumen =====
     const volumenDespachar = Number(row?.lecturas?.volumen_despachar ?? 0);
@@ -1465,9 +1475,9 @@ export default function TablaDespachosLogistica() {
           isEmptyGeneral,
           validacion: CELDAS_CON_VALIDACION.has(columna.key)
             ? getCellValidation({
-                key: columna.key,
-                ...validationPayload,
-              })
+              key: columna.key,
+              ...validationPayload,
+            })
             : null,
         };
       }
@@ -1554,7 +1564,7 @@ export default function TablaDespachosLogistica() {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            minWidth: 0, // MUY importante para no romper flex
+            minWidth: 0,
           }}
         >
           <Typography
@@ -1592,7 +1602,7 @@ export default function TablaDespachosLogistica() {
               py: 0.7,
               backgroundColor: "#e9edf2",
               border: "1px solid rgba(0,0,0,0.12)",
-              borderBottom: "1px solid rgba(0,0,0,0.22)", // línea divisoria
+              borderBottom: "1px solid rgba(0,0,0,0.22)",
               borderTopLeftRadius: 4,
               borderTopRightRadius: 4,
             }}
@@ -1810,7 +1820,6 @@ export default function TablaDespachosLogistica() {
               </IconButton>
             </Tooltip>
             <Divider orientation="vertical" flexItem />
-            {/* OPCIÓN A o B para Excel (mira abajo) */}
             <ExcelDownloadButton
               data={medicionesOrdenadas}
               columnasVisibles={columnasVisibles}
@@ -1821,7 +1830,6 @@ export default function TablaDespachosLogistica() {
                 }.xlsx`}
             />
             <Divider orientation="vertical" flexItem />
-            {/* Columnas filtro ocultar columnas */}
             <FormControl
               size="small"
               sx={{
@@ -1851,7 +1859,7 @@ export default function TablaDespachosLogistica() {
                 }}
                 renderValue={(selected) => `Columnas (${selected.length})`}
                 MenuProps={{
-                  disableAutoFocusItem: true, // para que no enfoque al final del menu
+                  disableAutoFocusItem: true,
                   autoFocus: false,
                   PaperProps: {
                     sx: {
@@ -1947,7 +1955,7 @@ export default function TablaDespachosLogistica() {
               py: 0.7,
               backgroundColor: "#e9edf2",
               border: "1px solid rgba(0,0,0,0.12)",
-              borderTop: "none", // evita doble borde
+              borderTop: "none",
               borderBottomLeftRadius: 4,
               borderBottomRightRadius: 4,
             }}
@@ -2083,7 +2091,7 @@ export default function TablaDespachosLogistica() {
               onClick={() => {
                 setBusquedaActiva((prev) => {
                   const next = !prev;
-                  if (!next) setBusquedaGlobal(""); // opcional: al apagar, limpia
+                  if (!next) setBusquedaGlobal("");
                   return next;
                 });
               }}
@@ -2203,6 +2211,7 @@ export default function TablaDespachosLogistica() {
           onToggleFiltro={handleToggleFiltroColumna}
           tableDensityStyles={tableDensityStyles}
           acumuladosPorColumna={acumuladosPorColumna}
+          totalRegistrosVisibles={totalRegistrosVisibles}
           puedeEliminar={puedeEliminar}
           onEditar={handleEditarFila}
           onEliminar={eliminarMedicion}
