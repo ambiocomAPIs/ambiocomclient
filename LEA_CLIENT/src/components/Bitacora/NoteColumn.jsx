@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import {
   Card,
@@ -110,44 +110,44 @@ function NoteColumn({
   // });
 
   const getPriority = (turnoValue) => {
-  const t = turnos.find(t => t.value === turnoValue);
-  return t ? t.priority : Infinity; // Infinity = si no lo encuentra, no se muestra
- };
-
- const filtered = notes.filter((note) => {
-  const normalizeDate = (d) => {
-    if (!d) return "";
-    return new Date(d).toISOString().split("T")[0];
+    const t = turnos.find(t => t.value === turnoValue);
+    return t ? t.priority : Infinity; // Infinity = si no lo encuentra, no se muestra
   };
 
-  const noteDate = normalizeDate(note.date);
-  const currentDate = normalizeDate(effectiveDate);
+  const filtered = notes.filter((note) => {
+    const normalizeDate = (d) => {
+      if (!d) return "";
+      return new Date(d).toISOString().split("T")[0];
+    };
 
-  const noteTurno = (note.turno || "").trim();
-  const currentTurno = (turno || "").trim();
-  const noteCompleted = !!note.completed;
+    const noteDate = normalizeDate(note.date);
+    const currentDate = normalizeDate(effectiveDate);
 
-  const notePriority = getPriority(noteTurno);
-  const currentPriority = getPriority(currentTurno);
+    const noteTurno = (note.turno || "").trim();
+    const currentTurno = (turno || "").trim();
+    const noteCompleted = !!note.completed;
 
-  // --- Caso 1: misma fecha y mismo turno ---
-  if (noteDate === currentDate && noteTurno === currentTurno) {
-    return true; // siempre mostrar, aunque esté completada
-  }
+    const notePriority = getPriority(noteTurno);
+    const currentPriority = getPriority(currentTurno);
 
-  // --- Caso 2: misma fecha pero turno posterior ---
-  if (noteDate === currentDate && notePriority < currentPriority) {
-    return !noteCompleted; // solo si no está completada
-  }
+    // --- Caso 1: misma fecha y mismo turno ---
+    if (noteDate === currentDate && noteTurno === currentTurno) {
+      return true; // siempre mostrar, aunque esté completada
+    }
 
-  // --- Caso 3: días posteriores ---
-  if (noteDate < currentDate) {
-    return !noteCompleted; // arrastrar si está pendiente
-  }
+    // --- Caso 2: misma fecha pero turno posterior ---
+    if (noteDate === currentDate && notePriority < currentPriority) {
+      return !noteCompleted; // solo si no está completada
+    }
 
-  // --- Caso 4: turnos futuros del mismo día o días futuros ---
-  return false;
-});
+    // --- Caso 3: días posteriores ---
+    if (noteDate < currentDate) {
+      return !noteCompleted; // arrastrar si está pendiente
+    }
+
+    // --- Caso 4: turnos futuros del mismo día o días futuros ---
+    return false;
+  });
 
   // const filtered = notes.filter((note) => {
   //   const normalizeDate = (d) => {
@@ -185,7 +185,7 @@ function NoteColumn({
   const handleSaveEdit = async () => {
     if (!readModal) return;
     const updatedText = editText.trim();
-    if (!updatedText) return;    
+    if (!updatedText) return;
     try {
       await axios.patch(
         `https://ambiocomserver.onrender.com/api/notasbitacora/bitacora/editarnota/${readModal._id}`,
@@ -329,28 +329,28 @@ function NoteColumn({
                 }}
               >
                 <Box sx={{ position: "absolute", top: 4, right: 4 }}>
-                 <Tooltip title="Marcar como Leido">
-                  <Checkbox
-                    checked={note.completed}
-                    onChange={() => onToggle(note.id || note._id)}
-                    color="primary"
-                  />
-                 </Tooltip>
+                  <Tooltip title="Marcar como Leido">
+                    <Checkbox
+                      checked={note.completed}
+                      onChange={() => onToggle(note.id || note._id)}
+                      color="primary"
+                    />
+                  </Tooltip>
                 </Box>
 
                 <Box sx={{ position: "absolute", bottom: 4, right: 5 }}>
                   <Tooltip title="Eliminar Nota">
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeleteTarget(note);
-                      setDeletePassword("");
-                      setDeleteError("");
-                    }}
-                  >
-                    <BackspaceIcon sx={{color:"#F06043"}}/>
-                  </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteTarget(note);
+                        setDeletePassword("");
+                        setDeleteError("");
+                      }}
+                    >
+                      <BackspaceIcon sx={{ color: "#F06043" }} />
+                    </IconButton>
                   </Tooltip>
                 </Box>
 

@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
-
 import HeaderForm from "./HeaderForm";
 import NoteBoard from "./NoteBoard";
 
@@ -54,10 +53,52 @@ const DESPACHOS_ALCOHOL_BITACORA_API_URL =
 const NIVELES_TANQUES_BITACORA_API_URL =
   "https://ambiocomserver.onrender.com/api/tanquesjornaleros/bitacora/resumen";
 
-/*
- * Estos son los turnos que deben llevar el balance completo
- * de los movimientos realizados el día inmediatamente anterior.
- */
+const BITACORA_CACHE_KEY =
+  "bitacora-supervisores-fecha-turno";
+
+const HEADER_DATA_DEFAULT = {
+  fecha: "",
+  turno: "",
+  supervisor: "",
+  op_destileria: "",
+  op_caldera: "",
+  op_aguas: "",
+  aux_caldera: "",
+  analista1: "",
+  analista2: "",
+};
+
+const obtenerHeaderDataInicial = () => {
+  try {
+    const cachedData = sessionStorage.getItem(
+      BITACORA_CACHE_KEY
+    );
+
+    if (!cachedData) {
+      return { ...HEADER_DATA_DEFAULT };
+    }
+
+    const parsedData = JSON.parse(cachedData);
+
+    return {
+      ...HEADER_DATA_DEFAULT,
+      fecha: parsedData.fecha || "",
+      turno: parsedData.turno || "",
+    };
+  } catch (error) {
+    console.error(
+      "Error leyendo la caché de la bitácora:",
+      error
+    );
+
+    sessionStorage.removeItem(
+      BITACORA_CACHE_KEY
+    );
+
+    return { ...HEADER_DATA_DEFAULT };
+  }
+};
+
 const TURNOS_CON_BALANCE_DIA_ANTERIOR = [
   "TurnoMañana(6:00-14:00)",
   "Turno12Horas(06:00-18:00)",
@@ -329,17 +370,27 @@ const crearResumenConsumosVacio = (
 function BitacoraComponentProduccion({
   trabajadoresRegistradosContext,
 }) {
-  const [headerData, setHeaderData] = useState({
-    fecha: "",
-    turno: "",
-    supervisor: "",
-    op_destileria: "",
-    op_caldera: "",
-    op_aguas: "",
-    aux_caldera: "",
-    analista1: "",
-    analista2: "",
-  });
+
+  const [headerData, setHeaderData] = useState(
+    obtenerHeaderDataInicial
+  );
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        BITACORA_CACHE_KEY,
+        JSON.stringify({
+          fecha: headerData.fecha,
+          turno: headerData.turno,
+        })
+      );
+    } catch (error) {
+      console.error(
+        "Error guardando la caché de la bitácora:",
+        error
+      );
+    }
+  }, [headerData.fecha, headerData.turno]);
 
   const [notes, setNotes] = useState({
     PENDIENTES: [],
@@ -529,7 +580,7 @@ function BitacoraComponentProduccion({
             fechaAnterior,
 
             error?.response?.data?.message ||
-              "No se encontraron ingresos de combustibles para el día anterior."
+            "No se encontraron ingresos de combustibles para el día anterior."
           );
         }
 
@@ -589,7 +640,7 @@ function BitacoraComponentProduccion({
             fechaAnterior,
 
             error?.response?.data?.message ||
-              "No se encontraron recepciones de alcohol para el día anterior."
+            "No se encontraron recepciones de alcohol para el día anterior."
           );
         }
 
@@ -650,7 +701,7 @@ function BitacoraComponentProduccion({
             fechaAnterior,
 
             error?.response?.data?.message ||
-              "No se encontraron despachos de alcohol para el día anterior."
+            "No se encontraron despachos de alcohol para el día anterior."
           );
         }
 
@@ -717,7 +768,7 @@ function BitacoraComponentProduccion({
         return crearResumenNivelesTanquesVacio(
           fechaBitacora,
           error?.response?.data?.message ||
-            "No se encontraron niveles de tanques jornaleros para la fecha de la bitácora."
+          "No se encontraron niveles de tanques jornaleros para la fecha de la bitácora."
         );
       }
 
@@ -782,7 +833,7 @@ function BitacoraComponentProduccion({
             fechaBitacora,
 
             error?.response?.data?.message ||
-              "No existe un cierre de combustibles anterior a la fecha de la bitácora."
+            "No existe un cierre de combustibles anterior a la fecha de la bitácora."
           );
         }
 
@@ -1140,8 +1191,8 @@ function BitacoraComponentProduccion({
           exportando
             ? "Generando informe..."
             : debeConsultarDiaAnterior(
-                  headerData.turno
-                )
+              headerData.turno
+            )
               ? "Generar bitácora con balance del día anterior"
               : "Generar bitácora"
         }
@@ -1354,7 +1405,7 @@ function BitacoraComponentProduccion({
           <Typography>
             {
               DiccionarioUnidadDefault[
-                selectedUnidad
+              selectedUnidad
               ]
             }
           </Typography>

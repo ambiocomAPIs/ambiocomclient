@@ -13,7 +13,6 @@ const sections = [
 function NoteBoard({ supervisor, turno, fecha, notes, setNotes }) {
   const [noteToCreate, setNoteToCreate] = useState(null);
 
-    // 🔔 Snackbar
     const [snackbar, setSnackbar] = useState({
       open: false,
       message: "",
@@ -23,7 +22,6 @@ function NoteBoard({ supervisor, turno, fecha, notes, setNotes }) {
       setSnackbar({ open: false, message: "" });
     };
 
-  // Cargar notas existentes desde la API
   const fetchNotes = async () => {
     try {
       const res = await axios.get("https://ambiocomserver.onrender.com/api/notasbitacora");
@@ -31,7 +29,7 @@ function NoteBoard({ supervisor, turno, fecha, notes, setNotes }) {
         acc[s.key] = res.data.filter((n) => n.module === s.key);
         return acc;
       }, {});      
-      setNotes(grouped); // 👈 ahora actualiza el padre
+      setNotes(grouped); 
     } catch (error) {
       console.error("Error al cargar notas:", error);
     }
@@ -41,7 +39,6 @@ function NoteBoard({ supervisor, turno, fecha, notes, setNotes }) {
     fetchNotes();
   }, []);
 
-  // Crear nota en la API si hay una pendiente
   useEffect(() => {
     if (!noteToCreate) return;
 
@@ -147,7 +144,7 @@ function NoteBoard({ supervisor, turno, fecha, notes, setNotes }) {
        severity="info"
        sx={{
          width: "100%",
-         backgroundColor: "#EAD1FF", // Morado
+         backgroundColor: "#EAD1FF", 
          color: "dark gray",
          fontWeight: "bold",
        }}

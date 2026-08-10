@@ -757,27 +757,16 @@ export default function RiceBacklogManager() {
         minHeight: "100vh",
         bgcolor: "#f6f7f9",
         p: { xs: 1, md: 0 },
-        mt: 5,
+        mt: 5.5,
       }}
     >
       <Stack spacing={3}>
         <Box>
-          <Typography
-            variant="overline"
-            sx={{
-              letterSpacing: 2,
-              color: "text.secondary",
-              fontWeight: 700,
-            }}
-          >
-            Calculadora RICE — Ritual quincenal de priorización
-          </Typography>
-
-          <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
+          {/* <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
             Backlog de tareas, hallazgos y requerimientos
-          </Typography>
+          </Typography> */}
 
-          <Typography sx={{ color: "text.secondary", mt: 0.8 }}>
+          <Typography sx={{ color: "text.secondary", mt: 1 }}>
             Registra, calcula y ordena iniciativas según alcance, impacto,
             confianza y esfuerzo.
           </Typography>
@@ -792,7 +781,7 @@ export default function RiceBacklogManager() {
         <Paper
           elevation={0}
           sx={{
-            p: 2.5,
+            p: 2.0,
             borderRadius: 3,
             bgcolor: "#ffffff",
             border: "1px solid",
@@ -946,7 +935,6 @@ export default function RiceBacklogManager() {
               justifyContent="space-between"
               alignItems={{ xs: "flex-start", md: "center" }}
               spacing={2}
-              sx={{ mb: 2.5 }}
             >
               <Box>
                 <Typography variant="h6" sx={{ fontWeight: 900 }}>

@@ -29,6 +29,8 @@ import {
 
 import { useAuth } from "../../../utils/Context/AuthContext/AuthContext";
 
+import FactCheckIcon from "@mui/icons-material/FactCheck";
+
 import BarChartIcon from "@mui/icons-material/BarChart";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
@@ -46,8 +48,11 @@ import SortByAlphaIcon from '@mui/icons-material/SortByAlpha';
 import CleaningServicesIcon from '@mui/icons-material/CleaningServices';
 import SwapVertIcon from "@mui/icons-material/SwapVert";
 import CheckIcon from '@mui/icons-material/Check';
+import UploadFileIcon from "@mui/icons-material/UploadFile";
 
 import ProgramacionDespachoModal from "./utils_planeacion/ProgramacionDespachoModal";
+import CargaMasivaProgramacionModal from "./utils_planeacion/CargaMasivaProgramacionModal";
+import EstadoProgramacionModal from "./utils_planeacion/EstadoProgramacionModal";
 
 const API_URL = "https://ambiocomserver.onrender.com/api/programaciondespacho";
 const API_CONDUCTORES = "https://ambiocomserver.onrender.com/api/conductores";
@@ -85,6 +90,27 @@ const INPUT_SX_COMPACT = {
 };
 
 // HELPERS (normalización)
+
+const getEstadoIconColor = (estado) => {
+  const value = normalizeText(
+    estado || "PENDIENTE"
+  ).toUpperCase();
+
+  const colores = {
+    PENDIENTE: "#ed6c02",
+    CONFIRMADO: "#0288d1",
+    "EN PLANTA": "#7b1fa2",
+    "EN CARGUE": "#5e35b1",
+    DESPACHADO: "#1976d2",
+    "EN TRÁNSITO": "#1565c0",
+    "EN CLIENTE": "#00838f",
+    ENTREGADO: "#2e7d32",
+    CANCELADO: "#d32f2f",
+  };
+
+  return colores[value] || "#757575";
+};
+
 const normalizeText = (v) =>
   String(v ?? "")
     .replace(/\u00A0/g, " ")
@@ -213,6 +239,10 @@ const ProgramacionDespachoDiariaPage = () => {
   const [rows, setRows] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [formModalOpen, setFormModalOpen] = useState(false);
+  const [cargaMasivaOpen, setCargaMasivaOpen] = useState(false);
+  const [estadoModalOpen, setEstadoModalOpen] = useState(false);
+  const [ programacionSeleccionada, setProgramacionSeleccionada,] = useState(null);
+  const [guardandoEstado, setGuardandoEstado] = useState(false);
   const [search, setSearch] = useState("");   // buscador global
   const [sortOrder, setSortOrder] = useState("desc");
   const debouncedSearch = useDebouncedValue(search, 250);
@@ -753,6 +783,81 @@ const ProgramacionDespachoDiariaPage = () => {
     setFormModalOpen(true);
   };
 
+  const handleOpenEstadoModal = (item) => {
+    setProgramacionSeleccionada(item);
+    setEstadoModalOpen(true);
+  };
+
+  const handleCloseEstadoModal = () => {
+    if (guardandoEstado) return;
+
+    setEstadoModalOpen(false);
+    setProgramacionSeleccionada(null);
+  };
+
+  const handleSaveEstado = async ({ estado, observacionesEstado }) => {
+    if (!programacionSeleccionada?._id) {
+      Swal.fire({
+        icon: "warning",
+        title: "Programación no seleccionada",
+        text: "No se encontró la programación que deseas actualizar.",
+      });
+      return;
+    }
+
+    try {
+      setGuardandoEstado(true);
+
+      const payload = {
+        estado: normalizeText(estado).toUpperCase(),
+        observacionesEstado: normalizeText(observacionesEstado),
+      };
+
+      const response = await axios.patch(
+        `${API_URL}/${programacionSeleccionada._id}/estado`,
+        payload,
+        { withCredentials: true }
+      );
+
+      const responseData = response?.data?.data ?? response?.data ?? {};
+
+      setRows((prevRows) =>
+        prevRows.map((row) =>
+          row._id === programacionSeleccionada._id
+            ? {
+                ...row,
+                ...responseData,
+                estado: responseData?.estado ?? payload.estado,
+                observacionesEstado:
+                  responseData?.observacionesEstado ?? payload.observacionesEstado,
+              }
+            : row
+        )
+      );
+
+      setEstadoModalOpen(false);
+      setProgramacionSeleccionada(null);
+
+      await Swal.fire({
+        icon: "success",
+        title: "Estado actualizado",
+        text: "El estado de la programación fue actualizado correctamente.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (error) {
+      console.error("Error actualizando estado de programación:", error);
+
+      Swal.fire({
+        icon: "error",
+        title: "No se pudo actualizar",
+        text: getApiErrorMessage(error),
+      });
+    } finally {
+      setGuardandoEstado(false);
+    }
+  };
+
   const handleDelete = async (id) => {
     try {
       const confirm = await Swal.fire({
@@ -1049,7 +1154,28 @@ const ProgramacionDespachoDiariaPage = () => {
               >
                 Nueva programación
               </Button>
-
+              <Button
+                variant="outlined"
+                startIcon={<UploadFileIcon />}
+                size="small"
+                onClick={() => setCargaMasivaOpen(true)}
+                sx={{
+                  whiteSpace: "nowrap",
+                  color: "#0B7A5A",
+                  borderColor: "#0B7A5A",
+                  fontWeight: 700,
+                  textTransform: "none",
+                  borderRadius: 2,
+                  px: 2,
+                  "&:hover": {
+                    color: "#09684D",
+                    borderColor: "#09684D",
+                    bgcolor: "rgba(11, 122, 90, 0.06)",
+                  },
+                }}
+              >
+                Carga masiva
+              </Button>
               <Button
                 variant="contained"
                 color="info"
@@ -1466,6 +1592,20 @@ const ProgramacionDespachoDiariaPage = () => {
             onClose={handleCloseFormModal}
           />
 
+          <EstadoProgramacionModal
+            open={estadoModalOpen}
+            programacion={programacionSeleccionada}
+            saving={guardandoEstado}
+            onClose={handleCloseEstadoModal}
+            onSave={handleSaveEstado}
+          />
+
+          {/* Modal carga masiva */}
+          <CargaMasivaProgramacionModal
+            open={cargaMasivaOpen}
+            onClose={() => setCargaMasivaOpen(false)}
+          />
+
           {/* TABLA */}
           <TableContainer component={Paper} elevation={2} sx={{ borderRadius: 2 }}
             onContextMenu={(e) => {
@@ -1656,6 +1796,21 @@ const ProgramacionDespachoDiariaPage = () => {
                       </TableCell>
 
                       <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>
+                        <Tooltip
+                          placement="top"
+                          title={`Gestionar estado: ${
+                            normalizeText(r?.estado).toUpperCase() || "PENDIENTE"
+                          }`}
+                        >
+                          <IconButton
+                            onClick={() => handleOpenEstadoModal(r)}
+                            aria-label="Gestionar estado de programación"
+                            sx={{ color: getEstadoIconColor(r?.estado) }}
+                          >
+                            <FactCheckIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+
                         <IconButton color="primary" onClick={() => handleEdit(r)}>
                           <EditIcon fontSize="small" />
                         </IconButton>
