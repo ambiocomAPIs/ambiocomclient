@@ -23,7 +23,6 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
-import ScheduleIcon from "@mui/icons-material/Schedule";
 import WaterDropIcon from "@mui/icons-material/WaterDrop";
 
 import {
@@ -153,19 +152,6 @@ const safeNumber = (value) => {
     return Number.isFinite(n) ? n : 0;
 };
 
-const normalize = (value) =>
-    String(value ?? "")
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .trim();
-
-const sumByName = (data = [], predicate) =>
-    data.reduce((acc, item) => {
-        const name = normalize(item?.name);
-        return predicate(name) ? acc + safeNumber(item?.value) : acc;
-    }, 0);
-
 const calcPct = (cumple, total) => {
     if (!total || total <= 0) return 0;
     return (cumple / total) * 100;
@@ -210,7 +196,6 @@ const getRangeLabel = (range) => {
 const OtiffGeneralCollapsible = ({
     comparativoFiltrado = [],
     tolerancia = 0.002,
-    pieCumpleVsNoCumpleHoraProgramada = [],
     pieCumplimientoFechaEntrega = [],
     range,
     formatNumber = (v) => v,
@@ -226,16 +211,6 @@ const OtiffGeneralCollapsible = ({
 
         const totalBaseOtiff = rowsOtiff.length;
         const tol = safeNumber(tolerancia);
-
-        const llegadaCumpleRaw = sumByName(
-            pieCumpleVsNoCumpleHoraProgramada,
-            (name) => name.startsWith("cumple")
-        );
-
-        const llegadaCumple = Math.min(llegadaCumpleRaw, totalBaseOtiff);
-        const llegadaTotal = totalBaseOtiff;
-        const llegadaNoCumple = Math.max(llegadaTotal - llegadaCumple, 0);
-        const pctLlegada = calcPct(llegadaCumple, llegadaTotal);
 
         const fechaCumple = rowsOtiff.filter(
             (r) => r.cumplioFechaEntrega === true
@@ -266,19 +241,6 @@ const OtiffGeneralCollapsible = ({
         const pctMermaCliente = calcPct(mermaClienteCumple, mermaClienteTotal);
 
         const indicadores = [
-            {
-                key: "llegadaAmbiocom",
-                title: "Llegada Ambiocom",
-                subtitle:
-                    "Evalúa si el vehículo llegó a Ambiocom dentro de la ventana de tolerancia definida.",
-                regla: "Hora llegada real vs hora programada",
-                cumple: llegadaCumple,
-                noCumple: llegadaNoCumple,
-                total: llegadaTotal,
-                pct: pctLlegada,
-                meta: 95,
-                icon: <ScheduleIcon fontSize="small" />,
-            },
             {
                 key: "fechaEntrega",
                 title: "Fecha entrega",
@@ -311,9 +273,10 @@ const OtiffGeneralCollapsible = ({
 
         const indicadoresEvaluables = indicadores.filter((item) => item.total > 0);
 
-        const otiffGeneral = indicadoresEvaluables.length
-            ? indicadoresEvaluables.reduce((acc, item) => acc + item.pct, 0) /
-            indicadoresEvaluables.length
+        // NUEVO OTIFF: Fecha entrega 50% + Merma cliente 50%.
+        // Llegada a Ambiocom ya no participa en el cálculo.
+        const otiffGeneral = totalBaseOtiff > 0
+            ? (pctFechaEntrega + pctMermaCliente) / 2
             : 0;
 
         const brechaOtiff = Math.max(100 - otiffGeneral, 0);
@@ -345,7 +308,6 @@ const OtiffGeneralCollapsible = ({
     }, [
         comparativoFiltrado,
         tolerancia,
-        pieCumpleVsNoCumpleHoraProgramada,
         pieCumplimientoFechaEntrega,
     ]);
 
@@ -356,7 +318,7 @@ const OtiffGeneralCollapsible = ({
         <Grid item xs={12}>
             <CollapsibleSection
                 title="OTIFF general logístico"
-                subtitle="OTIFF calculado con la misma base de datos para llegada Ambiocom, fecha entrega y merma cliente."
+                subtitle="OTIFF calculado con la misma base de datos para fecha entrega y merma cliente."
                 chipLabel={`OTIFF ${formatNumber1D(otiffData.otiffGeneral)}%`}
                 defaultOpen={false}
                 paperSx={{
@@ -457,8 +419,8 @@ const OtiffGeneralCollapsible = ({
                                             lineHeight: 1.55,
                                         }}
                                     >
-                                        Lectura ejecutiva del cumplimiento logístico: llegada a Ambiocom,
-                                        fecha de entrega y merma cliente sobre la misma base evaluada.
+                                        Lectura ejecutiva del cumplimiento logístico: fecha de entrega y merma cliente
+                                        sobre la misma base evaluada.
                                     </Typography>
                                 </Box>
 
@@ -493,12 +455,11 @@ const OtiffGeneralCollapsible = ({
                                                           )} registros<br/><br/>
                                                           <b>Indicadores:</b>
                                                           <ul style="padding-left:18px">
-                                                            <li><b>Llegada Ambiocom:</b> cumplidos / base OTIFF.</li>
                                                             <li><b>Fecha entrega:</b> cumplidos / base OTIFF.</li>
                                                             <li><b>Merma cliente:</b> Diff Facturado - R.Cliente dentro de tolerancia / base OTIFF.</li>
                                                           </ul>
                                                           <b>Fórmula:</b><br/>
-                                                          OTIFF = (Llegada Ambiocom % + Fecha Entrega % + Merma Cliente %) / 3
+                                                          OTIFF = (Fecha Entrega % + Merma Cliente %) / 2
                                                         </div>
                                                     `),
                                                     width: 720,
@@ -634,7 +595,7 @@ const OtiffGeneralCollapsible = ({
 
                                             <Chip
                                                 size="small"
-                                                label={`Indicadores: ${otiffData.indicadoresEvaluables.length}/3`}
+                                                label={`Indicadores: ${otiffData.indicadoresEvaluables.length}/2`}
                                                 sx={metricChipSx(COLORS.softGreen, "#14532d")}
                                             />
                                         </Stack>
@@ -776,7 +737,7 @@ const OtiffGeneralCollapsible = ({
                                     <Grid
                                         item
                                         xs={12}
-                                        md={4}
+                                        md={6}
                                         key={item.key}
                                         sx={{ display: "flex" }}
                                     >

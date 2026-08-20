@@ -124,6 +124,11 @@ export default function ModalMedicionAgua({
                 fullWidth
                 size="small"
                 InputLabelProps={{ shrink: true }}
+                value={
+                  form.fecha
+                    ? form.fecha.split("-").reverse().join("-")
+                    : ""
+                }
                 onChange={(e) =>
                   setForm({ ...form, fecha: isoToDDMMYYYY(e.target.value) })
                 }

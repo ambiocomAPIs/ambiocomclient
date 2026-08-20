@@ -14,7 +14,6 @@ const MyTable = () => {
   const [data, setData] = useState([]);
 
   useEffect(() => {
-    // Cambia 'path/to/your/file.csv' por la ruta real de tu archivo CSV
     Papa.parse('/Files/MLE-CAA-F-06-01 SEGUIMIENTO GENERAL A MATERIAL DE REFERENCIA CERTIFICADO.csv', {
       header: true,
       download: true,
@@ -35,7 +34,7 @@ const MyTable = () => {
                 sx={{ 
                   fontWeight: 'bold', 
                   backgroundColor: '#f5f5f5', 
-                  borderRight: '1px solid #ccc' // Separación vertical
+                  borderRight: '1px solid #ccc'
                 }}
               >
                 {key}
@@ -50,7 +49,7 @@ const MyTable = () => {
                 <TableCell 
                   key={idx} 
                   sx={{ 
-                    borderRight: '1px solid #ccc', // Separación vertical
+                    borderRight: '1px solid #ccc', 
                     padding: '4px', // Hacer más pequeño el padding
                     fontSize: '12px', // Hacer más pequeño el texto
                   }}
