@@ -72,7 +72,7 @@ const permittedRows = [
     "Max 5.0",
     "",
     "Max 2000",
-    "Max 10",
+    "Max 300",
     "",
     "MAX 100",
     "Max 2700",
@@ -84,8 +84,8 @@ const permittedRows = [
   [
     "ORIGEN MAIZ",
     "Min 99,5",
-    "Max 5.0",
     "Max 10",
+    "Max 50",
     "Max 7.0",
     "",
     "",
@@ -98,10 +98,10 @@ const permittedRows = [
     "N.D",
     "",
     "Max 10",
-    "Max 300",
+    "Max 10",
     "",
     "Max 10",
-    "Max 35",
+    "Max 50",
     "",
     "",
     "",
@@ -442,7 +442,7 @@ export default function TablaTrazabilidadLaboratorio() {
 
   const buildPayload = () => ({
     formato: "4-LAB-032",
-    version: "3",
+    version: "4",
     pagina: "3-3",
     tabla: "Trazabilidad de lote de producción",
     fechaRegistro: formatDateToDDMMYYYY(fechaRegistro),
@@ -945,7 +945,7 @@ export default function TablaTrazabilidadLaboratorio() {
 
             <tr>
               <td colSpan={3} style={{ ...cellStyle, fontWeight: 700, fontSize: 14 }}>
-                Versión: 3
+                Versión: 4
               </td>
             </tr>
 
