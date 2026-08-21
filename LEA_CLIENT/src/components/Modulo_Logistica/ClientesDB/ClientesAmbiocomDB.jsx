@@ -28,6 +28,8 @@ import {
   MenuItem,
 } from "@mui/material";
 
+import ExcelDownloadButton from "../../../utils/Export_Data_General/ExcelDownloadData";
+
 import Autocomplete from "@mui/material/Autocomplete";
 
 import EditIcon from "@mui/icons-material/Edit";
@@ -307,6 +309,15 @@ const ClientesDespachoPageDB = () => {
   const total = clientes.length;
   const filtrados = clientesFiltrados.length;
 
+  const dataExcel = useMemo(() => {
+    return clientesFiltrados.map((c) => ({
+      Comercial: c.comercial ?? "",
+      Cliente: c.cliente ?? "",
+      "Tipo OH": c.tipoOH ?? "",
+      Incoterm: c.incoterm ?? "",
+    }));
+  }, [clientesFiltrados]);
+
   return (
     <Box p={0} mt={5}>
       <Card elevation={4}>
@@ -337,7 +348,52 @@ const ClientesDespachoPageDB = () => {
               </Stack>
             </Box>
 
-            <TextField
+            <Box
+              sx={{
+                display: "flex",
+                gap: 1,
+                alignItems: "center",
+                flexDirection: { xs: "column", md: "row" },
+                width: { xs: "100%", md: "auto" },
+              }}
+            >
+              <ExcelDownloadButton
+                data={dataExcel}
+                filename="Clientes_Logistica.xlsx"
+                sheetName="Clientes"
+                buttonText="Exportar Excel"
+                size="small"
+                variant="contained"
+                color="success"
+              />
+
+              <TextField
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por comercial, cliente, tipo OH o incoterm..."
+                size="small"
+                sx={{ minWidth: { xs: "100%", md: 520 } }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: search ? (
+                    <InputAdornment position="end">
+                      <IconButton
+                        size="small"
+                        onClick={() => setSearch("")}
+                        aria-label="Limpiar búsqueda"
+                      >
+                        <ClearIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
+                }}
+              />
+            </Box>
+            {/* <TextField
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por comercial, cliente, tipo OH o incoterm..."
@@ -361,7 +417,7 @@ const ClientesDespachoPageDB = () => {
                   </InputAdornment>
                 ) : null,
               }}
-            />
+            /> */}
           </Box>
 
           <Divider sx={{ mb: 3, mt: 3 }} />

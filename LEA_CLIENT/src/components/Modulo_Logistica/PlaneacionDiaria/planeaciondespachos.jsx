@@ -50,6 +50,11 @@ import SwapVertIcon from "@mui/icons-material/SwapVert";
 import CheckIcon from '@mui/icons-material/Check';
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import EventRepeatIcon from "@mui/icons-material/EventRepeat";
+import CancelIcon from "@mui/icons-material/Cancel";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+
 import ProgramacionDespachoModal from "./utils_planeacion/ProgramacionDespachoModal";
 import CargaMasivaProgramacionModal from "./utils_planeacion/CargaMasivaProgramacionModal";
 import EstadoProgramacionModal from "./utils_planeacion/EstadoProgramacionModal";
@@ -72,25 +77,24 @@ const useDebouncedValue = (value, delay = 250) => {
 };
 
 // aqui controlo los estilos de lo inputts de nueva programacion
-const INPUT_SX_COMPACT = {
-  "& .MuiInputBase-root": {
-    height: 40,
-    fontSize: 13,
-  },
-  "& .MuiInputBase-input": {
-    padding: "8px 10px",
-  },
-  "& .MuiInputLabel-root": {
-    fontSize: 15,
-    top: "-3px",
-  },
-  "& .MuiInputLabel-shrink": {
-    top: 0,
-  },
-};
+// const INPUT_SX_COMPACT = {
+//   "& .MuiInputBase-root": {
+//     height: 40,
+//     fontSize: 13,
+//   },
+//   "& .MuiInputBase-input": {
+//     padding: "8px 10px",
+//   },
+//   "& .MuiInputLabel-root": {
+//     fontSize: 15,
+//     top: "-3px",
+//   },
+//   "& .MuiInputLabel-shrink": {
+//     top: 0,
+//   },
+// };
 
 // HELPERS (normalización)
-
 const getEstadoIconColor = (estado) => {
   const value = normalizeText(
     estado || "PENDIENTE"
@@ -98,17 +102,37 @@ const getEstadoIconColor = (estado) => {
 
   const colores = {
     PENDIENTE: "#ed6c02",
-    CONFIRMADO: "#0288d1",
-    "EN PLANTA": "#7b1fa2",
-    "EN CARGUE": "#5e35b1",
-    DESPACHADO: "#1976d2",
-    "EN TRÁNSITO": "#1565c0",
-    "EN CLIENTE": "#00838f",
-    ENTREGADO: "#2e7d32",
+    ADICIONAL: "#2e7d32",
+    "REPROGRAMADO CLIENTE O VENTAS": "#0288d1",
+    "REPROGRAMADO LOGISTICA": "#ed6c02",
     CANCELADO: "#d32f2f",
   };
 
   return colores[value] || "#757575";
+};
+
+const getEstadoIcon = (estado) => {
+  const value = normalizeText(
+    estado || "PENDIENTE"
+  ).toUpperCase();
+
+  switch (value) {
+    case "ADICIONAL":
+      return <AddCircleOutlineIcon fontSize="small" />;
+
+    case "REPROGRAMADO CLIENTE O VENTAS":
+      return <EventRepeatIcon fontSize="small" />;
+
+    case "REPROGRAMADO LOGISTICA":
+      return <EventRepeatIcon fontSize="small" />;
+
+    case "CANCELADO":
+      return <CancelIcon fontSize="small" />;
+
+    case "PENDIENTE":
+    default:
+      return <ScheduleIcon fontSize="small" />;
+  }
 };
 
 const normalizeText = (v) =>
@@ -241,7 +265,7 @@ const ProgramacionDespachoDiariaPage = () => {
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [cargaMasivaOpen, setCargaMasivaOpen] = useState(false);
   const [estadoModalOpen, setEstadoModalOpen] = useState(false);
-  const [ programacionSeleccionada, setProgramacionSeleccionada,] = useState(null);
+  const [programacionSeleccionada, setProgramacionSeleccionada,] = useState(null);
   const [guardandoEstado, setGuardandoEstado] = useState(false);
   const [search, setSearch] = useState("");   // buscador global
   const [sortOrder, setSortOrder] = useState("desc");
@@ -825,12 +849,12 @@ const ProgramacionDespachoDiariaPage = () => {
         prevRows.map((row) =>
           row._id === programacionSeleccionada._id
             ? {
-                ...row,
-                ...responseData,
-                estado: responseData?.estado ?? payload.estado,
-                observacionesEstado:
-                  responseData?.observacionesEstado ?? payload.observacionesEstado,
-              }
+              ...row,
+              ...responseData,
+              estado: responseData?.estado ?? payload.estado,
+              observacionesEstado:
+                responseData?.observacionesEstado ?? payload.observacionesEstado,
+            }
             : row
         )
       );
@@ -1601,9 +1625,18 @@ const ProgramacionDespachoDiariaPage = () => {
           />
 
           {/* Modal carga masiva */}
+          {/* <CargaMasivaProgramacionModal
+            open={cargaMasivaOpen}
+            onClose={() => setCargaMasivaOpen(false)}
+          /> */}
+
           <CargaMasivaProgramacionModal
             open={cargaMasivaOpen}
             onClose={() => setCargaMasivaOpen(false)}
+            onSuccess={async () => {
+              await fetchProgramacion(range);
+              await fetchCatalogs();
+            }}
           />
 
           {/* TABLA */}
@@ -1798,16 +1831,15 @@ const ProgramacionDespachoDiariaPage = () => {
                       <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>
                         <Tooltip
                           placement="top"
-                          title={`Gestionar estado: ${
-                            normalizeText(r?.estado).toUpperCase() || "PENDIENTE"
-                          }`}
+                          title={`Gestionar estado: ${normalizeText(r?.estado).toUpperCase() || "PENDIENTE"
+                            }`}
                         >
                           <IconButton
                             onClick={() => handleOpenEstadoModal(r)}
                             aria-label="Gestionar estado de programación"
                             sx={{ color: getEstadoIconColor(r?.estado) }}
                           >
-                            <FactCheckIcon fontSize="small" />
+                            {getEstadoIcon(r?.estado)}
                           </IconButton>
                         </Tooltip>
 

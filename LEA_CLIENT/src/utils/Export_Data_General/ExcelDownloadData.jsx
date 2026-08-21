@@ -5,7 +5,7 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import DownloadIcon from "@mui/icons-material/Download";
 
-const EXCLUDED_KEYS = new Set([   // para que no me exporte los indices de la base de datos
+const EXCLUDED_KEYS = new Set([   
   "_id",
   "id",
   "__v",
@@ -19,8 +19,6 @@ const isPlainObject = (value) => {
   return Object.prototype.toString.call(value) === "[object Object]";
 };
 
-// Aplana objetos anidados:
-// { cliente: { nombre: "ABC" } } -> { "cliente.nombre": "ABC" }
 const flattenObject = (obj, prefix = "") => {
   const out = {};
 
@@ -53,11 +51,8 @@ const shouldExcludeKey = (key) => {
 
   const cleanKey = String(key).trim().toLowerCase();
 
-  // excluye la llave exacta
   if (EXCLUDED_KEYS.has(cleanKey)) return true;
 
-  // excluye índices anidados como:
-  // tabla.index, meta.indice, data._id, user.id
   const lastSegment = cleanKey.split(".").pop();
   if (EXCLUDED_KEYS.has(lastSegment)) return true;
 
@@ -79,10 +74,8 @@ const ExcelDownloadButton = ({
     try {
       if (!Array.isArray(data) || data.length === 0) return;
 
-      // Aplana cada fila
       const flattenedRows = data.map((row) => flattenObject(row));
 
-      // Construye conjunto total de columnas encontradas, excluyendo índices e internos
       const allColumns = Array.from(
         new Set(flattenedRows.flatMap((row) => Object.keys(row)))
       ).filter((key) => !shouldExcludeKey(key));

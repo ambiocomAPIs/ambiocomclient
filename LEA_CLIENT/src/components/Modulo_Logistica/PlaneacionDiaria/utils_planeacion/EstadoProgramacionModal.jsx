@@ -20,14 +20,9 @@ import SaveIcon from "@mui/icons-material/Save";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
 
 const ESTADOS_PROGRAMACION = [
-  "PENDIENTE",
-  "CONFIRMADO",
-  "EN PLANTA",
-  "EN CARGUE",
-  "DESPACHADO",
-  "EN TRÁNSITO",
-  "EN CLIENTE",
-  "ENTREGADO",
+  "ADICIONAL",
+  "REPROGRAMADO CLIENTE O VENTAS",
+  "REPROGRAMADO LOGISTICA",
   "CANCELADO",
 ];
 
@@ -51,10 +46,10 @@ const formatNumber = (value) => {
 const getEstadoChipColor = (estado) => {
   const value = normalizeEstado(estado);
 
-  if (value === "ENTREGADO") return "success";
+  if (value === "ADICIONAL") return "success";
   if (value === "CANCELADO") return "error";
-  if (value === "PENDIENTE") return "warning";
-  if (value === "CONFIRMADO") return "info";
+  if (value === "REPROGRAMADO LOGISTICA") return "warning";
+  if (value === "REPROGRAMADO CLIENTE O VENTAS") return "info";
 
   return "primary";
 };
