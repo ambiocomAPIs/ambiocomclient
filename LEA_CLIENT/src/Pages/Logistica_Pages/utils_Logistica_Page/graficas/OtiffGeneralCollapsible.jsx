@@ -205,9 +205,24 @@ const OtiffGeneralCollapsible = ({
     const otiffExportRef = useRef(null);
 
     const otiffData = useMemo(() => {
-        const rowsOtiff = (comparativoFiltrado ?? []).filter(
-            (r) => !r.rechazado && !r.rechazadoCliente
-        );
+        // const rowsOtiff = (comparativoFiltrado ?? []).filter(
+        //     (r) => !r.rechazado && !r.rechazadoCliente
+        // );
+
+        const rowsOtiff = (comparativoFiltrado ?? []).filter((r) => {
+            const estadoPlaneacion = String(r?.estadoPlaneacion ?? "")
+                .replace(/\u00A0/g, " ")
+                .replace(/\s+/g, " ")
+                .trim()
+                .toUpperCase();
+
+            return (
+                !r.rechazado &&
+                !r.rechazadoCliente &&
+                estadoPlaneacion !== "CANCELADO"
+            );
+        });
+
 
         const totalBaseOtiff = rowsOtiff.length;
         const tol = safeNumber(tolerancia);
@@ -451,8 +466,8 @@ const OtiffGeneralCollapsible = ({
                                                           <b>Base OTIFF:</b> registros filtrados, sin rechazados Ambiocom ni rechazados cliente.<br/><br/>
                                                           <b>Rango evaluado:</b> ${getRangeLabel(range)}<br/>
                                                           <b>Base evaluada:</b> ${formatNumber(
-                                                              otiffData.totalRegistrosBase
-                                                          )} registros<br/><br/>
+                                                        otiffData.totalRegistrosBase
+                                                    )} registros<br/><br/>
                                                           <b>Indicadores:</b>
                                                           <ul style="padding-left:18px">
                                                             <li><b>Fecha entrega:</b> cumplidos / base OTIFF.</li>

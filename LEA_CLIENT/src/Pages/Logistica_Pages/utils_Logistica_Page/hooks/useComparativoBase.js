@@ -107,6 +107,10 @@ const buildComparativoBase = ({ programaciones, despachos }) => {
       const p = progs[i] || null;
       const d = desps[i] || null;
 
+      const estadoPlaneacion = p
+        ? normalizeText(p?.estado || "PENDIENTE").toUpperCase()
+        : "";
+
       const cantidadProgramada = Number(p?.cantidad ?? 0);
       const cantidadRealPlanta = Number(getDespachoCantidadRealPlanta(d) ?? 0);
 
@@ -194,6 +198,8 @@ const buildComparativoBase = ({ programaciones, despachos }) => {
         tieneProgramacion: !!p,
         tieneDespacho: !!d,
 
+        estadoPlaneacion,
+        
         rechazado,
         rechazadoCliente,
         aprobado,
