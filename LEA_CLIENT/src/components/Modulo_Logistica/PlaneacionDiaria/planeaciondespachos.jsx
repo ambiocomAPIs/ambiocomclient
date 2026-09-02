@@ -101,6 +101,7 @@ const getEstadoIconColor = (estado) => {
   ).toUpperCase();
 
   const colores = {
+    PROGRAMADO: "#1976d2",
     PENDIENTE: "#ed6c02",
     ADICIONAL: "#2e7d32",
     "REPROGRAMADO CLIENTE O VENTAS": "#0288d1",
@@ -113,10 +114,13 @@ const getEstadoIconColor = (estado) => {
 
 const getEstadoIcon = (estado) => {
   const value = normalizeText(
-    estado || "PENDIENTE"
+    estado || "PROGRAMADO"
   ).toUpperCase();
 
   switch (value) {
+    case "PROGRAMADO":
+      return <ScheduleIcon fontSize="small" />;
+
     case "ADICIONAL":
       return <AddCircleOutlineIcon fontSize="small" />;
 
@@ -130,6 +134,8 @@ const getEstadoIcon = (estado) => {
       return <CancelIcon fontSize="small" />;
 
     case "PENDIENTE":
+      return <ScheduleIcon fontSize="small" />;
+
     default:
       return <ScheduleIcon fontSize="small" />;
   }
@@ -1831,8 +1837,7 @@ const ProgramacionDespachoDiariaPage = () => {
                       <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>
                         <Tooltip
                           placement="top"
-                          title={`Gestionar estado: ${normalizeText(r?.estado).toUpperCase() || "PENDIENTE"
-                            }`}
+                          title={`Gestionar estado: ${normalizeText(r?.estado).toUpperCase() || "PROGRAMADO"}`}
                         >
                           <IconButton
                             onClick={() => handleOpenEstadoModal(r)}

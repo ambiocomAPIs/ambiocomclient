@@ -69,7 +69,7 @@ function HeaderForm({ data, onChange, clearFieldsExceptFechaTurno, trabajadoresR
     { label: "Op. Aguas", key: "op_aguas", type: "autocomplete" },
     { label: "Aux. Caldera", key: "aux_caldera", type: "autocomplete" },
     { label: "Analista 1", key: "analista1", type: "autocomplete" },
-    { label: "Analista 2", key: "analista2", type: "autocomplete", optional: true },
+    { label: "Op. Rones", key: "analista2", type: "autocomplete", optional: true },
   ];
 
   useEffect(() => {

@@ -923,7 +923,7 @@ export async function exportarBitacoraPDF(
   );
 
   doc.text(
-    `Analista de Laboratorio 2: ${
+    `Operario de Rones: ${
       headerData.analista2 ||
       ""
     }`,

@@ -19,7 +19,13 @@ import CloseIcon from "@mui/icons-material/Close";
 import SaveIcon from "@mui/icons-material/Save";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
 
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import EventRepeatIcon from "@mui/icons-material/EventRepeat";
+import CancelIcon from "@mui/icons-material/Cancel";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+
 const ESTADOS_PROGRAMACION = [
+  "PROGRAMADO",
   "ADICIONAL",
   "REPROGRAMADO CLIENTE O VENTAS",
   "REPROGRAMADO LOGISTICA",
@@ -33,7 +39,7 @@ const normalizeText = (value) =>
     .trim();
 
 const normalizeEstado = (value) =>
-  normalizeText(value || "PENDIENTE").toUpperCase();
+  normalizeText(value || "PROGRAMADO").toUpperCase();
 
 const formatNumber = (value) => {
   const numero = Number(value);
@@ -46,6 +52,7 @@ const formatNumber = (value) => {
 const getEstadoChipColor = (estado) => {
   const value = normalizeEstado(estado);
 
+  if (value === "PROGRAMADO") return "primary";
   if (value === "ADICIONAL") return "success";
   if (value === "CANCELADO") return "error";
   if (value === "REPROGRAMADO LOGISTICA") return "warning";
@@ -83,7 +90,7 @@ const EstadoProgramacionModal = ({
   onClose,
   onSave,
 }) => {
-  const [estado, setEstado] = useState("PENDIENTE");
+  const [estado, setEstado] = useState("PROGRAMADO");
   const [observacionesEstado, setObservacionesEstado] = useState("");
   const submitLockRef = useRef(false);
 
@@ -195,6 +202,11 @@ const EstadoProgramacionModal = ({
                 size="small"
                 label={estadoInicial}
                 color={getEstadoChipColor(estadoInicial)}
+                icon={
+                  estadoInicial === "PROGRAMADO"
+                    ? <ScheduleIcon />
+                    : undefined
+                }
               />
             </Box>
 
@@ -301,7 +313,50 @@ const EstadoProgramacionModal = ({
                 >
                   {ESTADOS_PROGRAMACION.map((item) => (
                     <MenuItem key={item} value={item}>
-                      {item}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                        }}
+                      >
+                        {item === "PROGRAMADO" && (
+                          <ScheduleIcon
+                            fontSize="small"
+                            color="primary"
+                          />
+                        )}
+
+                        {item === "ADICIONAL" && (
+                          <AddCircleOutlineIcon
+                            fontSize="small"
+                            color="success"
+                          />
+                        )}
+
+                        {item === "REPROGRAMADO CLIENTE O VENTAS" && (
+                          <EventRepeatIcon
+                            fontSize="small"
+                            color="info"
+                          />
+                        )}
+
+                        {item === "REPROGRAMADO LOGISTICA" && (
+                          <EventRepeatIcon
+                            fontSize="small"
+                            color="warning"
+                          />
+                        )}
+
+                        {item === "CANCELADO" && (
+                          <CancelIcon
+                            fontSize="small"
+                            color="error"
+                          />
+                        )}
+
+                        {item}
+                      </Box>
                     </MenuItem>
                   ))}
                 </TextField>
