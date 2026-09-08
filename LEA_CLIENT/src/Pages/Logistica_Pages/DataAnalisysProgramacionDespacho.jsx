@@ -83,6 +83,43 @@ const normalizarFechaHoraEntregaKpi = (value) => {
   return "";
 };
 
+const TOLERANCIA_ENTREGA_CLIENTE_MIN = 120;
+
+const fechaHoraKpiToMinutes = (value) => {
+  const normalized = normalizarFechaHoraEntregaKpi(value);
+
+  if (!normalized) return null;
+
+  const [datePart, timePart] = normalized.split(" ");
+
+  if (!datePart || !timePart) return null;
+
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hour, minute] = timePart.split(":").map(Number);
+
+  if (
+    !Number.isFinite(year) ||
+    !Number.isFinite(month) ||
+    !Number.isFinite(day) ||
+    !Number.isFinite(hour) ||
+    !Number.isFinite(minute)
+  ) {
+    return null;
+  }
+
+  return (
+    new Date(
+      year,
+      month - 1,
+      day,
+      hour,
+      minute,
+      0,
+      0
+    ).getTime() / 60000
+  );
+};
+
 // UI: módulo BI
 const DataAnalisysProgramacionDespacho = () => {
   const navigate = useNavigate();
@@ -159,16 +196,24 @@ const DataAnalisysProgramacionDespacho = () => {
         !r.tieneCampoFechaEntrega;
 
       const fechaEntregaKpi = normalizarFechaHoraEntregaKpi(r.fechaEntrega);
-      const fechaEstimadaEntregaKpi = normalizarFechaHoraEntregaKpi(
-        r.fechaEstimadaEntrega
-      );
+      const fechaEstimadaEntregaKpi = normalizarFechaHoraEntregaKpi(r.fechaEstimadaEntrega);
 
-      const tieneFechasEntrega = !!fechaEstimadaEntregaKpi && !!fechaEntregaKpi;
+      const fechaEntregaMin = fechaHoraKpiToMinutes(r.fechaEntrega);
+      const fechaEstimadaEntregaMin = fechaHoraKpiToMinutes(r.fechaEstimadaEntrega);
+
+      const tieneFechasEntrega =
+        fechaEntregaMin !== null &&
+        fechaEstimadaEntregaMin !== null;
 
       const cumplioFechaEntrega =
         !excluidoFechaEntrega &&
         tieneFechasEntrega &&
-        fechaEntregaKpi <= fechaEstimadaEntregaKpi;
+        fechaEntregaMin <=
+        fechaEstimadaEntregaMin + TOLERANCIA_ENTREGA_CLIENTE_MIN;
+
+      // const tieneFechasEntrega = !!fechaEstimadaEntregaKpi && !!fechaEntregaKpi;
+
+      // const cumplioFechaEntrega = !excluidoFechaEntrega && tieneFechasEntrega && fechaEntregaKpi <= fechaEstimadaEntregaKpi;
 
       const estadoFechaEntrega = r.rechazado || r.rechazadoCliente
         ? "Excluido por rechazo"

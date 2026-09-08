@@ -18,6 +18,8 @@ import {
   Tooltip,
   CircularProgress,
   Alert,
+  Checkbox,
+  ListItemText,
 } from "@mui/material";
 
 import AddIcon from "@mui/icons-material/Add";
@@ -382,6 +384,7 @@ export default function RiceBacklogManager() {
   const [searchTerm, setSearchTerm] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("Todos");
   const [carrilFilter, setCarrilFilter] = useState("Todos");
+  const [sprintFilter, setSprintFilter] = useState([]);
 
   const [viewMode, setViewMode] = useState("list");
 
@@ -393,6 +396,16 @@ export default function RiceBacklogManager() {
   const [periodInfo, setPeriodInfo] = useState(null);
 
   const sprints = useMemo(() => buildSprintOptions(), []);
+
+  const availableSprints = useMemo(() => {
+    return [
+      ...new Set(
+        items
+          .map((item) => item.sprint)
+          .filter((sprint) => sprint && sprint.trim())
+      ),
+    ];
+  }, [items]);
 
   const fetchRiceItemsByMonth = async (
     targetMonth = monthFilter,
@@ -493,7 +506,8 @@ export default function RiceBacklogManager() {
         item.areaSolicitante?.toLowerCase().includes(search) ||
         item.estado?.toLowerCase().includes(search) ||
         item.carril?.toLowerCase().includes(search) ||
-        item.tipoActividad?.toLowerCase().includes(search);
+        item.tipoActividad?.toLowerCase().includes(search) ||
+        item.sprint?.toLowerCase().includes(search);
 
       const matchesEstado =
         estadoFilter === "Todos" || item.estado === estadoFilter;
@@ -501,9 +515,18 @@ export default function RiceBacklogManager() {
       const matchesCarril =
         carrilFilter === "Todos" || item.carril === carrilFilter;
 
-      return matchesSearch && matchesEstado && matchesCarril;
+      const matchesSprint =
+        sprintFilter.length === 0 ||
+        sprintFilter.includes(item.sprint);
+
+      return (
+        matchesSearch &&
+        matchesEstado &&
+        matchesCarril &&
+        matchesSprint
+      );
     });
-  }, [sortedItems, searchTerm, estadoFilter, carrilFilter]);
+  }, [sortedItems, searchTerm, estadoFilter, carrilFilter, sprintFilter,]);
 
   const handleChange = (field, value) => {
     setForm((prev) => ({
@@ -1195,6 +1218,57 @@ export default function RiceBacklogManager() {
                 <TextField
                   select
                   size="small"
+                  label="Sprint"
+                  value={sprintFilter}
+                  onChange={(e) => {
+                    const value = e.target.value;
+
+                    setSprintFilter(
+                      typeof value === "string"
+                        ? value.split(",")
+                        : value
+                    );
+                  }}
+                  SelectProps={{
+                    multiple: true,
+                    renderValue: (selected) => {
+                      if (!selected.length) {
+                        return "Todos los sprint";
+                      }
+
+                      if (selected.length === 1) {
+                        return selected[0];
+                      }
+
+                      return `${selected.length} sprint seleccionados`;
+                    },
+                  }}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                  sx={{
+                    minWidth: { xs: "100%", md: 245 },
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 2,
+                      bgcolor: "#ffffff",
+                    },
+                  }}
+                >
+                  {availableSprints.map((sprint) => (
+                    <MenuItem key={sprint} value={sprint}>
+                      <Checkbox
+                        checked={sprintFilter.includes(sprint)}
+                        size="small"
+                      />
+
+                      <ListItemText primary={sprint} />
+                    </MenuItem>
+                  ))}
+                </TextField>
+
+                <TextField
+                  select
+                  size="small"
                   value={estadoFilter}
                   onChange={(e) => setEstadoFilter(e.target.value)}
                   sx={{
@@ -1243,6 +1317,7 @@ export default function RiceBacklogManager() {
                     setSearchTerm("");
                     setEstadoFilter("Todos");
                     setCarrilFilter("Todos");
+                    setSprintFilter([]);
                     setMonthFilter(currentMonth);
                     fetchRiceItemsByMonth(currentMonth);
                   }}
