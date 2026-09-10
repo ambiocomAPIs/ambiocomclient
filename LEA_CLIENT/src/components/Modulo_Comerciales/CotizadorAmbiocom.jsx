@@ -102,8 +102,8 @@ const ENVASES_CARGA_GRANEL = {
 };
 
 const MODALIDAD_CARGA_LBL = {
-    granel: "Carga a granel / flete estándar",
-    seca: "Carga seca / con envase",
+    granel: "Carga a granel / con envase",
+    seca: "Carga seca / flete estándar",
 };
 
 const RAW_API_URL =
