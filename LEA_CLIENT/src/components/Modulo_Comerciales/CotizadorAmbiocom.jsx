@@ -101,9 +101,13 @@ const ENVASES_CARGA_GRANEL = {
     ibc: { n: "IBC", cop: 600000 },
 };
 
+// const MODALIDAD_CARGA_LBL = {
+//     granel: "Carga a granel / con envase",
+//     seca: "Carga seca / flete estándar",
+// };
 const MODALIDAD_CARGA_LBL = {
-    granel: "Carga a granel / con envase",
-    seca: "Carga seca / flete estándar",
+    granel: "Carga a granel / flete estándar",
+    seca: "Carga seca / con envase",
 };
 
 const RAW_API_URL =
@@ -2845,8 +2849,8 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                                 value={form.modalidadCarga || "granel"}
                                                 onChange={(v) => update("modalidadCarga", v)}
                                             >
-                                                <MenuItem value="granel">Carga a granel / con envase</MenuItem>
-                                                <MenuItem value="seca">Carga seca / flete estándar</MenuItem>
+                                                <MenuItem value="granel">Carga a granel / flete estándar</MenuItem>
+                                                <MenuItem value="seca">Carga seca / con envase</MenuItem>
                                             </SelectInput>
 
                                             <SelectInput
