@@ -69,6 +69,7 @@ import ColaboradoresAmbiocom from "../Modulo_Logistica/ColaboradoresDB/Colaborad
 import ClientesDespachoPageDB from "../Modulo_Logistica/ClientesDB/ClientesAmbiocomDB.jsx"
 import ProveedoresDespachoPageDB from "../Modulo_Logistica/ProovedoresDB/ProveedoresAmbiocomDB.jsx"
 import ProgramacionDespachoDiariaPage from '../Modulo_Logistica/PlaneacionDiaria/planeaciondespachos.jsx';
+import AnalisisFletesHistoricos from '../Modulo_Logistica/ModuloAnalisisFletexLitro/AnalisisFletesHistoricos.jsx'
 //MODULO LOGISTICA ReadOnly
 import TablaDespachosLogisticaReadOnly from "../Modulo_Logistica/ReadOnlyComponents/Despachos_List_ReadOnly/TablaDespachosLogisticaReadOnly.jsx"
 import ProgramacionDespachoReadOnlyPage from "../Modulo_Logistica/ReadOnlyComponents/Despachos_List_ReadOnly/ProgramacionDespachoReadOnlyPage.jsx"
@@ -110,7 +111,8 @@ import {
     ptapIcon, GraphIcon, BarGraphIcon, BarGraphComparativeIcon, robotAssistanceIcon, bitacoraIcon, StopWatchIcon, PdfIcon, DatabaseAdministratorIcon, workerIcon,
     TankGraphIcon, CounterIcon, MoneyGraphIcon, EnergyIcon, EnergyDataIcon, InOutMaderaCarbonIcon, InformeIcon, TankWithLiquidIcon, ReportIcon,
     Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon, PersonalIcons, plannerIconDate, logsIcon, VesselTkIcon, VesselTkIconChemical, ListToDoIcon, ArcadeIcon,
-    WaterTankIcon, VentasIcon, WaterKeyIcon, DestileryIcon, LoteTankIcon, ProveedorIcon, financeIconMoney, rutaIcon, CalderaIcon, DataSeguimientoIocn, weightliftIcon
+    WaterTankIcon, VentasIcon, WaterKeyIcon, DestileryIcon, LoteTankIcon, ProveedorIcon, financeIconMoney, rutaIcon, CalderaIcon, DataSeguimientoIocn, weightliftIcon,
+    IconFleteCost
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -285,6 +287,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'Planeacion Diaria', subKey: 'planeaciondiariadespachos', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "torrecontrollogistica"], icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} /> },
                 { text: 'Despachos', subKey: 'despachoalcoholeslogistica', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Recepción', subKey: 'recepcionalcoholeslogistica', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Flete/Litro', subKey: 'analisisfleteporlitro', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={IconFleteCost} alt="analisisfleteporlitro" style={{ width: 25, height: 25 }} /> },
                 { text: 'Colaboradores', subKey: 'colaboradoresambiocom', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={PersonalIcons} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Productos', subKey: 'productosdespacho', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={ProductDespacho} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Conductores', subKey: 'conductoresdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={Driver} alt="Despacho" style={{ width: 25, height: 25 }} /> },
@@ -564,6 +567,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'clientesdb': return <ClientesDespachoPageDB />;
             case 'proveedoresdb': return <ProveedoresDespachoPageDB />;
             case 'planeaciondiariadespachos': return <ProgramacionDespachoDiariaPage />;
+            case 'analisisfleteporlitro': return <AnalisisFletesHistoricos />;
             //laboratorio
             case 'despachoalcoholeslogisticareadonly': return <TablaDespachosLogisticaReadOnly />;
             case 'planeaciondiariadespachosreadonly': return <ProgramacionDespachoReadOnlyPage />;

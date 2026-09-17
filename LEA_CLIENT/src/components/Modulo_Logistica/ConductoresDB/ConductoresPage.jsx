@@ -76,6 +76,7 @@ const ConductoresPage = () => {
   const [form, setForm] = useState({
     nombres: "",
     apellidos: "",
+    identificacion: "",
     placaVehiculo: "",
     empresa: "",
     carroseria: "",
@@ -156,6 +157,7 @@ const ConductoresPage = () => {
     setForm({
       nombres: "",
       apellidos: "",
+      identificacion: "",
       placaVehiculo: "",
       empresa: "",
       carroseria: "",
@@ -173,6 +175,7 @@ const ConductoresPage = () => {
       const payload = {
         nombres: (form.nombres ?? "").trim(),
         apellidos: (form.apellidos ?? "").trim(),
+        identificacion: (form.identificacion ?? "").trim(),
         placaVehiculo: (form.placaVehiculo ?? "").trim(),
         empresa: (form.empresa ?? "").trim(),
         carroseria: (form.carroseria ?? "").trim(),
@@ -180,11 +183,11 @@ const ConductoresPage = () => {
       };
 
       // Validación mínima (como en los otros módulos)
-      if (!payload.nombres || !payload.apellidos) {
+      if (!payload.nombres || !payload.apellidos || !payload.identificacion) {
         await Swal.fire({
           icon: "warning",
           title: "Campos obligatorios",
-          text: "Debes diligenciar Nombres y Apellidos.",
+          text: "Debes diligenciar Nombres, Apellidos e Identificación.",
         });
 
         return;
@@ -232,6 +235,7 @@ const ConductoresPage = () => {
     setForm({
       nombres: conductor.nombres,
       apellidos: conductor.apellidos,
+      identificacion: conductor.identificacion || "",
       placaVehiculo: conductor.placaVehiculo,
       empresa: conductor.empresa,
       carroseria: conductor.carroseria,
@@ -308,6 +312,7 @@ const ConductoresPage = () => {
     return conductores.filter((c) => {
       const nombres = String(c.nombres ?? "").toLowerCase();
       const apellidos = String(c.apellidos ?? "").toLowerCase();
+      const identificacion = String(c.identificacion ?? "").toLowerCase();
       const placa = String(c.placaVehiculo ?? "").toLowerCase();
       const empresa = String(c.empresa ?? "").toLowerCase();
       const carroseria = String(c.carroseria ?? "").toLowerCase();
@@ -316,6 +321,7 @@ const ConductoresPage = () => {
       return (
         nombres.includes(q) ||
         apellidos.includes(q) ||
+        identificacion.includes(q) ||
         placa.includes(q) ||
         empresa.includes(q) ||
         carroseria.includes(q) ||
@@ -328,9 +334,9 @@ const ConductoresPage = () => {
   // Respeta la búsqueda actual y no incluye IDs ni la columna de acciones.
   const datosTabla = useMemo(() => {
     return conductoresFiltrados.map((conductor) => ({
-      Conductor: `${conductor.nombres || ""} ${
-        conductor.apellidos || ""
-      }`.trim(),
+      Conductor: `${conductor.nombres || ""} ${conductor.apellidos || ""
+        }`.trim(),
+      Identificación: conductor.identificacion ?? "",
       Placa: conductor.placaVehiculo ?? "",
       Transportadora: conductor.empresa ?? "",
       Carrocería: conductor.carroseria ?? "",
@@ -381,6 +387,7 @@ const ConductoresPage = () => {
     try {
       const columnas = [
         "Conductor",
+        "Identificación",
         "Placa",
         "Transportadora",
         "Carrocería",
@@ -408,8 +415,7 @@ const ConductoresPage = () => {
       }
 
       mostrarSnackbar(
-        `Tabla copiada: ${datosTabla.length} registro${
-          datosTabla.length === 1 ? "" : "s"
+        `Tabla copiada: ${datosTabla.length} registro${datosTabla.length === 1 ? "" : "s"
         }.`,
         "success"
       );
@@ -443,13 +449,32 @@ const ConductoresPage = () => {
             alignItems={{ xs: "stretch", md: "center" }}
             gap={2}
           >
-            <Box>
-              <Typography variant="h5" fontWeight="bold" gutterBottom>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1.5,
+                flexWrap: "wrap",
+              }}
+            >
+              <Typography
+                variant="h5"
+                fontWeight="bold"
+                sx={{ mb: 0 }}
+              >
                 Gestión de Conductores
               </Typography>
 
-              <Stack direction="row" spacing={1} mt={1} flexWrap="wrap">
-                <Chip size="small" label={`Total Data: ${total}`} />
+              <Stack
+                direction="row"
+                spacing={1}
+                alignItems="center"
+                flexWrap="wrap"
+              >
+                <Chip
+                  size="small"
+                  label={`Total Data: ${total}`}
+                />
 
                 <Chip
                   size="small"
@@ -458,7 +483,10 @@ const ConductoresPage = () => {
                 />
 
                 {debouncedSearch && (
-                  <Chip size="small" label={`Filtro: "${debouncedSearch}"`} />
+                  <Chip
+                    size="small"
+                    label={`Filtro: "${debouncedSearch}"`}
+                  />
                 )}
               </Stack>
             </Box>
@@ -466,7 +494,7 @@ const ConductoresPage = () => {
             <TextField
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nombres, apellidos, placa, empresa o carrocería..."
+              placeholder="Buscar por nombre, identificación, placa, transportadora..."
               size="small"
               sx={{ minWidth: { xs: "100%", md: 520 } }}
               InputProps={{
@@ -494,95 +522,16 @@ const ConductoresPage = () => {
 
           {/* FORMULARIO */}
           <Grid container spacing={1.2} alignItems="center">
-            <Grid item xs={12} sm={6} md={2}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Nombres"
-                name="nombres"
-                value={form.nombres}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={2}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Apellidos"
-                name="apellidos"
-                value={form.apellidos}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={1.5}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Placa"
-                name="placaVehiculo"
-                value={form.placaVehiculo}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={2.5}>
-              <FormControl fullWidth size="small">
-                <InputLabel id="empresa-label">Transportadora</InputLabel>
-
-                <Select
-                  labelId="empresa-label"
-                  name="empresa"
-                  value={form.empresa}
-                  label="Transportadora"
-                  onChange={handleChange}
-                >
-                  <MenuItem value="">
-                    <em>Seleccione</em>
-                  </MenuItem>
-
-                  {transportadoras.map((t) => (
-                    <MenuItem key={t._id} value={t.nombreTransportadora}>
-                      {t.nombreTransportadora}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={2}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Carrocería"
-                name="carroseria"
-                value={form.carroseria}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={2}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Contacto"
-                name="contacto"
-                value={form.contacto}
-                onChange={handleChange}
-                placeholder="3001234567"
-              />
-            </Grid>
 
             <Grid item xs={12}>
               <Box
                 sx={{
                   display: "flex",
                   gap: 1,
-                  mt: 0.5,
-                  justifyContent: "flex-start",
+                  justifyContent: "flex-end",
                   alignItems: "center",
                   flexWrap: "wrap",
+                  mb: 1,
                 }}
               >
                 <Button
@@ -617,7 +566,8 @@ const ConductoresPage = () => {
                 )}
 
                 <Button
-                  variant="text"
+                  variant="contained"
+                  color="warning"
                   size="small"
                   onClick={async () => {
                     await fetchConductores();
@@ -647,6 +597,102 @@ const ConductoresPage = () => {
                 />
               </Box>
             </Grid>
+
+            <Grid item xs={12} sm={6} md={1.5}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Nombres"
+                name="nombres"
+                value={form.nombres}
+                onChange={handleChange}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={1.5}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Apellidos"
+                name="apellidos"
+                value={form.apellidos}
+                onChange={handleChange}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={1.5}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Identificación"
+                name="identificacion"
+                value={form.identificacion}
+                onChange={handleChange}
+                placeholder="Cédula / documento"
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={1}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Placa"
+                name="placaVehiculo"
+                value={form.placaVehiculo}
+                onChange={handleChange}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={2.5}>
+              <FormControl fullWidth size="small">
+                <InputLabel id="empresa-label">Transportadora</InputLabel>
+
+                <Select
+                  labelId="empresa-label"
+                  name="empresa"
+                  value={form.empresa}
+                  label="Transportadora"
+                  onChange={handleChange}
+                >
+                  <MenuItem value="">
+                    <em>Seleccione</em>
+                  </MenuItem>
+
+                  {transportadoras.map((t) => (
+                    <MenuItem
+                      key={t._id}
+                      value={t.nombreTransportadora}
+                    >
+                      {t.nombreTransportadora}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={2}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Carrocería"
+                name="carroseria"
+                value={form.carroseria}
+                onChange={handleChange}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={2}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Contacto"
+                name="contacto"
+                value={form.contacto}
+                onChange={handleChange}
+                placeholder="3001234567"
+              />
+            </Grid>
+
           </Grid>
 
           <Divider sx={{ my: 4 }} />
@@ -669,6 +715,7 @@ const ConductoresPage = () => {
                 <TableRow>
                   {[
                     "Conductor",
+                    "Identificación",
                     "Placa",
                     "Transportadora",
                     "Carrocería",
@@ -698,7 +745,7 @@ const ConductoresPage = () => {
               <TableBody>
                 {conductoresFiltrados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
+                    <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
                       <Typography fontWeight={800}>No hay resultados</Typography>
 
                       <Typography variant="body2" color="text.secondary">
@@ -710,9 +757,8 @@ const ConductoresPage = () => {
                   </TableRow>
                 ) : (
                   conductoresFiltrados.map((c) => {
-                    const nombreCompleto = `${c.nombres || ""} ${
-                      c.apellidos || ""
-                    }`.trim();
+                    const nombreCompleto = `${c.nombres || ""} ${c.apellidos || ""
+                      }`.trim();
 
                     return (
                       <TableRow
@@ -745,7 +791,11 @@ const ConductoresPage = () => {
                             </Typography>
                           </Box>
                         </TableCell>
-
+                        <TableCell>
+                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                            {c.identificacion || "-"}
+                          </Typography>
+                        </TableCell>
                         <TableCell>
                           <Chip
                             size="small"
