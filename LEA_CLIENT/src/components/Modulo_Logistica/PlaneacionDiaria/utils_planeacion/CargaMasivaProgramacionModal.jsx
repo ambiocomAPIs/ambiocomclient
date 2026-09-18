@@ -59,23 +59,17 @@ const showSwalAboveDialog = (options = {}) => {
   });
 };
 
-/**
- * ÚNICAS columnas permitidas en el Excel.
- * El archivo puede cambiar el uso de mayúsculas/minúsculas o tener espacios
- * laterales, pero no puede tener columnas adicionales, faltantes o repetidas.
- */
 const EXCEL_COLUMNS = [
   { header: "Fecha", field: "fecha" },
-
-  // Fecha estimada viene separada en dos columnas en Excel.
   { header: "Fecha Est. Entrega", field: "fechaEstimadaFecha" },
   { header: "hora entrega", field: "fechaEstimadaHora" },
-
-  // Se guarda como horaProgramada.
   { header: "Hora llegada", field: "horaProgramada" },
-
   { header: "Cliente", field: "cliente" },
   { header: "PLACA", field: "placa" },
+
+  { header: "TRAILER", field: "trailer" },
+  { header: "CONDUCTORES", field: "conductor" },
+
   { header: "TRANSPORTADORA", field: "transportadora" },
   { header: "Tipo OH", field: "producto" },
   { header: "Destino", field: "destino" },
@@ -638,6 +632,24 @@ const parseWorkbookRows = (matrix) => {
             )
           ),
 
+        trailer:
+          normalizeText(
+            getCell(
+              sourceRow,
+              columnMap,
+              "trailer"
+            )
+          ),
+
+        conductor:
+          normalizeText(
+            getCell(
+              sourceRow,
+              columnMap,
+              "conductor"
+            )
+          ),
+
         // Puede venir vacío.
         transportadora:
           normalizeText(
@@ -851,7 +863,7 @@ const CargaMasivaProgramacionModal = ({
 
         const worksheet =
           workbook.Sheets[
-            sheetName
+          sheetName
           ];
 
         const matrix =
@@ -919,25 +931,15 @@ const CargaMasivaProgramacionModal = ({
    */
   const buildApiPayload = (row) => ({
     fecha: row.fecha,
-
-    fechaEstimadaEntrega:
-      row.fechaEstimadaEntrega,
-
-    horaProgramada:
-      row.horaProgramada,
-
+    fechaEstimadaEntrega: row.fechaEstimadaEntrega,
+    horaProgramada: row.horaProgramada,
     cliente: row.cliente,
-
-    // Estos pueden enviarse vacíos.
     placa: row.placa || "",
-
-    transportadora:
-      row.transportadora || "",
-
+    trailer: row.trailer || "",
+    conductor: row.conductor || "",
+    transportadora: row.transportadora || "",
     producto: row.producto,
-
     destino: row.destino,
-
     cantidad: row.cantidad,
   });
 
@@ -1017,7 +1019,7 @@ const CargaMasivaProgramacionModal = ({
       const inserted =
         Number(
           response?.data?.insertados ??
-            registros.length
+          registros.length
         );
 
       clearFile();
@@ -1034,7 +1036,7 @@ const CargaMasivaProgramacionModal = ({
             response.data
           );
         } catch (
-          refreshError
+        refreshError
         ) {
           console.error(
             "La carga fue exitosa, pero no se pudo refrescar la tabla:",
@@ -1079,22 +1081,21 @@ const CargaMasivaProgramacionModal = ({
           error?.response?.data?.errores
         )
           ? error.response.data.errores
-              .slice(0, 5)
-              .map((item) => {
-                const detail =
-                  Array.isArray(
-                    item?.errores
+            .slice(0, 5)
+            .map((item) => {
+              const detail =
+                Array.isArray(
+                  item?.errores
+                )
+                  ? item.errores.join(
+                    ", "
                   )
-                    ? item.errores.join(
-                        ", "
-                      )
-                    : "Error de validación";
+                  : "Error de validación";
 
-                return `Fila ${
-                  item?.fila ?? "—"
+              return `Fila ${item?.fila ?? "—"
                 }: ${detail}`;
-              })
-              .join("<br/>")
+            })
+            .join("<br/>")
           : "";
 
       await showSwalAboveDialog({
@@ -1102,16 +1103,14 @@ const CargaMasivaProgramacionModal = ({
         title:
           "No se pudo realizar la carga",
         html: `
-          ${
-            error?.response?.data?.message ||
-            error?.response?.data?.error ||
-            error?.message ||
-            "Ocurrió un error inesperado."
+          ${error?.response?.data?.message ||
+          error?.response?.data?.error ||
+          error?.message ||
+          "Ocurrió un error inesperado."
           }
-          ${
-            backendErrors
-              ? `<br/><br/>${backendErrors}`
-              : ""
+          ${backendErrors
+            ? `<br/><br/>${backendErrors}`
+            : ""
           }
         `,
         confirmButtonText:
@@ -1153,11 +1152,12 @@ const CargaMasivaProgramacionModal = ({
               {" "}
               Fecha, Fecha Est. Entrega,
               hora entrega, Hora llegada,
-              Cliente, PLACA,
-              TRANSPORTADORA, Tipo OH,
-              Destino y Cantidad lts Pedido
+              Cliente, PLACA, TRAILER,
+              CONDUCTOR, TRANSPORTADORA,
+              Tipo OH, Destino y
+              Cantidad lts Pedido
             </strong>
-            . PLACA y TRANSPORTADORA pueden
+            . PLACA, TRAILER, CONDUCTOR y TRANSPORTADORA pueden
             venir vacías.
           </Alert>
 
@@ -1288,14 +1288,14 @@ const CargaMasivaProgramacionModal = ({
 
               {invalidRows.length >
                 0 && (
-                <Alert severity="error">
-                  La carga completa está
-                  bloqueada. Corrige todas
-                  las filas marcadas y
-                  vuelve a seleccionar el
-                  Excel.
-                </Alert>
-              )}
+                  <Alert severity="error">
+                    La carga completa está
+                    bloqueada. Corrige todas
+                    las filas marcadas y
+                    vuelve a seleccionar el
+                    Excel.
+                  </Alert>
+                )}
 
               <TableContainer
                 component={Paper}
@@ -1337,6 +1337,14 @@ const CargaMasivaProgramacionModal = ({
 
                       <TableCell>
                         Placa
+                      </TableCell>
+
+                      <TableCell>
+                        Trailer
+                      </TableCell>
+
+                      <TableCell>
+                        Conductor
                       </TableCell>
 
                       <TableCell>
@@ -1404,10 +1412,10 @@ const CargaMasivaProgramacionModal = ({
                             }}
                           >
                             {row.fechaEstimadaEntrega ===
-                            "NA"
+                              "NA"
                               ? "Pendiente"
                               : row.fechaEstimadaEntrega ||
-                                "—"}
+                              "—"}
                           </TableCell>
 
                           <TableCell>
@@ -1428,6 +1436,18 @@ const CargaMasivaProgramacionModal = ({
                           <TableCell>
                             {row.placa ||
                               "—"}
+                          </TableCell>
+
+                          <TableCell>
+                            {row.trailer || "—"}
+                          </TableCell>
+
+                          <TableCell
+                            sx={{
+                              minWidth: 200,
+                            }}
+                          >
+                            {row.conductor || "—"}
                           </TableCell>
 
                           <TableCell
