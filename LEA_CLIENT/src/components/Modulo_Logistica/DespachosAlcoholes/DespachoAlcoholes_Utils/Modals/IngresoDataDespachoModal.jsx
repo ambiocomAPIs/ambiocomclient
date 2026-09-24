@@ -20,6 +20,11 @@ import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 //Contextos
 import { useAuth } from "../../../../../utils/Context/AuthContext/AuthContext";
 import { useTanques } from "../../../../../utils/Context/TanquesContext";
+import {
+  CIUDADES_COLOMBIA,
+  getCiudadDestinoValue,
+  getCiudadDestinoLabel,
+} from "./Catalogo/ciudadesColombia.js";
 
 const columnasBloqueadas = [
   "volumen_contador_gravimetrico",
@@ -211,6 +216,7 @@ const ESTADO_PUNTUALIDAD_OPTIONS = ["PUNTUAL", "RETRASADO"];
 
 const REQUIRED_FIELDS = ["fecha", "responsable", "observaciones"];
 const FLETE_FACTURADO_KEY = "flete_facturado";
+const CIUDAD_DESTINO_KEY = "ciudad_destino";
 
 const loadCacheMeta = (key) => {
   try {
@@ -561,22 +567,11 @@ const IngresoDataDespachoModal = ({
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
 
-  // const formCacheKey = `${FORM_CACHE_PREFIX}${form?.id ?? form?.id_despacho ?? "nuevo"}`;
   const formCacheKey = !isEdit
     ? `${FORM_CACHE_PREFIX}${form?.id ?? form?.id_despacho ?? "nuevo"}`
     : null;
 
   const timeOptions = useMemo(() => buildTimeOptions(15), []);
-
-  // const handleChangeLectura = (key, value) => {
-  //   setForm((prev) => ({
-  //     ...prev,
-  //     lecturas: {
-  //       ...prev.lecturas,
-  //       [key]: value,
-  //     },
-  //   }));
-  // };
 
   const handleChangeLectura = (key, value) => {
     setForm((prev) => {
@@ -587,8 +582,6 @@ const IngresoDataDespachoModal = ({
         [key]: value,
       };
 
-      // Los campos auxiliares de texto de Autocomplete no participan
-      // en fórmulas ni en la inferencia del estado del vehículo.
       if (String(key).endsWith("__input")) {
         return {
           ...prev,
@@ -596,8 +589,6 @@ const IngresoDataDespachoModal = ({
         };
       }
 
-      // Si el usuario cambia directamente el estado del vehículo,
-      // se respeta exactamente lo que seleccionó.
       if (key !== VEHICULO_RECHAZADO_KEY) {
         const estadoActual = String(
           lecturasPrev?.[VEHICULO_RECHAZADO_KEY] ?? ""
@@ -616,10 +607,6 @@ const IngresoDataDespachoModal = ({
           }
         }
       }
-
-      // Antes se hacía en un useEffect adicional, generando un segundo
-      // render por cada tecla. Ahora conserva los mismos cálculos en
-      // la misma actualización del campo.
       nextLecturas = recalcBloqueadas(nextLecturas);
 
       return {
@@ -936,8 +923,7 @@ const IngresoDataDespachoModal = ({
     setForm(cloneForm(externalForm));
     setFieldErrors({});
     setSaving(false);
-    // La copia se realiza únicamente al abrir/cambiar el registro externo.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [open, externalForm, isEdit]);
 
   useEffect(() => {
@@ -1082,16 +1068,46 @@ const IngresoDataDespachoModal = ({
 
   const columnasOrdenadas = useMemo(() => columnas, [columnas]);
 
+  const sxFieldBase = {
+    "& .MuiInputBase-root": {
+      minHeight: 56,
+    },
+
+    "& .MuiFormHelperText-root": {
+      minHeight: 16,
+      height: 16,
+      lineHeight: "16px",
+      marginTop: "2px",
+      marginLeft: "4px",
+      marginRight: "4px",
+      fontSize: "10px",
+
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+    },
+  };
   const sxAllowed = {
+    ...sxFieldBase,
+
     "& .MuiOutlinedInput-root fieldset": {
       borderWidth: 2,
       borderColor: "orange",
     },
-    "& .MuiOutlinedInput-root:hover fieldset": { borderColor: "orange" },
-    "& .MuiOutlinedInput-root.Mui-focused fieldset": { borderColor: "orange" },
+
+    "& .MuiOutlinedInput-root:hover fieldset": {
+      borderColor: "orange",
+    },
+
+    "& .MuiOutlinedInput-root.Mui-focused fieldset": {
+      borderColor: "orange",
+    },
   };
 
-  const sxDisabled = { backgroundColor: "#f5f5f5" };
+  const sxDisabled = {
+    ...sxFieldBase,
+    backgroundColor: "#f5f5f5",
+  };
 
   const COLUMN_RENDER_ORDER = [
     "transportadora",
@@ -1100,6 +1116,7 @@ const IngresoDataDespachoModal = ({
     "remolque",
     "hora_llegada",
     "cliente",
+    "ciudad_destino",
     "producto",
     "fecha_entrega",
     "__RESPONSABLE_RECIBO__",
@@ -1255,7 +1272,13 @@ const IngresoDataDespachoModal = ({
               <></>
             )}
 
-            <Grid container spacing={1} mt={1}>
+            <Grid
+              container
+              columnSpacing={1}
+              rowSpacing={0.5}
+              mt={1}
+              alignItems="flex-start"
+            >
               {/* ✅ 1) Fecha SIEMPRE primero */}
               <Grid item xs={12} md={2}>
                 <TextField
@@ -1272,7 +1295,8 @@ const IngresoDataDespachoModal = ({
                     }
                   }}
                   error={!!fieldErrors.fecha}
-                  helperText={fieldErrors.fecha || ""}
+                  helperText={fieldErrors.fecha || " "}
+                  sx={sxFieldBase}
                 />
               </Grid>
 
@@ -1407,6 +1431,7 @@ const IngresoDataDespachoModal = ({
                 const esHora = TIME_KEYS.includes(c.key);
                 const esFecha = DATE_KEYS.includes(c.key);
                 const esFechaHora = DATETIME_KEYS.includes(c.key);
+                const esCiudadDestino = c.key === CIUDAD_DESTINO_KEY;
                 const esVehiculoRechazado = c.key === VEHICULO_RECHAZADO_KEY; // evalua si fue rechazado
                 const esLlegadaDestino = c.key === LLEGADA_DESTINO_KEY; // evalua si llego al destino el vehiculo
                 const esPuntualidadCliente = c.key === PUNTUALIDAD_CLIENTE_KEY;
@@ -1424,7 +1449,183 @@ const IngresoDataDespachoModal = ({
 
                 return (
                   <Grid item xs={12} md={2} key={c.key}>
-                    {esNombreConductor ? (
+                    {esCiudadDestino ? (
+                      <Autocomplete
+                        freeSolo
+                        forcePopupIcon
+                        selectOnFocus
+                        clearOnBlur={false}
+                        handleHomeEndKeys
+
+                        options={CIUDADES_COLOMBIA}
+
+                        filterOptions={(options, state) => {
+                          const texto = String(
+                            state.inputValue ?? ""
+                          )
+                            .trim()
+                            .toLocaleLowerCase("es-CO")
+                            .normalize("NFD")
+                            .replace(/[\u0300-\u036f]/g, "");
+
+                          if (!texto) {
+                            return options;
+                          }
+
+                          return options.filter((option) => {
+                            const ciudad = String(
+                              option?.value ?? ""
+                            )
+                              .toLocaleLowerCase("es-CO")
+                              .normalize("NFD")
+                              .replace(/[\u0300-\u036f]/g, "");
+
+                            const departamento = String(
+                              option?.departamento ?? ""
+                            )
+                              .toLocaleLowerCase("es-CO")
+                              .normalize("NFD")
+                              .replace(/[\u0300-\u036f]/g, "");
+
+                            const label = String(
+                              option?.label ?? ""
+                            )
+                              .toLocaleLowerCase("es-CO")
+                              .normalize("NFD")
+                              .replace(/[\u0300-\u036f]/g, "");
+
+                            return (
+                              ciudad.includes(texto) ||
+                              departamento.includes(texto) ||
+                              label.includes(texto)
+                            );
+                          });
+                        }}
+
+                        getOptionLabel={(option) =>
+                          getCiudadDestinoLabel(option)
+                        }
+
+                        isOptionEqualToValue={(option, value) => {
+                          const optionValue =
+                            typeof option === "string"
+                              ? option
+                              : option?.value ?? "";
+
+                          const valueValue =
+                            typeof value === "string"
+                              ? value
+                              : value?.value ?? "";
+
+                          return optionValue === valueValue;
+                        }}
+
+                        value={
+                          form.lecturas?.[
+                          CIUDAD_DESTINO_KEY
+                          ] ?? ""
+                        }
+
+                        inputValue={
+                          form.lecturas?.[
+                          `${CIUDAD_DESTINO_KEY}__input`
+                          ] ??
+                          form.lecturas?.[
+                          CIUDAD_DESTINO_KEY
+                          ] ??
+                          ""
+                        }
+
+                        onChange={(
+                          event,
+                          newValue
+                        ) => {
+                          if (isDisabled) return;
+
+                          const ciudad =
+                            getCiudadDestinoValue(
+                              newValue
+                            );
+
+                          handleChangeLectura(
+                            CIUDAD_DESTINO_KEY,
+                            ciudad
+                          );
+
+                          handleChangeLectura(
+                            `${CIUDAD_DESTINO_KEY}__input`,
+                            ciudad
+                          );
+                        }}
+
+                        onInputChange={(
+                          event,
+                          newInputValue,
+                          reason
+                        ) => {
+                          if (isDisabled) return;
+
+                          if (reason === "input") {
+                            handleChangeLectura(
+                              `${CIUDAD_DESTINO_KEY}__input`,
+                              newInputValue
+                            );
+
+                            handleChangeLectura(
+                              CIUDAD_DESTINO_KEY,
+                              newInputValue
+                            );
+                          }
+
+                          if (reason === "clear") {
+                            handleChangeLectura(
+                              `${CIUDAD_DESTINO_KEY}__input`,
+                              ""
+                            );
+
+                            handleChangeLectura(
+                              CIUDAD_DESTINO_KEY,
+                              ""
+                            );
+                          }
+                        }}
+
+                        onBlur={() => {
+                          if (isDisabled) return;
+
+                          const texto = String(
+                            form.lecturas?.[
+                            `${CIUDAD_DESTINO_KEY}__input`
+                            ] ??
+                            form.lecturas?.[
+                            CIUDAD_DESTINO_KEY
+                            ] ??
+                            ""
+                          ).trim();
+
+                          handleChangeLectura(
+                            CIUDAD_DESTINO_KEY,
+                            texto
+                          );
+                        }}
+
+                        noOptionsText="No existe en el catálogo. Puede escribir el destino manualmente."
+
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label={
+                              c.nombre ||
+                              "Ciudad Destino"
+                            }
+                            fullWidth
+                            disabled={isDisabled}
+                            sx={sxField}
+                            helperText="Seleccione o escriba un destino"
+                            />
+                        )}
+                      />
+                    ) : esNombreConductor ? (
                       <Autocomplete
                         forcePopupIcon
                         options={catalogos.conductores || []}
@@ -1581,6 +1782,7 @@ const IngresoDataDespachoModal = ({
                             fullWidth
                             disabled={isDisabled}
                             sx={sxField}
+                            helperText=" "
                           />
                         )}
                       />
@@ -1623,6 +1825,7 @@ const IngresoDataDespachoModal = ({
                         }}
                         disabled={isDisabled}
                         sx={sxField}
+                        helperText=" "
                       />
                     ) : esVehiculoRechazado ? (
                       <Autocomplete
@@ -1673,6 +1876,7 @@ const IngresoDataDespachoModal = ({
                             fullWidth
                             disabled={isDisabled}
                             sx={sxField}
+                            helperText=" "
                           />
                         )}
                       />
@@ -1726,6 +1930,7 @@ const IngresoDataDespachoModal = ({
                             disabled={isDisabled}
                             sx={sxField}
                             placeholder="Selecciona 1 o más tanques"
+                            helperText=" "
                           />
                         )}
                       />
@@ -1832,7 +2037,7 @@ const IngresoDataDespachoModal = ({
                         sx={sxField}
                         error={!!fieldErrors[c.key]}
                         helperText={
-                          fieldErrors[c.key]
+                          fieldErrors[c.key] || " "
                         }
                       />
                     )}

@@ -52,6 +52,10 @@ const visualColumns = [
   { key: "prodFinal", label: "Final turno", editable: true, w: 118 },
   { key: "prodTotal", label: "Producido", formula: true, w: 110 },
 
+  { key: "fdeInicio", label: "Inicio FDE", editable: true, w: 118 },
+  { key: "fdeFinal", label: "Final FDE", editable: true, w: 118 },
+  { key: "fdeTotal", label: "Total FDE", formula: true, w: 110 },
+
   { key: "tk402AInicio", label: "Inicio", editable: true, w: 88 },
   { key: "tk402AFinal", label: "Final", editable: true, w: 88 },
   { key: "tk402BInicio", label: "Inicio", editable: true, w: 88 },
@@ -86,6 +90,7 @@ const visualColumns = [
 const groupHeaders = [
   { label: "Flujómetro Totalizador REN", span: 5, className: "gBlue" },
   { label: "Flujómetro Totalizador Producción", span: 3, className: "gGreen" },
+  { label: "Flujómetro FDE", span: 3, className: "gFde" },
   { label: "TK402A", span: 2, className: "gYellow" },
   { label: "TK402B", span: 2, className: "gYellow" },
   { label: "Factor TK402", span: 1, className: "gYellow" },
@@ -199,6 +204,8 @@ const blankRow = (id, fecha = "") => ({
   renFinal: "",
   prodInicio: "",
   prodFinal: "",
+  fdeInicio: "",
+  fdeFinal: "",
   tk402AInicio: "",
   tk402AFinal: "",
   tk402BInicio: "",
@@ -344,6 +351,8 @@ const ROW_SAVE_KEYS = [
   "renFinal",
   "prodInicio",
   "prodFinal",
+  "fdeInicio",
+  "fdeFinal",
   "tk402AInicio",
   "tk402AFinal",
   "tk402BInicio",
@@ -428,10 +437,17 @@ const KPI_TOOLTIPS = {
     formula: "Σ (lectura final REN − lectura inicial REN)",
   },
   prodTotal: {
-    title: "Acumulado de producción",
+    title: "Acumulado de producción real",
     description:
-      "Suma la producción registrada por el totalizador durante los días incluidos en el filtro.",
-    formula: "Σ (lectura final de producción − lectura inicial)",
+      "Suma la producción del totalizador descontando los volúmenes identificados como FDE.",
+    formula:
+      "Σ [(Final Producción − Inicio Producción) − (Final FDE − Inicio FDE)]",
+  },
+  fdeTotal: {
+    title: "Acumulado FDE excluido",
+    description:
+      "Volumen identificado como FDE que se descuenta del totalizador de producción para determinar la producción real.",
+    formula: "Σ (Final FDE − Inicio FDE)",
   },
   tk402Total: {
     title: "Acumulado TK402A/B",
@@ -486,6 +502,7 @@ const KPI_TOOLTIPS = {
 const NEGATIVE_OPERATIONAL_KEYS = [
   "renConsumo",
   "prodTotal",
+  "fdeTotal",
   "tk402Total",
   "renNivelTotal",
   "ab801Total",
@@ -494,6 +511,7 @@ const NEGATIVE_OPERATIONAL_KEYS = [
 const NEGATIVE_OPERATIONAL_LABELS = {
   renConsumo: "Consumo REN",
   prodTotal: "Producción",
+  fdeTotal: "Flujómetro FDE",
   tk402Total: "TK402A/B",
   renNivelTotal: "REN por niveles",
   ab801Total: "Traslado 801A/B",
@@ -513,6 +531,13 @@ const NEGATIVE_PAIR_RULES = [
     endKey: "prodFinal",
     mode: "finalMinusStart",
     formulaKey: "prodTotal",
+  },
+  {
+    section: "Flujómetro FDE",
+    startKey: "fdeInicio",
+    endKey: "fdeFinal",
+    mode: "finalMinusStart",
+    formulaKey: "fdeTotal",
   },
   {
     section: "TK402A",
@@ -908,7 +933,20 @@ export default function SeguimientoTotalizadoresU400({
 
   const calc = (row, key) => {
     if (key === "renConsumo") return diff(row, "renInicio", "renFinal");
-    if (key === "prodTotal") return diff(row, "prodInicio", "prodFinal");
+    // if (key === "prodTotal") return diff(row, "prodInicio", "prodFinal");
+    if (key === "fdeTotal") return diff(row, "fdeInicio", "fdeFinal");
+    if (key === "prodTotal") {  // ojo que a esta medicion le estoy restando la lectura de FDE
+      const produccionBruta = diff(row, "prodInicio", "prodFinal");
+
+      if (!hasCalculatedValue(produccionBruta)) return "";
+
+      const fde = diff(row, "fdeInicio", "fdeFinal");
+
+      return roundCalc(
+        Number(produccionBruta) -
+        (hasCalculatedValue(fde) ? Number(fde) : 0)
+      );
+    }
     if (key === "tk402Total") {
       const a = diff(row, "tk402AInicio", "tk402AFinal");
       const b = diff(row, "tk402BInicio", "tk402BFinal");
@@ -1094,6 +1132,7 @@ export default function SeguimientoTotalizadoresU400({
       const autoMap = {
         renFinal: "renInicio",
         prodFinal: "prodInicio",
+        // fdeFinal: "fdeInicio",
         tk402AFinal: "tk402AInicio",
         tk402BFinal: "tk402BInicio",
         nivel1Final: "nivel1Inicio",
@@ -1132,7 +1171,7 @@ export default function SeguimientoTotalizadoresU400({
     });
   };
 
-  const baseFormulaKeys = ["renConsumo", "prodTotal", "tk402Total", "renNivelTotal", "ab801Total"];
+  const baseFormulaKeys = ["renConsumo", "prodTotal", "fdeTotal", "tk402Total", "renNivelTotal", "ab801Total"];
 
   const addErrorMetrics = (base) => {
     const hasProdTk402 =
@@ -1164,23 +1203,23 @@ export default function SeguimientoTotalizadoresU400({
       difProdTraslado,
       errorTrasladoPct: hasProdTk402
         ? safeRatio(
-            Math.abs(Number(base.prodTotal) - Number(base.tk402Total)),
-            Math.abs(Number(base.prodTotal))
-          )
+          Math.abs(Number(base.prodTotal) - Number(base.tk402Total)),
+          Math.abs(Number(base.prodTotal))
+        )
         : "",
       difRenNiveles,
       errorRenNivelesPct: hasRenNiveles
         ? safeRatio(
-            Math.abs(Number(base.renConsumo) - Number(base.renNivelTotal)),
-            Math.abs(Number(base.renConsumo))
-          )
+          Math.abs(Number(base.renConsumo) - Number(base.renNivelTotal)),
+          Math.abs(Number(base.renConsumo))
+        )
         : "",
       difAcumRenProd,
       errorTotalizadoresPct: hasRenProd
         ? safeRatio(
-            difAcumRenProd,
-            Math.abs(Number(base.renConsumo)) + Math.abs(Number(base.prodTotal))
-          )
+          difAcumRenProd,
+          Math.abs(Number(base.renConsumo)) + Math.abs(Number(base.prodTotal))
+        )
         : "",
       fcPorTotalizador: hasProdTk402
         ? safeRatio(Number(base.tk402Total), Number(base.prodTotal))
@@ -1195,6 +1234,7 @@ export default function SeguimientoTotalizadoresU400({
     const sums = {
       renConsumo: 0,
       prodTotal: 0,
+      fdeTotal: 0,
       tk402Total: 0,
       renNivelTotal: 0,
       ab801Total: 0,
@@ -1203,6 +1243,7 @@ export default function SeguimientoTotalizadoresU400({
     const validCounts = {
       renConsumo: 0,
       prodTotal: 0,
+      fdeTotal: 0,
       tk402Total: 0,
       renNivelTotal: 0,
       ab801Total: 0,
@@ -1244,6 +1285,7 @@ export default function SeguimientoTotalizadoresU400({
     const sums = {
       renConsumo: 0,
       prodTotal: 0,
+      fdeTotal: 0,
       tk402Total: 0,
       renNivelTotal: 0,
       ab801Total: 0,
@@ -1252,6 +1294,7 @@ export default function SeguimientoTotalizadoresU400({
     const validCounts = {
       renConsumo: 0,
       prodTotal: 0,
+      fdeTotal: 0,
       tk402Total: 0,
       renNivelTotal: 0,
       ab801Total: 0,
@@ -1494,9 +1537,8 @@ export default function SeguimientoTotalizadoresU400({
 
           formulaCells[`${originalIndex}:${key}`] = {
             title: `Resultado negativo · ${NEGATIVE_OPERATIONAL_LABELS[key]}`,
-            description: `${row?.fecha || group.fecha || "Fecha sin definir"} · ${
-              normalizeTurnoValue(row?.turno) || "turno sin definir"
-            }. Resultado calculado: ${fmt(value, 4)}.`,
+            description: `${row?.fecha || group.fecha || "Fecha sin definir"} · ${normalizeTurnoValue(row?.turno) || "turno sin definir"
+              }. Resultado calculado: ${fmt(value, 4)}.`,
             formula: "Revise las lecturas de origen resaltadas en rojo en esta misma fila.",
           };
 
@@ -2124,7 +2166,7 @@ export default function SeguimientoTotalizadoresU400({
                     saveState.startsWith("Guardando") || registroLoading
                       ? "warning"
                       : saveState === "Error guardando BD" ||
-                          saveState === "Sin conexión con BD"
+                        saveState === "Sin conexión con BD"
                         ? "error"
                         : "success"
                   }
@@ -2170,9 +2212,8 @@ export default function SeguimientoTotalizadoresU400({
                 )} y ${formatMonthLabel(
                   twoMonthWindow.current
                 )}. Los acumulados responden al rango Desde/Hasta actualmente visible.`}
-                formula={`${rangeFrom || windowRange.from} → ${
-                  rangeTo || windowRange.to
-                }`}
+                formula={`${rangeFrom || windowRange.from} → ${rangeTo || windowRange.to
+                  }`}
               >
                 <Chip
                   size="small"
@@ -2203,9 +2244,8 @@ export default function SeguimientoTotalizadoresU400({
                 formula={
                   negativeValidation.incidentCount
                     ? `${negativeValidation.negativeDailyTotals} TOTAL DÍA negativo(s) derivados de las lecturas marcadas`
-                    : `${rangeFrom || windowRange.from} → ${
-                        rangeTo || windowRange.to
-                      }`
+                    : `${rangeFrom || windowRange.from} → ${rangeTo || windowRange.to
+                    }`
                 }
               >
                 <Chip
@@ -2224,12 +2264,12 @@ export default function SeguimientoTotalizadoresU400({
                     fontWeight: 850,
                     ...(negativeValidation.incidentCount
                       ? {
-                          boxShadow:
-                            "0 4px 12px rgba(211, 47, 47, 0.18)",
-                        }
+                        boxShadow:
+                          "0 4px 12px rgba(211, 47, 47, 0.18)",
+                      }
                       : {
-                          bgcolor: "#ffffff",
-                        }),
+                        bgcolor: "#ffffff",
+                      }),
                   }}
                 />
               </ProfessionalTooltip>
@@ -2277,297 +2317,297 @@ export default function SeguimientoTotalizadoresU400({
             <Stack spacing={1.25} sx={{ mt: 1.5 }}>
               <Divider sx={{ borderColor: "#e6ebf2" }} />
 
-          {/* Controles organizados por función */}
-          <Stack
-            direction={{ xs: "column", xl: "row" }}
-            spacing={1.25}
-            alignItems="stretch"
-          >
-            {/* Consulta */}
-            <Box
-              sx={{
-                flex: 1.35,
-                minWidth: 0,
-                p: 1.25,
-                borderRadius: 2.5,
-                border: "1px solid #e0e7f0",
-                bgcolor: "#f8fafc",
-              }}
-            >
-              <Typography
-                variant="overline"
-                sx={{
-                  display: "block",
-                  mb: 0.8,
-                  color: "#51657d",
-                  fontWeight: 900,
-                  fontSize: 10.5,
-                  lineHeight: 1,
-                  letterSpacing: 0.8,
-                }}
-              >
-                Consulta y rango
-              </Typography>
-
+              {/* Controles organizados por función */}
               <Stack
-                direction={{ xs: "column", sm: "row" }}
-                spacing={1}
-                alignItems={{ xs: "stretch", sm: "center" }}
+                direction={{ xs: "column", xl: "row" }}
+                spacing={1.25}
+                alignItems="stretch"
               >
-                <TextField
-                  select
-                  size="small"
-                  label="Mes principal"
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  sx={{ minWidth: { xs: "100%", sm: 185 } }}
-                  disabled={registroLoading}
+                {/* Consulta */}
+                <Box
+                  sx={{
+                    flex: 1.35,
+                    minWidth: 0,
+                    p: 1.25,
+                    borderRadius: 2.5,
+                    border: "1px solid #e0e7f0",
+                    bgcolor: "#f8fafc",
+                  }}
                 >
-                  {monthOptions.map((option) => (
-                    <MenuItem key={option.key} value={option.key}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                  <Typography
+                    variant="overline"
+                    sx={{
+                      display: "block",
+                      mb: 0.8,
+                      color: "#51657d",
+                      fontWeight: 900,
+                      fontSize: 10.5,
+                      lineHeight: 1,
+                      letterSpacing: 0.8,
+                    }}
+                  >
+                    Consulta y rango
+                  </Typography>
 
-                <TextField
-                  size="small"
-                  label="Desde"
-                  type="date"
-                  value={rangeFrom}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (
-                      value &&
-                      (value < windowRange.from || value > windowRange.to)
-                    )
-                      return;
-                    setRangeFrom(value);
-                    if (value && rangeTo && value > rangeTo) {
-                      setRangeTo(value);
-                    }
-                  }}
-                  InputLabelProps={{ shrink: true }}
-                  inputProps={{
-                    min: windowRange.from,
-                    max: windowRange.to,
-                  }}
-                  sx={{ minWidth: { xs: "100%", sm: 150 } }}
-                  disabled={registroLoading}
-                />
-
-                <TextField
-                  size="small"
-                  label="Hasta"
-                  type="date"
-                  value={rangeTo}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (
-                      value &&
-                      (value < windowRange.from || value > windowRange.to)
-                    )
-                      return;
-                    setRangeTo(value);
-                    if (value && rangeFrom && value < rangeFrom) {
-                      setRangeFrom(value);
-                    }
-                  }}
-                  InputLabelProps={{ shrink: true }}
-                  inputProps={{
-                    min: windowRange.from,
-                    max: windowRange.to,
-                  }}
-                  sx={{ minWidth: { xs: "100%", sm: 150 } }}
-                  disabled={registroLoading}
-                />
-
-                <Tooltip arrow title="Restablecer el rango completo de los dos meses">
-                  <span>
-                    <IconButton
-                      onClick={resetRangeToWindow}
+                  <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    spacing={1}
+                    alignItems={{ xs: "stretch", sm: "center" }}
+                  >
+                    <TextField
+                      select
+                      size="small"
+                      label="Mes principal"
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(e.target.value)}
+                      sx={{ minWidth: { xs: "100%", sm: 185 } }}
                       disabled={registroLoading}
-                      aria-label="Restablecer rango"
-                      sx={{
-                        width: 40,
-                        height: 40,
-                        border: "1px solid #b9c8dc",
-                        bgcolor: "#ffffff",
-                        color: "#245ea8",
-                        flexShrink: 0,
-                        "&:hover": {
-                          bgcolor: "#eef5ff",
-                          borderColor: "#75a4df",
-                        },
-                      }}
                     >
-                      <RestartAltRoundedIcon fontSize="small" />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-              </Stack>
-            </Box>
+                      {monthOptions.map((option) => (
+                        <MenuItem key={option.key} value={option.key}>
+                          {option.label}
+                        </MenuItem>
+                      ))}
+                    </TextField>
 
-            {/* Factores */}
-            <Box
-              sx={{
-                flex: 1,
-                minWidth: 0,
-                p: 1.25,
-                borderRadius: 2.5,
-                border: "1px solid #e0e7f0",
-                bgcolor: "#fbfaf7",
-              }}
-            >
-              <Typography
-                variant="overline"
-                sx={{
-                  display: "block",
-                  mb: 0.8,
-                  color: "#6b6252",
-                  fontWeight: 900,
-                  fontSize: 10.5,
-                  lineHeight: 1,
-                  letterSpacing: 0.8,
-                }}
-              >
-                Factores por mes
-              </Typography>
+                    <TextField
+                      size="small"
+                      label="Desde"
+                      type="date"
+                      value={rangeFrom}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (
+                          value &&
+                          (value < windowRange.from || value > windowRange.to)
+                        )
+                          return;
+                        setRangeFrom(value);
+                        if (value && rangeTo && value > rangeTo) {
+                          setRangeTo(value);
+                        }
+                      }}
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{
+                        min: windowRange.from,
+                        max: windowRange.to,
+                      }}
+                      sx={{ minWidth: { xs: "100%", sm: 150 } }}
+                      disabled={registroLoading}
+                    />
 
-              <Stack
-                direction={{ xs: "column", sm: "row" }}
-                spacing={1}
-                alignItems={{ xs: "stretch", sm: "center" }}
-              >
-                <TextField
-                  select
-                  size="small"
-                  label="Factores de"
-                  value={factorEditMonth}
-                  onChange={(e) => setFactorEditMonth(e.target.value)}
-                  sx={{ minWidth: { xs: "100%", sm: 165 } }}
-                  disabled={registroLoading}
+                    <TextField
+                      size="small"
+                      label="Hasta"
+                      type="date"
+                      value={rangeTo}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (
+                          value &&
+                          (value < windowRange.from || value > windowRange.to)
+                        )
+                          return;
+                        setRangeTo(value);
+                        if (value && rangeFrom && value < rangeFrom) {
+                          setRangeFrom(value);
+                        }
+                      }}
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{
+                        min: windowRange.from,
+                        max: windowRange.to,
+                      }}
+                      sx={{ minWidth: { xs: "100%", sm: 150 } }}
+                      disabled={registroLoading}
+                    />
+
+                    <Tooltip arrow title="Restablecer el rango completo de los dos meses">
+                      <span>
+                        <IconButton
+                          onClick={resetRangeToWindow}
+                          disabled={registroLoading}
+                          aria-label="Restablecer rango"
+                          sx={{
+                            width: 40,
+                            height: 40,
+                            border: "1px solid #b9c8dc",
+                            bgcolor: "#ffffff",
+                            color: "#245ea8",
+                            flexShrink: 0,
+                            "&:hover": {
+                              bgcolor: "#eef5ff",
+                              borderColor: "#75a4df",
+                            },
+                          }}
+                        >
+                          <RestartAltRoundedIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  </Stack>
+                </Box>
+
+                {/* Factores */}
+                <Box
+                  sx={{
+                    flex: 1,
+                    minWidth: 0,
+                    p: 1.25,
+                    borderRadius: 2.5,
+                    border: "1px solid #e0e7f0",
+                    bgcolor: "#fbfaf7",
+                  }}
                 >
-                  {windowMonths.map((month) => (
-                    <MenuItem key={month} value={month}>
-                      {formatMonthLabel(month)}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                  <Typography
+                    variant="overline"
+                    sx={{
+                      display: "block",
+                      mb: 0.8,
+                      color: "#6b6252",
+                      fontWeight: 900,
+                      fontSize: 10.5,
+                      lineHeight: 1,
+                      letterSpacing: 0.8,
+                    }}
+                  >
+                    Factores por mes
+                  </Typography>
 
-                <TextField
-                  size="small"
-                  label="Factor TK402"
-                  value={factor402}
-                  onChange={(e) =>
-                    updateFactorForMonth(
-                      factorEditMonth,
-                      "factor402",
-                      e.target.value
-                    )
-                  }
-                  sx={{ minWidth: { xs: "100%", sm: 135 } }}
-                  disabled={registroLoading}
-                />
+                  <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    spacing={1}
+                    alignItems={{ xs: "stretch", sm: "center" }}
+                  >
+                    <TextField
+                      select
+                      size="small"
+                      label="Factores de"
+                      value={factorEditMonth}
+                      onChange={(e) => setFactorEditMonth(e.target.value)}
+                      sx={{ minWidth: { xs: "100%", sm: 165 } }}
+                      disabled={registroLoading}
+                    >
+                      {windowMonths.map((month) => (
+                        <MenuItem key={month} value={month}>
+                          {formatMonthLabel(month)}
+                        </MenuItem>
+                      ))}
+                    </TextField>
 
-                <TextField
-                  size="small"
-                  label="Factor 801A/B"
-                  value={factor801}
-                  onChange={(e) =>
-                    updateFactorForMonth(
-                      factorEditMonth,
-                      "factor801",
-                      e.target.value
-                    )
-                  }
-                  sx={{ minWidth: { xs: "100%", sm: 145 } }}
-                  disabled={registroLoading}
-                />
-              </Stack>
-            </Box>
+                    <TextField
+                      size="small"
+                      label="Factor TK402"
+                      value={factor402}
+                      onChange={(e) =>
+                        updateFactorForMonth(
+                          factorEditMonth,
+                          "factor402",
+                          e.target.value
+                        )
+                      }
+                      sx={{ minWidth: { xs: "100%", sm: 135 } }}
+                      disabled={registroLoading}
+                    />
 
-            {/* Acciones */}
-            <Box
-              sx={{
-                minWidth: { xs: "100%", xl: 142 },
-                p: 1.25,
-                borderRadius: 2.5,
-                border: "1px solid #e0e7f0",
-                bgcolor: "#f8fafc",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-              }}
-            >
-              <Typography
-                variant="overline"
-                sx={{
-                  display: "block",
-                  mb: 0.8,
-                  color: "#51657d",
-                  fontWeight: 900,
-                  fontSize: 10.5,
-                  lineHeight: 1,
-                  letterSpacing: 0.8,
-                }}
-              >
-                Acciones
-              </Typography>
+                    <TextField
+                      size="small"
+                      label="Factor 801A/B"
+                      value={factor801}
+                      onChange={(e) =>
+                        updateFactorForMonth(
+                          factorEditMonth,
+                          "factor801",
+                          e.target.value
+                        )
+                      }
+                      sx={{ minWidth: { xs: "100%", sm: 145 } }}
+                      disabled={registroLoading}
+                    />
+                  </Stack>
+                </Box>
 
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Tooltip
-                  arrow
-                  title="Copiar la tabla visible en formato compatible con Excel"
+                {/* Acciones */}
+                <Box
+                  sx={{
+                    minWidth: { xs: "100%", xl: 142 },
+                    p: 1.25,
+                    borderRadius: 2.5,
+                    border: "1px solid #e0e7f0",
+                    bgcolor: "#f8fafc",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                  }}
                 >
-                  <span>
-                    <IconButton
-                      onClick={copyTable}
-                      disabled={registroLoading}
-                      aria-label="Copiar tabla"
-                      sx={{
-                        width: 40,
-                        height: 40,
-                        border: "1px solid #1976d2",
-                        bgcolor: "#1976d2",
-                        color: "#ffffff",
-                        boxShadow:
-                          "0 5px 12px rgba(25, 118, 210, 0.18)",
-                        "&:hover": {
-                          bgcolor: "#125da8",
-                        },
-                      }}
-                    >
-                      <ContentCopyRoundedIcon fontSize="small" />
-                    </IconButton>
-                  </span>
-                </Tooltip>
+                  <Typography
+                    variant="overline"
+                    sx={{
+                      display: "block",
+                      mb: 0.8,
+                      color: "#51657d",
+                      fontWeight: 900,
+                      fontSize: 10.5,
+                      lineHeight: 1,
+                      letterSpacing: 0.8,
+                    }}
+                  >
+                    Acciones
+                  </Typography>
 
-                <Tooltip arrow title="Agregar un día manualmente">
-                  <span>
-                    <IconButton
-                      color="primary"
-                      onClick={addDay}
-                      disabled={registroLoading}
-                      aria-label="Agregar día"
-                      sx={{
-                        width: 40,
-                        height: 40,
-                        border: "1px solid #1976d2",
-                        bgcolor: "#ffffff",
-                        color: "#1976d2",
-                        "&:hover": {
-                          bgcolor: "#eef6ff",
-                        },
-                      }}
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Tooltip
+                      arrow
+                      title="Copiar la tabla visible en formato compatible con Excel"
                     >
-                      <AddCircleOutlineRoundedIcon fontSize="small" />
-                    </IconButton>
-                  </span>
-                </Tooltip>
+                      <span>
+                        <IconButton
+                          onClick={copyTable}
+                          disabled={registroLoading}
+                          aria-label="Copiar tabla"
+                          sx={{
+                            width: 40,
+                            height: 40,
+                            border: "1px solid #1976d2",
+                            bgcolor: "#1976d2",
+                            color: "#ffffff",
+                            boxShadow:
+                              "0 5px 12px rgba(25, 118, 210, 0.18)",
+                            "&:hover": {
+                              bgcolor: "#125da8",
+                            },
+                          }}
+                        >
+                          <ContentCopyRoundedIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+
+                    <Tooltip arrow title="Agregar un día manualmente">
+                      <span>
+                        <IconButton
+                          color="primary"
+                          onClick={addDay}
+                          disabled={registroLoading}
+                          aria-label="Agregar día"
+                          sx={{
+                            width: 40,
+                            height: 40,
+                            border: "1px solid #1976d2",
+                            bgcolor: "#ffffff",
+                            color: "#1976d2",
+                            "&:hover": {
+                              bgcolor: "#eef6ff",
+                            },
+                          }}
+                        >
+                          <AddCircleOutlineRoundedIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  </Stack>
+                </Box>
               </Stack>
-            </Box>
-          </Stack>
             </Stack>
           </Collapse>
         </Stack>
@@ -2656,61 +2696,67 @@ export default function SeguimientoTotalizadoresU400({
               pb: 0.35,
             }}
           >
-        <Kpi
-          title="Acum REN Totalizador"
-          value={fmt(totals.renConsumo, 2)}
-          tooltip={KPI_TOOLTIPS.renConsumo}
-          alert={negativeValidation.accumulatedCells.renConsumo}
-        />
-        <Kpi
-          title="Acum Prod Totalizador"
-          value={fmt(totals.prodTotal, 2)}
-          tooltip={KPI_TOOLTIPS.prodTotal}
-          alert={negativeValidation.accumulatedCells.prodTotal}
-        />
-        <Kpi
-          title="Acum TK402A/B"
-          value={fmt(totals.tk402Total, 2)}
-          tooltip={KPI_TOOLTIPS.tk402Total}
-          alert={negativeValidation.accumulatedCells.tk402Total}
-        />
-        {/* <Kpi title="Acumulado REN niveles" value={fmt(totals.renNivelTotal, 2)} /> */}
-        <Kpi
-          title="Acum Traslado 801A/B"
-          value={fmt(totals.ab801Total, 2)}
-          tooltip={KPI_TOOLTIPS.ab801Total}
-          alert={negativeValidation.accumulatedCells.ab801Total}
-        />
-        <Kpi
-          title="Dif REN/Niveles"
-          value={fmt(totals.difRenNiveles, 2)}
-          tooltip={KPI_TOOLTIPS.difRenNiveles}
-        />
-        <Kpi
-          title="% ERROR REN/Niveles"
-          value={fmtPct(totals.errorRenNivelesPct)}
-          tooltip={KPI_TOOLTIPS.errorRenNivelesPct}
-        />
-        <Kpi
-          title="% ERROR PROD/TK402"
-          value={fmtPct(totals.errorTrasladoPct)}
-          tooltip={KPI_TOOLTIPS.errorTrasladoPct}
-        />
-        <Kpi
-          title="% ERROR Totalizadores"
-          value={fmtPct(totals.errorTotalizadoresPct)}
-          tooltip={KPI_TOOLTIPS.errorTotalizadoresPct}
-        />
-        <Kpi
-          title="Fc por totalizador"
-          value={fmt(totals.fcPorTotalizador, 4)}
-          tooltip={KPI_TOOLTIPS.fcPorTotalizador}
-        />
-        <Kpi
-          title="Fc REN/Niveles"
-          value={fmt(totals.fcRenNiveles, 4)}
-          tooltip={KPI_TOOLTIPS.fcRenNiveles}
-        />
+            <Kpi
+              title="Acum REN Totalizador"
+              value={fmt(totals.renConsumo, 2)}
+              tooltip={KPI_TOOLTIPS.renConsumo}
+              alert={negativeValidation.accumulatedCells.renConsumo}
+            />
+            <Kpi
+              title="Acum Prod Totalizador"
+              value={fmt(totals.prodTotal, 2)}
+              tooltip={KPI_TOOLTIPS.prodTotal}
+              alert={negativeValidation.accumulatedCells.prodTotal}
+            />
+            <Kpi
+              title="Acum Flujómetro FDE"
+              value={fmt(totals.fdeTotal, 2)}
+              tooltip={KPI_TOOLTIPS.fdeTotal}
+              alert={negativeValidation.accumulatedCells.fdeTotal}
+            />
+            <Kpi
+              title="Acum TK402A/B"
+              value={fmt(totals.tk402Total, 2)}
+              tooltip={KPI_TOOLTIPS.tk402Total}
+              alert={negativeValidation.accumulatedCells.tk402Total}
+            />
+            {/* <Kpi title="Acumulado REN niveles" value={fmt(totals.renNivelTotal, 2)} /> */}
+            <Kpi
+              title="Acum Traslado 801A/B"
+              value={fmt(totals.ab801Total, 2)}
+              tooltip={KPI_TOOLTIPS.ab801Total}
+              alert={negativeValidation.accumulatedCells.ab801Total}
+            />
+            <Kpi
+              title="Dif REN/Niveles"
+              value={fmt(totals.difRenNiveles, 2)}
+              tooltip={KPI_TOOLTIPS.difRenNiveles}
+            />
+            <Kpi
+              title="% ERROR REN/Niveles"
+              value={fmtPct(totals.errorRenNivelesPct)}
+              tooltip={KPI_TOOLTIPS.errorRenNivelesPct}
+            />
+            <Kpi
+              title="% ERROR PROD/TK402"
+              value={fmtPct(totals.errorTrasladoPct)}
+              tooltip={KPI_TOOLTIPS.errorTrasladoPct}
+            />
+            <Kpi
+              title="% ERROR Totalizadores"
+              value={fmtPct(totals.errorTotalizadoresPct)}
+              tooltip={KPI_TOOLTIPS.errorTotalizadoresPct}
+            />
+            <Kpi
+              title="Fc por totalizador"
+              value={fmt(totals.fcPorTotalizador, 4)}
+              tooltip={KPI_TOOLTIPS.fcPorTotalizador}
+            />
+            <Kpi
+              title="Fc REN/Niveles"
+              value={fmt(totals.fcRenNiveles, 4)}
+              tooltip={KPI_TOOLTIPS.fcRenNiveles}
+            />
           </Stack>
         </Collapse>
       </Paper>
@@ -2774,7 +2820,7 @@ export default function SeguimientoTotalizadoresU400({
                       {visualColumns.map((col, colIndex) => {
                         const formulaAlert =
                           negativeValidation.formulaCells[
-                            `${originalIndex}:${col.key}`
+                          `${originalIndex}:${col.key}`
                           ];
                         const value = col.formula ? calc(row, col.key) : "";
 
@@ -2897,6 +2943,7 @@ export default function SeguimientoTotalizadoresU400({
         .gBlue { background: #dcecff; }
         .gGreen { background: #ddf6e7; }
         .gYellow { background: #fff2cc; }
+        .gFde { background: #dff4f1; }
         .gPurple { background: #eadffd; }
         .gOrange { background: #ffe2cc; }
         .gRed { background: #ffe4e6; }
@@ -3124,12 +3171,12 @@ function Kpi({ title, value, tooltip, alert }) {
           "transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease",
         "&:hover": activeTooltip
           ? {
-              transform: "translateY(-1px)",
-              borderColor: alert ? "#dc2626" : "#b9c8dc",
-              boxShadow: alert
-                ? "0 8px 22px rgba(220, 38, 38, 0.16)"
-                : "0 6px 18px rgba(30, 64, 175, 0.08)",
-            }
+            transform: "translateY(-1px)",
+            borderColor: alert ? "#dc2626" : "#b9c8dc",
+            boxShadow: alert
+              ? "0 8px 22px rgba(220, 38, 38, 0.16)"
+              : "0 6px 18px rgba(30, 64, 175, 0.08)",
+          }
           : undefined,
       }}
     >

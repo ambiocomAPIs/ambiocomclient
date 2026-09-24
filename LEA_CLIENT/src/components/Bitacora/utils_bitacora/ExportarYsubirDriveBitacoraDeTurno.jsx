@@ -581,7 +581,7 @@ const construirAnalisisLocal = (
 
       alertas: [
         resumenTotalizadores?.mensaje ||
-          "No se encontraron datos de totalizadores para el día anterior.",
+        "No se encontraron datos de totalizadores para el día anterior.",
       ],
     };
   }
@@ -851,8 +851,7 @@ export async function exportarBitacoraPDF(
   );
 
   doc.text(
-    `Fecha: ${
-      headerData.fecha || ""
+    `Fecha: ${headerData.fecha || ""
     }`,
     167,
     20
@@ -863,69 +862,61 @@ export async function exportarBitacoraPDF(
    * Se conserva como listado vertical, sin tablas ni tarjetas.
    */
   doc.text(
-    `Turno: ${
-      headerData.turno || ""
+    `Turno: ${headerData.turno || ""
     }`,
     20,
     50
   );
 
   doc.text(
-    `Supervisor: ${
-      headerData.supervisor || ""
+    `Supervisor: ${headerData.supervisor || ""
     }`,
     20,
     58
   );
 
   doc.text(
-    `Operario Destilería: ${
-      headerData.op_destileria ||
-      ""
+    `Operario Destilería: ${headerData.op_destileria ||
+    ""
     }`,
     20,
     66
   );
 
   doc.text(
-    `Operario de calderas: ${
-      headerData.op_caldera ||
-      ""
+    `Operario de calderas: ${headerData.op_caldera ||
+    ""
     }`,
     20,
     74
   );
 
   doc.text(
-    `Auxiliar de calderas: ${
-      headerData.aux_caldera ||
-      ""
+    `Auxiliar de calderas: ${headerData.aux_caldera ||
+    ""
     }`,
     20,
     82
   );
 
   doc.text(
-    `Operario de Aguas: ${
-      headerData.op_aguas || ""
+    `Operario de Aguas: ${headerData.op_aguas || ""
     }`,
     20,
     90
   );
 
   doc.text(
-    `Analista de Laboratorio 1: ${
-      headerData.analista1 ||
-      ""
+    `Analista de Laboratorio 1: ${headerData.analista1 ||
+    ""
     }`,
     20,
     98
   );
 
   doc.text(
-    `Operario de Rones: ${
-      headerData.analista2 ||
-      ""
+    `Operario de Rones: ${headerData.analista2 ||
+    ""
     }`,
     20,
     106
@@ -951,12 +942,12 @@ export async function exportarBitacoraPDF(
 
   const tieneIndiceEjecutivo = Boolean(
     Object.keys(notes || {}).length ||
-      resumenTotalizadores ||
-      resumenNivelesTanques ||
-      resumenRecepcionesAlcohol ||
-      resumenDespachosAlcohol ||
-      resumenIngresosCombustibles ||
-      resumenConsumosCombustibles
+    resumenTotalizadores ||
+    resumenNivelesTanques ||
+    resumenRecepcionesAlcohol ||
+    resumenDespachosAlcohol ||
+    resumenIngresosCombustibles ||
+    resumenConsumosCombustibles
   );
 
   /*
@@ -966,6 +957,635 @@ export async function exportarBitacoraPDF(
   let startY = tieneIndiceEjecutivo
     ? 165
     : 120;
+
+  const tieneControlProduccion =
+    Number(headerData.metaProduccionDia) > 0 ||
+    Number(headerData.produccionTurno) > 0;
+
+  if (tieneControlProduccion) {
+    startY = asegurarEspacio(
+      doc,
+      startY,
+      105
+    );
+
+    startY += 6;
+
+    doc.setFont(
+      "times",
+      "bold"
+    );
+
+    doc.setFontSize(13);
+
+    doc.setTextColor(
+      41,
+      128,
+      185
+    );
+
+    doc.text(
+      "CONTROL DE PRODUCCIÓN",
+      TABLE_MARGIN_X,
+      startY
+    );
+
+    const metaDia =
+      Number(
+        headerData.metaProduccionDia
+      ) || 0;
+
+    const produccionTurno =
+      Number(
+        headerData.produccionTurno
+      ) || 0;
+
+    const metaTurno =
+      Number(
+        headerData.metaProduccionTurno
+      ) || 0;
+
+    const acumuladoDia =
+      Number(
+        headerData.produccionAcumuladaDia
+      ) || 0;
+
+    const cumplimientoTurno =
+      Number(
+        headerData.porcentajeCumplimientoTurno
+      ) || 0;
+
+    const cumplimientoDia =
+      Number(
+        headerData.porcentajeCumplimientoDia
+      ) || 0;
+
+    const diferenciaTurno =
+      produccionTurno - metaTurno;
+
+    const diferenciaDia =
+      acumuladoDia - metaDia;
+
+    const formatoNumero = (valor) =>
+      Number(valor || 0).toLocaleString(
+        "es-CO",
+        {
+          maximumFractionDigits: 2,
+        }
+      );
+
+    const formatoLitros = (valor) =>
+      `${formatoNumero(valor)} L`;
+
+    const formatoPorcentaje = (valor) =>
+      `${Number(valor || 0).toFixed(1)} %`;
+
+    const formatoDiferencia = (valor) =>
+      `${valor >= 0 ? "+" : ""}${formatoNumero(valor)} L`;
+
+    const obtenerEstado = (porcentaje) => {
+      if (porcentaje >= 95) return "CUMPLE";
+      if (porcentaje >= 80) return "EN RIESGO";
+      return "BAJO";
+    };
+
+    const esPrimerTurnoProduccion =
+      currentPriority === 1 ||
+      currentPriority === 5;
+
+    let resumenDiaAnterior = null;
+
+    if (
+      esPrimerTurnoProduccion &&
+      currentDate
+    ) {
+      const fechaAnteriorDate =
+        new Date(
+          `${currentDate}T00:00:00`
+        );
+
+      fechaAnteriorDate.setDate(
+        fechaAnteriorDate.getDate() - 1
+      );
+
+      const fechaAnterior = [
+        fechaAnteriorDate.getFullYear(),
+        String(
+          fechaAnteriorDate.getMonth() + 1
+        ).padStart(2, "0"),
+        String(
+          fechaAnteriorDate.getDate()
+        ).padStart(2, "0"),
+      ].join("-");
+
+      // const grupoProduccion =
+      //   currentPriority === 1
+      //     ? 1
+      //     : 2;
+
+      // const storageKey =
+      //   `bitacora-produccion-${fechaAnterior}-grupo-${grupoProduccion}`;
+
+      // try {
+      //   const registroGuardado =
+      //     localStorage.getItem(
+      //       storageKey
+      //     );
+
+      let grupoProduccion = null;
+      let registroGuardado = null;
+
+      const storageKeyGrupo1 =
+        `bitacora-produccion-${fechaAnterior}-grupo-1`;
+
+      const storageKeyGrupo2 =
+        `bitacora-produccion-${fechaAnterior}-grupo-2`;
+
+      try {
+        const registroGrupo1 =
+          localStorage.getItem(
+            storageKeyGrupo1
+          );
+
+        const registroGrupo2 =
+          localStorage.getItem(
+            storageKeyGrupo2
+          );
+
+        if (registroGrupo1) {
+          grupoProduccion = 1;
+          registroGuardado =
+            registroGrupo1;
+        } else if (registroGrupo2) {
+          grupoProduccion = 2;
+          registroGuardado =
+            registroGrupo2;
+        }
+
+        if (registroGuardado) {
+          const registro =
+            JSON.parse(
+              registroGuardado
+            );
+
+          const metaDiaAnterior =
+            Number(
+              registro.metaProduccionDia
+            ) || 0;
+
+          const producciones =
+            registro.producciones || {};
+
+          const turnosDiaAnterior =
+            grupoProduccion === 1
+              ? turnosShorted.filter(
+                (turno) =>
+                  turno.priority >= 1 &&
+                  turno.priority <= 3
+              )
+              : turnosShorted.filter(
+                (turno) =>
+                  turno.priority >= 5 &&
+                  turno.priority <= 6
+              );
+
+          const metaTurnoAnterior =
+            metaDiaAnterior > 0 &&
+              turnosDiaAnterior.length > 0
+              ? metaDiaAnterior /
+              turnosDiaAnterior.length
+              : 0;
+
+          const detalle =
+            turnosDiaAnterior.map(
+              (turno) => {
+                const valor =
+                  producciones[
+                  turno.value
+                  ];
+
+                const tieneProduccion =
+                  valor !== undefined &&
+                  valor !== null &&
+                  valor !== "";
+
+                const produccion =
+                  tieneProduccion
+                    ? Number(valor) || 0
+                    : null;
+
+                const cumplimiento =
+                  produccion !== null &&
+                    metaTurnoAnterior > 0
+                    ? (
+                      produccion /
+                      metaTurnoAnterior
+                    ) * 100
+                    : null;
+
+                return {
+                  ...turno,
+                  produccion,
+                  cumplimiento,
+                };
+              }
+            );
+
+          const produccionTotal =
+            detalle.reduce(
+              (total, turno) =>
+                total +
+                (
+                  turno.produccion ??
+                  0
+                ),
+              0
+            );
+
+          resumenDiaAnterior = {
+            fecha: fechaAnterior,
+            metaDia: metaDiaAnterior,
+            metaTurno:
+              metaTurnoAnterior,
+            produccionTotal,
+            cumplimientoDia:
+              metaDiaAnterior > 0
+                ? (
+                  produccionTotal /
+                  metaDiaAnterior
+                ) * 100
+                : null,
+            detalle,
+          };
+        }
+      } catch (error) {
+        console.error(
+          "Error leyendo producción del día anterior:",
+          error
+        );
+      }
+    }
+
+    startY += 4;
+
+    doc.setFontSize(10);
+    doc.setTextColor(90, 90, 90);
+    doc.text(
+      "Resumen comparativo del turno y del avance del día",
+      TABLE_MARGIN_X,
+      startY + 3
+    );
+
+    startY += 8;
+
+    if (
+      resumenDiaAnterior &&
+      resumenDiaAnterior.metaDia > 0
+    ) {
+      autoTable(doc, {
+        tableWidth:
+          TABLE_CONTENT_WIDTH,
+
+        startY,
+
+        pageBreak: "avoid",
+
+        head: [
+          [
+            `RESUMEN DEL DÍA ANTERIOR — ${formatearFechaISO(
+              resumenDiaAnterior.fecha
+            )}`,
+            "Meta",
+            "Producción",
+            "Cumplimiento",
+          ],
+        ],
+
+        body: [
+          ...resumenDiaAnterior.detalle.map(
+            (turno) => [
+              turno.short,
+              formatoLitros(
+                resumenDiaAnterior.metaTurno
+              ),
+              turno.produccion !== null
+                ? formatoLitros(
+                  turno.produccion
+                )
+                : "SIN DATO",
+              turno.cumplimiento !== null
+                ? `${formatoPorcentaje(
+                  turno.cumplimiento
+                )} · ${obtenerEstado(
+                  turno.cumplimiento
+                )}`
+                : "SIN DATO",
+            ]
+          ),
+
+          [
+            "TOTAL DÍA",
+            formatoLitros(
+              resumenDiaAnterior.metaDia
+            ),
+            formatoLitros(
+              resumenDiaAnterior.produccionTotal
+            ),
+            resumenDiaAnterior.cumplimientoDia !==
+              null
+              ? `${formatoPorcentaje(
+                resumenDiaAnterior.cumplimientoDia
+              )} · ${obtenerEstado(
+                resumenDiaAnterior.cumplimientoDia
+              )}`
+              : "SIN DATO",
+          ],
+        ],
+
+        theme: "grid",
+
+        styles: {
+          font: "DejaVuSans",
+          textColor:
+            PDF_COLORS.text,
+          lineColor:
+            PDF_COLORS.border,
+          lineWidth: 0.1,
+          fontSize: 8,
+          cellPadding: 1.8,
+          valign: "middle",
+        },
+
+        headStyles: {
+          fillColor:
+            PDF_COLORS.slate,
+          textColor: 255,
+          halign: "center",
+          fontStyle: "bold",
+          fontSize: 8,
+        },
+
+        columnStyles: {
+          0: {
+            cellWidth: 55,
+            fontStyle: "bold",
+          },
+
+          1: {
+            cellWidth: 38,
+            halign: "right",
+          },
+
+          2: {
+            cellWidth: 42,
+            halign: "right",
+          },
+
+          3: {
+            cellWidth: "auto",
+            halign: "right",
+          },
+        },
+
+        margin: {
+          left:
+            TABLE_MARGIN_X,
+          right:
+            TABLE_MARGIN_X,
+        },
+      });
+
+      startY =
+        doc.lastAutoTable.finalY + 4;
+    }
+
+    // startY += 8;
+
+    autoTable(doc, {
+      tableWidth:
+        TABLE_CONTENT_WIDTH,
+
+      startY,
+
+      pageBreak: "avoid",
+
+      head: [
+        [
+          "RESUMEN DEL TURNO",
+          "Valor",
+        ],
+      ],
+
+      body: [
+        [
+          "Meta del turno",
+          formatoLitros(metaTurno),
+        ],
+        [
+          "Producción del turno",
+          formatoLitros(produccionTurno),
+        ],
+        [
+          "Diferencia",
+          formatoDiferencia(diferenciaTurno),
+        ],
+        [
+          "% Cumplimiento turno",
+          `${formatoPorcentaje(cumplimientoTurno)} · ${obtenerEstado(cumplimientoTurno)}`,
+        ],
+      ],
+
+      theme: "grid",
+
+      styles: {
+        font: "DejaVuSans",
+        textColor:
+          PDF_COLORS.text,
+        lineColor:
+          PDF_COLORS.border,
+        lineWidth: 0.1,
+        fontSize: 8.3,
+        cellPadding: 1.8,
+        valign: "middle",
+      },
+
+      headStyles: {
+        fillColor:
+          PDF_COLORS.blue,
+        textColor: 255,
+        halign: "center",
+        fontStyle: "bold",
+        fontSize: 8.5,
+        cellPadding: 2,
+      },
+
+      columnStyles: {
+        0: {
+          cellWidth: 105,
+          fontStyle: "bold",
+        },
+        1: {
+          cellWidth: "auto",
+          halign: "right",
+        },
+      },
+
+      didParseCell(data) {
+        if (
+          data.section === "body" &&
+          data.row.index === 3
+        ) {
+          const porcentaje =
+            cumplimientoTurno;
+
+          if (porcentaje >= 95) {
+            data.cell.styles.fillColor = [
+              232,
+              245,
+              233,
+            ];
+          } else if (porcentaje >= 80) {
+            data.cell.styles.fillColor = [
+              255,
+              243,
+              224,
+            ];
+          } else {
+            data.cell.styles.fillColor = [
+              253,
+              235,
+              238,
+            ];
+          }
+        }
+      },
+
+      margin: {
+        left:
+          TABLE_MARGIN_X,
+        right:
+          TABLE_MARGIN_X,
+      },
+    });
+
+    startY =
+      doc.lastAutoTable.finalY + 4;
+
+
+    autoTable(doc, {
+      tableWidth:
+        TABLE_CONTENT_WIDTH,
+
+      startY,
+
+      pageBreak: "avoid",
+
+      head: [
+        [
+          "RESUMEN DEL DÍA",
+          "Valor",
+        ],
+      ],
+
+      body: [
+        [
+          "Meta del día",
+          formatoLitros(metaDia),
+        ],
+        [
+          "Acumulado del día",
+          formatoLitros(acumuladoDia),
+        ],
+        [
+          "Diferencia",
+          formatoDiferencia(diferenciaDia),
+        ],
+        [
+          "% Cumplimiento del día",
+          `${formatoPorcentaje(cumplimientoDia)} · ${obtenerEstado(cumplimientoDia)}`,
+        ],
+      ],
+
+      theme: "grid",
+
+      styles: {
+        font: "DejaVuSans",
+        textColor:
+          PDF_COLORS.text,
+        lineColor:
+          PDF_COLORS.border,
+        lineWidth: 0.1,
+        fontSize: 8.3,
+        cellPadding: 1.8,
+        valign: "middle",
+      },
+
+      headStyles: {
+        fillColor: [
+          52,
+          152,
+          219,
+        ],
+        textColor: 255,
+        halign: "center",
+        fontStyle: "bold",
+        fontSize: 8.5,
+        cellPadding: 2,
+      },
+
+      columnStyles: {
+        0: {
+          cellWidth: 105,
+          fontStyle: "bold",
+        },
+        1: {
+          cellWidth: "auto",
+          halign: "right",
+        },
+      },
+
+      didParseCell(data) {
+        if (
+          data.section === "body" &&
+          data.row.index === 3
+        ) {
+          const porcentaje =
+            cumplimientoDia;
+
+          if (porcentaje >= 95) {
+            data.cell.styles.fillColor = [
+              232,
+              245,
+              233,
+            ];
+          } else if (porcentaje >= 80) {
+            data.cell.styles.fillColor = [
+              255,
+              243,
+              224,
+            ];
+          } else {
+            data.cell.styles.fillColor = [
+              253,
+              235,
+              238,
+            ];
+          }
+        }
+      },
+
+      margin: {
+        left:
+          TABLE_MARGIN_X,
+        right:
+          TABLE_MARGIN_X,
+      },
+    });
+
+    startY =
+      doc.lastAutoTable.finalY + 8;
+
+  }
 
   if (
     Object.keys(notes || {}).length ||
@@ -1015,7 +1635,7 @@ export async function exportarBitacoraPDF(
       if (
         noteDate === currentDate &&
         notePriority <
-          currentPriority
+        currentPriority
       ) {
         return !noteCompleted;
       }
@@ -1080,17 +1700,17 @@ export async function exportarBitacoraPDF(
             )
               ? ""
               : fechaCreacion.toLocaleTimeString(
-                  "es-CO",
-                  {
-                    hour:
-                      "2-digit",
+                "es-CO",
+                {
+                  hour:
+                    "2-digit",
 
-                    minute:
-                      "2-digit",
+                  minute:
+                    "2-digit",
 
-                    hour12: false,
-                  }
-                );
+                  hour12: false,
+                }
+              );
 
           return [
             hora,
@@ -1213,7 +1833,7 @@ export async function exportarBitacoraPDF(
         ?.sinDatos
         ? "SIN DATOS"
         : analisis?.estado ||
-          "SIN CLASIFICAR";
+        "SIN CLASIFICAR";
 
     doc.setFont(
       "times",
@@ -1229,9 +1849,8 @@ export async function exportarBitacoraPDF(
     );
 
     doc.text(
-      `BALANCE TOTALIZADORES U400 — ${
-        resumenTotalizadores.fecha ||
-        "FECHA NO DISPONIBLE"
+      `BALANCE TOTALIZADORES U400 — ${resumenTotalizadores.fecha ||
+      "FECHA NO DISPONIBLE"
       }`,
       TABLE_MARGIN_X,
       startY,
@@ -1303,7 +1922,7 @@ export async function exportarBitacoraPDF(
 
           formatearNumero(
             totals.difProdTk402 ??
-              totals.difProdTraslado
+            totals.difProdTraslado
           ),
         ],
 
@@ -1312,7 +1931,7 @@ export async function exportarBitacoraPDF(
 
           formatearPorcentaje(
             totals.errorProdTk402Pct ??
-              totals.errorTrasladoPct
+            totals.errorTrasladoPct
           ),
         ],
 
@@ -1465,7 +2084,7 @@ export async function exportarBitacoraPDF(
         body: turnos.map(
           (turno) => [
             turno?.turno ||
-              "Sin definir",
+            "Sin definir",
 
             formatearNumero(
               turno?.renConsumo
@@ -1672,11 +2291,11 @@ export async function exportarBitacoraPDF(
       didParseCell(data) {
         if (
           data.section ===
-            "body" &&
+          "body" &&
           data.column.index ===
-            0 &&
+          0 &&
           data.cell.raw ===
-            "Alerta"
+          "Alerta"
         ) {
           data.cell.styles.textColor =
             [198, 40, 40];
@@ -1784,18 +2403,18 @@ export async function exportarBitacoraPDF(
 
           const gradoNormalizado =
             item?.gradoAlcoholico !== null &&
-            item?.gradoAlcoholico !== undefined &&
-            item?.gradoAlcoholico !== ""
+              item?.gradoAlcoholico !== undefined &&
+              item?.gradoAlcoholico !== ""
               ? Number(
-                  String(item.gradoAlcoholico)
-                    .trim()
-                    .replace(",", ".")
-                )
+                String(item.gradoAlcoholico)
+                  .trim()
+                  .replace(",", ".")
+              )
               : null;
 
           const gradoAlcoholico =
             gradoNormalizado !== null &&
-            Number.isFinite(gradoNormalizado)
+              Number.isFinite(gradoNormalizado)
               ? gradoNormalizado
               : null;
 
@@ -1901,7 +2520,7 @@ export async function exportarBitacoraPDF(
         body: [
           [
             resumenNivelesTanques?.mensaje ||
-              "No se registraron niveles de tanques jornaleros para la fecha consultada.",
+            "No se registraron niveles de tanques jornaleros para la fecha consultada.",
           ],
         ],
 
@@ -1975,9 +2594,9 @@ export async function exportarBitacoraPDF(
 
     const totalRecepciones = Number(
       resumen?.totalRecepciones ||
-        resumenRecepcionesAlcohol
-          ?.totalRegistros ||
-        0
+      resumenRecepcionesAlcohol
+        ?.totalRegistros ||
+      0
     );
 
     const tieneRecepciones =
@@ -2178,7 +2797,7 @@ export async function exportarBitacoraPDF(
         body: porProducto.map(
           (item) => [
             item?.producto ||
-              "Sin definir",
+            "Sin definir",
 
             formatearNumero(
               item?.recepciones,
@@ -2313,19 +2932,19 @@ export async function exportarBitacoraPDF(
         body: detalle.map(
           (item) => [
             item?.producto ||
-              "Sin definir",
+            "Sin definir",
 
             item?.proveedor ||
-              "Sin definir",
+            "Sin definir",
 
             item?.remision ||
-              "—",
+            "—",
 
             item?.placa ||
-              "—",
+            "—",
 
             item?.tanqueRecepcion ||
-              "—",
+            "—",
 
             formatearNumero(
               item?.cantidadRecibida,
@@ -2338,7 +2957,7 @@ export async function exportarBitacoraPDF(
             ),
 
             item?.estadoVehiculo ||
-              "Sin estado",
+            "Sin estado",
           ]
         ),
 
@@ -2411,7 +3030,7 @@ export async function exportarBitacoraPDF(
         didParseCell(data) {
           if (
             data.section ===
-              "body" &&
+            "body" &&
             data.column.index === 7
           ) {
             const estado = String(
@@ -2453,13 +3072,13 @@ export async function exportarBitacoraPDF(
           )
           .map((item) => [
             item?.producto ||
-              "Sin definir",
+            "Sin definir",
 
             item?.placa ||
-              "Sin placa",
+            "Sin placa",
 
             item?.observaciones ||
-              "",
+            "",
           ]);
 
       if (
@@ -2564,7 +3183,7 @@ export async function exportarBitacoraPDF(
           [
             resumenRecepcionesAlcohol
               ?.mensaje ||
-              "No se registraron recepciones o compras de alcoholes para la fecha consultada.",
+            "No se registraron recepciones o compras de alcoholes para la fecha consultada.",
           ],
         ],
 
@@ -2654,9 +3273,9 @@ export async function exportarBitacoraPDF(
 
     const totalDespachos = Number(
       resumen?.totalDespachos ||
-        resumenDespachosAlcohol
-          ?.totalRegistros ||
-        0
+      resumenDespachosAlcohol
+        ?.totalRegistros ||
+      0
     );
 
     const tieneDespachos =
@@ -2775,12 +3394,12 @@ export async function exportarBitacoraPDF(
           formatearNumero(
             Number(
               resumen?.rechazadosAmbiocom ||
-                0
+              0
             ) +
-              Number(
-                resumen?.rechazadosCliente ||
-                  0
-              ),
+            Number(
+              resumen?.rechazadosCliente ||
+              0
+            ),
             0
           ),
         ],
@@ -2880,7 +3499,7 @@ export async function exportarBitacoraPDF(
         body: porProducto.map(
           (item) => [
             item?.producto ||
-              "Sin definir",
+            "Sin definir",
 
             formatearNumero(
               item?.despachos,
@@ -3011,7 +3630,7 @@ export async function exportarBitacoraPDF(
         body: porCliente.map(
           (item) => [
             item?.cliente ||
-              "Sin definir",
+            "Sin definir",
 
             formatearNumero(
               item?.despachos,
@@ -3139,19 +3758,19 @@ export async function exportarBitacoraPDF(
         body: detalle.map(
           (item) => [
             item?.producto ||
-              "Sin definir",
+            "Sin definir",
 
             item?.cliente ||
-              "Sin definir",
+            "Sin definir",
 
             item?.transportadora ||
-              "Sin definir",
+            "Sin definir",
 
             item?.placa ||
-              "—",
+            "—",
 
             item?.remisionFactura ||
-              "—",
+            "—",
 
             formatearNumero(
               item?.gradoAlcoholico,
@@ -3174,7 +3793,7 @@ export async function exportarBitacoraPDF(
             ),
 
             item?.estadoVehiculo ||
-              "Sin estado",
+            "Sin estado",
           ]
         ),
 
@@ -3257,7 +3876,7 @@ export async function exportarBitacoraPDF(
         didParseCell(data) {
           if (
             data.section ===
-              "body" &&
+            "body" &&
             data.column.index === 9
           ) {
             const estado = String(
@@ -3314,19 +3933,19 @@ export async function exportarBitacoraPDF(
           )
           .map((item) => [
             item?.placa ||
-              "Sin placa",
+            "Sin placa",
 
             item?.cliente ||
-              "Sin cliente",
+            "Sin cliente",
 
             item?.llegadaDestino ||
-              "—",
+            "—",
 
             item?.puntualidadCliente ||
-              "—",
+            "—",
 
             item?.observaciones ||
-              "",
+            "",
           ]);
 
       if (novedadesDespachos.length) {
@@ -3441,7 +4060,7 @@ export async function exportarBitacoraPDF(
           [
             resumenDespachosAlcohol
               ?.mensaje ||
-              "No se registraron despachos de alcohol para la fecha consultada.",
+            "No se registraron despachos de alcohol para la fecha consultada.",
           ],
         ],
 
@@ -3685,7 +4304,7 @@ export async function exportarBitacoraPDF(
       didParseCell(data) {
         if (
           data.section ===
-            "body" &&
+          "body" &&
           data.row.index === 2
         ) {
           data.cell.styles.fontStyle =
@@ -3749,10 +4368,10 @@ export async function exportarBitacoraPDF(
         body: proveedores.map(
           (item) => [
             item?.material ||
-              "Sin definir",
+            "Sin definir",
 
             item?.proveedor ||
-              "Proveedor no definido",
+            "Proveedor no definido",
 
             formatearNumero(
               item?.viajes,
@@ -3849,7 +4468,7 @@ export async function exportarBitacoraPDF(
           [
             resumenIngresosCombustibles
               ?.mensaje ||
-              "No se registraron ingresos de carbón o madera para la fecha consultada.",
+            "No se registraron ingresos de carbón o madera para la fecha consultada.",
           ],
         ],
 
@@ -3961,16 +4580,16 @@ export async function exportarBitacoraPDF(
       normalizeDate(
         resumenConsumosCombustibles
           ?.fechaCierreInventario ||
-          resumenConsumosCombustibles
-            ?.fechaStock ||
-          fechaConsumos
+        resumenConsumosCombustibles
+          ?.fechaStock ||
+        fechaConsumos
       ) || fechaConsumos;
 
     const fechaAperturaInventario =
       normalizeDate(
         resumenConsumosCombustibles
           ?.fechaAperturaInventario ||
-          currentDate
+        currentDate
       ) ||
       currentDate ||
       "FECHA NO DISPONIBLE";
@@ -4039,21 +4658,21 @@ export async function exportarBitacoraPDF(
       porcentajeCarbonReportado ??
       (consumoTotalMezclaTon > 0
         ? consumoCarbonTon /
-          consumoTotalMezclaTon
+        consumoTotalMezclaTon
         : 0);
 
     const porcentajeMadera =
       porcentajeMaderaReportado ??
       (consumoTotalMezclaTon > 0
         ? consumoMaderaTon /
-          consumoTotalMezclaTon
+        consumoTotalMezclaTon
         : 0);
 
     const porcentajeBagazo =
       porcentajeBagazoReportado ??
       (consumoTotalMezclaTon > 0
         ? consumoBagazoTon /
-          consumoTotalMezclaTon
+        consumoTotalMezclaTon
         : 0);
 
     const totalTolvasTon = tieneNumero(
@@ -4061,7 +4680,7 @@ export async function exportarBitacoraPDF(
     )
       ? Number(tolvas.total)
       : Number(tolvas?.principal || 0) +
-        Number(tolvas?.auxiliares || 0);
+      Number(tolvas?.auxiliares || 0);
 
     /*
      * Se admiten valores ya calculados por el módulo.
@@ -4267,21 +4886,21 @@ export async function exportarBitacoraPDF(
       (stockPatioCarbonTon === null
         ? null
         : stockPatioCarbonTon +
-          carbonEnTolvasTon);
+        carbonEnTolvasTon);
 
     const stockTotalMaderaTon =
       stockTotalMaderaReportado ??
       (stockPatioMaderaTon === null
         ? null
         : stockPatioMaderaTon +
-          maderaEnTolvasTon);
+        maderaEnTolvasTon);
 
     const stockTotalBagazoTon =
       stockTotalBagazoReportado ??
       (stockPatioBagazoTon === null
         ? null
         : stockPatioBagazoTon +
-          bagazoEnTolvasTon);
+        bagazoEnTolvasTon);
 
     const stockGeneralReportado =
       obtenerPrimerNumeroDisponible(
@@ -4301,10 +4920,10 @@ export async function exportarBitacoraPDF(
       stockGeneralReportado ??
       (valoresStockDisponibles.length
         ? valoresStockDisponibles.reduce(
-            (acc, value) =>
-              acc + Number(value || 0),
-            0
-          )
+          (acc, value) =>
+            acc + Number(value || 0),
+          0
+        )
         : null);
 
     const observacion = String(
@@ -4378,25 +4997,25 @@ export async function exportarBitacoraPDF(
           stockTotalCarbonTon === null
             ? "—"
             : `${formatearNumero(
-                stockTotalCarbonTon,
-                4
-              )} t`,
+              stockTotalCarbonTon,
+              4
+            )} t`,
           "Stock apertura madera",
           stockTotalMaderaTon === null
             ? "—"
             : `${formatearNumero(
-                stockTotalMaderaTon,
-                4
-              )} t`,
+              stockTotalMaderaTon,
+              4
+            )} t`,
         ],
         [
           "Stock general de apertura",
           stockGeneralTon === null
             ? "—"
             : `${formatearNumero(
-                stockGeneralTon,
-                4
-              )} t`,
+              stockGeneralTon,
+              4
+            )} t`,
           "Cierre de inventario",
           formatearFechaISO(
             fechaCierreInventario
@@ -4691,7 +5310,7 @@ export async function exportarBitacoraPDF(
       didParseCell(data) {
         if (
           data.section ===
-            "body" &&
+          "body" &&
           data.row.index === 3
         ) {
           data.cell.styles.fontStyle =
@@ -4760,10 +5379,10 @@ export async function exportarBitacoraPDF(
         body: materiales.map(
           (item) => [
             item?.material ||
-              "Sin definir",
+            "Sin definir",
 
             item?.proveedor ||
-              "Sin definir",
+            "Sin definir",
 
             formatearNumero(
               item?.paladasCV,
@@ -5085,9 +5704,9 @@ export async function exportarBitacoraPDF(
         stockPatioCarbonTon === null
           ? "—"
           : formatearNumero(
-              stockPatioCarbonTon,
-              4
-            ),
+            stockPatioCarbonTon,
+            4
+          ),
         formatearNumero(
           carbonEnTolvasTon,
           4
@@ -5095,9 +5714,9 @@ export async function exportarBitacoraPDF(
         stockTotalCarbonTon === null
           ? "—"
           : formatearNumero(
-              stockTotalCarbonTon,
-              4
-            ),
+            stockTotalCarbonTon,
+            4
+          ),
       ],
       [
         "Madera",
@@ -5112,9 +5731,9 @@ export async function exportarBitacoraPDF(
         stockPatioMaderaTon === null
           ? "—"
           : formatearNumero(
-              stockPatioMaderaTon,
-              4
-            ),
+            stockPatioMaderaTon,
+            4
+          ),
         formatearNumero(
           maderaEnTolvasTon,
           4
@@ -5122,9 +5741,9 @@ export async function exportarBitacoraPDF(
         stockTotalMaderaTon === null
           ? "—"
           : formatearNumero(
-              stockTotalMaderaTon,
-              4
-            ),
+            stockTotalMaderaTon,
+            4
+          ),
       ],
     ];
 
@@ -5147,9 +5766,9 @@ export async function exportarBitacoraPDF(
         stockPatioBagazoTon === null
           ? "—"
           : formatearNumero(
-              stockPatioBagazoTon,
-              4
-            ),
+            stockPatioBagazoTon,
+            4
+          ),
         formatearNumero(
           bagazoEnTolvasTon,
           4
@@ -5157,9 +5776,9 @@ export async function exportarBitacoraPDF(
         stockTotalBagazoTon === null
           ? "—"
           : formatearNumero(
-              stockTotalBagazoTon,
-              4
-            ),
+            stockTotalBagazoTon,
+            4
+          ),
       ]);
     }
 
@@ -5324,7 +5943,7 @@ export async function exportarBitacoraPDF(
           [
             resumenConsumosCombustibles
               ?.mensaje ||
-              "No se registraron consumos de combustibles para la fecha consultada.",
+            "No se registraron consumos de combustibles para la fecha consultada.",
           ],
         ],
 
@@ -5502,50 +6121,50 @@ export async function exportarBitacoraPDF(
     const construirFilaResumenProduccion = (
       item
     ) => [
-      item.fuente,
-      tieneNumero(item.produccion)
-        ? formatearNumero(
+        item.fuente,
+        tieneNumero(item.produccion)
+          ? formatearNumero(
             item.produccion,
             2
           )
-        : "—",
-      tieneNumero(item.consumoRen)
-        ? formatearNumero(
+          : "—",
+        tieneNumero(item.consumoRen)
+          ? formatearNumero(
             item.consumoRen,
             2
           )
-        : "—",
-      item.factorRen === null
-        ? "—"
-        : formatearNumero(
+          : "—",
+        item.factorRen === null
+          ? "—"
+          : formatearNumero(
             item.factorRen,
             4
           ),
-      consumoCarbonResumenTon === null
-        ? "—"
-        : formatearNumero(
+        consumoCarbonResumenTon === null
+          ? "—"
+          : formatearNumero(
             consumoCarbonResumenTon,
             4
           ),
-      item.factorCarbon === null
-        ? "—"
-        : formatearNumero(
+        item.factorCarbon === null
+          ? "—"
+          : formatearNumero(
             item.factorCarbon,
             4
           ),
-      consumoMaderaResumenTon === null
-        ? "—"
-        : formatearNumero(
+        consumoMaderaResumenTon === null
+          ? "—"
+          : formatearNumero(
             consumoMaderaResumenTon,
             4
           ),
-      item.factorMadera === null
-        ? "—"
-        : formatearNumero(
+        item.factorMadera === null
+          ? "—"
+          : formatearNumero(
             item.factorMadera,
             4
           ),
-    ];
+      ];
 
     const alertasFactoresCombustibles =
       datosResumenProduccion.flatMap(
@@ -5555,7 +6174,7 @@ export async function exportarBitacoraPDF(
           if (
             item.factorCarbon !== null &&
             item.factorCarbon >
-              FACTOR_COMBUSTIBLE_MAX_KG_L
+            FACTOR_COMBUSTIBLE_MAX_KG_L
           ) {
             alertas.push(
               `${item.fuente}: el factor de carbón fue ${formatearNumero(
@@ -5571,7 +6190,7 @@ export async function exportarBitacoraPDF(
           if (
             item.factorMadera !== null &&
             item.factorMadera >
-              FACTOR_COMBUSTIBLE_MAX_KG_L
+            FACTOR_COMBUSTIBLE_MAX_KG_L
           ) {
             alertas.push(
               `${item.fuente}: el factor de madera fue ${formatearNumero(
@@ -5725,7 +6344,7 @@ export async function exportarBitacoraPDF(
 
         const datosFila =
           datosResumenProduccion[
-            data.row.index
+          data.row.index
           ];
 
         const factorEvaluado =
@@ -5741,7 +6360,7 @@ export async function exportarBitacoraPDF(
           ) &&
           factorEvaluado !== null &&
           factorEvaluado >
-            FACTOR_COMBUSTIBLE_MAX_KG_L;
+          FACTOR_COMBUSTIBLE_MAX_KG_L;
 
         if (superaLimite) {
           data.cell.styles.fillColor =
@@ -5776,14 +6395,14 @@ export async function exportarBitacoraPDF(
 
       body: alertasFactoresCombustibles.length
         ? alertasFactoresCombustibles.map(
-            (alerta) => [alerta]
-          )
+          (alerta) => [alerta]
+        )
         : [[
-            `Los factores de carbón y madera se encuentran dentro del máximo permitido de ${formatearNumero(
-              FACTOR_COMBUSTIBLE_MAX_KG_L,
-              2
-            )} kg/L.`,
-          ]],
+          `Los factores de carbón y madera se encuentran dentro del máximo permitido de ${formatearNumero(
+            FACTOR_COMBUSTIBLE_MAX_KG_L,
+            2
+          )} kg/L.`,
+        ]],
 
       theme: "striped",
 
@@ -5876,45 +6495,45 @@ export async function exportarBitacoraPDF(
   const entradasIndiceEjecutivo = [
     paginasSecciones.produccion
       ? {
-          title:
-            "Producción y balance operativo",
-          subtitle:
-            "Novedades, REN, producción y conciliación de totalizadores",
-          pageNumber:
-            paginasSecciones.produccion,
-          color: PDF_COLORS.blue,
-        }
+        title:
+          "Producción y balance operativo",
+        subtitle:
+          "Novedades, REN, producción y conciliación de totalizadores",
+        pageNumber:
+          paginasSecciones.produccion,
+        color: PDF_COLORS.blue,
+      }
       : null,
     paginasSecciones.alcoholes
       ? {
-          title: "Alcoholes",
-          subtitle:
-            "Niveles, recepciones, compras y despachos",
-          pageNumber:
-            paginasSecciones.alcoholes,
-          color: PDF_COLORS.purple,
-        }
+        title: "Alcoholes",
+        subtitle:
+          "Niveles, recepciones, compras y despachos",
+        pageNumber:
+          paginasSecciones.alcoholes,
+        color: PDF_COLORS.purple,
+      }
       : null,
     paginasSecciones.combustibles
       ? {
-          title: "Combustibles sólidos",
-          subtitle:
-            "Carbón, madera, bagazo, consumos, inventarios y tolvas",
-          pageNumber:
-            paginasSecciones.combustibles,
-          color: PDF_COLORS.orange,
-        }
+        title: "Combustibles sólidos",
+        subtitle:
+          "Carbón, madera, bagazo, consumos, inventarios y tolvas",
+        pageNumber:
+          paginasSecciones.combustibles,
+        color: PDF_COLORS.orange,
+      }
       : null,
     paginasSecciones.resumen
       ? {
-          title:
-            "Resumen para reportar producción",
-          subtitle:
-            "Producción, REN y factores de consumo para gerencia",
-          pageNumber:
-            paginasSecciones.resumen,
-          color: PDF_COLORS.green,
-        }
+        title:
+          "Resumen para reportar producción",
+        subtitle:
+          "Producción, REN y factores de consumo para gerencia",
+        pageNumber:
+          paginasSecciones.resumen,
+        color: PDF_COLORS.green,
+      }
       : null,
   ].filter(Boolean);
 
@@ -5973,12 +6592,10 @@ export async function exportarBitacoraPDF(
     )?.short || "T0000";
 
   doc.save(
-    `bitacora_${
-      headerData.fecha ||
-      "sin_fecha"
-    }_${
-      turnoNameExported ||
-      "sin_turno"
+    `bitacora_${headerData.fecha ||
+    "sin_fecha"
+    }_${turnoNameExported ||
+    "sin_turno"
     }.pdf`
   );
 }

@@ -66,6 +66,13 @@ const HEADER_DATA_DEFAULT = {
   aux_caldera: "",
   analista1: "",
   analista2: "",
+  grupoProduccion: null,
+  metaProduccionDia: 0,
+  produccionTurno: 0,
+  metaProduccionTurno: 0,
+  produccionAcumuladaDia: 0,
+  porcentajeCumplimientoTurno: 0,
+  porcentajeCumplimientoDia: 0,
 };
 
 const obtenerHeaderDataInicial = () => {
@@ -424,6 +431,14 @@ function BitacoraComponentProduccion({
       aux_caldera: "",
       analista1: "",
       analista2: "",
+      
+      grupoProduccion: null,
+      metaProduccionDia: 0,
+      produccionTurno: 0,
+      metaProduccionTurno: 0,
+      produccionAcumuladaDia: 0,
+      porcentajeCumplimientoTurno: 0,
+      porcentajeCumplimientoDia: 0,
     }));
   };
 

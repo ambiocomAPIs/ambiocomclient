@@ -207,35 +207,9 @@ const normalizeZona = (value) => {
     return text;
 };
 
-/* ============================================================
-   MAPEO DEL BACKEND
-============================================================ */
-
-/*
-  IMPORTANTE:
-
-  De los datos que me mostraste ya conocemos:
-
-  volumen_contador_gravimetrico
-  cliente
-  transportadora
-
-  Pero todavía necesitamos confirmar el nombre real de:
-
-  1. valor monetario del flete
-  2. destino
-  3. rural / urbano
-
-  Por eso esos campos quedan centralizados AQUÍ.
-*/
-
 const normalizeDespacho = (row) => {
     const lecturas =
         row?.lecturas || {};
-
-    /* ============================
-       LITROS GRAVIMÉTRICOS
-    ============================ */
 
     const litrosGravimetricos =
         firstNumber(
@@ -243,27 +217,15 @@ const normalizeDespacho = (row) => {
                 ?.volumen_contador_gravimetrico
         ) || 0;
 
-    /* ============================
-       VALOR DEL FLETE
-  
-       AJUSTAR AQUÍ SI EL CAMPO
-       REAL TIENE OTRO NOMBRE
-    ============================ */
-
     const valorFlete =
         firstNumber(
+            lecturas?.costo_transporte,
             lecturas?.valor_flete,
             lecturas?.valor_flete_factura,
             lecturas?.valor_flete_facturado,
             lecturas?.costo_flete,
             lecturas?.flete_valor
         );
-
-    /* ============================
-       DESTINO
-  
-       AJUSTAR AQUÍ SI ES NECESARIO
-    ============================ */
 
     const destino =
         firstText(
@@ -272,12 +234,6 @@ const normalizeDespacho = (row) => {
             lecturas?.municipio_destino,
             lecturas?.lugar_destino
         ) || "SIN DATO";
-
-    /* ============================
-       ZONA RURAL / URBANA
-  
-       AJUSTAR AQUÍ SI ES NECESARIO
-    ============================ */
 
     const zona =
         normalizeZona(
@@ -580,10 +536,6 @@ export default function AnalisisFletesHistoricos() {
 
     useEffect(() => {
         consultar();
-
-        // Se ejecuta únicamente
-        // al montar el componente.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     /* ============================================================
