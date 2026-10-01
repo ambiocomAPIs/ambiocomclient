@@ -1,8 +1,4 @@
-import {
-    useEffect,
-    useMemo,
-    useState,
-} from "react";
+import { useEffect, useMemo, useState, } from "react";
 
 import {
     Alert,
@@ -29,9 +25,7 @@ import FilterAltOffRoundedIcon from "@mui/icons-material/FilterAltOffRounded";
 
 const API_URL = "https://ambiocomserver.onrender.com/api/despacho-alcoholes/rango";
 
-/* ============================================================
-   UTILIDADES
-============================================================ */
+/* =============== UTILIDADES ================= */
 
 const pad2 = (value) =>
     String(value).padStart(2, "0");
@@ -65,9 +59,7 @@ const getDefaultRange = () => {
     };
 };
 
-/* ============================================================
-   CONVERSIÓN SEGURA DE NÚMEROS
-============================================================ */
+/* =========== CONVERSIÓN SEGURA DE NÚMEROS =============== */
 
 const toNullableNumber = (value) => {
     if (
@@ -116,9 +108,23 @@ const firstNumber = (...values) => {
     return null;
 };
 
-/* ============================================================
-   FORMATO
-============================================================ */
+const firstPositiveNumber = (...values) => {
+    for (const value of values) {
+        const number =
+            toNullableNumber(value);
+
+        if (
+            number !== null &&
+            number > 0
+        ) {
+            return number;
+        }
+    }
+
+    return null;
+};
+
+/* ============= FORMATO ================ */
 
 const numberFormatter =
     new Intl.NumberFormat("es-CO", {
@@ -175,36 +181,112 @@ const formatCOPLitro = (value) => {
     )}/L`;
 };
 
-/* ============================================================
-   NORMALIZACIÓN RURAL / URBANO
-============================================================ */
+const DESTINOS_LOCALES = [
+    "CALI",
+    "JAMUNDÍ",
+    "CANDELARIA",
+    "PALMIRA",
+    "YUMBO",
+];
 
-const normalizeZona = (value) => {
-    const text = String(
-        value || ""
+const DESTINOS_REGIONALES = [
+    "BUGA",
+    "GUADALAJARA DE BUGA",
+    "TULUÁ",
+    "ROLDANILLO",
+    "CARTAGO",
+    "ZARZAL",
+    "PRADERA",
+    "FLORIDA",
+    "EL CERRITO",
+    "GINEBRA",
+    "GUACARÍ",
+    "DAGUA",
+    "VIJES",
+    "LA CUMBRE",
+];
+
+/* ============= NORMALIZACIÓN RURAL / URBANO ================= */
+
+// const normalizeZona = (value) => {
+//     const text = String(
+//         value || ""
+//     )
+//         .trim()
+//         .toUpperCase();
+
+//     if (!text) {
+//         return "SIN CLASIFICAR";
+//     }
+
+//     if (
+//         text.includes("RURAL") ||
+//         text === "R"
+//     ) {
+//         return "RURAL";
+//     }
+
+//     if (
+//         text.includes("VIAJERO") ||
+//         text === "V"
+//     ) {
+//         return "VIAJERO";
+//     }
+
+//     return "SIN CLASIFICAR";
+// };
+
+const normalizeZona = (destino) => {
+    if (DESTINOS_LOCALES.includes(destino)) {
+        return "LOCAL";
+    }
+
+    return "VIAJERA";
+};
+
+const getTipoZona = (destino) => {
+    if (DESTINOS_LOCALES.includes(destino)) {
+        return "LOCAL";
+    }
+
+    if (DESTINOS_REGIONALES.includes(destino)) {
+        return "REGIONAL";
+    }
+
+    return "NACIONAL";
+};
+
+const getZonaChipSx = (zona) => {
+    const value = String(
+        zona || ""
     )
         .trim()
         .toUpperCase();
 
-    if (!text) {
-        return "SIN CLASIFICAR";
+    if (value === "LOCAL") {
+        return {
+            bgcolor: "#dcfce7",
+            color: "#166534",
+            border: "1px solid #86efac",
+            fontWeight: 800,
+        };
     }
 
-    if (
-        text.includes("RURAL") ||
-        text === "R"
-    ) {
-        return "RURAL";
+    if (value === "VIAJERA") {
+        return {
+            bgcolor: "#dbeafe",
+            color: "#1e40af",
+            border: "1px solid #93c5fd",
+            fontWeight: 800,
+        };
     }
 
-    if (
-        text.includes("URB") ||
-        text === "U"
-    ) {
-        return "URBANO";
-    }
-
-    return text;
+    return {
+        bgcolor: "#f2f4f7",
+        color: "#475467",
+        border: "1px solid #d0d5dd",
+        fontWeight: 800,
+    };
 };
 
 const normalizeDespacho = (row) => {
@@ -218,7 +300,7 @@ const normalizeDespacho = (row) => {
         ) || 0;
 
     const valorFlete =
-        firstNumber(
+        firstPositiveNumber(
             lecturas?.costo_transporte,
             lecturas?.valor_flete,
             lecturas?.valor_flete_factura,
@@ -235,19 +317,21 @@ const normalizeDespacho = (row) => {
             lecturas?.lugar_destino
         ) || "SIN DATO";
 
-    const zona =
-        normalizeZona(
-            firstText(
-                lecturas?.zona,
-                lecturas?.tipo_zona,
-                lecturas?.zona_destino,
-                lecturas?.rural_urbano
-            )
-        );
+    // const zona =
+    //     normalizeZona(
+    //         firstText(
+    //             lecturas?.zona,
+    //             lecturas?.tipo_zona,
+    //             lecturas?.zona_destino,
+    //             lecturas?.rural_urbano
+    //         )
+    //     );
 
-    /* ============================
-       DATOS YA CONFIRMADOS
-    ============================ */
+    const zona = normalizeZona(destino);
+
+    const tipoZona = getTipoZona(destino);
+    
+    /* ============ DATOS YA CONFIRMADOS ============ */
 
     const cliente =
         firstText(
@@ -264,12 +348,10 @@ const normalizeDespacho = (row) => {
             lecturas?.producto
         ) || "SIN DATO";
 
-    /* ============================
-       FLETE / LITRO
-    ============================ */
+    /* =========  FLETE / LITRO ========== */
 
     const fletePorLitro =
-        valorFlete !== null &&
+        valorFlete > 0 &&
             litrosGravimetricos > 0
             ? valorFlete /
             litrosGravimetricos
@@ -310,9 +392,7 @@ const normalizeDespacho = (row) => {
     };
 };
 
-/* ============================================================
-   KPI
-============================================================ */
+/* ==========  KPI =========== */
 
 function KpiCard({
     title,
@@ -334,8 +414,8 @@ function KpiCard({
         >
             <Typography
                 sx={{
-                    fontSize: 10,
-                    fontWeight: 700,
+                    fontSize: 11,
+                    fontWeight: 600,
                     color: "#667085",
                     textTransform:
                         "uppercase",
@@ -347,7 +427,7 @@ function KpiCard({
             <Typography
                 sx={{
                     mt: 0.6,
-                    fontSize: 23,
+                    fontSize: 20,
                     fontWeight: 800,
                     color: "#003f8f",
                     lineHeight: 1.1,
@@ -360,7 +440,7 @@ function KpiCard({
                 <Typography
                     sx={{
                         mt: 0.5,
-                        fontSize: 10,
+                        fontSize: 10.5,
                         color: "#667085",
                     }}
                 >
@@ -371,9 +451,7 @@ function KpiCard({
     );
 }
 
-/* ============================================================
-   COMPONENTE PRINCIPAL
-============================================================ */
+/* ============= COMPONENTE PRINCIPAL ================ */
 
 export default function AnalisisFletesHistoricos() {
     const defaultRange =
@@ -382,9 +460,7 @@ export default function AnalisisFletesHistoricos() {
             []
         );
 
-    /* ============================================================
-       FECHAS
-    ============================================================ */
+    /* ============ FECHAS ============= */
 
     const [from, setFrom] =
         useState(defaultRange.from);
@@ -392,9 +468,7 @@ export default function AnalisisFletesHistoricos() {
     const [to, setTo] =
         useState(defaultRange.to);
 
-    /* ============================================================
-       DATOS
-    ============================================================ */
+    /* =========== DATOS ============ */
 
     const [despachos, setDespachos] =
         useState([]);
@@ -405,9 +479,7 @@ export default function AnalisisFletesHistoricos() {
     const [error, setError] =
         useState("");
 
-    /* ============================================================
-       FILTROS
-    ============================================================ */
+    /* =============  FILTROS ============ */
 
     const [
         filtroCliente,
@@ -434,9 +506,7 @@ export default function AnalisisFletesHistoricos() {
         setFiltroProducto,
     ] = useState("TODOS");
 
-    /* ============================================================
-       CONSULTAR API
-    ============================================================ */
+    /* ===========  CONSULTAR API ============= */
 
     const consultar = async () => {
         if (!from || !to) {
@@ -485,11 +555,6 @@ export default function AnalisisFletesHistoricos() {
                 );
             }
 
-            /*
-              Soporta varias posibles
-              estructuras del backend:
-            */
-
             const rows =
                 Array.isArray(payload)
                     ? payload
@@ -530,17 +595,13 @@ export default function AnalisisFletesHistoricos() {
         }
     };
 
-    /* ============================================================
-       CONSULTA INICIAL
-    ============================================================ */
+    /* =========== CONSULTA INICIAL ============ */
 
     useEffect(() => {
         consultar();
     }, []);
 
-    /* ============================================================
-       OPCIONES DINÁMICAS
-    ============================================================ */
+    /* =========== OPCIONES DINÁMICAS =========== */
 
     const clientes =
         useMemo(() => {
@@ -602,9 +663,7 @@ export default function AnalisisFletesHistoricos() {
             ].sort();
         }, [despachos]);
 
-    /* ============================================================
-       FILTRO DINÁMICO
-    ============================================================ */
+    /* =========== FILTRO DINÁMICO ============ */
 
     const despachosFiltrados =
         useMemo(() => {
@@ -667,9 +726,7 @@ export default function AnalisisFletesHistoricos() {
             filtroProducto,
         ]);
 
-    /* ============================================================
-       MÉTRICAS
-    ============================================================ */
+    /* =========== MÉTRICAS ============ */
 
     const metricas =
         useMemo(() => {
@@ -687,10 +744,8 @@ export default function AnalisisFletesHistoricos() {
             const conFlete =
                 despachosFiltrados.filter(
                     (item) =>
-                        item.valorFlete !== null &&
-                        item.valorFlete >= 0 &&
-                        item.litrosGravimetricos >
-                        0
+                        item.valorFlete > 0 &&
+                        item.litrosGravimetricos > 0
                 );
 
             const totalFlete =
@@ -766,9 +821,7 @@ export default function AnalisisFletesHistoricos() {
             };
         }, [despachosFiltrados]);
 
-    /* ============================================================
-       AGRUPACIÓN POR DESTINO
-    ============================================================ */
+    /* ============== AGRUPACIÓN POR DESTINO ================= */
 
     const resumenDestinos =
         useMemo(() => {
@@ -785,25 +838,15 @@ export default function AnalisisFletesHistoricos() {
                         map.set(
                             item.destino,
                             {
-                                destino:
-                                    item.destino,
-
+                                destino: item.destino,
                                 despachos: 0,
-
                                 litros: 0,
-
                                 flete: 0,
-
                                 litrosConFlete: 0,
-
-                                registrosConFlete:
-                                    0,
-
-                                zonas:
-                                    new Set(),
-
-                                transportadoras:
-                                    new Set(),
+                                fletePonderadoAcumulado: 0,
+                                registrosConFlete: 0,
+                                zonas: new Set(),
+                                transportadoras: new Set(),
                             }
                         );
                     }
@@ -827,15 +870,17 @@ export default function AnalisisFletesHistoricos() {
                     );
 
                     if (
-                        item.valorFlete !==
-                        null &&
-                        item.litrosGravimetricos >
-                        0
+                        item.valorFlete > 0 &&
+                        item.litrosGravimetricos > 0
                     ) {
                         group.flete +=
                             item.valorFlete;
 
                         group.litrosConFlete +=
+                            item.litrosGravimetricos;
+
+                        group.fletePonderadoAcumulado +=
+                            item.valorFlete *
                             item.litrosGravimetricos;
 
                         group.registrosConFlete +=
@@ -865,6 +910,12 @@ export default function AnalisisFletesHistoricos() {
                             ? item.flete /
                             item.litrosConFlete
                             : null,
+
+                    promedioFletePonderado:
+                        item.litrosConFlete > 0
+                            ? item.fletePonderadoAcumulado /
+                            item.litrosConFlete
+                            : null,
                 }))
                 .sort(
                     (a, b) =>
@@ -875,9 +926,7 @@ export default function AnalisisFletesHistoricos() {
                 );
         }, [despachosFiltrados]);
 
-    /* ============================================================
-       AGRUPACIÓN RURAL / URBANO
-    ============================================================ */
+    /* =========  AGRUPACIÓN RURAL / URBANO ========= */
 
     const resumenZonas =
         useMemo(() => {
@@ -895,6 +944,7 @@ export default function AnalisisFletesHistoricos() {
                                 litros: 0,
                                 flete: 0,
                                 litrosConFlete: 0,
+                                fletePonderadoAcumulado: 0,
                             }
                         );
                     }
@@ -908,15 +958,17 @@ export default function AnalisisFletesHistoricos() {
                         item.litrosGravimetricos;
 
                     if (
-                        item.valorFlete !==
-                        null &&
-                        item.litrosGravimetricos >
-                        0
+                        item.valorFlete > 0 &&
+                        item.litrosGravimetricos > 0
                     ) {
                         group.flete +=
                             item.valorFlete;
 
                         group.litrosConFlete +=
+                            item.litrosGravimetricos;
+
+                        group.fletePonderadoAcumulado +=
+                            item.valorFlete *
                             item.litrosGravimetricos;
                     }
                 }
@@ -933,12 +985,16 @@ export default function AnalisisFletesHistoricos() {
                         ? item.flete /
                         item.litrosConFlete
                         : null,
+
+                promedioFletePonderado:
+                    item.litrosConFlete > 0
+                        ? item.fletePonderadoAcumulado /
+                        item.litrosConFlete
+                        : null,
             }));
         }, [despachosFiltrados]);
 
-    /* ============================================================
-       LIMPIAR FILTROS
-    ============================================================ */
+    /* ============== LIMPIAR FILTROS =============== */
 
     const limpiarFiltros = () => {
         setFiltroCliente("TODOS");
@@ -954,19 +1010,15 @@ export default function AnalisisFletesHistoricos() {
         setFiltroProducto("TODOS");
     };
 
-    /* ============================================================
-       ¿EXISTEN DATOS MONETARIOS?
-    ============================================================ */
+    /* ========== ¿EXISTEN DATOS MONETARIOS? =========== */
 
     const tieneDatosFlete =
         despachos.some(
             (item) =>
-                item.valorFlete !== null
+                item.valorFlete > 0
         );
 
-    /* ============================================================
-       RENDER
-    ============================================================ */
+    /* ==================== RENDER ===================== */
 
     return (
         <Box
@@ -976,37 +1028,13 @@ export default function AnalisisFletesHistoricos() {
                 minHeight: "100%",
             }}
         >
-            {/* ======================================================
-          TÍTULO
-      ====================================================== */}
+            {/* =========  TÍTULO ======== */}
 
-            <Box sx={{ mb: 2 }}>
-                <Typography
-                    sx={{
-                        fontSize: 22,
-                        fontWeight: 800,
-                        color: "#003f8f",
-                    }}
-                >
-                    ANÁLISIS HISTÓRICO DE FLETES
-                </Typography>
-
-                <Typography
-                    sx={{
-                        fontSize: 11,
-                        color: "#667085",
-                        mt: 0.4,
-                    }}
-                >
-                    Análisis de costo logístico
-                    por despacho y litro
-                    gravimétrico.
-                </Typography>
+            <Box sx={{ mb: 6 }}>
+                {/* NO QUITAR, LE ESTA DANDO UN MARGIN TOP AL CONTENIDO */}
             </Box>
 
-            {/* ======================================================
-          FECHAS
-      ====================================================== */}
+            {/* ======== FECHAS ========== */}
 
             <Paper
                 elevation={0}
@@ -1019,79 +1047,85 @@ export default function AnalisisFletesHistoricos() {
             >
                 <Stack
                     direction="row"
-                    spacing={1.2}
                     alignItems="center"
+                    justifyContent="space-between"
+                    spacing={1.2}
                     flexWrap="wrap"
                     useFlexGap
                 >
-                    <TextField
-                        label="Desde"
-                        type="date"
-                        size="small"
-                        value={from}
-                        onChange={(event) =>
-                            setFrom(
-                                event.target.value
-                            )
-                        }
-                        slotProps={{
-                            inputLabel: {
-                                shrink: true,
-                            },
-                        }}
-                        sx={{ width: 175 }}
-                    />
-
-                    <TextField
-                        label="Hasta"
-                        type="date"
-                        size="small"
-                        value={to}
-                        onChange={(event) =>
-                            setTo(
-                                event.target.value
-                            )
-                        }
-                        slotProps={{
-                            inputLabel: {
-                                shrink: true,
-                            },
-                        }}
-                        sx={{ width: 175 }}
-                    />
-
-                    <Button
-                        variant="contained"
-                        startIcon={
-                            loading ? (
-                                <CircularProgress
-                                    size={15}
-                                    color="inherit"
-                                />
-                            ) : (
-                                <RefreshRoundedIcon />
-                            )
-                        }
-                        onClick={consultar}
-                        disabled={loading}
-                        sx={{
-                            height: 40,
-                            fontWeight: 700,
-                        }}
+                    <Stack
+                        direction="row"
+                        spacing={1.2}
+                        alignItems="center"
+                        flexWrap="wrap"
+                        useFlexGap
                     >
-                        {loading
-                            ? "CONSULTANDO..."
-                            : "CONSULTAR"}
-                    </Button>
+                        <TextField
+                            label="Desde"
+                            type="date"
+                            size="small"
+                            value={from}
+                            onChange={(event) =>
+                                setFrom(event.target.value)
+                            }
+                            slotProps={{
+                                inputLabel: {
+                                    shrink: true,
+                                },
+                            }}
+                            sx={{ width: 175 }}
+                        />
 
-                    <Divider
-                        orientation="vertical"
-                        flexItem
-                    />
+                        <TextField
+                            label="Hasta"
+                            type="date"
+                            size="small"
+                            value={to}
+                            onChange={(event) =>
+                                setTo(event.target.value)
+                            }
+                            slotProps={{
+                                inputLabel: {
+                                    shrink: true,
+                                },
+                            }}
+                            sx={{ width: 175 }}
+                        />
+
+                        <Button
+                            variant="contained"
+                            startIcon={
+                                loading ? (
+                                    <CircularProgress
+                                        size={15}
+                                        color="inherit"
+                                    />
+                                ) : (
+                                    <RefreshRoundedIcon />
+                                )
+                            }
+                            onClick={consultar}
+                            disabled={loading}
+                            sx={{
+                                height: 40,
+                                fontWeight: 700,
+                            }}
+                        >
+                            {loading
+                                ? "CONSULTANDO..."
+                                : "CONSULTAR"}
+                        </Button>
+
+                        <Divider
+                            orientation="vertical"
+                            flexItem
+                        />
+                    </Stack>
 
                     <Chip
                         label={`${despachos.length} registros cargados`}
-                        size="small"
+                        size="medium"
+                        color="warning"
                     />
                 </Stack>
             </Paper>
@@ -1124,9 +1158,7 @@ export default function AnalisisFletesHistoricos() {
                     </Alert>
                 )}
 
-            {/* ======================================================
-          FILTROS
-      ====================================================== */}
+            {/* ========== FILTROS ========== */}
 
             <Paper
                 elevation={0}
@@ -1135,6 +1167,9 @@ export default function AnalisisFletesHistoricos() {
                     mb: 1.5,
                     border:
                         "1px solid #d0d5dd",
+                    background:
+                        "linear-gradient(135deg, #eff0f313 0%, #fcfcf58a 55%, #f3f8f213 100%)",
+                    borderRadius: 2,
                 }}
             >
                 <Typography
@@ -1304,9 +1339,7 @@ export default function AnalisisFletesHistoricos() {
                 </Box>
             </Paper>
 
-            {/* ======================================================
-          KPIs
-      ====================================================== */}
+            {/* ============ KPIs ============= */}
 
             <Box
                 sx={{
@@ -1379,39 +1412,63 @@ export default function AnalisisFletesHistoricos() {
                 />
             </Box>
 
-            {/* ======================================================
-          RESUMEN RURAL / URBANO
-      ====================================================== */}
+            {/* ============= RESUMEN RURAL / URBANO  ============ */}
 
             <Paper
                 elevation={0}
                 sx={{
                     p: 1.5,
                     mb: 1.5,
+                    bgcolor: "#c3d0e252",
                     border:
-                        "1px solid #d0d5dd",
+                        "1px solid #7e8da5",
                 }}
             >
-                <Typography
-                    sx={{
-                        fontSize: 13,
-                        fontWeight: 800,
-                        color: "#003f8f",
-                        mb: 1,
-                    }}
+                <Stack
+                    direction="row"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    spacing={1}
+                    sx={{ mb: 1 }}
                 >
-                    COMPARATIVO POR TIPO DE ZONA
-                </Typography>
+                    <Typography
+                        sx={{
+                            fontSize: 13,
+                            fontWeight: 800,
+                            color: "#003f8f",
+                        }}
+                    >
+                        COMPARATIVO POR TIPO DE ZONA
+                    </Typography>
+
+                    <Chip
+                        size="small"
+                        label="Promedio calculado solo con fletes mayores a $0 o con valores válidos"
+                        sx={{
+                            height: 24,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            bgcolor: "#ecfdf3bb",
+                            color: "#027a48",
+                            border: "1px solid #9ebdaab4",
+                        }}
+                    />
+                </Stack>
 
                 <TableContainer>
-                    <Table size="small">
+                    <Table size="small"
+                        sx={{
+                            "& .MuiTableCell-root": {
+                                borderBottom: "1px solid #76809981",
+                            },
+                        }}>
                         <TableHead>
                             <TableRow>
                                 <TableCell>
                                     Zona
                                 </TableCell>
 
-                                <TableCell align="right">
+                                <TableCell align="center">
                                     Despachos
                                 </TableCell>
 
@@ -1421,6 +1478,10 @@ export default function AnalisisFletesHistoricos() {
 
                                 <TableCell align="right">
                                     Flete total
+                                </TableCell>
+
+                                <TableCell align="right">
+                                    Promedio ponderado flete
                                 </TableCell>
 
                                 <TableCell align="right">
@@ -1439,10 +1500,17 @@ export default function AnalisisFletesHistoricos() {
                                             <Chip
                                                 size="small"
                                                 label={row.zona}
+                                                sx={{
+                                                    ...getZonaChipSx(
+                                                        row.zona
+                                                    ),
+                                                    height: 24,
+                                                    fontSize: 10,
+                                                }}
                                             />
                                         </TableCell>
 
-                                        <TableCell align="right">
+                                        <TableCell align="center">
                                             {
                                                 row.despachos
                                             }
@@ -1475,6 +1543,17 @@ export default function AnalisisFletesHistoricos() {
                                                 row.fleteLitro
                                             )}
                                         </TableCell>
+                                        <TableCell
+                                            align="right"
+                                            sx={{
+                                                fontWeight: 800,
+                                                color: "#003f8f",
+                                            }}
+                                        >
+                                            {formatCOP(
+                                                row.promedioFletePonderado
+                                            )}
+                                        </TableCell>
                                     </TableRow>
                                 )
                             )}
@@ -1483,29 +1562,48 @@ export default function AnalisisFletesHistoricos() {
                 </TableContainer>
             </Paper>
 
-            {/* ======================================================
-          RESUMEN POR DESTINO
-      ====================================================== */}
+            {/* ========== RESUMEN POR DESTINO ========== */}
 
             <Paper
                 elevation={0}
                 sx={{
                     p: 1.5,
                     mb: 1.5,
+                    bgcolor: "#ecf2fd2d",
                     border:
-                        "1px solid #d0d5dd",
+                        "1px solid #7e8da5",
                 }}
             >
-                <Typography
-                    sx={{
-                        fontSize: 13,
-                        fontWeight: 800,
-                        color: "#003f8f",
-                        mb: 1,
-                    }}
+                <Stack
+                    direction="row"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    spacing={1}
+                    sx={{ mb: 1 }}
                 >
-                    HISTÓRICO POR DESTINO
-                </Typography>
+                    <Typography
+                        sx={{
+                            fontSize: 13,
+                            fontWeight: 800,
+                            color: "#003f8f",
+                        }}
+                    >
+                        HISTÓRICO POR DESTINO
+                    </Typography>
+
+                    <Chip
+                        size="small"
+                        label="Promedio calculado solo con fletes mayores a $0"
+                        sx={{
+                            height: 24,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            bgcolor: "#ecfdf3",
+                            color: "#027a48",
+                            border: "1px solid #abefc6",
+                        }}
+                    />
+                </Stack>
 
                 <TableContainer
                     sx={{
@@ -1515,8 +1613,22 @@ export default function AnalisisFletesHistoricos() {
                     <Table
                         stickyHeader
                         size="small"
+                        sx={{
+                            "& .MuiTableCell-root": {
+                                borderBottom: "1px solid #bbc7e9a6",
+                            },
+                        }}
                     >
-                        <TableHead>
+                        <TableHead
+                            sx={{
+                                backgroundColor: "#dbe5f1",
+
+                                "& .MuiTableCell-root": {
+                                    borderBottom: "2px solid #7e8da5",
+                                    color: "#003f8f",
+                                    fontWeight: 800,
+                                },
+                            }}>
                             <TableRow>
                                 <TableCell>
                                     Destino
@@ -1539,6 +1651,10 @@ export default function AnalisisFletesHistoricos() {
                                 </TableCell>
 
                                 <TableCell align="right">
+                                    Promedio ponderado
+                                </TableCell>
+
+                                <TableCell align="right">
                                     $ / L gravimétrico
                                 </TableCell>
                             </TableRow>
@@ -1558,9 +1674,41 @@ export default function AnalisisFletesHistoricos() {
                                         </TableCell>
 
                                         <TableCell>
-                                            {row.zonas}
-                                        </TableCell>
+                                            <Stack
+                                                direction="row"
+                                                spacing={0.5}
+                                                flexWrap="wrap"
+                                                useFlexGap
+                                            >
+                                                {String(
+                                                    row.zonas ||
+                                                    "SIN CLASIFICAR"
+                                                )
+                                                    .split(",")
+                                                    .map((zona) => {
+                                                        const zonaLimpia =
+                                                            zona.trim() ||
+                                                            "SIN CLASIFICAR";
 
+                                                        return (
+                                                            <Chip
+                                                                key={zonaLimpia}
+                                                                size="small"
+                                                                label={
+                                                                    zonaLimpia
+                                                                }
+                                                                sx={{
+                                                                    ...getZonaChipSx(
+                                                                        zonaLimpia
+                                                                    ),
+                                                                    height: 23,
+                                                                    fontSize: 10,
+                                                                }}
+                                                            />
+                                                        );
+                                                    })}
+                                            </Stack>
+                                        </TableCell>
                                         <TableCell align="right">
                                             {
                                                 row.despachos
@@ -1585,6 +1733,18 @@ export default function AnalisisFletesHistoricos() {
                                             align="right"
                                             sx={{
                                                 fontWeight: 800,
+                                                color: "#003f8f",
+                                            }}
+                                        >
+                                            {formatCOP(
+                                                row.promedioFletePonderado
+                                            )}
+                                        </TableCell>
+
+                                        <TableCell
+                                            align="right"
+                                            sx={{
+                                                fontWeight: 800,
                                                 color:
                                                     "#003f8f",
                                             }}
@@ -1602,7 +1762,7 @@ export default function AnalisisFletesHistoricos() {
                                 0 && (
                                     <TableRow>
                                         <TableCell
-                                            colSpan={6}
+                                            colSpan={7}
                                             align="center"
                                         >
                                             No existen datos
@@ -1616,16 +1776,14 @@ export default function AnalisisFletesHistoricos() {
                 </TableContainer>
             </Paper>
 
-            {/* ======================================================
-          DETALLE DE DESPACHOS
-      ====================================================== */}
+            {/* ============= DETALLE DE DESPACHOS ============== */}
 
             <Paper
                 elevation={0}
                 sx={{
                     p: 1.5,
-                    border:
-                        "1px solid #d0d5dd",
+                    bgcolor: "#c3d0e252",
+                    border: "1px solid #7e8da5",
                 }}
             >
                 <Typography
@@ -1639,117 +1797,122 @@ export default function AnalisisFletesHistoricos() {
                     DETALLE HISTÓRICO DE DESPACHOS
                 </Typography>
 
+                <Table
+                    size="small"
+                    sx={{
+                        tableLayout: "fixed",
+
+                        "& .MuiTableCell-root": {
+                            backgroundColor: "#d1e6e49d",
+                            borderBottom: "2px solid #7e8da5",
+                            color: "#14345e",
+                            fontWeight: 800,
+                        },
+                    }}
+                >
+                    <TableHead>
+                        <TableRow>
+                            <TableCell>Fecha</TableCell>
+                            <TableCell sx={{ width: 500 }}>Cliente</TableCell>
+                            <TableCell>Destino</TableCell>
+                            <TableCell>Zona</TableCell>
+                            <TableCell>Transportadora</TableCell>
+                            <TableCell sx={{ width: 100 }}>Placa</TableCell>
+                            <TableCell align="right"> Litros grav.</TableCell>
+                            <TableCell align="right"> Flete </TableCell>
+                            <TableCell align="right"> $ / L </TableCell>
+                        </TableRow>
+                    </TableHead>
+                </Table>
+
                 <TableContainer
                     sx={{
-                        maxHeight: 420,
+                        maxHeight: 600,
+                        overflowY: "auto",
                     }}
                 >
                     <Table
-                        stickyHeader
                         size="small"
+                        sx={{
+                            tableLayout: "fixed",
+
+                            "& .MuiTableCell-root": {
+                                borderBottom: "1px solid #aab7daa6",
+                            },
+                        }}
                     >
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>
-                                    Fecha
-                                </TableCell>
-
-                                <TableCell>
-                                    Cliente
-                                </TableCell>
-
-                                <TableCell>
-                                    Destino
-                                </TableCell>
-
-                                <TableCell>
-                                    Zona
-                                </TableCell>
-
-                                <TableCell>
-                                    Transportadora
-                                </TableCell>
-
-                                <TableCell>
-                                    Placa
-                                </TableCell>
-
-                                <TableCell align="right">
-                                    Litros grav.
-                                </TableCell>
-
-                                <TableCell align="right">
-                                    Flete
-                                </TableCell>
-
-                                <TableCell align="right">
-                                    $ / L
-                                </TableCell>
-                            </TableRow>
-                        </TableHead>
-
                         <TableBody>
-                            {despachosFiltrados.map(
-                                (row) => (
-                                    <TableRow
-                                        key={row.id}
-                                        hover
-                                    >
-                                        <TableCell>
-                                            {row.fecha}
-                                        </TableCell>
+                            {despachosFiltrados.map((row) => (
+                                <TableRow
+                                    key={row.id}
+                                    hover
+                                >
+                                    <TableCell>
+                                        {row.fecha}
+                                    </TableCell>
 
-                                        <TableCell>
-                                            {row.cliente}
-                                        </TableCell>
+                                    <TableCell sx={{ width: 500 }}>
+                                        {row.cliente}
+                                    </TableCell>
 
-                                        <TableCell>
-                                            {row.destino}
-                                        </TableCell>
+                                    <TableCell>
+                                        {row.destino}
+                                    </TableCell>
 
-                                        <TableCell>
-                                            {row.zona}
-                                        </TableCell>
-
-                                        <TableCell>
-                                            {
-                                                row.transportadora
+                                    <TableCell>
+                                        <Chip
+                                            size="small"
+                                            label={
+                                                row.zona ||
+                                                "SIN CLASIFICAR"
                                             }
-                                        </TableCell>
-
-                                        <TableCell>
-                                            {row.placa}
-                                        </TableCell>
-
-                                        <TableCell align="right">
-                                            {formatLitros(
-                                                row.litrosGravimetricos
-                                            )}
-                                        </TableCell>
-
-                                        <TableCell align="right">
-                                            {formatCOP(
-                                                row.valorFlete
-                                            )}
-                                        </TableCell>
-
-                                        <TableCell
-                                            align="right"
                                             sx={{
-                                                fontWeight: 700,
+                                                ...getZonaChipSx(
+                                                    row.zona
+                                                ),
+                                                height: 23,
+                                                fontSize: 10,
                                             }}
-                                        >
-                                            {formatCOPLitro(
-                                                row.fletePorLitro
-                                            )}
-                                        </TableCell>
-                                    </TableRow>
-                                )
-                            )}
+                                        />
+                                    </TableCell>
+
+                                    <TableCell>
+                                        {row.transportadora}
+                                    </TableCell>
+
+                                    <TableCell align="center" sx={{ width: 100 }}>
+                                        {row.placa}
+                                    </TableCell>
+
+                                    <TableCell align="right">
+                                        {formatLitros(
+                                            row.litrosGravimetricos
+                                        )}
+                                    </TableCell>
+
+                                    <TableCell align="right">
+                                        {formatCOP(
+                                            row.valorFlete
+                                        )}
+                                    </TableCell>
+
+                                    <TableCell
+                                        align="right"
+                                        sx={{
+                                            fontWeight: 700,
+                                        }}
+                                    >
+                                        {formatCOPLitro(
+                                            row.fletePorLitro
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
                         </TableBody>
                     </Table>
                 </TableContainer>
             </Paper>
+
         </Box>
     );
 }

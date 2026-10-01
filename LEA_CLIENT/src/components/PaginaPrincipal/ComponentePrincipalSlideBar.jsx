@@ -112,7 +112,7 @@ import {
     TankGraphIcon, CounterIcon, MoneyGraphIcon, EnergyIcon, EnergyDataIcon, InOutMaderaCarbonIcon, InformeIcon, TankWithLiquidIcon, ReportIcon,
     Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon, PersonalIcons, plannerIconDate, logsIcon, VesselTkIcon, VesselTkIconChemical, ListToDoIcon, ArcadeIcon,
     WaterTankIcon, VentasIcon, WaterKeyIcon, DestileryIcon, LoteTankIcon, ProveedorIcon, financeIconMoney, rutaIcon, CalderaIcon, DataSeguimientoIocn, weightliftIcon,
-    IconFleteCost
+    IconFleteCost, IconBasculaAmbiocom
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -163,6 +163,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             setDbInfo(res.data.db);
         });
     }, []);
+
     // Cargar menú guardado o por defecto
     useEffect(() => {
         const savedMenu = localStorage.getItem("selectedMenu");
@@ -284,6 +285,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             icon: <img src={despachoIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
             subItems: [
                 { text: 'Grafica Niveles Tanques Jornaleros', subKey: 'nivelestanquesjornalerospagina', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "torrecontrollogistica"], icon: <img src={TankGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
+                { text: 'Báscula E/S', subKey: 'entradasysalidasbascula', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "torrecontrollogistica"], icon: <img src={IconBasculaAmbiocom} alt="entradasysalidasbascula" style={{ width: 30, height: 30 }} /> },
                 { text: 'Planeacion Diaria', subKey: 'planeaciondiariadespachos', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "torrecontrollogistica"], icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} /> },
                 { text: 'Despachos', subKey: 'despachoalcoholeslogistica', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Recepción', subKey: 'recepcionalcoholeslogistica', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
@@ -342,7 +344,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 {
                     text: 'Destileria',
                     key: 'destileria',
-                    icon: <img src={DestileryIcon} alt="Logistica" style={{ width: 30, height: 30, marginLeft:-3 }} />,
+                    icon: <img src={DestileryIcon} alt="Logistica" style={{ width: 30, height: 30, marginLeft: -3 }} />,
                     subItems: [
                         { text: 'Trazabilidad Lote Produccion', subKey: 'TrazabilidadLoteDeProduccion', roles: ["admin", "developer", "gerente", "laboratorio"], icon: <img src={ReportIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
                         { text: 'Control Calidad Proceso', subKey: 'Trazabilidadcontrolcalidadenproceso', roles: ["admin", "developer", "gerente", "laboratorio"], icon: <img src={ReportIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
@@ -351,7 +353,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 {
                     text: 'Lote Producción',
                     key: 'trazabilidadloteproduccion',
-                    icon: <img src={LoteTankIcon} alt="Logistica" style={{ width: 28, height: 25, marginLeft:-1 }} />,
+                    icon: <img src={LoteTankIcon} alt="Logistica" style={{ width: 28, height: 25, marginLeft: -1 }} />,
                     subItems: [
                         { text: 'Analisis de Producto', subKey: 'Trazabilidadregistrodelotesdeproduccion', roles: ["admin", "developer", "gerente", "laboratorio"], icon: <img src={ReportIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
                         // { text: 'Control Calidad Proceso', subKey: 'Trazabilidadcontrolcalidadenproceso', roles: ["admin", "developer", "gerente", "laboratorio"], icon: <img src={ReportIcon} alt="formatoaguas" style={{ width: 25, height: 25 }} /> },
@@ -444,7 +446,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
         },
         { text: 'Registro Trabajadores', roles: ["admin", "developer"], icon: <img src={workerIcon} alt="empleadosambiocom" style={{ width: 25, height: 25 }} />, key: 'empleadosambiocom' },
         {
-            text: 'Administrator DEV', roles: ["admin", "developer",  "liderlogistica"], icon: <img src={DevIcon} alt="basededatos" style={{ width: 25, height: 25 }} />, key: 'basededatoscomponent',
+            text: 'Administrator DEV', roles: ["admin", "developer", "liderlogistica"], icon: <img src={DevIcon} alt="basededatos" style={{ width: 25, height: 25 }} />, key: 'basededatoscomponent',
             subItems: [
                 { text: 'Task & Reqeriments', subKey: 'taskandrequeriments', roles: ["admin", "developer"], icon: <img src={ListToDoIcon} alt="taskandrequeriments" style={{ width: 25, height: 25 }} /> },
                 { text: 'R-I-C-E', subKey: 'ricescrum', roles: ["admin", "developer", "liderlogistica"], icon: <img src={ListToDoIcon} alt="taskandrequeriments" style={{ width: 25, height: 25 }} /> },
@@ -552,8 +554,8 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'energiaambiocom': return <TablaMedicionesDiariaEnergia />;
             case 'moduloingresosmaderacarbon': return <TablaRegistroCarbonMadera />;
             //Produccion
-            case 'patiodecarbonymadera': return <PatioCarbonMadera />; 
-            case 'seguimientototalizadores': return <SeguimientoTotalizadores />; 
+            case 'patiodecarbonymadera': return <PatioCarbonMadera />;
+            case 'seguimientototalizadores': return <SeguimientoTotalizadores />;
             //informes
             case 'Inventariodeoh': return <InformeAlcoholes />;
             //logistica
@@ -567,6 +569,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'clientesdb': return <ClientesDespachoPageDB />;
             case 'proveedoresdb': return <ProveedoresDespachoPageDB />;
             case 'planeaciondiariadespachos': return <ProgramacionDespachoDiariaPage />;
+            case 'entradasysalidasbascula': return <ModuloEnMantenimiento />;
             case 'analisisfleteporlitro': return <AnalisisFletesHistoricos />;
             //laboratorio
             case 'despachoalcoholeslogisticareadonly': return <TablaDespachosLogisticaReadOnly />;
@@ -622,58 +625,118 @@ export default function EmpresarialPrincipalSchedulerApp() {
             const hasChildren = item.subItems && item.subItems.length > 0;
 
             return (
-                <Box key={itemKey}>
-                    <ListItemButton
-                        disabled={!canAccess(item.roles)}
-                        selected={selectedMenu === itemKey}
+                <Box
+                    key={itemKey}
+                    sx={{
+                        position: "relative",
+                    }}
+                >
+                    <Box
                         sx={{
-                            pl: 1.1 + level * 1,
-                            borderRadius: 2,
-                            mb: 0,
-                            mx: 1,
-                            '&.Mui-selected': {
-                                bgcolor: 'primary.main',
-                                color: 'white',
-                                fontWeight: 'bold',
-                                boxShadow: '0 0 8px rgba(33,150,243,0.4)',
-                                '& .MuiListItemIcon-root': { color: 'white' },
-                            },
-                        }}
-                        onClick={() => {
-                            if (!canAccess(item.roles)) return;
+                            position: "relative",
 
-                            if (hasChildren) {
-                                setOpenSubmenus(prev => ({
-                                    ...prev,
-                                    [itemKey]: !prev[itemKey]
-                                }));
-                            } else {
-                                setSelectedMenu(itemKey);
-                                if (isMobile) setMobileOpen(false);
-                            }
+                            ...(level > 0 && {
+                                "&::before": {
+                                    content: '""',
+                                    position: "absolute",
+                                    left: 18,
+                                    top: 0,
+                                    bottom: 0,
+                                    width: "1px",
+                                    bgcolor: "#d0d5dd",
+                                },
+                            }),
+
+                            ...(level > 0 && {
+                                "&::after": {
+                                    content: '""',
+                                    position: "absolute",
+                                    left: 18,
+                                    top: 20,
+                                    width: 14,
+                                    height: "1px",
+                                    bgcolor: "#d0d5dd",
+                                },
+                            }),
                         }}
                     >
-                        <ListItemIcon>{item.icon}</ListItemIcon>
-                        <Tooltip placement="top" title={(item.text).length < 18 ? "" : item.text}>
-                            <ListItemText
-                                primary={item.text}
-                                primaryTypographyProps={{
-                                    noWrap: true,
-                                    sx: {
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                    }
-                                }} />
-                        </Tooltip>
-                        {hasChildren && (
-                            openSubmenus[itemKey] ? <ExpandLess /> : <ExpandMore />
-                        )}
-                    </ListItemButton>
+                        <ListItemButton
+                            disabled={!canAccess(item.roles)}
+                            selected={selectedMenu === itemKey}
+                            sx={{
+                                pl: 1.5 + level * 2.2,
+                                borderRadius: 2,
+                                mb: 0,
+                                mx: 1,
+                                minHeight: 40,
+
+                                "&.Mui-selected": {
+                                    bgcolor: "primary.main",
+                                    color: "white",
+                                    fontWeight: "bold",
+                                    boxShadow: "0 0 8px rgba(33,150,243,0.4)",
+                                    "& .MuiListItemIcon-root": {
+                                        color: "white",
+                                    },
+                                },
+                            }}
+                            onClick={() => {
+                                if (!canAccess(item.roles)) return;
+
+                                if (hasChildren) {
+                                    setOpenSubmenus((prev) => ({
+                                        ...prev,
+                                        [itemKey]: !prev[itemKey],
+                                    }));
+                                } else {
+                                    setSelectedMenu(itemKey);
+                                    if (isMobile) setMobileOpen(false);
+                                }
+                            }}
+                        >
+                            <ListItemIcon sx={{ minWidth: 36 }}>
+                                {item.icon}
+                            </ListItemIcon>
+
+                            <Tooltip
+                                placement="top"
+                                title={
+                                    item.text.length < 18 ? "" : item.text
+                                }
+                            >
+                                <ListItemText
+                                    primary={item.text}
+                                    primaryTypographyProps={{
+                                        noWrap: true,
+                                        sx: {
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            fontSize: 13,
+                                        },
+                                    }}
+                                />
+                            </Tooltip>
+
+                            {hasChildren &&
+                                (openSubmenus[itemKey] ? (
+                                    <ExpandLess />
+                                ) : (
+                                    <ExpandMore />
+                                ))}
+                        </ListItemButton>
+                    </Box>
 
                     {hasChildren && (
-                        <Collapse in={openSubmenus[itemKey]} timeout="auto" unmountOnExit>
+                        <Collapse
+                            in={openSubmenus[itemKey]}
+                            timeout="auto"
+                            unmountOnExit
+                        >
                             <List component="div" disablePadding>
-                                {renderMenuItems(item.subItems, level + 1)}
+                                {renderMenuItems(
+                                    item.subItems,
+                                    level + 1
+                                )}
                             </List>
                         </Collapse>
                     )}

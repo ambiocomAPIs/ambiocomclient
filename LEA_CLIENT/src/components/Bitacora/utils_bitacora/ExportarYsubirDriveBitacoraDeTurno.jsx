@@ -1894,6 +1894,14 @@ export async function exportarBitacoraPDF(
         ],
 
         [
+          "FDE en producción",
+
+          formatearNumero(
+            totals.fdeTotal
+          ),
+        ],
+
+        [
           "Volumen TK402A/B",
 
           formatearNumero(
@@ -2075,6 +2083,7 @@ export async function exportarBitacoraPDF(
             "Turno",
             "REN",
             "Producción",
+            "FDE",
             "TK402",
             "REN niveles",
             "801A/B",
@@ -2092,6 +2101,10 @@ export async function exportarBitacoraPDF(
 
             formatearNumero(
               turno?.prodTotal
+            ),
+
+            formatearNumero(
+              turno?.fdeTotal
             ),
 
             formatearNumero(
