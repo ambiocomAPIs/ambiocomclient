@@ -245,13 +245,6 @@ const dibujarSeparadorBloque = (
     .replace(/\D/g, "")
     .padStart(2, "0");
 
-  /*
-   * Separador gerencial por etapa:
-   * - Fondo claro para mantener una lectura limpia.
-   * - Borde y acento lateral con el color de la sección.
-   * - Número de etapa para facilitar la lectura ejecutiva.
-   * - Enlace interno para regresar al índice de la primera página.
-   */
   doc.setFillColor(...PDF_COLORS.soft);
   doc.setDrawColor(...fillColor);
   doc.setLineWidth(0.45);

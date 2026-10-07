@@ -431,22 +431,23 @@ const buildMonthSavePayload = ({ month, rows, factor402, factor801 }) => {
 
 const KPI_TOOLTIPS = {
   renConsumo: {
-    title: "Acumulado REN por totalizador",
+    title: "Acumulado REN real por totalizador",
     description:
-      "Suma el consumo REN de todos los días visibles dentro del rango seleccionado.",
-    formula: "Σ (lectura final REN − lectura inicial REN)",
+      "Suma el consumo registrado por el totalizador REN descontando los volúmenes identificados como FDE.",
+    formula:
+      "Σ [(Final REN − Inicio REN) − (Final FDE − Inicio FDE)]",
   },
   prodTotal: {
-    title: "Acumulado de producción real",
+    title: "Acumulado de producción por totalizador",
     description:
-      "Suma la producción del totalizador descontando los volúmenes identificados como FDE.",
+      "Suma la producción registrada por el totalizador de producción dentro del rango seleccionado.",
     formula:
-      "Σ [(Final Producción − Inicio Producción) − (Final FDE − Inicio FDE)]",
+      "Σ (Final Producción − Inicio Producción)",
   },
   fdeTotal: {
     title: "Acumulado FDE excluido",
     description:
-      "Volumen identificado como FDE que se descuenta del totalizador de producción para determinar la producción real.",
+      "Volumen identificado como FDE que se descuenta del totalizador REN para determinar el consumo REN real.",
     formula: "Σ (Final FDE − Inicio FDE)",
   },
   tk402Total: {
@@ -932,21 +933,23 @@ export default function SeguimientoTotalizadoresU400({
   };
 
   const calc = (row, key) => {
-    if (key === "renConsumo") return diff(row, "renInicio", "renFinal");
-    // if (key === "prodTotal") return diff(row, "prodInicio", "prodFinal");
-    if (key === "fdeTotal") return diff(row, "fdeInicio", "fdeFinal");
-    if (key === "prodTotal") {  // ojo que a esta medicion le estoy restando la lectura de FDE
-      const produccionBruta = diff(row, "prodInicio", "prodFinal");
+    // if (key === "renConsumo") return diff(row, "renInicio", "renFinal");
+    if (key === "renConsumo") {
+      const renBruto = diff(row, "renInicio", "renFinal");
 
-      if (!hasCalculatedValue(produccionBruta)) return "";
+      if (!hasCalculatedValue(renBruto)) return "";
 
       const fde = diff(row, "fdeInicio", "fdeFinal");
 
       return roundCalc(
-        Number(produccionBruta) -
+        Number(renBruto) -
         (hasCalculatedValue(fde) ? Number(fde) : 0)
       );
     }
+    // if (key === "prodTotal") return diff(row, "prodInicio", "prodFinal");
+    if (key === "fdeTotal") return diff(row, "fdeInicio", "fdeFinal");
+    if (key === "prodTotal") { return diff(row, "prodInicio", "prodFinal"); }
+
     if (key === "tk402Total") {
       const a = diff(row, "tk402AInicio", "tk402AFinal");
       const b = diff(row, "tk402BInicio", "tk402BFinal");
@@ -1539,7 +1542,10 @@ export default function SeguimientoTotalizadoresU400({
             title: `Resultado negativo · ${NEGATIVE_OPERATIONAL_LABELS[key]}`,
             description: `${row?.fecha || group.fecha || "Fecha sin definir"} · ${normalizeTurnoValue(row?.turno) || "turno sin definir"
               }. Resultado calculado: ${fmt(value, 4)}.`,
-            formula: "Revise las lecturas de origen resaltadas en rojo en esta misma fila.",
+            formula:
+              key === "renConsumo"
+                ? "Revise las lecturas REN y FDE. El FDE descontado es superior al consumo bruto registrado por el totalizador REN."
+                : "Revise las lecturas de origen resaltadas en rojo en esta misma fila.",
           };
 
           rowsWithAlert[originalIndex] = true;
