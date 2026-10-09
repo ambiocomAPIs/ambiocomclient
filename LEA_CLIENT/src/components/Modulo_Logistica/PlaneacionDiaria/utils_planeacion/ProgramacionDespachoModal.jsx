@@ -14,8 +14,11 @@ import {
 } from "@mui/material";
 
 import CloseIcon from "@mui/icons-material/Close";
+import Autocomplete from "@mui/material/Autocomplete";
 import SaveIcon from "@mui/icons-material/Save";
 import AddIcon from "@mui/icons-material/Add";
+
+import { CIUDADES_COLOMBIA, getCiudadDestinoValue } from "../../utils_Logistica/Catalogo/ciudadesColombia";
 
 const INPUT_SX_COMPACT = {
   "& .MuiInputBase-root": {
@@ -33,6 +36,12 @@ const INPUT_SX_COMPACT = {
     top: 0,
   },
 };
+
+const normalizarBusquedaCiudad = (valor) =>
+  String(valor ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es-CO");
 
 const ProgramacionDespachoModal = ({
   open,
@@ -142,30 +151,30 @@ const ProgramacionDespachoModal = ({
                     ? String(form.fechaEstimadaEntrega).replace(" ", "T")
                     : `${String(form.fechaEstimadaEntrega).slice(0, 10)}T00:00`
               }
-            onChange={(e) => {
-              onChange({
-                target: {
-                  name: "fechaEstimadaEntrega",
-                  value: e.target.value.replace("T", " "),
+              onChange={(e) => {
+                onChange({
+                  target: {
+                    name: "fechaEstimadaEntrega",
+                    value: e.target.value.replace("T", " "),
+                  },
+                });
+              }}
+              InputLabelProps={{ shrink: true }}
+              inputProps={{ step: 60 }}
+              disabled={!canEditFechaEstimadaEntrega || submitting}
+              helperText={
+                !canEditFechaEstimadaEntrega
+                  ? "Solo comercial, torre de control o lider logistica pueden editar este campo"
+                  : ""
+              }
+              FormHelperTextProps={{
+                sx: {
+                  fontSize: "0.68rem",
+                  color: "error.main",
+                  mx: 0,
+                  mt: 0.4,
                 },
-              });
-            }}
-            InputLabelProps={{ shrink: true }}
-            inputProps={{ step: 60 }}
-            disabled={!canEditFechaEstimadaEntrega || submitting}
-            helperText={
-              !canEditFechaEstimadaEntrega
-                ? "Solo comercial, torre de control o lider logistica pueden editar este campo"
-                : ""
-            }
-            FormHelperTextProps={{
-              sx: {
-                fontSize: "0.68rem",
-                color: "error.main",
-                mx: 0,
-                mt: 0.4,
-              },
-            }}
+              }}
             />
           </Grid>
 
@@ -289,17 +298,58 @@ const ProgramacionDespachoModal = ({
             </TextField>
           </Grid>
 
+
+
           <Grid item xs={12} md={2}>
-            <TextField
-              fullWidth
-              size="small"
-              sx={INPUT_SX_COMPACT}
-              label="Destino"
-              name="destino"
-              value={form.destino}
-              onChange={onChange}
-              placeholder="Ej: ITAGUI"
+            <Autocomplete
+              options={catalog.destinos ?? []}
+              value={
+                (catalog.destinos ?? []).includes(form.destino)
+                  ? form.destino
+                  : null
+              }
               disabled={submitting}
+              autoHighlight
+              forcePopupIcon
+              selectOnFocus
+              clearOnEscape
+              getOptionLabel={(option) => option ?? ""}
+              isOptionEqualToValue={(option, value) =>
+                option === value
+              }
+              filterOptions={(options, state) => {
+                const busqueda = normalizarBusquedaCiudad(
+                  state.inputValue
+                );
+
+                return options
+                  .filter((ciudad) =>
+                    normalizarBusquedaCiudad(ciudad).includes(
+                      busqueda
+                    )
+                  )
+                  .slice(0, 100);
+              }}
+              onChange={(event, newValue) => {
+                onChange({
+                  target: {
+                    name: "destino",
+                    value: newValue ?? "",
+                  },
+                });
+              }}
+              noOptionsText="No se encontraron ciudades"
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  fullWidth
+                  required
+                  size="small"
+                  sx={INPUT_SX_COMPACT}
+                  label="Destino"
+                  placeholder="Buscar ciudad"
+                />
+              )}
             />
           </Grid>
 

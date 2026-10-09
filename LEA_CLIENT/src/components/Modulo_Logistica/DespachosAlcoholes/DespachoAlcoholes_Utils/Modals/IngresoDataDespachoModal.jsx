@@ -24,7 +24,7 @@ import {
   CIUDADES_COLOMBIA,
   getCiudadDestinoValue,
   getCiudadDestinoLabel,
-} from "./Catalogo/ciudadesColombia.js";
+} from "../../../utils_Logistica/Catalogo/ciudadesColombia";
 
 const columnasBloqueadas = [
   "volumen_contador_gravimetrico",

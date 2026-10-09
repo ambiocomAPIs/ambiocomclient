@@ -25,6 +25,7 @@ import {
   Stack,
   MenuItem,
   Tooltip,
+  Autocomplete
 } from "@mui/material";
 
 import { useAuth } from "../../../utils/Context/AuthContext/AuthContext";
@@ -58,12 +59,13 @@ import ScheduleIcon from "@mui/icons-material/Schedule";
 import ProgramacionDespachoModal from "./utils_planeacion/ProgramacionDespachoModal";
 import CargaMasivaProgramacionModal from "./utils_planeacion/CargaMasivaProgramacionModal";
 import EstadoProgramacionModal from "./utils_planeacion/EstadoProgramacionModal";
+import { CIUDADES_COLOMBIA, getCiudadDestinoValue } from "../utils_Logistica/Catalogo/ciudadesColombia";
 
 const API_URL = "https://ambiocomserver.onrender.com/api/programaciondespacho";
 const API_CONDUCTORES = "https://ambiocomserver.onrender.com/api/conductores";
 const API_CLIENTES = "https://ambiocomserver.onrender.com/api/clienteslogistica";
 const API_PRODUCTOS = "https://ambiocomserver.onrender.com/api/alcoholesdespacho";
-const API_DESTINOS = "https://ambiocomserver.onrender.com/api/destinos";
+// const API_DESTINOS = "https://ambiocomserver.onrender.com/api/destinos";
 const API_TRANSPORTADORAS = "https://ambiocomserver.onrender.com/api/transportadoraslogistica";
 
 // Debounce simple sin librerías
@@ -147,13 +149,25 @@ const normalizeText = (v) =>
     .replace(/\s+/g, " ")
     .trim();
 
-const normalizeDestino = (v) => normalizeText(v).toUpperCase();
+// const normalizeDestino = (v) => normalizeText(v).toUpperCase();
+
 const normalizeUpper = (v) => normalizeText(v).toUpperCase();
 
 const normalizePlate = (v) =>
   normalizeUpper(v)
     .replace(/\s+/g, "")
     .trim();
+
+const DESTINOS_CATALOGO = Array.from(
+  new Set(
+    CIUDADES_COLOMBIA
+      .map((ciudad) => getCiudadDestinoValue(ciudad))
+      .filter(
+        (destino) =>
+          typeof destino === "string" && destino.length > 0
+      )
+  )
+).sort((a, b) => a.localeCompare(b, "es"));
 
 /** Valida formato ISO YYYY-MM-DD */
 const isValidDateISO = (s) => {
@@ -258,6 +272,12 @@ const getDefaultRange = () => {
   };
 };
 
+const normalizarBusquedaCiudad = (valor) =>
+  String(valor ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es-CO");
+
 const ProgramacionDespachoDiariaPage = () => {
 
   const navigate = useNavigate();
@@ -312,7 +332,7 @@ const ProgramacionDespachoDiariaPage = () => {
     conductores: [],
     transportadoras: [],
     clientes: [],
-    destinos: [],
+    destinos: DESTINOS_CATALOGO,
     productos: [],
   });
 
@@ -325,13 +345,13 @@ const ProgramacionDespachoDiariaPage = () => {
         resConductores,
         resClientes,
         resProductos,
-        resDestinos,
+        // resDestinos,
         resTransportadoras,
       ] = await Promise.allSettled([
         axios.get(API_CONDUCTORES),
         axios.get(API_CLIENTES, { withCredentials: true }),
         axios.get(API_PRODUCTOS),
-        axios.get(API_DESTINOS),
+        // axios.get(API_DESTINOS),
         axios.get(API_TRANSPORTADORAS),
       ]);
 
@@ -353,11 +373,11 @@ const ProgramacionDespachoDiariaPage = () => {
           ? resProductos.value.data
           : [];
 
-      const destinosData =
-        resDestinos.status === "fulfilled" &&
-          Array.isArray(resDestinos.value.data)
-          ? resDestinos.value.data
-          : [];
+      // const destinosData =
+      //   resDestinos.status === "fulfilled" &&
+      //     Array.isArray(resDestinos.value.data)
+      //     ? resDestinos.value.data
+      //     : [];
 
       const transportadorasData =
         resTransportadoras.status === "fulfilled" &&
@@ -404,9 +424,7 @@ const ProgramacionDespachoDiariaPage = () => {
       ).sort();
 
       // destinos/transportadoras opcionales; aunque destino en el form sea digitables, los dejamos para filtros/tabla
-      const destinos = Array.from(
-        new Set(destinosData.map((d) => normalizeText(d?.destino || d?.nombre)).filter(Boolean))
-      ).sort();
+      const destinos = DESTINOS_CATALOGO;
 
       const transportadoras = Array.from(
         new Set(
@@ -488,7 +506,17 @@ const ProgramacionDespachoDiariaPage = () => {
       clientes: uniq(safe.map((r) => normalizeText(r.cliente))),
       productos: uniq(safe.map((r) => normalizeText(r.producto))),
       transportadoras: uniq(safe.map((r) => normalizeText(r.transportadora))),
-      destinos: uniq(safe.map((r) => normalizeText(r.destino))),
+      destinos: Array.from(
+        new Set(
+          [
+            ...DESTINOS_CATALOGO,
+            ...safe.map((r) => r.destino),
+          ].filter(
+            (destino) =>
+              typeof destino === "string" && destino.length > 0
+          )
+        )
+      ).sort((a, b) => a.localeCompare(b, "es")),
     };
   }, [rows]);
 
@@ -498,7 +526,7 @@ const ProgramacionDespachoDiariaPage = () => {
     const uniq = (arr) => Array.from(new Set(arr.filter(Boolean))).sort();
 
     const trailersFromRows = uniq(safe.map((r) => normalizeText(r.trailer)));
-    const destinosFromRows = uniq(safe.map((r) => normalizeText(r.destino)));
+    // const destinosFromRows = uniq(safe.map((r) => normalizeText(r.destino)));
     const transportadorasFromRows = uniq(
       safe.map((r) => normalizeText(r.transportadora))
     );
@@ -515,7 +543,7 @@ const ProgramacionDespachoDiariaPage = () => {
         ? prev.transportadoras
         : transportadorasFromRows,
       clientes: prev.clientes.length ? prev.clientes : clientesFromRows,
-      destinos: prev.destinos.length ? prev.destinos : destinosFromRows,
+      destinos: DESTINOS_CATALOGO,
       productos: prev.productos.length ? prev.productos : productosFromRows,
     }));
   }, [rows]);
@@ -534,13 +562,11 @@ const ProgramacionDespachoDiariaPage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    // destino siempre se guarda en mayúsculas
-    if (name === "destino") {
-      setForm((prev) => ({ ...prev, [name]: normalizeDestino(value) }));
-      return;
-    }
 
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const resetForm = () => {
@@ -705,6 +731,16 @@ const ProgramacionDespachoDiariaPage = () => {
       return false;
     }
 
+    if (!DESTINOS_CATALOGO.includes(payload.destino)) {
+      await Swal.fire({
+        icon: "warning",
+        title: "Destino no válido",
+        text: "Debes seleccionar un destino del catálogo.",
+      });
+
+      return false;
+    }
+
     const qty = Number(payload.cantidad);
     if (!payload.cantidad || Number.isNaN(qty) || qty <= 0) {
       await Swal.fire({
@@ -738,7 +774,7 @@ const ProgramacionDespachoDiariaPage = () => {
         conductor: normalizeText(form.conductor),
         transportadora: normalizeText(form.transportadora),
         cliente: normalizeText(form.cliente),
-        destino: normalizeText(form.destino), // <- digitable
+        destino: form.destino,
         producto: normalizeText(form.producto),
         cantidad: Number(normalizeText(form.cantidad)),
       };
@@ -946,7 +982,8 @@ const ProgramacionDespachoDiariaPage = () => {
     const fCliente = normalizeText(filters.cliente);
     const fProducto = normalizeText(filters.producto);
     const fTransportadora = normalizeText(filters.transportadora);
-    const fDestino = normalizeText(filters.destino);
+    // const fDestino = normalizeText(filters.destino);
+    const fDestino = filters.destino;
 
     let out = [...safe];
 
@@ -963,7 +1000,12 @@ const ProgramacionDespachoDiariaPage = () => {
     if (fTransportadora) {
       out = out.filter((r) => normalizeText(r.transportadora) === fTransportadora);
     }
-    if (fDestino) out = out.filter((r) => normalizeText(r.destino) === fDestino);
+    // if (fDestino) out = out.filter((r) => normalizeText(r.destino) === fDestino);
+    if (fDestino) {
+      out = out.filter(
+        (r) => r.destino === fDestino
+      );
+    }
 
     const q = normalizeText(debouncedSearch).toLowerCase();
     if (q) {
@@ -1041,7 +1083,8 @@ const ProgramacionDespachoDiariaPage = () => {
         normalizeText(r.conductor),
         normalizeText(r.transportadora),
         normalizeText(r.cliente),
-        normalizeText(r.destino),
+        // normalizeText(r.destino),
+        String(r.destino ?? ""),
         normalizeText(r.producto),
         String(r.cantidad ?? ""),
         r?.cumplido ? "SI" : "NO",
@@ -1414,24 +1457,51 @@ const ProgramacionDespachoDiariaPage = () => {
               </TextField>
             </Grid>
 
+
             <Grid item xs={12} md={2}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                label="Destino"
-                name="destino"
-                value={filters.destino}
-                onChange={handleFilterChange}
-              >
-                <MenuItem value="">(Todos)</MenuItem>
-                {options.destinos.map((d) => (
-                  <MenuItem key={d} value={d}>
-                    {d}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <Autocomplete
+                options={options.destinos}
+                value={filters.destino || null}
+                autoHighlight
+                forcePopupIcon
+                selectOnFocus
+                clearOnEscape
+
+                getOptionLabel={(option) => option ?? ""}
+
+                filterOptions={(options, state) => {
+                  const busqueda = normalizarBusquedaCiudad(
+                    state.inputValue
+                  );
+
+                  return options
+                    .filter((ciudad) =>
+                      normalizarBusquedaCiudad(ciudad).includes(busqueda)
+                    )
+                    .slice(0, 100);
+                }}
+
+                onChange={(event, newValue) => {
+                  setFilters((prev) => ({
+                    ...prev,
+                    destino: newValue ?? "",
+                  }));
+                }}
+
+                noOptionsText="No se encontraron ciudades"
+
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    fullWidth
+                    size="small"
+                    label="Destino"
+                    placeholder="Buscar ciudad"
+                  />
+                )}
+              />
             </Grid>
+
 
             <Grid item xs={12} md={2}>
               <Box
@@ -1798,7 +1868,8 @@ const ProgramacionDespachoDiariaPage = () => {
                       </TableCell>
 
                       <TableCell sx={{ whiteSpace: "nowrap" }}>
-                        {normalizeText(r.destino) || "—"}
+                        {/* {normalizeText(r.destino) || "—"} */}
+                        {String(r.destino ?? "") || "—"}
                       </TableCell>
 
                       <TableCell
