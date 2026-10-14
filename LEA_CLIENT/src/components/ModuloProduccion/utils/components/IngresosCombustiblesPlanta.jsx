@@ -198,9 +198,10 @@ const normalizeApiRow = (row = {}) => {
     id: rowId,
     frontendId,
     fechaRecepcion: normalizeDate(row.fechaRecepcion || ""),
-    tipoCombustible: String(row.tipoCombustible || "").toLowerCase().includes("madera")
-      ? "Madera"
-      : "Carbón",
+    // tipoCombustible: String(row.tipoCombustible || "").toLowerCase().includes("madera")
+    //   ? "Madera"
+    //   : "Carbón",
+    tipoCombustible: row.tipoCombustible || "Carbón",
     pesoMinaKg: row.pesoMinaKg ?? "",
     pesoKgAmbiocom: row.pesoKgAmbiocom ?? "",
     precioUnitarioTon: row.precioUnitarioTon ?? "",
@@ -281,9 +282,10 @@ const buildPayloadRow = (row) => {
     remision: String(row.remision || "").trim(),
     numeroFactura: String(row.numeroFactura || "").trim(),
     pesoMinaKg: normalizeNumberText(row.pesoMinaKg),
-    tipoCombustible: String(row.tipoCombustible || "").toLowerCase().includes("madera")
-      ? "Madera"
-      : "Carbón",
+    // tipoCombustible: String(row.tipoCombustible || "").toLowerCase().includes("madera")
+    //   ? "Madera"
+    //   : "Carbón",
+    tipoCombustible: row.tipoCombustible,
     pesoKgAmbiocom: normalizeNumberText(row.pesoKgAmbiocom),
     precioUnitarioTon: normalizeNumberText(row.precioUnitarioTon),
     iva: normalizeNumberText(row.iva),
@@ -821,12 +823,16 @@ export default function IngresosCombustiblesTablaExcel({
           return { ...row, [key]: normalizeDate(value) };
         }
 
-        if (key === "tipoCombustible") {
-          const normalized = String(value || "").toLowerCase().includes("madera")
-            ? "Madera"
-            : "Carbón";
+        // if (key === "tipoCombustible") {
+        //   const normalized = String(value || "").toLowerCase().includes("madera")
+        //     ? "Madera"
+        //     : "Carbón";
 
-          return { ...row, [key]: normalized };
+        //   return { ...row, [key]: normalized };
+        // }
+
+        if (key === "tipoCombustible") {
+          return { ...row, [key]: value };
         }
 
         return { ...row, [key]: value };
@@ -1078,12 +1084,17 @@ export default function IngresosCombustiblesTablaExcel({
             return;
           }
 
+          // if (targetColumn.key === "tipoCombustible") {
+          //   nextTargetRow[targetColumn.key] = String(cellValue || "")
+          //     .toLowerCase()
+          //     .includes("madera")
+          //     ? "Madera"
+          //     : "Carbón";
+          //   return;
+          // }
+
           if (targetColumn.key === "tipoCombustible") {
-            nextTargetRow[targetColumn.key] = String(cellValue || "")
-              .toLowerCase()
-              .includes("madera")
-              ? "Madera"
-              : "Carbón";
+            nextTargetRow[targetColumn.key] = String(cellValue || "").trim();
             return;
           }
 
@@ -1647,6 +1658,7 @@ export default function IngresosCombustiblesTablaExcel({
                           >
                             <option value="Carbón">Carbón</option>
                             <option value="Madera">Madera</option>
+                            <option value="Bagazo">Bagazo</option>
                           </ExcelSelect>
                         </TableCell>
                       );
