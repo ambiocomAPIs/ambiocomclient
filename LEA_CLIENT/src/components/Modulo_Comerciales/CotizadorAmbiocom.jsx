@@ -2008,6 +2008,7 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
             all: historial.length,
             emily: historial.filter((q) => q.comercial === "emily").length,
             vanessa: historial.filter((q) => q.comercial === "vanessa").length,
+            angela: historial.filter((q) => q.comercial === "angela").length,
             marcelo: historial.filter((q) => q.comercial === "marcelo").length,
             eAll: baseCom.length,
             enviada: baseCom.filter((q) => q.estado === "enviada").length,
@@ -2560,7 +2561,7 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
                                             <MenuItem value="">— Seleccionar —</MenuItem>
                                             <MenuItem value="emily">Emily López</MenuItem>
                                             <MenuItem value="vanessa">Vanessa Sarmiento</MenuItem>
-                                            <MenuItem value="vanessa">Juan Carlos</MenuItem>
+                                            <MenuItem value="angela">Angela Salcedo</MenuItem>
                                             <MenuItem value="marcelo">Marcelo Garrido</MenuItem>
                                         </SelectInput>
 
@@ -3593,6 +3594,16 @@ Margen: ${result.margen != null ? `${(result.margen * 100).toFixed(1)}%` : "N/D"
 
                                         <FilterButton active={currentFilter === "vanessa"} onClick={() => setCurrentFilter("vanessa")}>
                                             Vanessa <Box component="span" sx={{ ml: 0.75, opacity: 0.8 }}>{counts.vanessa}</Box>
+                                        </FilterButton>
+
+                                        <FilterButton
+                                            active={currentFilter === "angela"}
+                                            onClick={() => setCurrentFilter("angela")}
+                                        >
+                                            Angela
+                                            <Box component="span" sx={{ ml: 0.75, opacity: 0.8 }}>
+                                                {counts.angela}
+                                            </Box>
                                         </FilterButton>
 
                                         <FilterButton active={currentFilter === "marcelo"} onClick={() => setCurrentFilter("marcelo")}>

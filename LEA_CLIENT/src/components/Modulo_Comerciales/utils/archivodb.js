@@ -31,6 +31,11 @@ export const COM = {
     bg: "#FEF3C7",
     color: "#92400E",
   },
+  angela: {
+    n: "Angela Salcedo",
+    bg: "#F3E8FF",
+    color: "#9333EA",
+  },
   marcelo: {
     n: "Marcelo Garrido",
     bg: "#E8E7FE",
