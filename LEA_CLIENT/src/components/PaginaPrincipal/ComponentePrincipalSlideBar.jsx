@@ -92,6 +92,8 @@ import CotizadorAmbiocom from '../Modulo_Comerciales/CotizadorAmbiocom.jsx';
 import RutasFletesAmbiocom from "../Modulo_Comerciales/RutasFletesAmbiocom.jsx"
 //energia
 import TablaMedicionesDiariaEnergia from '../Energia_CON/TablaMedicionesEnergia.jsx'
+//Modulo Niveles tanques SCADA
+import AnalisisdenivelestanquesSCADA from '../NivelesScada/AnalisisdenivelestanquesSCADA.jsx'
 //Modulo DEV
 import ConsultasHttpDb from '../DB_Consultas_View/ConsultasHttpDb.jsx';
 import TaskRequerimentDev from '../DB_Consultas_View/TaskRequerimentDevComponent.jsx';
@@ -112,7 +114,7 @@ import {
     TankGraphIcon, CounterIcon, MoneyGraphIcon, EnergyIcon, EnergyDataIcon, InOutMaderaCarbonIcon, InformeIcon, TankWithLiquidIcon, ReportIcon,
     Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon, PersonalIcons, plannerIconDate, logsIcon, VesselTkIcon, VesselTkIconChemical, ListToDoIcon, ArcadeIcon,
     WaterTankIcon, VentasIcon, WaterKeyIcon, DestileryIcon, LoteTankIcon, ProveedorIcon, financeIconMoney, rutaIcon, CalderaIcon, DataSeguimientoIocn, weightliftIcon,
-    IconFleteCost, IconBasculaAmbiocom
+    IconFleteCost, IconBasculaAmbiocom, IconSCADANiveles
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -413,13 +415,12 @@ export default function EmpresarialPrincipalSchedulerApp() {
             ],
         },
         {
-            text: 'Tanques',
+            text: 'Niveles Tanques',
             key: 'tanquesniveles',
             roles: ["admin", "developer", "comercial"],
             icon: <img src={tanqueIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
             subItems: [
-                { text: 'CRUD Tanques', subKey: 'tanquescrud', /* roles: ["admin"], */ icon: <img src={VesselTkIconChemical} alt="tanquescrud" style={{ width: 25, height: 25 }} /> },
-                { text: 'UNIDAD 100', subKey: 'nivelesunidadcien', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={VesselTkIcon} alt="nivelesunidadtrecien" style={{ width: 25, height: 25 }} /> },
+{ text: 'MONITOREO SCADA', subKey: 'nivelestanquesscada', icon: <Box sx={{ position: "relative", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}><img src={IconSCADANiveles} alt="SCADA" style={{ width: 27, height: 27 }} /><Box sx={{ position: "absolute", top: -3, right: -4, width: 13, height: 13, borderRadius: "50%", bgcolor: "#00E676", border: "2px solid white", boxShadow: "0 0 10px 3px rgba(0,230,118,0.7)", animation: "scadaPulse 1.5s ease-out infinite", "&::after": { content: '""', position: "absolute", inset: -3, borderRadius: "50%", border: "2px solid #00E676", animation: "scadaRing 1.5s ease-out infinite" }, "@keyframes scadaPulse": { "0%, 100%": { transform: "scale(1)", opacity: 1 }, "50%": { transform: "scale(1.25)", opacity: 0.85 } }, "@keyframes scadaRing": { "0%": { transform: "scale(0.8)", opacity: 0.9 }, "100%": { transform: "scale(2.4)", opacity: 0 } } }} /></Box> },                { text: 'UNIDAD 100', subKey: 'nivelesunidadcien', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={VesselTkIcon} alt="nivelesunidadtrecien" style={{ width: 25, height: 25 }} /> },
                 { text: 'UNIDAD 300', subKey: 'nivelesunidadtrecientos', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={VesselTkIcon} alt="nivelesunidadtrecientos" style={{ width: 25, height: 25 }} /> },
                 { text: 'UNIDAD 450', subKey: 'nivelesunidadcuatrocientos', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={VesselTkIcon} alt="nivelesunidadcuatrocientos" style={{ width: 25, height: 25 }} /> },
                 { text: 'UNIDAD 600', subKey: 'nivelesunidadseicientos', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={VesselTkIcon} alt="nivelesunidadseicientos" style={{ width: 25, height: 25 }} /> },
@@ -582,6 +583,8 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'Trazabilidadregistrodelotesdeproduccion': return <TrazabilidadRegistroDeLotesDeProduccion />;
             //PTAP
             case 'regeneracionresinas': return <TableFormatoRegeneracionResinas />;
+            //Niveles tanques SCADA
+            case 'nivelestanquesscada': return <AnalisisdenivelestanquesSCADA />;
             // SIG & TH
             case 'registrodemedidoressig': return <TablaMedicionesAgua />;
             // Comerciale

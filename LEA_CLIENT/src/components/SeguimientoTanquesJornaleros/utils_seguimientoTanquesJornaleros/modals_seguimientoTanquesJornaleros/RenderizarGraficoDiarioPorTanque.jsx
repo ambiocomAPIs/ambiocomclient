@@ -42,6 +42,10 @@ import TuneIcon from "@mui/icons-material/Tune";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import InsightsIcon from "@mui/icons-material/Insights";
+
+import WaterDropOutlinedIcon from "@mui/icons-material/WaterDropOutlined";
+import StraightenOutlinedIcon from "@mui/icons-material/StraightenOutlined";
+
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -136,8 +140,8 @@ const RenderizarGraficoDiarioPorTanque = ({
 
       axios
         .get(
-          "https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros", 
-          {withCredentials:true}
+          "https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros",
+          { withCredentials: true }
         )
         .then((response) => {
           if (Array.isArray(response.data)) {
@@ -773,219 +777,219 @@ const RenderizarGraficoDiarioPorTanque = ({
     },
   };
 
-const extremaPlugin = {
-  id: "extremaPlugin",
+  const extremaPlugin = {
+    id: "extremaPlugin",
 
-  afterDatasetsDraw(chart, args, pluginOptions) {
-    const ctx = chart.ctx;
-    const tanqueSeleccionado =
-      pluginOptions?.nombreTanque ?? chart.options?.nombreTanque;
+    afterDatasetsDraw(chart, args, pluginOptions) {
+      const ctx = chart.ctx;
+      const tanqueSeleccionado =
+        pluginOptions?.nombreTanque ?? chart.options?.nombreTanque;
 
-    if (!tanqueSeleccionado) return;
+      if (!tanqueSeleccionado) return;
 
-    const mostrarNiveles = chart.options.datasetsPluggins ?? true;
-    const factorTanque = Number(chart.options.factorTanque ?? 1);
+      const mostrarNiveles = chart.options.datasetsPluggins ?? true;
+      const factorTanque = Number(chart.options.factorTanque ?? 1);
 
-    const options = {
-      locale: pluginOptions?.locale || "es-CO",
-      valueType:
-        pluginOptions?.valueType ??
-        (mostrarNiveles ? "nivel" : "volumen"),
-      valuesAlreadyScaled:
-        pluginOptions?.valuesAlreadyScaled ?? !mostrarNiveles,
-      font: pluginOptions?.font || "12px Arial",
-      textColor: pluginOptions?.textColor || "#111",
-      maxPointColor: pluginOptions?.maxPointColor || "blue",
-      minPointColor: pluginOptions?.minPointColor || "orange",
-      pointRadius: pluginOptions?.pointRadius ?? 6,
-      labelOffsetX: pluginOptions?.labelOffsetX ?? 8,
-      labelOffsetY: pluginOptions?.labelOffsetY ?? -8,
-      paddingX: pluginOptions?.paddingX ?? 6,
-      paddingY: pluginOptions?.paddingY ?? 4,
-      backgroundColor:
-        pluginOptions?.backgroundColor || "rgba(255,255,255,0.92)",
-      borderColor: pluginOptions?.borderColor || "rgba(0,0,0,0.2)",
-      minLabelSpacing: pluginOptions?.minLabelSpacing ?? 4,
-    };
-
-    const placedLabels = [];
-    const chartArea = chart.chartArea;
-
-    function clamp(value, min, max) {
-      return Math.max(min, Math.min(max, value));
-    }
-
-    function boxesOverlap(a, b, spacing = 0) {
-      return !(
-        a.x + a.w + spacing < b.x ||
-        b.x + b.w + spacing < a.x ||
-        a.y + a.h + spacing < b.y ||
-        b.y + b.h + spacing < a.y
-      );
-    }
-
-    function roundRect(ctx, x, y, width, height, radius) {
-      ctx.beginPath();
-      ctx.moveTo(x + radius, y);
-      ctx.lineTo(x + width - radius, y);
-      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-      ctx.lineTo(x + width, y + height - radius);
-      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-      ctx.lineTo(x + radius, y + height);
-      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-      ctx.lineTo(x, y + radius);
-      ctx.quadraticCurveTo(x, y, x + radius, y);
-      ctx.closePath();
-    }
-
-    function formatNivel(value) {
-      return new Intl.NumberFormat(options.locale, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-        useGrouping: true,
-      }).format(value);
-    }
-
-    function formatVolumen(value) {
-      return new Intl.NumberFormat(options.locale, {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-        useGrouping: true,
-      }).format(value);
-    }
-
-    function getDisplayedValue(rawValue) {
-      if (options.valueType !== "volumen") {
-        return rawValue;
-      }
-
-      return options.valuesAlreadyScaled
-        ? rawValue
-        : rawValue * factorTanque;
-    }
-
-    function formatDisplayedValue(rawValue) {
-      const displayedValue = getDisplayedValue(rawValue);
-      const isVolumen = options.valueType === "volumen";
-      const formatted = isVolumen
-        ? formatVolumen(displayedValue)
-        : formatNivel(displayedValue);
-
-      return `${formatted}${isVolumen ? " L" : " m"}`;
-    }
-
-    function findBestLabelPosition(baseX, baseY, labelW, labelH) {
-      const candidateOffsets = [
-        { dx: 0, dy: 0 },
-        { dx: 0, dy: -18 },
-        { dx: 0, dy: 18 },
-        { dx: 12, dy: -12 },
-        { dx: 12, dy: 12 },
-        { dx: -12, dy: -12 },
-        { dx: -12, dy: 12 },
-        { dx: 18, dy: 0 },
-        { dx: -18, dy: 0 },
-      ];
-
-      for (const offset of candidateOffsets) {
-        const x = clamp(
-          baseX + offset.dx,
-          chartArea.left + 2,
-          chartArea.right - labelW - 2
-        );
-
-        const y = clamp(
-          baseY + offset.dy,
-          chartArea.top + 2,
-          chartArea.bottom - labelH - 2
-        );
-
-        const candidate = { x, y, w: labelW, h: labelH };
-
-        const collision = placedLabels.some((box) =>
-          boxesOverlap(candidate, box, options.minLabelSpacing)
-        );
-
-        if (!collision) return candidate;
-      }
-
-      return {
-        x: clamp(baseX, chartArea.left + 2, chartArea.right - labelW - 2),
-        y: clamp(baseY, chartArea.top + 2, chartArea.bottom - labelH - 2),
-        w: labelW,
-        h: labelH,
+      const options = {
+        locale: pluginOptions?.locale || "es-CO",
+        valueType:
+          pluginOptions?.valueType ??
+          (mostrarNiveles ? "nivel" : "volumen"),
+        valuesAlreadyScaled:
+          pluginOptions?.valuesAlreadyScaled ?? !mostrarNiveles,
+        font: pluginOptions?.font || "12px Arial",
+        textColor: pluginOptions?.textColor || "#111",
+        maxPointColor: pluginOptions?.maxPointColor || "blue",
+        minPointColor: pluginOptions?.minPointColor || "orange",
+        pointRadius: pluginOptions?.pointRadius ?? 6,
+        labelOffsetX: pluginOptions?.labelOffsetX ?? 8,
+        labelOffsetY: pluginOptions?.labelOffsetY ?? -8,
+        paddingX: pluginOptions?.paddingX ?? 6,
+        paddingY: pluginOptions?.paddingY ?? 4,
+        backgroundColor:
+          pluginOptions?.backgroundColor || "rgba(255,255,255,0.92)",
+        borderColor: pluginOptions?.borderColor || "rgba(0,0,0,0.2)",
+        minLabelSpacing: pluginOptions?.minLabelSpacing ?? 4,
       };
-    }
 
-    chart.data.datasets.forEach((dataset, datasetIndex) => {
-      if (dataset.label !== tanqueSeleccionado) return;
+      const placedLabels = [];
+      const chartArea = chart.chartArea;
 
-      const meta = chart.getDatasetMeta(datasetIndex);
-      if (!meta || meta.hidden) return;
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
 
-      const validPoints = dataset.data
-        .map((v, i) => ({
-          num: Number(v),
-          index: i,
-        }))
-        .filter((item) => Number.isFinite(item.num));
-
-      if (validPoints.length === 0) return;
-
-      const max = Math.max(...validPoints.map((p) => p.num));
-      const min = Math.min(...validPoints.map((p) => p.num));
-
-      validPoints.forEach(({ num, index }) => {
-        if (num !== max && num !== min) return;
-
-        const point = meta.data[index];
-        if (!point) return;
-
-        const isMax = num === max;
-        const label = `${isMax ? "Max" : "Min"}: ${formatDisplayedValue(num)}`;
-
-        ctx.save();
-
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, options.pointRadius, 0, 2 * Math.PI);
-        ctx.fillStyle = isMax ? options.maxPointColor : options.minPointColor;
-        ctx.fill();
-
-        ctx.font = options.font;
-        const textMetrics = ctx.measureText(label);
-        const textW = textMetrics.width;
-        const textH = 12;
-
-        const labelW = textW + options.paddingX * 2;
-        const labelH = textH + options.paddingY * 2;
-
-        const baseX = point.x + options.labelOffsetX;
-        const baseY = point.y + options.labelOffsetY - labelH / 2;
-
-        const box = findBestLabelPosition(baseX, baseY, labelW, labelH);
-
-        ctx.fillStyle = options.backgroundColor;
-        ctx.strokeStyle = options.borderColor;
-        ctx.lineWidth = 1;
-        roundRect(ctx, box.x, box.y, box.w, box.h, 4);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = options.textColor;
-        ctx.textAlign = "left";
-        ctx.textBaseline = "middle";
-        ctx.fillText(
-          label,
-          box.x + options.paddingX,
-          box.y + box.h / 2 + 0.5
+      function boxesOverlap(a, b, spacing = 0) {
+        return !(
+          a.x + a.w + spacing < b.x ||
+          b.x + b.w + spacing < a.x ||
+          a.y + a.h + spacing < b.y ||
+          b.y + b.h + spacing < a.y
         );
+      }
 
-        placedLabels.push(box);
-        ctx.restore();
+      function roundRect(ctx, x, y, width, height, radius) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+      }
+
+      function formatNivel(value) {
+        return new Intl.NumberFormat(options.locale, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+          useGrouping: true,
+        }).format(value);
+      }
+
+      function formatVolumen(value) {
+        return new Intl.NumberFormat(options.locale, {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+          useGrouping: true,
+        }).format(value);
+      }
+
+      function getDisplayedValue(rawValue) {
+        if (options.valueType !== "volumen") {
+          return rawValue;
+        }
+
+        return options.valuesAlreadyScaled
+          ? rawValue
+          : rawValue * factorTanque;
+      }
+
+      function formatDisplayedValue(rawValue) {
+        const displayedValue = getDisplayedValue(rawValue);
+        const isVolumen = options.valueType === "volumen";
+        const formatted = isVolumen
+          ? formatVolumen(displayedValue)
+          : formatNivel(displayedValue);
+
+        return `${formatted}${isVolumen ? " L" : " m"}`;
+      }
+
+      function findBestLabelPosition(baseX, baseY, labelW, labelH) {
+        const candidateOffsets = [
+          { dx: 0, dy: 0 },
+          { dx: 0, dy: -18 },
+          { dx: 0, dy: 18 },
+          { dx: 12, dy: -12 },
+          { dx: 12, dy: 12 },
+          { dx: -12, dy: -12 },
+          { dx: -12, dy: 12 },
+          { dx: 18, dy: 0 },
+          { dx: -18, dy: 0 },
+        ];
+
+        for (const offset of candidateOffsets) {
+          const x = clamp(
+            baseX + offset.dx,
+            chartArea.left + 2,
+            chartArea.right - labelW - 2
+          );
+
+          const y = clamp(
+            baseY + offset.dy,
+            chartArea.top + 2,
+            chartArea.bottom - labelH - 2
+          );
+
+          const candidate = { x, y, w: labelW, h: labelH };
+
+          const collision = placedLabels.some((box) =>
+            boxesOverlap(candidate, box, options.minLabelSpacing)
+          );
+
+          if (!collision) return candidate;
+        }
+
+        return {
+          x: clamp(baseX, chartArea.left + 2, chartArea.right - labelW - 2),
+          y: clamp(baseY, chartArea.top + 2, chartArea.bottom - labelH - 2),
+          w: labelW,
+          h: labelH,
+        };
+      }
+
+      chart.data.datasets.forEach((dataset, datasetIndex) => {
+        if (dataset.label !== tanqueSeleccionado) return;
+
+        const meta = chart.getDatasetMeta(datasetIndex);
+        if (!meta || meta.hidden) return;
+
+        const validPoints = dataset.data
+          .map((v, i) => ({
+            num: Number(v),
+            index: i,
+          }))
+          .filter((item) => Number.isFinite(item.num));
+
+        if (validPoints.length === 0) return;
+
+        const max = Math.max(...validPoints.map((p) => p.num));
+        const min = Math.min(...validPoints.map((p) => p.num));
+
+        validPoints.forEach(({ num, index }) => {
+          if (num !== max && num !== min) return;
+
+          const point = meta.data[index];
+          if (!point) return;
+
+          const isMax = num === max;
+          const label = `${isMax ? "Max" : "Min"}: ${formatDisplayedValue(num)}`;
+
+          ctx.save();
+
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, options.pointRadius, 0, 2 * Math.PI);
+          ctx.fillStyle = isMax ? options.maxPointColor : options.minPointColor;
+          ctx.fill();
+
+          ctx.font = options.font;
+          const textMetrics = ctx.measureText(label);
+          const textW = textMetrics.width;
+          const textH = 12;
+
+          const labelW = textW + options.paddingX * 2;
+          const labelH = textH + options.paddingY * 2;
+
+          const baseX = point.x + options.labelOffsetX;
+          const baseY = point.y + options.labelOffsetY - labelH / 2;
+
+          const box = findBestLabelPosition(baseX, baseY, labelW, labelH);
+
+          ctx.fillStyle = options.backgroundColor;
+          ctx.strokeStyle = options.borderColor;
+          ctx.lineWidth = 1;
+          roundRect(ctx, box.x, box.y, box.w, box.h, 4);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = options.textColor;
+          ctx.textAlign = "left";
+          ctx.textBaseline = "middle";
+          ctx.fillText(
+            label,
+            box.x + options.paddingX,
+            box.y + box.h / 2 + 0.5
+          );
+
+          placedLabels.push(box);
+          ctx.restore();
+        });
       });
-    });
-  },
-};
+    },
+  };
 
   function withScaling(basePlugin) {
     return {
@@ -1020,6 +1024,25 @@ const extremaPlugin = {
 
   const activePlugin = pluginsMap[pluginActivo] ?? pluginsMap.deltaPlugin;
 
+  const estiloBotonSuave = (fondo, texto, borde, hover) => ({
+    height: 34,
+    borderRadius: 1.5,
+    px: 1.5,
+    fontSize: 12.5,
+    fontWeight: 600,
+    textTransform: "none",
+    boxShadow: "none",
+    bgcolor: fondo,
+    color: texto,
+    border: `1px solid ${borde}`,
+
+    "&:hover": {
+      bgcolor: hover,
+      borderColor: borde,
+      boxShadow: "none",
+    },
+  });
+
   return (
     <Dialog
       open={modalIsOpen}
@@ -1028,13 +1051,12 @@ const extremaPlugin = {
       maxWidth={false}
       PaperProps={{
         sx: {
-          width: "94vw",
-          maxWidth: "1500px",
-          height: "92vh",
-          maxHeight: "92vh",
-          borderRadius: 4,
-          background:
-            "linear-gradient(180deg, #f8fbff 0%, #f8fafc 28%, #ffffff 100%)",
+          width: "98vw",
+          maxWidth: "98vw",
+          height: "98vh",
+          maxHeight: "98vh",
+          margin: 0,
+          borderRadius: 2,
           overflow: "hidden",
         },
       }}
@@ -1129,13 +1151,12 @@ const extremaPlugin = {
                   startIcon={
                     datasetsHidden ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />
                   }
-                  sx={{
-                    height: 40,
-                    borderRadius: 1.5,
-                    textTransform: "none",
-                    fontWeight: 600,
-                    boxShadow: "none",
-                  }}
+                  sx={estiloBotonSuave(
+                    "#EFF4FA",
+                    "#42688F",
+                    "#CFDDEC",
+                    "#E2EBF6"
+                  )}
                 >
                   {datasetsHidden ? "Mostrar todas" : "Ocultar todas"}
                 </Button>
@@ -1147,19 +1168,24 @@ const extremaPlugin = {
                   onClick={setVisualizacionNivelesOVolumen}
                   disabled={!usuarioAutorizado}
                   variant="outlined"
-                  sx={{
-                    height: 40,
-                    borderRadius: 1.5,
-                    textTransform: "none",
-                    fontWeight: 600,
-                  }}
+                  startIcon={
+                    datasetsPluggins
+                      ? <WaterDropOutlinedIcon sx={{ fontSize: 18 }} />
+                      : <StraightenOutlinedIcon sx={{ fontSize: 18 }} />
+                  }
+                  sx={estiloBotonSuave(
+                    "#F3F4F6",
+                    "#556070",
+                    "#DFE2E7",
+                    "#E8EBEF"
+                  )}
                 >
                   {datasetsPluggins ? "Ver en volumen" : "Ver en niveles"}
                 </Button>
               </Grid>
 
               <Grid item xs={12}>
-                <Divider sx={{ my: 0.15 }} />
+                <Divider sx={{ my: 0.1 }} />
               </Grid>
 
               <Grid item xs={12} md={6}>
@@ -1223,13 +1249,12 @@ const extremaPlugin = {
                     variant="contained"
                     color="success"
                     startIcon={<DownloadIcon sx={{ fontSize: 18 }} />}
-                    sx={{
-                      height: 40,
-                      borderRadius: 1.5,
-                      textTransform: "none",
-                      fontWeight: 700,
-                      boxShadow: "none",
-                    }}
+                    sx={estiloBotonSuave(
+                      "#EEF7F1",
+                      "#427956",
+                      "#CFE5D5",
+                      "#DDF0E3"
+                    )}
                   >
                     CSV
                   </Button>
@@ -1241,13 +1266,12 @@ const extremaPlugin = {
                     variant="contained"
                     color="warning"
                     startIcon={<DownloadIcon sx={{ fontSize: 18 }} />}
-                    sx={{
-                      height: 40,
-                      borderRadius: 1.5,
-                      textTransform: "none",
-                      fontWeight: 700,
-                      boxShadow: "none",
-                    }}
+                    sx={estiloBotonSuave(
+                      "#FBF5EA",
+                      "#926C30",
+                      "#EBDFC5",
+                      "#F5EBD8"
+                    )}
                   >
                     PDF
                   </Button>

@@ -873,8 +873,13 @@ const IngresoDataDespachoModal = ({
     }
   };
 
-
-  const CAMPOS_PERMITEN_DECIMALES = ["densidadlab_alcohol_tanque", "grado_alcoholico_lab", "cantidad_recibida_cliente", "observaciones",]
+  const CAMPOS_PERMITEN_DECIMALES = [
+    "densidadlab_alcohol_tanque",
+    "grado_alcoholico_lab",
+    "cantidad_recibida_cliente",
+    "temperatura_despacho_contador_ambiocom",
+    "observaciones",
+  ];
 
   // funcion bloquea . ,
   const bloquearPegado = (key) => (e) => {
@@ -1622,7 +1627,7 @@ const IngresoDataDespachoModal = ({
                             disabled={isDisabled}
                             sx={sxField}
                             helperText="Seleccione o escriba un destino"
-                            />
+                          />
                         )}
                       />
                     ) : esNombreConductor ? (
@@ -2012,7 +2017,8 @@ const IngresoDataDespachoModal = ({
                           if (isDisabled) return;
                           // const value = e.target.value;
                           const value =
-                            c.key === "cantidad_recibida_cliente"
+                            c.key === "cantidad_recibida_cliente" ||
+                              c.key === "temperatura_despacho_contador_ambiocom"
                               ? e.target.value.replace(/,/g, ".")
                               : e.target.value;
                           handleChangeLectura(c.key, value);
