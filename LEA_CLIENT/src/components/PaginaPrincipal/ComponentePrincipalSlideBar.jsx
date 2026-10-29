@@ -96,7 +96,7 @@ import RutasFletesAmbiocom from "../Modulo_Comerciales/RutasFletesAmbiocom.jsx"
 import TablaMedicionesDiariaEnergia from '../Energia_CON/TablaMedicionesEnergia.jsx'
 //Modulo Niveles tanques SCADA
 // import AnalisisdenivelestanquesSCADA from '../NivelesScada/AnalisisdenivelestanquesSCADA.jsx'
-import AnalisisdenivelestanquesSCADA from '../NivelesScada/analisisdenivelestanquesSCADA.jsx';
+import AnalisisdenivelestanquesSCADA from '../NivelesScada/AnalisisdenivelestanquesSCADA.jsx';
 //Modulo DEV
 import ConsultasHttpDb from '../DB_Consultas_View/ConsultasHttpDb.jsx';
 import TaskRequerimentDev from '../DB_Consultas_View/TaskRequerimentDevComponent.jsx';
