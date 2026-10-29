@@ -46,6 +46,8 @@ import PanelHoras from '../PanelHoras';
 import InventarioCarbonMadera from '../InventarioCarbonMadera';
 import PatioCarbonMadera from '../ModuloProduccion/PatioCarbonMadera.jsx'
 import SeguimientoTotalizadores from '../ModuloProduccion/SeguimientoTotalizadores.jsx'
+// Modulo Talento Humano
+import GestionPostulacionesWebflow from '../Modulo_TalentoHumano/GestionPostulacionesWebflow.jsx'
 // Modulo de graficos y analisis
 import GraficoNivelesTanquesPorDiaPageComponente from '../TanquesVistaNiveles/GraficaNivelesDiariosPorMes/GraficaNivelesDiarioTanquesJornalerosComponente.jsx';
 import Comparativomensualinsumosquimicos from '../Modulos_API/DataAnalisis/Comparativomensualinsumosquimicos.jsx';
@@ -93,7 +95,8 @@ import RutasFletesAmbiocom from "../Modulo_Comerciales/RutasFletesAmbiocom.jsx"
 //energia
 import TablaMedicionesDiariaEnergia from '../Energia_CON/TablaMedicionesEnergia.jsx'
 //Modulo Niveles tanques SCADA
-import AnalisisdenivelestanquesSCADA from '../NivelesScada/AnalisisdenivelestanquesSCADA.jsx'
+// import AnalisisdenivelestanquesSCADA from '../NivelesScada/AnalisisdenivelestanquesSCADA.jsx'
+import AnalisisdenivelestanquesSCADA from '../NivelesScada/analisisdenivelestanquesSCADA.jsx';
 //Modulo DEV
 import ConsultasHttpDb from '../DB_Consultas_View/ConsultasHttpDb.jsx';
 import TaskRequerimentDev from '../DB_Consultas_View/TaskRequerimentDevComponent.jsx';
@@ -114,7 +117,7 @@ import {
     TankGraphIcon, CounterIcon, MoneyGraphIcon, EnergyIcon, EnergyDataIcon, InOutMaderaCarbonIcon, InformeIcon, TankWithLiquidIcon, ReportIcon,
     Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon, PersonalIcons, plannerIconDate, logsIcon, VesselTkIcon, VesselTkIconChemical, ListToDoIcon, ArcadeIcon,
     WaterTankIcon, VentasIcon, WaterKeyIcon, DestileryIcon, LoteTankIcon, ProveedorIcon, financeIconMoney, rutaIcon, CalderaIcon, DataSeguimientoIocn, weightliftIcon,
-    IconFleteCost, IconBasculaAmbiocom, IconSCADANiveles
+    IconFleteCost, IconBasculaAmbiocom, IconSCADANiveles, IconBusquedaEmpleo
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -289,7 +292,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'Grafica Niveles Tanques Jornaleros', subKey: 'nivelestanquesjornalerospagina', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "torrecontrollogistica"], icon: <img src={TankGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
                 { text: 'Báscula E/S', subKey: 'entradasysalidasbascula', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "torrecontrollogistica"], icon: <img src={IconBasculaAmbiocom} alt="entradasysalidasbascula" style={{ width: 30, height: 30 }} /> },
                 { text: 'Planeacion Diaria', subKey: 'planeaciondiariadespachos', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "torrecontrollogistica"], icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} /> },
-                { text: 'Despachos', subKey: 'despachoalcoholeslogistica', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Despachos', subKey: 'despachoalcoholeslogistica', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica", "laboratorio"], icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Recepción', subKey: 'recepcionalcoholeslogistica', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Flete/Litro', subKey: 'analisisfleteporlitro', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={IconFleteCost} alt="analisisfleteporlitro" style={{ width: 25, height: 25 }} /> },
                 { text: 'Colaboradores', subKey: 'colaboradoresambiocom', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={PersonalIcons} alt="Despacho" style={{ width: 25, height: 25 }} /> },
@@ -319,12 +322,10 @@ export default function EmpresarialPrincipalSchedulerApp() {
                             roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
                             icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} />
                         },
-                        {
-                            text: 'Despachos',
-                            subKey: 'despachoalcoholeslogisticareadonly',
-                            roles: ["admin", "developer", "gerente", "supervisor", "comercial", "laboratorio"],
-                            icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} />
-                        },
+                        {   text: 'Despachos', 
+                            subKey: 'despachoalcoholeslogistica', 
+                            roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica", "laboratorio"], 
+                            icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                         {
                             text: 'Recepción',
                             subKey: 'recepcionalcoholeslogisticareadonly',
@@ -375,6 +376,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
         {
             text: 'SIG & TH', roles: ["admin", "developer", "sistemadegestion", "gerente"], icon: <img src={weightliftIcon} alt="plantadeaguas" style={{ width: 25, height: 25 }} />, key: 'sistemadegestionytalentohumano', subItems: [
                 { text: 'Medidores Aguas', subKey: 'registrodemedidoressig', roles: ["admin", "developer", "supervisor", "operarioaguas", "sistemadegestion"], icon: <img src={CounterIcon} alt="Medidores" style={{ width: 25, height: 25 }} /> },
+                { text: 'Postulaciones', subKey: 'postulacionesambiocom', roles: ["admin", "developer", "sistemadegestion"], icon: <img src={IconBusquedaEmpleo} alt="Medidores" style={{ width: 25, height: 25 }} /> },
             ],
         },
         {
@@ -420,7 +422,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             roles: ["admin", "developer", "comercial"],
             icon: <img src={tanqueIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
             subItems: [
-{ text: 'MONITOREO SCADA', subKey: 'nivelestanquesscada', icon: <Box sx={{ position: "relative", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}><img src={IconSCADANiveles} alt="SCADA" style={{ width: 27, height: 27 }} /><Box sx={{ position: "absolute", top: -3, right: -4, width: 13, height: 13, borderRadius: "50%", bgcolor: "#00E676", border: "2px solid white", boxShadow: "0 0 10px 3px rgba(0,230,118,0.7)", animation: "scadaPulse 1.5s ease-out infinite", "&::after": { content: '""', position: "absolute", inset: -3, borderRadius: "50%", border: "2px solid #00E676", animation: "scadaRing 1.5s ease-out infinite" }, "@keyframes scadaPulse": { "0%, 100%": { transform: "scale(1)", opacity: 1 }, "50%": { transform: "scale(1.25)", opacity: 0.85 } }, "@keyframes scadaRing": { "0%": { transform: "scale(0.8)", opacity: 0.9 }, "100%": { transform: "scale(2.4)", opacity: 0 } } }} /></Box> },                { text: 'UNIDAD 100', subKey: 'nivelesunidadcien', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={VesselTkIcon} alt="nivelesunidadtrecien" style={{ width: 25, height: 25 }} /> },
+                { text: 'MONITOREO SCADA', subKey: 'nivelestanquesscada', icon: <Box sx={{ position: "relative", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}><img src={IconSCADANiveles} alt="SCADA" style={{ width: 27, height: 27 }} /><Box sx={{ position: "absolute", top: -3, right: -4, width: 13, height: 13, borderRadius: "50%", bgcolor: "#00E676", border: "2px solid white", boxShadow: "0 0 10px 3px rgba(0,230,118,0.7)", animation: "scadaPulse 1.5s ease-out infinite", "&::after": { content: '""', position: "absolute", inset: -3, borderRadius: "50%", border: "2px solid #00E676", animation: "scadaRing 1.5s ease-out infinite" }, "@keyframes scadaPulse": { "0%, 100%": { transform: "scale(1)", opacity: 1 }, "50%": { transform: "scale(1.25)", opacity: 0.85 } }, "@keyframes scadaRing": { "0%": { transform: "scale(0.8)", opacity: 0.9 }, "100%": { transform: "scale(2.4)", opacity: 0 } } }} /></Box> }, { text: 'UNIDAD 100', subKey: 'nivelesunidadcien', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={VesselTkIcon} alt="nivelesunidadtrecien" style={{ width: 25, height: 25 }} /> },
                 { text: 'UNIDAD 300', subKey: 'nivelesunidadtrecientos', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={VesselTkIcon} alt="nivelesunidadtrecientos" style={{ width: 25, height: 25 }} /> },
                 { text: 'UNIDAD 450', subKey: 'nivelesunidadcuatrocientos', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={VesselTkIcon} alt="nivelesunidadcuatrocientos" style={{ width: 25, height: 25 }} /> },
                 { text: 'UNIDAD 600', subKey: 'nivelesunidadseicientos', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={VesselTkIcon} alt="nivelesunidadseicientos" style={{ width: 25, height: 25 }} /> },
@@ -573,7 +575,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'entradasysalidasbascula': return <ModuloEnMantenimiento />;
             case 'analisisfleteporlitro': return <AnalisisFletesHistoricos />;
             //laboratorio
-            case 'despachoalcoholeslogisticareadonly': return <TablaDespachosLogisticaReadOnly />;
+            case 'despachoalcoholeslogistica': return <DespachoAlcoholesLogistica />;
             case 'planeaciondiariadespachosreadonly': return <ProgramacionDespachoReadOnlyPage />;
             case 'recepcionalcoholeslogisticareadonly': return <TablaRecepcionVehiculosReadOnly />;
             case 'formatoseguimientoaguas': return <LAB_FO_XX />;
@@ -587,6 +589,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'nivelestanquesscada': return <AnalisisdenivelestanquesSCADA />;
             // SIG & TH
             case 'registrodemedidoressig': return <TablaMedicionesAgua />;
+            case 'postulacionesambiocom': return <GestionPostulacionesWebflow />;
             // Comerciale
             case 'nivelestanquesjornalerospaginavistacomercial': return <GraficoNivelesTanquesPorDiaPageComponente NivelesTanquesContext={nivelesTanques} />;
             case 'conductoresreadonly': return <ConductoresReadOnlyPage />;

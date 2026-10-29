@@ -40,6 +40,13 @@ const columnasBloqueadas = [
   "diferencia_recibo_cliente_vnetofacturado",
 ];
 
+const CAMPOS_EDITABLES_LABORATORIO = new Set([
+  "densidadlab_alcohol_tanque",
+  "grado_alcoholico_lab",
+  "temperatura_despacho_contador_ambiocom",
+  "lote",
+]);
+
 const DENSIDAD_KEY = "densidadlab_alcohol_tanque";
 const DENSIDAD_MIN = 0.7;
 const DENSIDAD_MAX = 0.9;
@@ -665,7 +672,12 @@ const IngresoDataDespachoModal = ({
   }, [form?.lecturas?.tanque_salida, tanquesOptions]);
   // ****************************************************************
   const canRoleEditColumn = (col) => {
-    // no auth / sin rol => bloquea todo
+
+    if (roleNorm === "laboratorio") {
+      return !columnasBloqueadas.includes(col.key) &&
+        CAMPOS_EDITABLES_LABORATORIO.has(col.key);
+    }
+    
     if (!isAuth || !roleNorm) return false;
     // CONTROL ESPECÍFICO PARA FLETE FACTURADO
     if (col.key === FLETE_FACTURADO_KEY) {
@@ -1169,6 +1181,7 @@ const IngresoDataDespachoModal = ({
     "factura_proveedor",
     "entrada_orden_compra",
     "flete_facturado",
+    "lote",
     "__OBSERVACIONES__",
   ];
 
