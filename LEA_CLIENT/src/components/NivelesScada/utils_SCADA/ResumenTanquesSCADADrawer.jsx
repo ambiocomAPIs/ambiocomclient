@@ -95,8 +95,13 @@ function DatoResumen({ titulo, valor, detalle, color = MARINO }) {
     );
 }
 
-export default function ResumenTanqueSCADADrawer({ open = false, onClose = () => {}, puntos = [], tituloTanque = "Tanque", fechaConsultada = "", umbralVariacionL = 300 }) {
+export default function ResumenTanqueSCADADrawer({ open = false, onClose = () => {}, puntos = [], tituloTanque = "Tanque", fechaConsultada = "", umbralVariacionL = 300, tipoAnalisis = "original", resumenMovimientos = null, cantidadExcluidas = 0, umbralLimpiezaL = 0, modoDia = "natural" }) {
     const resumen = useMemo(() => calcularResumenTanqueSCADA(puntos, umbralVariacionL), [puntos, umbralVariacionL]);
+    // El padre calcula los acumulados filtrados. Este drawer no los vuelve a inferir
+    // desde la serie original, porque excluir lecturas puede cambiar cada delta.
+    const acumuladoEntrada = tipoAnalisis === "original" ? resumen?.ingresado : resumenMovimientos?.ingresado ?? null;
+    const acumuladoSalida = tipoAnalisis === "original" ? resumen?.salido : resumenMovimientos?.salido ?? null;
+    const tituloModo = tipoAnalisis === "operaciones" ? "Crestas / Valles" : tipoAnalisis === "nodos" ? "Nodos" : "Original";
     const litros = (v) => v == null ? "Sin factor" : `${formatear(v)} L`;
     const metros = (v) => v == null ? "—" : `${formatear(v, 3)} m`;
     const momento = (p) => p ? (p.horaReal || horaDe(p.minutosDia)) : "—";
@@ -138,7 +143,7 @@ export default function ResumenTanqueSCADADrawer({ open = false, onClose = () =>
                     <AssessmentOutlinedIcon sx={{ color: "#087cff" }} />
                     <Box sx={{ minWidth: 0 }}>
                         <Typography sx={{ fontWeight: 850, fontSize: 17, color: MARINO }}>Resumen del análisis</Typography>
-                        <Typography sx={{ fontSize: 11, color: "#58709a" }}>{tituloTanque} · {fechaConsultada}</Typography>
+                        <Typography sx={{ fontSize: 11, color: "#58709a" }}>{tituloTanque} · {fechaConsultada} · {modoDia === "inventario" ? "Día inventario (08:00–08:00)" : "Día natural"}</Typography>
                     </Box>
                 </Stack>
                 <IconButton onClick={onClose} aria-label="Cerrar resumen"><CloseIcon /></IconButton>
@@ -150,39 +155,45 @@ export default function ResumenTanqueSCADADrawer({ open = false, onClose = () =>
                 ) : (
                     <>
                         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.4 }}>
-                            <Typography sx={{ fontSize: 12, color: "#58709a" }}>Análisis basado en lecturas SCADA</Typography>
+                            <Typography sx={{ fontSize: 12, color: "#58709a" }}>Análisis {tituloModo} · {cantidadExcluidas} exclusiones · filtro {formatear(umbralLimpiezaL, 2)} L</Typography>
                             <Chip size="small" variant="outlined" label={`${resumen.cantidadLecturas} lecturas`} />
                         </Stack>
                         {seccion("balance", "01 · Balance de inventario", <>
                             <DatoResumen titulo="Inventario inicial" valor={litros(resumen.inicial.volumen)} detalle={`${metros(resumen.inicial.nivel)} · ${momento(resumen.inicial)}`} />
                             <DatoResumen titulo="Inventario final" valor={litros(resumen.final.volumen)} detalle={`${metros(resumen.final.nivel)} · ${momento(resumen.final)}`} />
-                            <DatoResumen titulo="Volumen total de entrada" valor={litros(resumen.ingresado)} detalle="Suma de incrementos entre lecturas" color={VERDE} />
-                            <DatoResumen titulo="Volumen total de salida" valor={litros(resumen.salido)} detalle="Suma absoluta de disminuciones" color={ROJO_DARK} />
+                            <DatoResumen titulo="Volumen total de entrada" valor={litros(acumuladoEntrada)} detalle={tipoAnalisis === "original" ? "Incrementos observados entre lecturas" : "Acumulado depurado por el módulo principal"} color={VERDE} />
+                            <DatoResumen titulo="Volumen total de salida" valor={litros(acumuladoSalida)} detalle={tipoAnalisis === "original" ? "Disminuciones observadas entre lecturas" : "Acumulado depurado por el módulo principal"} color={ROJO_DARK} />
                             <DatoResumen titulo="Variación neta" valor={resumen.neto == null ? "Sin factor" : `${resumen.neto > 0 ? "+" : ""}${litros(resumen.neto)}`} detalle={`Cambio de nivel: ${metros(resumen.netoNivel)}`} />
                             <DatoResumen titulo="Máximo y mínimo registrados" valor={`${metros(resumen.maximo.nivel)} / ${metros(resumen.minimo.nivel)}`} detalle={`Máx. ${momento(resumen.maximo)} · Mín. ${momento(resumen.minimo)}`} />
                         </>)}
-                        {seccion("movimientos", "02 · Dinámica de movimientos", <>
+                        {tipoAnalisis !== "original" && seccion("criterio", "02 · Criterio de depuración", <>
+                            <DatoResumen titulo="Modo seleccionado" valor={tituloModo} detalle="Compartido con el análisis principal" />
+                            <DatoResumen titulo="Lecturas excluidas" valor={formatear(cantidadExcluidas)} detalle="No alteran las lecturas SCADA originales" />
+                            <DatoResumen titulo="Filtro de ruido" valor={`${formatear(umbralLimpiezaL, 2)} L`} detalle="Aplicado al cálculo de movimientos en el padre" />
+                            <DatoResumen titulo="Balance de movimientos depurados" valor={acumuladoEntrada == null || acumuladoSalida == null ? "—" : `${formatear(acumuladoEntrada - acumuladoSalida)} L`} detalle="No equivale necesariamente al cambio entre lecturas extremas" />
+                        </>)}
+                        {seccion("movimientos", "03 · Dinámica de movimientos originales", <>
                             <DatoResumen titulo="Mayor incremento individual" valor={resumen.mayorEntrada ? litros(resumen.mayorEntrada.delta) : "—"} detalle={intervalo(resumen.mayorEntrada)} color={VERDE} />
                             <DatoResumen titulo="Mayor disminución individual" valor={resumen.mayorSalida ? litros(resumen.mayorSalida.delta) : "—"} detalle={intervalo(resumen.mayorSalida)} color={ROJO_DARK} />
                             <DatoResumen titulo="Tasa aparente máxima de entrada" valor={resumen.tasaMaxEntrada ? `${formatear(resumen.tasaMaxEntrada.tasa)} L/h` : "—"} detalle={intervalo(resumen.tasaMaxEntrada)} color={VERDE} />
                             <DatoResumen titulo="Tasa aparente máxima de salida" valor={resumen.tasaMaxSalida ? `${formatear(resumen.tasaMaxSalida.tasa)} L/h` : "—"} detalle={intervalo(resumen.tasaMaxSalida)} color={ROJO_DARK} />
                         </>)}
-                        {seccion("estabilidad", "03 · Estabilidad y fluctuaciones", <>
+                        {seccion("estabilidad", "04 · Estabilidad y fluctuaciones originales", <>
                             <DatoResumen titulo="Posible variación de entrada" valor={litros(resumen.posibleEntrada)} detalle={`Subidas menores de ${umbralVariacionL} L · ${resumen.cantidadPosiblesEntradas} lecturas`} color={VERDE} />
                             <DatoResumen titulo="Posible variación de salida" valor={litros(resumen.posibleSalida)} detalle={`Bajadas menores de ${umbralVariacionL} L · ${resumen.cantidadPosiblesSalidas} lecturas`} color={ROJO_DARK} />
                             <DatoResumen titulo="Tiempo con cambios pequeños" valor={resumen.tiempoVariacionesPequenas == null ? "Sin factor" : `${formatear(resumen.tiempoVariacionesPequenas, 1)} min`} detalle={`Intervalos de hasta 30 min con |ΔV| < ${umbralVariacionL} L; no confirma inactividad`} />
                         </>)}
-                        {seccion("integridad", "04 · Integridad de datos", <>
+                        {seccion("integridad", "05 · Integridad de datos", <>
                             <DatoResumen titulo="Lecturas recibidas" valor={formatear(resumen.cantidadLecturas)} detalle="Para el tanque y día seleccionados" />
                             <DatoResumen titulo="Intervalos sin señal" valor={formatear(resumen.intervalosSinSenal)} detalle="Separaciones superiores a 30 min" />
                             <DatoResumen titulo="Tiempo entre lecturas con brechas" valor={`${formatear(resumen.minutosSinSenal, 1)} min`} detalle="Suma completa de intervalos >30 min; no equivale a tiempo exacto de caída" />
                             <DatoResumen titulo="Intervalos de hasta 30 min" valor={formatear(resumen.cambiosConSenal)} detalle="Con horas válidas y ordenadas" />
                         </>)}
-                        {seccion("conciliacion", "05 · Conciliación operativa", <>
+                        {seccion("conciliacion", "06 · Conciliación operativa", <>
                             <Box sx={{ gridColumn: "1 / -1", p: 1.5, bgcolor: "#f8fbff", border: "1px dashed #b6c7db", borderRadius: 1.5 }}>
-                                <Typography sx={{ fontSize: 12, fontWeight: 700, color: MARINO }}>Pendiente de integración</Typography>
+                                <Typography sx={{ fontSize: 12, fontWeight: 700, color: MARINO }}>Origen de los movimientos</Typography>
                                 <Typography sx={{ fontSize: 11.5, mt: .5, color: "#58709a" }}>
-                                    Para comparar contra despachos, recepciones, transferencias y SAP se necesitan sus registros reales con fecha, hora y volumen. No se muestran cifras simuladas.
+                                    Los movimientos estimados proceden del análisis SCADA del módulo principal. Las cifras originales de dinámica y fluctuaciones son diagnósticas; no representan despachos ni recepciones confirmados. Las conciliaciones logísticas se consultan en el panel principal.
                                 </Typography>
                             </Box>
                         </>)}

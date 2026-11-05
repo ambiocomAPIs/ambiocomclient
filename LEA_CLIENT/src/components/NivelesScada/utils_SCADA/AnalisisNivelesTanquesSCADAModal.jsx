@@ -15,7 +15,7 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 
 ChartJS.register(LinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
-const AZUL = "#087bff3f", MARINO = "#081c6a", VERDE = "#009846", ROJO = "#f0432162", ROJO_DARK = "#ff1e00", MORADO = "#7b3ff2";
+const AZUL = "#087cff", MARINO = "#081c6a", VERDE = "#009846", ROJO = "#f04321", ROJO_DARK = "#ff1e00", MORADO = "#7b3ff2";
 const formatear = (v, dec = 3) => Number(v).toLocaleString("es-CO", { minimumFractionDigits: dec, maximumFractionDigits: dec });
 const horaDe = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(Math.floor(m % 60)).padStart(2, "0")}`;
 
@@ -440,7 +440,7 @@ function ModalIntervaloSCADA({ open, onClose, puntos, tituloTanque, fechaConsult
           <Box sx={{ width: 38, height: 38, borderRadius: 1.5, display: "grid", placeItems: "center", bgcolor: "#eaf3ff", color: "#087cff" }}><ZoomInOutlinedIcon fontSize="small" /></Box>
           <Box>
             <Typography sx={{ color: MARINO, fontWeight: 800, fontSize: 16 }}>Análisis de intervalo · {tituloTanque}</Typography>
-            <Typography sx={{ color: "#667892", fontSize: 11.5 }}>Modo Lupa SCADA · {datos.length} lecturas</Typography>
+            <Typography sx={{ color: "#667892", fontSize: 11.5 }}>Modo Lupa SCADA · {datos.length} lecturas originales</Typography>
           </Box>
         </Stack>
         <Stack direction="row" alignItems="center" spacing={1}>
@@ -520,6 +520,9 @@ export default function AnalisisNivelesTanquesSCADAModal({
   open = false, onClose = () => { }, tituloTanque = "Tanque", fechaConsultada = "", factor = null,
   puntos = [], eventos = [], operaciones = [], tramosSinSenal = [],
   tipoInicial = "original", unidadInicial = "nivel", modoDia = "natural",
+  eventosNodos = null, puntosVisiblesNodos = null,
+  lecturasExcluidasNodos = null, lecturasExcluidasOperaciones = null,
+  umbralLimpiezaL = 0, resumenMovimientosPorModo = null,
 }) {
   const [tipo, setTipo] = useState(tipoInicial);
   const [unidad, setUnidad] = useState(unidadInicial);
@@ -541,6 +544,26 @@ export default function AnalisisNivelesTanquesSCADAModal({
     }
   }, [open, tipoInicial, unidadInicial, factor]);
 
+  const excluidosNodos = lecturasExcluidasNodos instanceof Set ? lecturasExcluidasNodos : new Set(lecturasExcluidasNodos || []);
+  const excluidosOperaciones = lecturasExcluidasOperaciones instanceof Set ? lecturasExcluidasOperaciones : new Set(lecturasExcluidasOperaciones || []);
+  const excluidosActuales = tipo === "nodos" ? excluidosNodos : tipo === "operaciones" ? excluidosOperaciones : new Set();
+  const eventosModo = tipo === "nodos" ? (eventosNodos ?? eventos) : eventos;
+  const puntosVisiblesModo = tipo === "nodos" && Array.isArray(puntosVisiblesNodos) ? puntosVisiblesNodos : puntos;
+  const idsVisiblesNodos = new Set(puntosVisiblesModo.map(p => p.indice));
+  const tieneFiltroNodos = umbralLimpiezaL > 0 || puntos.some(p => excluidosNodos.has(p.idLectura));
+  const lecturaVisible = p => tipo === "original" || (tipo === "nodos"
+    ? !excluidosNodos.has(p.idLectura) && (!tieneFiltroNodos || idsVisiblesNodos.has(p.indice))
+    : !excluidosOperaciones.has(p.idLectura));
+  const excluidasEnPeriodo = puntos.filter(p => excluidosActuales.has(p.idLectura));
+  const cantidadAceptadas = puntos.length - excluidasEnPeriodo.length;
+  const movimientosModo = resumenMovimientosPorModo?.[tipo] ?? null;
+  const totalEventosModo = tipo === "operaciones"
+    ? operaciones.length
+    : tipo === "nodos"
+      ? eventosModo.filter(e => e.delta != null && e.delta !== 0).length
+      : eventos.filter(e => e.delta != null && e.delta !== 0).length;
+  const fmtResumen = v => v == null || !Number.isFinite(Number(v)) ? "—" : `${formatear(Number(v), 0)} L`;
+  const tituloAnalisis = tipo === "operaciones" ? "Crestas / Valles" : tipo === "nodos" ? "Nodos depurados" : "Lecturas originales";
   const litros = unidad === "volumen";
   const valor = (p) => litros ? p?.volumen : p?.nivel;
   const validos = useMemo(() => puntos.filter(p => Number.isFinite(p?.minutosDia) && Number.isFinite(litros ? p?.volumen : p?.nivel)), [puntos, litros]);
@@ -566,16 +589,25 @@ export default function AnalisisNivelesTanquesSCADAModal({
   const grafico = useMemo(() => {
     const base = {
       label: litros ? "Volumen calculado (L)" : "Nivel SCADA (m)",
-      data: validos.map(p => ({ x: p.minutosDia, y: litros ? p.volumen : p.nivel })),
+      data: validos.map(p => ({ x: p.minutosDia, y: lecturaVisible(p) ? (litros ? p.volumen : p.nivel) : null })),
       parsing: false, borderColor: AZUL, backgroundColor: "rgba(8,124,255,.05)",
-      borderWidth: 2.4, fill: false, tension: 0, spanGaps: false,
-      pointRadius: tipo === "original" ? 0 : 3, pointHoverRadius: 6, pointHitRadius: 10,
+      borderWidth: 2.4, fill: false, tension: 0,
+      pointRadius: tipo === "original" ? 2.5 : 3, pointHoverRadius: 6, pointHitRadius: 10,
+      spanGaps: tipo !== "original",
       segment: {
         borderColor: ({ p0DataIndex, p1DataIndex }) =>
           tipo !== "original" && validos[p1DataIndex]?.minutosDia - validos[p0DataIndex]?.minutosDia > 30 ? ROJO : AZUL
       },
     };
-    if (tipo !== "operaciones") return { datasets: [base] };
+    const excluidos = tipo === "original" ? [] : validos.filter(p => excluidosActuales.has(p.idLectura));
+    const marcadores = excluidos.length ? [{
+      label: "Lecturas excluidas manualmente",
+      data: validos.map(p => ({ x: p.minutosDia, y: excluidosActuales.has(p.idLectura) ? (litros ? p.volumen : p.nivel) : null })),
+      parsing: false, showLine: false, pointRadius: 6, pointHoverRadius: 8,
+      pointStyle: "crossRot", pointBorderWidth: 2, pointBorderColor: MORADO,
+      pointBackgroundColor: MORADO, esExclusion: true,
+    }] : [];
+    if (tipo !== "operaciones") return { datasets: [base, ...marcadores] };
     const destacados = operaciones.filter(o => Number.isFinite(litros ? o?.desde?.volumen : o?.desde?.nivel) && Number.isFinite(litros ? o?.hasta?.volumen : o?.hasta?.nivel)).map(o => ({
       label: o.tipo,
       data: [o.desde, o.hasta].map(p => ({ x: p.minutosDia, y: litros ? p.volumen : p.nivel })),
@@ -584,8 +616,8 @@ export default function AnalisisNivelesTanquesSCADAModal({
       borderWidth: 3.3, pointRadius: 5, pointHoverRadius: 7,
       fill: false, tension: 0, evento: o,
     }));
-    return { datasets: [base, ...destacados] };
-  }, [validos, operaciones, litros, tipo]);
+    return { datasets: [base, ...destacados, ...marcadores] };
+  }, [validos, operaciones, litros, tipo, puntosVisiblesNodos, eventosNodos, lecturasExcluidasNodos, lecturasExcluidasOperaciones, umbralLimpiezaL]);
 
   const opciones = useMemo(() => {
     // Un unico dominio vertical se calcula en METROS. Al mostrar litros,
@@ -609,8 +641,8 @@ export default function AnalisisNivelesTanquesSCADAModal({
       plugins: {
         legend: { display: false },
         datalabels: { display: false, formatter: () => null },
-        scadaModalEscalerasAnalisis: { activo: true, tipo, puntos: validos, eventos, operaciones },
-        scadaModalEtiquetasInternas: { mostrar: mostrarEtiquetas, tipo, unidad, eventos, operaciones },
+        scadaModalEscalerasAnalisis: { activo: tipo !== "original" && !validos.some(p => excluidosActuales.has(p.idLectura)), tipo, puntos: validos, eventos: eventosModo, operaciones },
+        scadaModalEtiquetasInternas: { mostrar: mostrarEtiquetas, tipo, unidad, eventos: eventosModo, operaciones },
         scadaModalIntermitencias: { activo: tipo !== "original", tramos: tramosSinSenal },
         scadaRangoLupa: { activo: modoLupa, inicio: inicioLupa?.minutosDia, fin: finLupa?.minutosDia },
         tooltip: {
@@ -627,7 +659,7 @@ export default function AnalisisNivelesTanquesSCADAModal({
                 : fechaConsultada;
               return `${fechaPunto} ${horaDe(minutosReales)}`;
             },
-            label: ctx => `${ctx.dataset.label}: ${formatear(ctx.parsed.y, litros ? 0 : 4)} ${litros ? "L" : "m"}`,
+            label: ctx => `${ctx.dataset.esExclusion ? "Lectura excluida" : ctx.dataset.label}: ${formatear(ctx.parsed.y, litros ? 0 : 4)} ${litros ? "L" : "m"}`,
           }
         },
       },
@@ -658,7 +690,7 @@ export default function AnalisisNivelesTanquesSCADAModal({
         },
       },
     };
-  }, [puntos, validos, litros, factor, mostrarEtiquetas, tipo, unidad, eventos, operaciones, tramosSinSenal, fechaConsultada, modoDia, modoLupa, inicioLupa, finLupa]);
+  }, [puntos, validos, litros, factor, mostrarEtiquetas, tipo, unidad, eventosModo, operaciones, tramosSinSenal, fechaConsultada, modoDia, modoLupa, inicioLupa, finLupa, lecturasExcluidasNodos, lecturasExcluidasOperaciones, umbralLimpiezaL]);
 
   return (
     <Dialog open={open} onClose={onClose} fullScreen PaperProps={{ sx: { bgcolor: modoLupa ? "#eef5ff" : "#f5faff", transition: "background-color .3s ease" } }}>
@@ -747,6 +779,8 @@ export default function AnalisisNivelesTanquesSCADAModal({
               )}
             </IconButton>
           )}
+          {tipo !== "original" && <Chip size="small" variant="outlined" sx={{ color: MORADO, borderColor: "#d9c8ff" }}
+            label={`Filtro ${formatear(umbralLimpiezaL, 2)} L · ${validos.filter(p => excluidosActuales.has(p.idLectura)).length} excluidas`} />}
           <ToggleButtonGroup size="small" exclusive value={unidad} onChange={(_, v) => { if (v) setUnidad(v); }}>
             <ToggleButton value="nivel" sx={{ textTransform: "none" }}>Nivel (m)</ToggleButton>
             <ToggleButton value="volumen" disabled={factor == null} sx={{ textTransform: "none" }}>Volumen (L)</ToggleButton>
@@ -754,6 +788,46 @@ export default function AnalisisNivelesTanquesSCADAModal({
 
           <IconButton onClick={onClose} aria-label="Cerrar modal"><CloseIcon /></IconButton>
         </Stack>
+      </Box>
+      <Box sx={{ px: 2, pt: 1.3, pb: 0.4 }}>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, flexWrap: "wrap", mb: 1 }}>
+          <Box>
+            <Typography sx={{ fontSize: 14, fontWeight: 850, color: MARINO }}>Panel de análisis sincronizado</Typography>
+            <Typography sx={{ fontSize: 11, color: "#6680a3" }}>
+              {tituloAnalisis} · {modoDia === "inventario" ? "Día inventario 08:00–08:00" : "Día natural 00:00–24:00"}
+              {tipo !== "original" ? ` · filtro de ruido ${formatear(umbralLimpiezaL, 2)} L` : " · sin depuración"}
+            </Typography>
+          </Box>
+          <Chip size="small" label={modoLupa ? "LUPA ACTIVA · selecciona dos lecturas" : "Vista integral del tanque"}
+            sx={{ bgcolor: modoLupa ? "#dcecff" : "#eff4fa", color: MARINO, fontWeight: 750 }} />
+        </Box>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2,minmax(0,1fr))", md: "repeat(6,minmax(0,1fr))" }, gap: 1 }}>
+          {[
+            { label: "Lecturas SCADA", value: puntos.length, detail: "Originales", color: MARINO },
+            { label: "Aceptadas", value: tipo === "original" ? puntos.length : cantidadAceptadas, detail: "Sin exclusiones manuales", color: VERDE },
+            { label: "Excluidas", value: tipo === "original" ? 0 : excluidasEnPeriodo.length, detail: "Marcadas en morado", color: MORADO },
+            { label: "Movimientos", value: totalEventosModo, detail: tipo === "operaciones" ? "Operaciones estimadas" : "Variaciones contabilizadas", color: MARINO },
+            { label: "Ingreso estimado", value: fmtResumen(movimientosModo?.ingresado), detail: "Según modo seleccionado", color: VERDE },
+            { label: "Salida estimada", value: fmtResumen(movimientosModo?.salido), detail: "Según modo seleccionado", color: ROJO_DARK },
+          ].map(item => (
+            <Box key={item.label} sx={{ minWidth: 0, bgcolor: "#fff", border: "1px solid #dce7f3", borderRadius: 1.5, px: 1.3, py: 1.05 }}>
+              <Typography sx={{ fontSize: 10.5, color: "#58709a" }}>{item.label}</Typography>
+              <Typography sx={{ fontSize: { xs: 16, md: 19 }, color: item.color, fontWeight: 850, lineHeight: 1.3, overflowWrap: "anywhere" }}>{item.value}</Typography>
+              <Typography sx={{ fontSize: 9.5, color: "#7286a2" }}>{item.detail}</Typography>
+            </Box>
+          ))}
+        </Box>
+        {tipo !== "original" && excluidasEnPeriodo.length > 0 && (
+          <Typography sx={{ mt: .8, px: 1, py: .7, bgcolor: "#f5f0ff", color: "#6847a3", borderLeft: `3px solid ${MORADO}`, borderRadius: .8, fontSize: 11 }}>
+            Depuración manual activa: {excluidasEnPeriodo.length} lectura(s) excluidas del cálculo de movimientos.
+            Los datos originales permanecen disponibles en el modo Original y en la lupa.
+          </Typography>
+        )}
+        {tipo !== "original" && !resumenMovimientosPorModo && (
+          <Typography sx={{ mt: .8, fontSize: 11, color: "#9a6438" }}>
+            Los acumulados por modo requieren conectar resumenMovimientosPorModo desde el componente padre.
+          </Typography>
+        )}
       </Box>
       <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, p: 1.5, display: "flex", transition: "background-color .3s ease" }}>
         <Box sx={{
@@ -803,6 +877,11 @@ export default function AnalisisNivelesTanquesSCADAModal({
         open={resumenAbierto && open}
         onClose={() => setResumenAbierto(false)}
         puntos={puntos}
+        tipoAnalisis={tipo}
+        resumenMovimientos={resumenMovimientosPorModo?.[tipo] ?? null}
+        cantidadExcluidas={tipo === "nodos" ? puntos.filter(p => excluidosNodos.has(p.idLectura)).length : tipo === "operaciones" ? puntos.filter(p => excluidosOperaciones.has(p.idLectura)).length : 0}
+        umbralLimpiezaL={umbralLimpiezaL}
+        modoDia={modoDia}
         tituloTanque={tituloTanque}
         fechaConsultada={fechaConsultada}
         umbralVariacionL={300}

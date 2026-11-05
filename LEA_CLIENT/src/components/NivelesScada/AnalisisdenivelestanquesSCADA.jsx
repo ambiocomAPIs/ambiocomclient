@@ -7,11 +7,11 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import {
   Box, Paper, Stack, Typography, Button, TextField, MenuItem, Menu, Alert,
   CircularProgress, TableContainer, Table, TableHead, TableBody, TableRow, TableCell,
-  ToggleButtonGroup, ToggleButton, IconButton
+  ToggleButtonGroup, ToggleButton, IconButton, Checkbox
 } from "@mui/material";
 
 import TableChartIcon from "@mui/icons-material/TableChart";
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+// import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import SearchIcon from "@mui/icons-material/Search";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import GraficaSCADAModal from "./utils_SCADA/AnalisisNivelesTanquesSCADAModal";
@@ -29,14 +29,17 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import FunctionsIcon from "@mui/icons-material/Functions";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+// import jsPDF from "jspdf";
+// import autoTable from "jspdf-autotable";
 import Papa from "papaparse";
 
+import ExportarInformeSCADAPDF from "./utils_SCADA/ExportarInformeSCADAPDF.jsx";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
 const API_SCADA = "http\://localhost:4041/api/scada/nivelesaveva"
+const API_DESPACHOS = "https://ambiocomserver.onrender.com/api/despacho-alcoholes";
+const API_BASCULA = "https://ambiocomserver.onrender.com/api/pesajes";
 
 const SENSORES = ["LT650", "LT801A", "LT801B", "LT102A", "LT102B", "LT402A", "LT402B", "LT805", "LT806", "LT807", "LT808", "LT300A"];
 const SENSORES_REGISTRADOS = new Set(SENSORES);
@@ -68,6 +71,25 @@ const fmt = (valor, decimales = 2) => {
 const conUnidad = (v, u, d = 2) => v == null ? "—" : `${fmt(v, d)} ${u}`;
 const signo = (v, u, d = 2) => v == null ? "—" : `${v > 0 ? "+" : ""}${fmt(v, d)} ${u}`;
 const clave = (v) => String(v ?? "").toUpperCase().trim().replace(/^(LT|TK)[-\s]*/, "").replace(/[^A-Z0-9]/g, "");
+
+
+const normalizarFechaBascula = (valor) => {
+  const fecha = String(valor ?? "").trim();
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+    return fecha;
+  }
+
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(fecha);
+
+  if (match) {
+    return `${match[3]}-${match[2]}-${match[1]}`;
+  }
+
+  return "";
+};
+
+
 const sensorDe = (nombre) => `LT${clave(nombre)}`;
 
 const fechaBogota = () => {
@@ -90,6 +112,59 @@ function convertir(lectura, factor) {
     volumen: factor != null ? lectura * factor : null,
   };
 }
+
+const sombreadoExclusionesNodos = {
+  id: "sombreadoExclusionesNodos",
+
+  beforeDatasetsDraw(chart, _args, opciones) {
+    if (!opciones?.activo || !opciones?.intervalos?.length) return;
+
+    const { ctx, chartArea: area } = chart;
+    const escalaX = chart.scales?.x;
+
+    if (!area || !escalaX) return;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(
+      area.left,
+      area.top,
+      area.right - area.left,
+      area.bottom - area.top
+    );
+    ctx.clip();
+
+    opciones.intervalos.forEach(({ desde, hasta }) => {
+      const x1 = escalaX.getPixelForValue(desde);
+      const x2 = escalaX.getPixelForValue(hasta);
+
+      if (!Number.isFinite(x1) || !Number.isFinite(x2)) return;
+
+      ctx.fillStyle = "rgba(123,63,242,0.10)";
+      ctx.fillRect(
+        Math.min(x1, x2),
+        area.top,
+        Math.abs(x2 - x1),
+        area.bottom - area.top
+      );
+
+      ctx.strokeStyle = "rgba(123,63,242,0.40)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 4]);
+
+      [x1, x2].forEach(x => {
+        ctx.beginPath();
+        ctx.moveTo(x, area.top);
+        ctx.lineTo(x, area.bottom);
+        ctx.stroke();
+      });
+
+      ctx.setLineDash([]);
+    });
+
+    ctx.restore();
+  },
+};
 
 const sombreadoSinSenal = {
   id: "sombreadoSinSenalCocli",
@@ -245,8 +320,21 @@ const deltaEscalonado = {
     const primero = puntosValidos[0];
     const ultimo = puntosValidos[puntosValidos.length - 1];
     if (primero) agregar(primero.indice, `INICIO · ${conUnidad(esVolumen ? primero.volumen : primero.nivel, unidad, decimales)}`, AZUL, false, 3);
-    if (ultimo && ultimo.indice !== primero?.indice)
-      agregar(ultimo.indice, `FINAL · ${conUnidad(esVolumen ? ultimo.volumen : ultimo.nivel, unidad, decimales)}`, AZUL, false, 3);
+    if (ultimo && ultimo.indice !== primero?.indice) {
+      const rotulo = opts.filtrado ? "ÚLTIMO ACEPTADO" : "FINAL";
+
+      agregar(
+        ultimo.indice,
+        `${rotulo} · ${conUnidad(
+          esVolumen ? ultimo.volumen : ultimo.nivel,
+          unidad,
+          decimales
+        )}`,
+        AZUL,
+        false,
+        3
+      );
+    }
     eventos.forEach(e => {
       const valor = esVolumen ? e.deltaL : e.delta;
       if (valor == null) return;
@@ -289,13 +377,41 @@ const escalerasAnalisis = {
       ctx.restore();
     };
 
+    const dibujarEscaleraFiltrada = (desde, hasta) => {
+      if (!Number.isFinite(desde) || !Number.isFinite(hasta)) return;
+      if (hasta <= desde) return;
+
+      const a = meta.data[desde];
+      const b = meta.data[hasta];
+
+      if (!a || !b || a.skip || b.skip) return;
+
+      ctx.save();
+      ctx.strokeStyle = MORADO;
+      ctx.lineWidth = 1.7;
+      ctx.setLineDash([6, 3]);
+      ctx.globalAlpha = 0.95;
+
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+
+      ctx.restore();
+    };
+
     if (opts.tipo === "nodos") {
       (opts.eventos || []).forEach(ev => {
         if (ev?.delta == null || ev.delta === 0) return;
         const i0 = mapa.get(ev.anterior);
         const i1 = mapa.get(ev.indice);
         if (i0 == null || i1 == null) return;
-        dibujarEscalera(Math.min(i0, i1), Math.max(i0, i1));
+        if (opts.simplificado) {
+          dibujarEscaleraFiltrada(Math.min(i0, i1), Math.max(i0, i1));
+        } else {
+          dibujarEscalera(Math.min(i0, i1), Math.max(i0, i1));
+        }
       });
       return;
     }
@@ -305,7 +421,11 @@ const escalerasAnalisis = {
         const i0 = mapa.get(op?.desde?.indice);
         const i1 = mapa.get(op?.hasta?.indice);
         if (i0 == null || i1 == null) return;
-        dibujarEscalera(Math.min(i0, i1), Math.max(i0, i1));
+        if (opts.simplificado) {
+          dibujarEscaleraFiltrada(Math.min(i0, i1), Math.max(i0, i1));
+        } else {
+          dibujarEscalera(Math.min(i0, i1), Math.max(i0, i1));
+        }
       });
     }
   },
@@ -369,10 +489,14 @@ const etiquetasExtremosSCADA = {
 };
 
 
-function analizarCrestasValles(puntos, umbral = 0.002) {
+function analizarCrestasValles(puntos, umbral = 0.002, umbralPersonalizado = false) {
   const operaciones = [], extremos = [];
-  const tolerancia = Math.max(0.000001, Math.min(0.002, umbral / 5));
+  const tolerancia = umbral > 0.002
+    ? 0
+    : Math.max(0.000001, Math.min(0.002, umbral / 5));
+
   const minimo = Math.max(0.000001, umbral);
+  const epsilon = 1e-10;
   if (!puntos.length) return {
     operaciones, extremos, segmentos: 0, cantidadCargas: 0,
     cantidadDescargas: 0, totalCargasL: 0, totalDescargasL: 0,
@@ -394,7 +518,12 @@ function analizarCrestasValles(puntos, umbral = 0.002) {
   const cerrar = (fin, clase, parcial = false) => {
     if (fin.indice === inicio.indice) return;
     const delta = fin.nivel - inicio.nivel;
-    if (Math.abs(delta) + 1e-10 < minimo) return;
+    if (
+      umbralPersonalizado
+        ? Math.abs(delta) <= minimo + epsilon
+        : Math.abs(delta) + epsilon < minimo
+    ) return;
+
     const afectados = puntos.filter(p => p.minutosDia >= inicio.minutosDia && p.minutosDia <= fin.minutosDia);
     const intervalosSinSenal = afectados.slice(1).reduce((n, p, i) =>
       n + (p.minutosDia - afectados[i].minutosDia > 30 ? 1 : 0), 0);
@@ -432,8 +561,11 @@ function analizarCrestasValles(puntos, umbral = 0.002) {
     const diff = p.nivel - extremo.nivel;
     if (direccion * diff > tolerancia) {
       extremo = p;
-    } else if (-direccion * diff >= minimo) {
-      // Reversión: la operación termina en la cresta/valle ANTERIOR.
+    } else if (
+      umbralPersonalizado
+        ? -direccion * diff > minimo + epsilon
+        : -direccion * diff >= minimo
+    ) {
       cerrar(extremo, direccion > 0 ? 'Cresta' : 'Valle');
       inicio = extremo;
       candidatoMax = extremo;
@@ -496,6 +628,34 @@ function MiniDato({ icono, titulo, valor }) {
 
 }
 
+function EncabezadoSeccion({ titulo, periodo, color = AZUL, fondo = "#F0F5FF" }) {
+  return (
+    <Box sx={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      flexWrap: "wrap",
+      gap: 0.5,
+      px: 1.2,
+      py: 0.65,
+      my: 1,
+      bgcolor: fondo,
+      borderLeft: `3px solid ${color}`,
+      borderRadius: 1
+    }}>
+      <Typography sx={{ color: MARINO, fontSize: 12.5, fontWeight: 800, lineHeight: 1.2 }}>
+        {titulo}
+      </Typography>
+      {periodo && (
+        <Typography sx={{ color: "#58709C", fontSize: 10.5, fontWeight: 600, lineHeight: 1.2 }}>
+          {periodo}
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
+
 function Indicador({ icono, titulo, valor, detalle, color = MARINO, ancho = false }) {
 
   return <Box sx={{ gridColumn: ancho ? "span 2" : "auto", border: `1px solid ${BORDE}`, borderRadius: 1.5, minHeight: 69, px: 1.1, py: .7, display: "flex", alignItems: "center", gap: 1 }}>
@@ -524,15 +684,48 @@ export default function AnalisisDeNivelesTanquesSCADA({
   const [actualizar, setActualizar] = useState(0);
   const [lecturas, setLecturas] = useState([]);
   const [lecturasDiaAnterior, setLecturasDiaAnterior] = useState([]);
+  const [despachos, setDespachos] = useState([]);
+  const [registrosBascula, setRegistrosBascula] = useState([]);
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
   const [visualizacion, setVisualizacion] = useState("nivel");
   const [mostrarEtiquetas, setMostrarEtiquetas] = useState(true);
   const [tipoAnalisis, setTipoAnalisis] = useState("original");
   const UMBRAL_GIRO = 0.002; // Umbral de movimiento estimado (2 mm); no modifica lecturas SCADA.
-  const [menuExport, setMenuExport] = useState(null);
+  const [umbralLimpiezaL, setUmbralLimpiezaL] = useState(0);
+  const [umbralTexto, setUmbralTexto] = useState("0");
   const chartRef = useRef(null);
   const [modalGrafica, setModalGrafica] = useState(false);
+  const [lecturasExcluidasNodos, setLecturasExcluidasNodos] = useState(() => new Set());
+  const [lecturasExcluidasOperaciones, setLecturasExcluidasOperaciones] = useState(() => new Set());
+
+  const alternarLecturaOperacion = (idLectura) => {
+    setLecturasExcluidasOperaciones(anterior => {
+      const siguiente = new Set(anterior);
+
+      if (siguiente.has(idLectura)) {
+        siguiente.delete(idLectura);
+      } else {
+        siguiente.add(idLectura);
+      }
+
+      return siguiente;
+    });
+  };
+
+  const alternarLecturaNodo = (idLectura) => {
+    setLecturasExcluidasNodos(anterior => {
+      const siguiente = new Set(anterior);
+
+      if (siguiente.has(idLectura)) {
+        siguiente.delete(idLectura);
+      } else {
+        siguiente.add(idLectura);
+      }
+
+      return siguiente;
+    });
+  };
 
   useEffect(() => {
 
@@ -618,6 +811,90 @@ export default function AnalisisDeNivelesTanquesSCADA({
 
   }, [apiBase, fechaConsultada, actualizar]);
 
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+
+
+    const obtenerDespachos = async () => {
+      const desde = obtenerDiaAnterior(fechaConsultada);
+      const hasta = fechaConsultada;
+
+      try {
+        const respuesta = await axios.get(`${API_DESPACHOS}/rango`, {
+          params: {
+            from: desde,
+            to: hasta,
+          },
+          withCredentials: true,
+          signal: ctrl.signal,
+        });
+
+        if (ctrl.signal.aborted) return;
+
+        const jsonCompleto = respuesta.data;
+
+        setDespachos(jsonCompleto);
+        console.log("JSON COMPLETO DESPACHOS:", jsonCompleto);
+
+      } catch (error) {
+        if (error.code === "ERR_CANCELED" || ctrl.signal.aborted) return;
+
+        console.error("Error consultando despachos:", error);
+        setDespachos([]);
+      }
+    };
+
+    obtenerDespachos();
+
+    return () => ctrl.abort();
+
+  }, [fechaConsultada, actualizar]);
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+
+    const obtenerRegistrosBascula = async () => {
+      const desde = obtenerDiaAnterior(fechaConsultada);
+      const hasta = fechaConsultada;
+
+      try {
+        const { data: respuesta } = await axios.get(
+          `${API_BASCULA}/rango`,
+          {
+            params: {
+              from: desde,
+              to: hasta,
+            },
+            withCredentials: true,
+            signal: ctrl.signal,
+          }
+        );
+
+        if (!respuesta?.ok || !Array.isArray(respuesta.data)) {
+          throw new Error("Respuesta inválida de báscula");
+        }
+
+
+        if (ctrl.signal.aborted) return;
+
+        const jsonCompleto = respuesta.data;
+        setRegistrosBascula(jsonCompleto);
+
+      } catch (error) {
+        if (error.code === "ERR_CANCELED" || ctrl.signal.aborted) return;
+
+        console.error("Error consultando báscula:", error);
+        setRegistrosBascula([]);
+      }
+    };
+
+    obtenerRegistrosBascula();
+
+    return () => ctrl.abort();
+
+  }, [fechaConsultada, actualizar]);
+
   const catalogoPorNombre = useMemo(
     () => new Map(catalogo.filter((t) => clave(t?.NombreTanque)).map((t) => [clave(t.NombreTanque), t])),
     [catalogo]
@@ -668,6 +945,28 @@ export default function AnalisisDeNivelesTanquesSCADA({
   const capacidad = positivo(datosTanque?.VolumenTotal);
   const producto = datosTanque?.Disposicion || "Sin configurar";
   const esVolumen = visualizacion === "volumen";
+
+  const umbralLimpiezaMetros =
+    factor != null && factor > 0
+      ? umbralLimpiezaL / factor
+      : 0;
+
+  const umbralMovimientoMetros =
+    umbralLimpiezaL > 0
+      ? umbralLimpiezaMetros
+      : UMBRAL_GIRO;
+
+  const umbralMostrado =
+    esVolumen
+      ? umbralLimpiezaL
+      : umbralLimpiezaMetros;
+
+  useEffect(() => {
+    setUmbralTexto(
+      String(Number(umbralMostrado.toFixed(esVolumen ? 2 : 8)))
+    );
+  }, [umbralMostrado, esVolumen]);
+
   const unidadNivel = "m";
   const tituloTanque = `TK-${clave(tanque)}`;
 
@@ -713,14 +1012,263 @@ export default function AnalisisDeNivelesTanquesSCADA({
         if (lectura == null) return null;
         const { nivel, volumen } = convertir(lectura, factor);
         return {
-          ordenOriginal, fecha: fechaRegistro, hora: horaReal, horaReal,
-          minutosDia, nivel, volumen, valor: nivel,
+          ordenOriginal,
+          fecha: fechaRegistro,
+          hora: horaReal,
+          horaReal,
+          minutosDia,
+          nivel,
+          volumen,
+          valor: nivel,
+          idLectura: `${clave(tanque)}|${String(
+            r._id ?? `${fechaRegistro}|${horaReal}|${sensorSeleccionado}`
+          )}`,
         };
       })
       .filter(Boolean)
       .sort((a, b) => a.minutosDia - b.minutosDia || a.ordenOriginal - b.ordenOriginal)
       .map((p, indice) => ({ ...p, indice }));
-  }, [lecturas, lecturasDiaAnterior, fechaConsultada, fechaAnterior, modoDia, sensorSeleccionado, tieneSensor, factor]);
+  }, [lecturas, lecturasDiaAnterior, fechaConsultada, fechaAnterior, modoDia, sensorSeleccionado, tieneSensor, factor, tanque]);
+
+  const despachosFiltrados = useMemo(() => {
+    const registros = Array.isArray(despachos)
+      ? despachos
+      : Array.isArray(despachos?.data)
+        ? despachos.data
+        : [];
+
+    const tanqueSeleccionado = clave(tanque);
+
+    return registros.filter((registro) =>
+      clave(registro?.lecturas?.tanque_salida) === tanqueSeleccionado
+    );
+  }, [despachos, tanque]);
+
+
+
+  const resumenDespachos = useMemo(() => {
+    const fechaAnterior = obtenerDiaAnterior(fechaConsultada);
+
+    const registrosDia = despachosFiltrados.filter((registro) => {
+      const fechaRegistro = String(registro?.fecha ?? "").trim();
+      const horaSalidaRegistrada = String(
+        registro?.lecturas?.hora_salida ?? ""
+      ).trim();
+
+      if (!horaSalidaRegistrada) return false;
+
+      if (modoDia === "natural") {
+        return fechaRegistro === fechaConsultada;
+      }
+
+
+      const fechaSalida = String(
+        registro?.lecturas?.fecha_salida_bascula_ambiocom ?? ""
+      ).trim();
+
+      const horaSalida = String(
+        registro?.lecturas?.hora_salida ?? ""
+      ).trim();
+
+      if (!fechaSalida || !horaSalida) return false;
+
+      const match = /^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(horaSalida);
+      if (!match) return false;
+
+      const horas = Number(match[1]);
+      const minutos = Number(match[2]);
+      const segundos = Number(match[3] ?? 0);
+
+      if (horas > 23 || minutos > 59 || segundos > 59) {
+        return false;
+      }
+
+      const minutoSalida = horas * 60 + minutos + segundos / 60;
+
+      return (
+        (fechaSalida === fechaAnterior && minutoSalida >= 480) ||
+        (fechaSalida === fechaConsultada && minutoSalida < 480)
+      );
+    });
+
+    const totalizar = (campo) =>
+      registrosDia.reduce((total, registro) => {
+        const valor = n(registro?.lecturas?.[campo]);
+        return total + (valor ?? 0);
+      }, 0);
+
+    return {
+      volumenAmbiocom: totalizar("volumen_ambiocom_contador"),
+      volumenGravimetrico: totalizar("volumen_contador_gravimetrico"),
+      volumenProgramado: totalizar("volumen_despachar"),
+      cantidadDespachos: registrosDia.length,
+    };
+  }, [despachosFiltrados, fechaConsultada, modoDia]);
+
+
+
+  const resumenBascula = useMemo(() => {
+    const pesajes = Array.isArray(registrosBascula)
+      ? registrosBascula
+      : Array.isArray(registrosBascula?.data)
+        ? registrosBascula.data
+        : [];
+
+    const fechaAnterior = obtenerDiaAnterior(fechaConsultada);
+
+    const normalizar = (valor) =>
+      String(valor ?? "").trim().toUpperCase();
+
+    const perteneceAlPeriodo = (registro, campoFecha, campoHora) => {
+      const fechaRegistro = normalizarFechaBascula(registro?.[campoFecha]);
+      const horaOriginal = String(registro?.[campoHora] ?? "").trim();
+
+      if (!horaOriginal) return false;
+
+      if (modoDia === "natural") {
+        return fechaRegistro === fechaConsultada;
+      }
+
+      const hora = horaOriginal.slice(0, 5);
+      const match = /^(\d{2}):(\d{2})$/.exec(hora);
+
+      if (!match) return false;
+
+      const horas = Number(match[1]);
+      const minutos = Number(match[2]);
+
+      if (horas > 23 || minutos > 59) return false;
+
+      const minutoRegistro = horas * 60 + minutos;
+
+      return (
+        (fechaRegistro === fechaAnterior && minutoRegistro >= 480) ||
+        (fechaRegistro === fechaConsultada && minutoRegistro < 480)
+      );
+    };
+
+    const tiquetesDespachos = new Set(
+      despachosFiltrados
+        .map((registro) =>
+          normalizar(registro?.lecturas?.tiquete_bascula)
+        )
+        .filter(Boolean)
+    );
+
+    const densidadesPorTiquete = new Map(
+      despachosFiltrados
+        .map((registro) => [
+          normalizar(registro?.lecturas?.tiquete_bascula),
+          n(registro?.lecturas?.densidadlab_alcohol_tanque)
+        ])
+        .filter(([tiquete, densidad]) =>
+          tiquete && densidad !== null && densidad > 0
+        )
+    );
+
+    const densidadesValidas = [...densidadesPorTiquete.values()]
+      .sort((a, b) => a - b);
+
+    const mitad = Math.floor(densidadesValidas.length / 2);
+
+    const densidadEstimada = !densidadesValidas.length
+      ? null
+      : densidadesValidas.length % 2
+        ? densidadesValidas[mitad]
+        : (densidadesValidas[mitad - 1] + densidadesValidas[mitad]) / 2;
+
+
+    const salidas = pesajes.filter((registro) =>
+      normalizar(registro?.movimiento) === "VENTA O DESPACHO" &&
+      tiquetesDespachos.has(normalizar(registro?.consecutivo)) &&
+      perteneceAlPeriodo(registro, "fechaSalida", "horaSalida")
+    );
+
+    const ingresosNacionales = pesajes.filter((registro) =>
+      normalizar(registro?.movimiento) ===
+      "INGRESO MATERIA PRIMA NACIONAL" &&
+      perteneceAlPeriodo(registro, "fechaIngreso", "horaIngreso")
+    );
+
+    const ingresosImportados = pesajes.filter((registro) =>
+      normalizar(registro?.movimiento) ===
+      "INGRESO MATERIA PRIMA IMPORTACION" &&
+      perteneceAlPeriodo(registro, "fechaIngreso", "horaIngreso")
+    );
+
+    const resultadoGravimetrico = salidas.reduce(
+      (acumulado, registro) => {
+        const pesoNeto = n(registro?.pesoNeto);
+        const tiquete = normalizar(registro?.consecutivo);
+
+        if (pesoNeto === null || pesoNeto <= 0) {
+          return acumulado;
+        }
+
+        const densidadReal = densidadesPorTiquete.get(tiquete);
+        const densidad = densidadReal ?? densidadEstimada;
+
+        if (densidad === null || densidad <= 0) {
+          acumulado.sinDensidad++;
+          return acumulado;
+        }
+
+        acumulado.volumen += pesoNeto / densidad;
+        acumulado.pesoCalculado += pesoNeto;
+        acumulado.calculados++;
+
+        if (densidadReal === undefined) {
+          acumulado.estimados++;
+        }
+
+        return acumulado;
+      },
+      { volumen: 0, pesoCalculado: 0, calculados: 0, estimados: 0, sinDensidad: 0 }
+    );
+
+    const sumarPesoNeto = (registros) =>
+      registros.reduce(
+        (total, registro) => total + (n(registro?.pesoNeto) ?? 0),
+        0
+      );
+
+    const densidadPonderadaRecepciones =
+      resultadoGravimetrico.volumen > 0
+        ? resultadoGravimetrico.pesoCalculado / resultadoGravimetrico.volumen
+        : null;
+
+    const estimarVolumenRecibido = (pesoKg) =>
+      densidadPonderadaRecepciones != null &&
+        densidadPonderadaRecepciones > 0
+        ? pesoKg / densidadPonderadaRecepciones
+        : null;
+
+    return {
+      pesoNetoSalidas: sumarPesoNeto(salidas),
+      volumenGravimetrico: resultadoGravimetrico.calculados
+        ? resultadoGravimetrico.volumen
+        : null,
+      cantidadVolumenEstimado: resultadoGravimetrico.estimados,
+      cantidadSinDensidad: resultadoGravimetrico.sinDensidad,
+      densidadPromedioPonderada: resultadoGravimetrico.volumen > 0
+        ? resultadoGravimetrico.pesoCalculado / resultadoGravimetrico.volumen
+        : null,
+      densidadReferencia: densidadEstimada,
+      volumenEstimadoNacional: estimarVolumenRecibido(sumarPesoNeto(ingresosNacionales)),
+      volumenEstimadoImportacion: estimarVolumenRecibido(sumarPesoNeto(ingresosImportados)),
+      densidadEstimadaRecepciones: densidadPonderadaRecepciones,
+      pesoNetoNacional: sumarPesoNeto(ingresosNacionales),
+      pesoNetoImportacion: sumarPesoNeto(ingresosImportados),
+      pesoNetoIngresos:
+        sumarPesoNeto(ingresosNacionales) +
+        sumarPesoNeto(ingresosImportados),
+      cantidadSalidas: salidas.length,
+      cantidadNacionales: ingresosNacionales.length,
+      cantidadImportados: ingresosImportados.length,
+      cantidadIngresos:
+        ingresosNacionales.length + ingresosImportados.length,
+    };
+  }, [registrosBascula, despachosFiltrados, fechaConsultada, modoDia]);
 
   const analisis = useMemo(() => {
     const validos = puntos;
@@ -787,7 +1335,303 @@ export default function AnalisisDeNivelesTanquesSCADA({
     };
   }, [puntos]);
 
-  const analisisOperaciones = useMemo(() => analizarCrestasValles(puntos, UMBRAL_GIRO), [puntos]);
+  const analisisOperaciones = useMemo(
+    () => analizarCrestasValles(
+      puntos,
+      umbralMovimientoMetros,
+      umbralLimpiezaL > 0
+    ),
+    [puntos, umbralMovimientoMetros, umbralLimpiezaL]
+  );
+
+  const puntosAceptadosOperaciones = useMemo(() => {
+    return puntos.filter(
+      p => !lecturasExcluidasOperaciones.has(p.idLectura)
+    );
+  }, [puntos, lecturasExcluidasOperaciones]);
+
+  const lecturasExcluidasOperacionesPeriodo = useMemo(() => {
+    return puntos.filter(
+      p => lecturasExcluidasOperaciones.has(p.idLectura)
+    );
+  }, [puntos, lecturasExcluidasOperaciones]);
+
+  const analisisOperacionesVista = useMemo(() => {
+    if (!lecturasExcluidasOperacionesPeriodo.length) {
+      return analisisOperaciones;
+    }
+
+    return analizarCrestasValles(
+      puntosAceptadosOperaciones,
+      umbralMovimientoMetros,
+      umbralLimpiezaL > 0
+    );
+  }, [
+    analisisOperaciones,
+    puntosAceptadosOperaciones,
+    lecturasExcluidasOperacionesPeriodo,
+    umbralMovimientoMetros,
+    umbralLimpiezaL,
+  ]);
+
+  const puntosAceptadosNodos = useMemo(() => {
+    return puntos.filter(
+      p => !lecturasExcluidasNodos.has(p.idLectura)
+    );
+  }, [puntos, lecturasExcluidasNodos]);
+
+  const lecturasExcluidasEnPeriodo = useMemo(() => {
+    return puntos.filter(
+      p => lecturasExcluidasNodos.has(p.idLectura)
+    );
+  }, [puntos, lecturasExcluidasNodos]);
+
+  const operacionesNodosAceptados = useMemo(() => {
+    return analizarCrestasValles(
+      puntosAceptadosNodos,
+      umbralMovimientoMetros,
+      umbralLimpiezaL > 0
+    );
+  }, [puntosAceptadosNodos, umbralMovimientoMetros, umbralLimpiezaL]);
+
+  const analisisNodosLimpios = useMemo(() => {
+    if (!puntosAceptadosNodos.length) {
+      return {
+        eventos: [],
+        puntosVisibles: [],
+        ingresado: null,
+        salido: null,
+        cantidadSubidas: 0,
+        cantidadBajadas: 0,
+      };
+    }
+
+    const primero = puntosAceptadosNodos[0];
+
+    const eventoInicio = {
+      ...primero,
+      tipo: "Inicio",
+      delta: null,
+      deltaL: null,
+    };
+
+    // Sin umbral de limpieza: comparar lecturas aceptadas consecutivas.
+    if (umbralLimpiezaL <= 0) {
+      const eventos = [eventoInicio];
+
+      let ingresado = 0;
+      let salido = 0;
+      let cantidadSubidas = 0;
+      let cantidadBajadas = 0;
+
+      for (let i = 1; i < puntosAceptadosNodos.length; i++) {
+        const a = puntosAceptadosNodos[i - 1];
+        const b = puntosAceptadosNodos[i];
+
+        const delta = b.nivel - a.nivel;
+
+        if (delta === 0) continue;
+
+        const deltaL =
+          a.volumen != null && b.volumen != null
+            ? b.volumen - a.volumen
+            : null;
+
+        eventos.push({
+          ...b,
+          anterior: a.indice,
+          delta,
+          deltaL,
+          minutos: b.minutosDia - a.minutosDia,
+          sinSenal: b.minutosDia - a.minutosDia > 30,
+          tipo: delta > 0 ? "Subida" : "Bajada",
+        });
+
+        if (delta > 0) {
+          cantidadSubidas++;
+          if (deltaL != null) ingresado += deltaL;
+        } else {
+          cantidadBajadas++;
+          if (deltaL != null) salido -= deltaL;
+        }
+      }
+
+      const conVolumen = puntosAceptadosNodos.every(
+        p => p.volumen != null
+      );
+
+      return {
+        eventos,
+        puntosVisibles: puntosAceptadosNodos,
+        ingresado: conVolumen ? ingresado : null,
+        salido: conVolumen ? salido : null,
+        cantidadSubidas,
+        cantidadBajadas,
+      };
+    }
+
+    // Con umbral de limpieza: conservar el algoritmo actual,
+    // pero utilizando únicamente lecturas aceptadas.
+    const operaciones = operacionesNodosAceptados.operaciones;
+    const indices = new Set([primero.indice]);
+    const eventos = [eventoInicio];
+
+    for (const op of operaciones) {
+      indices.add(op.desde.indice);
+      indices.add(op.hasta.indice);
+
+      eventos.push({
+        ...op.hasta,
+        anterior: op.desde.indice,
+        delta: op.delta,
+        deltaL: op.deltaL,
+        minutos: op.duracion,
+        sinSenal: op.intervalosSinSenal > 0,
+        tipo: op.delta > 0 ? "Subida" : "Bajada",
+      });
+    }
+
+    return {
+      eventos,
+      puntosVisibles: puntosAceptadosNodos.filter(
+        p => indices.has(p.indice)
+      ),
+      ingresado: operacionesNodosAceptados.totalCargasL,
+      salido: operacionesNodosAceptados.totalDescargasL,
+      cantidadSubidas: operacionesNodosAceptados.cantidadCargas,
+      cantidadBajadas: operacionesNodosAceptados.cantidadDescargas,
+    };
+  }, [
+    puntosAceptadosNodos,
+    operacionesNodosAceptados,
+    umbralLimpiezaL,
+  ]);
+
+  const intervalosExcluidosNodos = useMemo(() => {
+    const resultado = [];
+    let inicio = -1;
+
+    for (let i = 0; i <= puntos.length; i++) {
+      const excluido =
+        i < puntos.length &&
+        lecturasExcluidasNodos.has(puntos[i].idLectura);
+
+      if (excluido && inicio < 0) {
+        inicio = i;
+      }
+
+      if (!excluido && inicio >= 0) {
+        const antes = puntos[inicio - 1];
+        const despues = puntos[i];
+        const primero = puntos[inicio];
+        const ultimo = puntos[i - 1];
+
+        resultado.push({
+          desde: antes
+            ? (antes.minutosDia + primero.minutosDia) / 2
+            : primero.minutosDia,
+          hasta: despues
+            ? (ultimo.minutosDia + despues.minutosDia) / 2
+            : ultimo.minutosDia,
+        });
+
+        inicio = -1;
+      }
+    }
+
+    return resultado;
+  }, [puntos, lecturasExcluidasNodos]);
+
+  const intervalosExcluidosOperaciones = useMemo(() => {
+    const resultado = [];
+    let inicio = -1;
+
+    for (let i = 0; i <= puntos.length; i++) {
+      const excluido =
+        i < puntos.length &&
+        lecturasExcluidasOperaciones.has(puntos[i].idLectura);
+
+      if (excluido && inicio < 0) {
+        inicio = i;
+      }
+
+      if (!excluido && inicio >= 0) {
+        const antes = puntos[inicio - 1];
+        const despues = puntos[i];
+        const primero = puntos[inicio];
+        const ultimo = puntos[i - 1];
+
+        resultado.push({
+          desde: antes
+            ? (antes.minutosDia + primero.minutosDia) / 2
+            : primero.minutosDia,
+          hasta: despues
+            ? (ultimo.minutosDia + despues.minutosDia) / 2
+            : ultimo.minutosDia,
+        });
+
+        inicio = -1;
+      }
+    }
+
+    return resultado;
+  }, [puntos, lecturasExcluidasOperaciones]);
+
+  const resumenVolumenSCADA = useMemo(() => {
+
+    if (!puntos.length) {
+      return {
+        ingresado: null,
+        salido: null,
+      };
+    }
+
+    if (tipoAnalisis === "operaciones") {
+      return {
+        ingresado: analisisOperacionesVista.totalCargasL,
+        salido: analisisOperacionesVista.totalDescargasL,
+      };
+    }
+
+    if (tipoAnalisis === "nodos") {
+      return {
+        ingresado: analisisNodosLimpios.ingresado,
+        salido: analisisNodosLimpios.salido,
+      };
+    }
+
+    return {
+      ingresado: analisis.subidasL,
+      salido: analisis.bajadasL,
+    };
+  }, [tipoAnalisis, analisis, analisisOperacionesVista, analisisNodosLimpios, puntos.length,]);
+
+  // const balanceFiltroSCADA = useMemo(() => {
+  //   const netoReal = analisis.netoL;
+
+  //   const ingresado = resumenVolumenSCADA.ingresado;
+  //   const salido = resumenVolumenSCADA.salido;
+
+  //   if (
+  //     netoReal == null ||
+  //     ingresado == null ||
+  //     salido == null
+  //   ) {
+  //     return {
+  //       netoReal,
+  //       netoFiltrado: null,
+  //       residual: null,
+  //     };
+  //   }
+
+  //   const netoFiltrado = ingresado - salido;
+
+  //   return {
+  //     netoReal,
+  //     netoFiltrado,
+  //     residual: netoReal - netoFiltrado,
+  //   };
+  // }, [analisis.netoL, resumenVolumenSCADA]);
 
   const tramosSinSenal = useMemo(() => {
     const tramos = [];
@@ -808,22 +1652,35 @@ export default function AnalisisDeNivelesTanquesSCADA({
   }, [puntos]);
 
   const fueraDeCapacidad = capacidad != null && puntos.some(
-
-
-
     (p) => p.volumen != null && (p.volumen < 0 || p.volumen > capacidad * 1.005)
-
-
-
   );
-
-
 
   const dataGrafico = useMemo(() => {
     const valorDe = p => esVolumen ? p.volumen : p.nivel;
+
+    const filtroActivo =
+      tipoAnalisis === "nodos" &&
+      (umbralLimpiezaL > 0 || lecturasExcluidasEnPeriodo.length > 0);
+
+    const indicesAceptados = new Set(
+      analisisNodosLimpios.puntosVisibles.map(p => p.indice)
+    );
+
+    const datosFiltrados = puntos.map(p => ({
+      x: p.minutosDia,
+      y: tipoAnalisis === "nodos" && filtroActivo
+        ? (
+          indicesAceptados.has(p.indice) &&
+            !lecturasExcluidasNodos.has(p.idLectura)
+            ? valorDe(p)
+            : null
+        )
+        : valorDe(p),
+    }));
+
     const base = {
       label: esVolumen ? 'Volumen (L)' : 'Nivel (m)',
-      data: puntos.map(p => ({ x: p.minutosDia, y: valorDe(p) })),
+      data: datosFiltrados,
       borderColor: tipoAnalisis === 'nodos' ? AZUL : 'rgba(8,124,255,.24)',
       backgroundColor: 'rgba(8,124,255,.08)',
       fill: tipoAnalisis === 'nodos' ? 'origin' : false,
@@ -831,44 +1688,193 @@ export default function AnalisisDeNivelesTanquesSCADA({
       pointRadius: tipoAnalisis === 'nodos' ? 2.8 : 0,
       pointHoverRadius: 5, spanGaps: true,
       segment: {
-        borderColor: ({ p0DataIndex, p1DataIndex }) =>
-          puntos[p1DataIndex]?.minutosDia - puntos[p0DataIndex]?.minutosDia > 30 ? ROJO
-            : tipoAnalisis === 'nodos' ? AZUL : 'rgba(8,124,255,.24)'
+        borderColor: ({ p0DataIndex, p1DataIndex }) => {
+          const desde = puntos[p0DataIndex]?.minutosDia;
+          const hasta = puntos[p1DataIndex]?.minutosDia;
+
+          if (desde == null || hasta == null) {
+            return AZUL;
+          }
+
+          const contieneVacio = tramosSinSenal.some(tramo =>
+            tramo.desde < hasta && tramo.hasta > desde
+          );
+
+          if (contieneVacio) return ROJO;
+
+          return tipoAnalisis === "nodos"
+            ? AZUL
+            : "rgba(8,124,255,.24)";
+        },
       },
     };
 
+
     if (tipoAnalisis === 'original') return {
-      datasets: [{
-        label: esVolumen ? 'Volumen calculado (L)' : 'Lectura SCADA (m)',
-        data: puntos.map(p => ({ x: p.minutosDia, y: esVolumen ? p.volumen : p.nivel })),
-        parsing: false,
-        borderColor: AZUL,
-        backgroundColor: 'transparent',
-        borderWidth: 2,
-        fill: false,
-        tension: 0,
-        pointRadius: 0,
-        pointHoverRadius: 5,
-        pointHitRadius: 9,
-        spanGaps: false,
-        showLine: true,
-      }]
+      datasets: [
+        {
+          label: esVolumen ? 'Volumen calculado (L)' : 'Lectura SCADA (m)',
+          data: puntos.map(p => ({
+            x: p.minutosDia,
+            y: esVolumen ? p.volumen : p.nivel
+          })),
+          parsing: false,
+          borderColor: AZUL,
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          fill: false,
+          tension: 0,
+          pointRadius: 3,
+          pointBackgroundColor: MORADO,
+          pointBorderColor: "#FFFFFF",
+          pointBorderWidth: 1,
+          pointHoverRadius: 6,
+          pointHitRadius: 9,
+          spanGaps: false,
+          showLine: true
+        },
+        {
+          label: 'Escaleras de variación',
+          data: puntos.map(p => ({
+            x: p.minutosDia,
+            y: esVolumen ? p.volumen : p.nivel
+          })),
+          parsing: false,
+          borderColor: ROJO,
+          borderWidth: 2,
+          borderDash: [6, 4],
+          stepped: 'before',
+          fill: false,
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          pointHitRadius: 0,
+          spanGaps: false,
+          showLine: true,
+          order: 2
+        }
+      ]
     };
-    if (tipoAnalisis === 'nodos') return { datasets: [base] };
-    const eventos = analisisOperaciones.operaciones;
+
+    if (tipoAnalisis === "nodos") {
+      return {
+        datasets: [
+          {
+            ...base,
+            parsing: false,
+            pointRadius: (ctx) => {
+              const p = puntos[ctx.dataIndex];
+
+              return p &&
+                indicesAceptados.has(p.indice) &&
+                !lecturasExcluidasNodos.has(p.idLectura)
+                ? 3
+                : 0;
+            },
+          },
+          {
+            label: "Lecturas excluidas manualmente",
+            data: puntos.map(p => ({
+              x: p.minutosDia,
+              y: lecturasExcluidasNodos.has(p.idLectura)
+                ? valorDe(p)
+                : null,
+            })),
+            parsing: false,
+            showLine: false,
+            pointRadius: 6,
+            pointHoverRadius: 8,
+            pointStyle: "crossRot",
+            pointBorderWidth: 2,
+            pointBorderColor: MORADO,
+            pointBackgroundColor: MORADO,
+          },
+        ],
+      };
+    }
+
+    const eventos = analisisOperacionesVista.operaciones;
+
     const destacados = eventos.map(ev => ({
-      label: ev.tipo || `${ev.clase} a ${ev.clase}`,
-      data: [ev.desde, ev.hasta].map(p => ({ x: p.minutosDia, y: valorDe(p) })),
+      label: ev.tipo || "Movimiento estimado",
+      data: [ev.desde, ev.hasta].map(p => ({
+        x: p.minutosDia,
+        y: valorDe(p),
+      })),
+      parsing: false,
       borderColor: ev.delta < 0 ? ROJO : VERDE,
       backgroundColor: ev.delta < 0 ? ROJO : VERDE,
       pointBackgroundColor: ev.delta < 0 ? ROJO : VERDE,
-      pointBorderColor: '#fff', pointBorderWidth: 1.5,
-      pointRadius: 5.5, pointHoverRadius: 7, borderWidth: 3.2,
-      showLine: true, fill: false, tension: 0,
+      pointBorderColor: "#fff",
+      pointBorderWidth: 1.5,
+      pointRadius: 5.5,
+      pointHoverRadius: 7,
+      borderWidth: 3.2,
+      showLine: true,
+      fill: false,
+      tension: 0,
       evento: ev,
     }));
-    return { datasets: [base, ...destacados] };
-  }, [puntos, esVolumen, tipoAnalisis, analisisOperaciones]);
+
+    const hayExclusiones =
+      lecturasExcluidasOperacionesPeriodo.length > 0;
+
+    if (!hayExclusiones) {
+      return {
+        datasets: [base, ...destacados],
+      };
+    }
+
+    const baseDepurada = {
+      ...base,
+      parsing: false,
+      data: puntos.map(p => ({
+        x: p.minutosDia,
+        y: lecturasExcluidasOperaciones.has(p.idLectura)
+          ? null
+          : valorDe(p),
+      })),
+    };
+
+    const puntosExcluidos = {
+      label: "Extremos excluidos manualmente",
+      data: puntos.map(p => ({
+        x: p.minutosDia,
+        y: lecturasExcluidasOperaciones.has(p.idLectura)
+          ? valorDe(p)
+          : null,
+      })),
+      parsing: false,
+      showLine: false,
+      pointRadius: 6,
+      pointHoverRadius: 8,
+      pointStyle: "crossRot",
+      pointBorderWidth: 2,
+      pointBorderColor: MORADO,
+      pointBackgroundColor: MORADO,
+      lecturaExcluidaOperacion: true,
+    };
+
+    return {
+      datasets: [
+        baseDepurada,
+        ...destacados,
+        puntosExcluidos,
+      ],
+    };
+  }, [
+    puntos,
+    esVolumen,
+    tipoAnalisis,
+    analisisOperaciones,
+    analisisNodosLimpios,
+    umbralLimpiezaL,
+    tramosSinSenal,
+    lecturasExcluidasNodos,
+    lecturasExcluidasEnPeriodo,
+    analisisOperacionesVista,
+    lecturasExcluidasOperaciones,
+    lecturasExcluidasOperacionesPeriodo,
+  ]);
 
   const opcionesGrafico = useMemo(() => {
     const ys = puntos
@@ -889,28 +1895,130 @@ export default function AnalisisDeNivelesTanquesSCADA({
         legend: { display: false },
         datalabels: { display: false },
         sombreadoSinSenalCocli: { tramos: tipoAnalisis === "original" ? [] : tramosSinSenal },
+        sombreadoExclusionesNodos: {
+          activo:
+            tipoAnalisis === "nodos" ||
+            tipoAnalisis === "operaciones",
+
+          intervalos:
+            tipoAnalisis === "operaciones"
+              ? intervalosExcluidosOperaciones
+              : intervalosExcluidosNodos,
+        },
         escalerasAnalisisCocli: {
-          activo: tipoAnalisis !== "original",
+          activo:
+            tipoAnalisis !== "original" &&
+            !(tipoAnalisis === "nodos" &&
+              lecturasExcluidasEnPeriodo.length > 0) &&
+            !(tipoAnalisis === "operaciones" &&
+              lecturasExcluidasOperacionesPeriodo.length > 0),
           tipo: tipoAnalisis,
           puntos,
-          eventos: analisis.eventos,
-          operaciones: analisisOperaciones.operaciones
+          eventos: tipoAnalisis === "nodos"
+            ? analisisNodosLimpios.eventos
+            : analisis.eventos,
+          operaciones: analisisOperacionesVista.operaciones,
+          simplificado: umbralLimpiezaL > 0,
         },
-        deltaEscalonadoCocli: { eventos: tipoAnalisis === "nodos" ? analisis.eventos : [], puntos, etiquetas: tipoAnalisis === "nodos" && mostrarEtiquetas, modo: visualizacion },
-        etiquetasTotalesSCADA: { mostrar: tipoAnalisis === "operaciones" && mostrarEtiquetas, operaciones: analisisOperaciones.operaciones, modo: visualizacion },
+
+        deltaEscalonadoCocli: {
+          eventos: tipoAnalisis === "nodos"
+            ? analisisNodosLimpios.eventos
+            : [],
+          puntos: tipoAnalisis === "nodos"
+            ? analisisNodosLimpios.puntosVisibles
+            : puntos,
+          etiquetas: tipoAnalisis === "nodos" && mostrarEtiquetas,
+          modo: visualizacion,
+          filtrado:
+            tipoAnalisis === "nodos" &&
+            (umbralLimpiezaL > 0 || lecturasExcluidasEnPeriodo.length > 0),
+        },
+
+        etiquetasTotalesSCADA: {
+          mostrar: tipoAnalisis === "operaciones" && mostrarEtiquetas,
+          operaciones: analisisOperacionesVista.operaciones,
+          modo: visualizacion,
+        },
 
         tooltip: {
           callbacks: {
             title: (items) => {
               const ctx = items[0];
-              const p = ctx?.datasetIndex === 0 ? puntos[ctx.dataIndex] : (ctx?.dataIndex === 0 ? ctx?.dataset?.evento?.desde : ctx?.dataset?.evento?.hasta);
+
+              if (ctx?.dataset?.lecturaExcluidaOperacion) {
+                const p = puntos[ctx.dataIndex];
+
+                return p
+                  ? `${p.fecha} ${p.horaReal}`
+                  : etiquetaPeriodo;
+              }
+
+              const p = (
+                ctx?.datasetIndex === 0 ||
+                (tipoAnalisis === "nodos" && ctx?.datasetIndex === 1)
+              )
+                ? puntos[ctx.dataIndex]
+                : (
+                  ctx?.dataIndex === 0
+                    ? ctx?.dataset?.evento?.desde
+                    : ctx?.dataset?.evento?.hasta
+                );
               return p ? `${p.fecha} ${p.horaReal}` : etiquetaPeriodo;
             },
             label: (ctx) => {
 
+              if (ctx.dataset?.lecturaExcluidaOperacion) {
+                const p = puntos[ctx.dataIndex];
+
+                return p
+                  ? [
+                    "Extremo excluido manualmente",
+                    `Nivel: ${conUnidad(p.nivel, "m", 3)}`,
+                    `Volumen: ${conUnidad(p.volumen, "L", 0)}`,
+                    "Lectura no incluida en el análisis",
+                  ]
+                  : "";
+              }
+
+              if (tipoAnalisis === "original" && ctx.datasetIndex > 0) {
+                const punto = puntos[ctx.dataIndex];
+
+                if (!punto) return "";
+
+                return [
+                  `Hora real: ${punto.fecha} ${punto.horaReal}`,
+                  `Lectura SCADA: ${conUnidad(punto.nivel, "m", 3)}`,
+                  esVolumen
+                    ? `Volumen calculado: ${conUnidad(punto.volumen, "L", 0)}`
+                    : "",
+                ].filter(Boolean);
+              }
+
+              if (tipoAnalisis === "nodos" && ctx.datasetIndex === 1) {
+                const rechazado = puntos[ctx.dataIndex];
+
+                return rechazado
+                  ? [
+                    "Lectura excluida manualmente",
+                    conUnidad(rechazado.nivel, "m", 3),
+                    conUnidad(rechazado.volumen, "L", 0),
+                  ]
+                  : "";
+              }
+
               const p = ctx.datasetIndex === 0 ? puntos[ctx.dataIndex] :
                 (ctx.dataIndex === 0 ? ctx.dataset.evento?.desde : ctx.dataset.evento?.hasta);
               if (!p) return '';
+
+              // if (tipoAnalisis === "original" && ctx.datasetIndex > 0) {
+              //   return [
+              //     `Hora real: ${p.fecha} ${p.horaReal}`,
+              //     `Lectura SCADA: ${p.nivel} m`,
+              //     esVolumen ? `Volumen calculado: ${p.volumen} L` : "",
+              //   ].filter(Boolean);
+              // }
+
               if (ctx.datasetIndex > 0) return [ctx.dataset.label,
               `Hora: ${p.fecha} ${p.horaReal}`, conUnidad(p.nivel, 'm', 3), conUnidad(p.volumen, 'L', 0),
               `Total evento: ${signo(ctx.dataset.evento.delta, 'm', 3)} / ${signo(ctx.dataset.evento.deltaL, 'L', 0)}`];
@@ -919,13 +2027,28 @@ export default function AnalisisDeNivelesTanquesSCADA({
                 `Lectura SCADA: ${p.nivel} m`,
                 esVolumen ? `Volumen calculado: ${p.volumen} L` : ''
               ].filter(Boolean);
-              const e = analisis.eventos.find((ev) => ev.indice === ctx.dataIndex && ev.tipo !== "Inicio");
+              const eventosTooltip = tipoAnalisis === "nodos"
+                ? analisisNodosLimpios.eventos
+                : analisis.eventos;
+
+              const e = eventosTooltip.find(
+                ev => ev.indice === ctx.dataIndex && ev.tipo !== "Inicio"
+              );
               return [
                 conUnidad(p.nivel, "m", 2),
                 conUnidad(p.volumen, "L", 0),
-                e ? `Cambio: ${signo(e.delta, "m", 3)} / ${signo(e.deltaL, "L", 0)}` : "Sin cambio respecto a la lectura anterior",
-                e?.sinSenal ? `Sin señal durante ${fmt(e.minutos, 1)} min: cambio neto entre lecturas` : "",
-                analisisOperaciones.extremos.find(ex => ex.indice === ctx.dataIndex)?.clase || "",
+                e
+                  ? `Movimiento aceptado: ${signo(e.delta, "m", 6)} / ${signo(e.deltaL, "L", 0)}`
+                  : tipoAnalisis === "nodos" && umbralLimpiezaL > 0
+                    ? "Punto de referencia del análisis filtrado"
+                    : "Sin variación contabilizada respecto a la lectura anterior",
+                e?.sinSenal
+                  ? `Movimiento de ${fmt(e.minutos, 1)} min con intervalo(s) sin señal`
+                  : "",
+                (tipoAnalisis === "operaciones"
+                  ? analisisOperacionesVista.extremos
+                  : analisisOperaciones.extremos
+                ).find(ex => ex.indice === ctx.dataIndex)?.clase || "",
               ].filter(Boolean);
             },
           },
@@ -963,9 +2086,26 @@ export default function AnalisisDeNivelesTanquesSCADA({
 
     });
 
-  }, [puntos, analisis.eventos, analisisOperaciones, tipoAnalisis, tramosSinSenal, fechaConsultada, visualizacion, esVolumen, mostrarEtiquetas, modoDia, etiquetaPeriodo]);
-
-
+  }, [
+    puntos,
+    analisis.eventos,
+    analisisOperaciones,
+    tipoAnalisis,
+    tramosSinSenal,
+    fechaConsultada,
+    visualizacion,
+    esVolumen,
+    mostrarEtiquetas,
+    analisisNodosLimpios,
+    umbralLimpiezaL,
+    modoDia,
+    etiquetaPeriodo,
+    intervalosExcluidosNodos,
+    lecturasExcluidasEnPeriodo,
+    analisisOperacionesVista,
+    intervalosExcluidosOperaciones,
+    lecturasExcluidasOperacionesPeriodo,
+  ]);
 
   const consultar = () => {
 
@@ -975,47 +2115,89 @@ export default function AnalisisDeNivelesTanquesSCADA({
 
   };
 
+  const filas = useMemo(() => {
+    if (tipoAnalisis === "operaciones") {
+      const eventosAceptados = analisisOperacionesVista.operaciones.map(op => ({
+        ...op.hasta,
+        fecha: op.hasta.fecha,
+        hora: op.hasta.hora,
+        valor: op.hasta.nivel,
+        volumen: op.hasta.volumen,
+        delta: op.delta,
+        deltaL: op.deltaL,
+        tipo: op.tipo,
+        anterior: op.desde.indice,
+        parcial: op.parcial,
+      }));
 
+      if (!lecturasExcluidasOperacionesPeriodo.length) {
+        return eventosAceptados;
+      }
 
-  const filas = analisis.eventos;
+      const eventosExcluidos = lecturasExcluidasOperacionesPeriodo.map(p => ({
+        ...p,
+        tipo: "Lectura excluida manualmente",
+        delta: null,
+        deltaL: null,
+        excluido: true,
+      }));
+
+      return [...eventosAceptados, ...eventosExcluidos]
+        .sort((a, b) =>
+          a.minutosDia - b.minutosDia || a.indice - b.indice
+        );
+    }
+
+    if (tipoAnalisis === "nodos") {
+      const excluidos = lecturasExcluidasEnPeriodo.map(p => ({
+        ...p,
+        tipo: "Excluido",
+        delta: null,
+        deltaL: null,
+        excluido: true,
+      }));
+
+      return [...analisisNodosLimpios.eventos, ...excluidos]
+        .sort((a, b) =>
+          a.minutosDia - b.minutosDia || a.indice - b.indice
+        );
+    }
+
+    return analisis.eventos;
+
+  }, [
+    tipoAnalisis,
+    analisisOperaciones,
+    analisisNodosLimpios,
+    analisis,
+    lecturasExcluidasEnPeriodo,
+    analisisOperacionesVista,
+    analisisOperacionesVista,
+    lecturasExcluidasOperacionesPeriodo,
+  ]);
 
   const exportarCSV = () => {
     const contenido = Papa.unparse(filas.map((e) => ({
       Fecha: e.fecha, Periodo: modoDia === "inventario" ? "Día inventario" : "Día natural", Tanque: tituloTanque, Hora: e.hora,
-      Nivel: redondear(e.valor, 2) ?? "", Unidad: unidadNivel,
+      Nivel: redondear(e.valor, 4) ?? "",
+      Unidad: unidadNivel,
       Volumen_L: redondear(e.volumen, 0) ?? "",
-      Cambio_nivel: redondear(e.delta, 2) ?? "",
+      Cambio_nivel: redondear(e.delta, 6) ?? "",
       Cambio_L: redondear(e.deltaL, 0) ?? "", Movimiento: e.tipo,
     })), { delimiter: ";" });
 
     const url = URL.createObjectURL(new Blob(["\uFEFF", contenido], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a"); a.href = url; a.download = `SCADA_${tituloTanque}_${fechaConsultada}_${modoDia}.csv`;
-    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); setMenuExport(null);
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 
   };
 
-
-
-  const exportarPDF = () => {
-
-    const doc = new jsPDF({ orientation: "landscape" });
-    doc.setFontSize(15); doc.text(`Monitoreo ${tituloTanque} - ${etiquetaPeriodo}`, 13, 14);
-    try { const canvas = chartRef.current?.canvas; if (canvas) doc.addImage(canvas.toDataURL("image/png"), "PNG", 13, 21, 269, 105); }
-    catch (err) { console.warn("No se pudo incluir la gráfica", err); }
-    autoTable(doc, {
-      startY: 134, head: [["Fecha", "Hora", "Nivel", "Volumen (L)", "Cambio nivel", "Cambio L", "Variación"]],
-      body: filas.map((e) => [e.fecha, e.hora, fmt(e.valor), fmt(e.volumen, 0), e.delta == null ? "—" : signo(e.delta, unidadNivel), e.deltaL == null ? "—" : signo(e.deltaL, "L", 0), e.tipo]),
-      styles: { fontSize: 8 }, headStyles: { fillColor: [8, 124, 255] },
-    });
-
-    doc.save(`SCADA_${tituloTanque}_${fechaConsultada}_${modoDia}.pdf`); setMenuExport(null);
-
-  };
-
-  const ultimo = analisis.final ? `${analisis.final.fecha} ${analisis.final.horaReal || analisis.final.hora}` : "Sin lecturas";
   const l = (v) => conUnidad(v, "L", 0);
   const nivel = (v) => conUnidad(v, unidadNivel);
   const mayor = (e) => e ? `${signo(e.delta, unidadNivel)}${e.deltaL != null ? ` (${signo(e.deltaL, "L", 0)})` : ""} a las ${e.fecha} ${e.hora}${e.sinSenal ? " (intervalo sin señal)" : ""}` : "—";
+  const ultimo = analisis.final
+    ? `${analisis.final.fecha} ${analisis.final.horaReal}`
+    : "—";
 
   return <Box sx={{ minHeight: "100%", bgcolor: "#f5faff", marginTop: 5, p: { xs: 1.5, md: 2 }, color: MARINO }}>
     {/* Encabezado de página: no repetimos la barra global de Coclí */}
@@ -1179,35 +2361,60 @@ export default function AnalisisDeNivelesTanquesSCADA({
             <TableChartIcon fontSize="small" />
           </IconButton>
 
-          <IconButton
-            onClick={exportarPDF}
-            disabled={!tieneSensor || !filas.length}
-            title="Exportar PDF"
-            aria-label="Exportar PDF"
-            sx={{
-              width: 38,
-              height: 38,
-              border: "1px solid #f04321",
-              borderRadius: 1.2,
-              color: "#f04321",
-              bgcolor: "#fff5f2",
-              "&:hover": {
-                bgcolor: "#ffe5dd",
+
+          <ExportarInformeSCADAPDF
+            tituloTanque={tituloTanque}
+            fechaConsultada={fechaConsultada}
+            factor={factor}
+            puntos={puntos}
+            eventos={analisis.eventos}
+            eventosNodos={analisisNodosLimpios.eventos}
+            operaciones={analisisOperacionesVista.operaciones}
+            puntosVisiblesNodos={analisisNodosLimpios.puntosVisibles}
+            lecturasExcluidasNodos={lecturasExcluidasNodos}
+            lecturasExcluidasOperaciones={lecturasExcluidasOperaciones}
+            umbralLimpiezaL={umbralLimpiezaL}
+            resumenMovimientosPorModo={{
+              original: {
+                ingresado: analisis.subidasL,
+                salido: analisis.bajadasL,
+              },
+              nodos: {
+                ingresado: analisisNodosLimpios.ingresado,
+                salido: analisisNodosLimpios.salido,
+              },
+              operaciones: {
+                ingresado: analisisOperacionesVista.totalCargasL,
+                salido: analisisOperacionesVista.totalDescargasL,
               },
             }}
-          >
-            <PictureAsPdfIcon fontSize="small" />
-          </IconButton>
-        </Box>
+            tramosSinSenal={tramosSinSenal}
+            tipo={tipoAnalisis}
+            unidad={visualizacion}
+            modoDia={modoDia}
+            chartRef={chartRef}
+            analisisSCADA={analisis}
+            resumenVolumenSCADA={resumenVolumenSCADA}
+            resumenDespachos={resumenDespachos}
+            resumenBascula={resumenBascula}
+            producto={producto}
+            capacidad={capacidad}
+            gradoAlcoholico={gradoAlcoholico}
+            etiquetaPeriodo={etiquetaPeriodo}
+            disabled={!tieneSensor || !filas.length || cargando}
+          />
 
+        </Box>
 
         <Box sx={{ alignSelf: "end" }}>
           <Button
             variant="outlined"
             onClick={() => setModoDia((prev) => prev === "natural" ? "inventario" : "natural")}
             title="Alternar entre día natural y día inventario"
-            sx={{ height: 38, minWidth: 145, textTransform: "none", fontSize: 12,
-              borderColor: AZUL, color: AZUL, fontWeight: 800, whiteSpace: "nowrap" }}
+            sx={{
+              height: 38, minWidth: 145, textTransform: "none", fontSize: 12,
+              borderColor: AZUL, color: AZUL, fontWeight: 800, whiteSpace: "nowrap"
+            }}
           >
             {modoDia === "natural" ? "Día natural" : "Día inventario"}
           </Button>
@@ -1277,7 +2484,7 @@ export default function AnalisisDeNivelesTanquesSCADA({
                 sx={{ minWidth: { xs: 195, md: 225 }, "& .MuiInputBase-root": { height: 36 }, "& .MuiSelect-select": { fontSize: 11, fontWeight: 700 } }}
               >
                 <MenuItem value="original">Lecturas originales (sin análisis)</MenuItem>
-                <MenuItem value="nodos">Nodos (lectura a lectura)</MenuItem>
+                <MenuItem value="nodos">Nodos (lectura a lectura / filtrados)</MenuItem>
                 <MenuItem value="operaciones">Crestas / Valles (cargas y descargas)</MenuItem>
               </TextField>
 
@@ -1292,9 +2499,60 @@ export default function AnalisisDeNivelesTanquesSCADA({
                 <ToggleButton value="volumen" disabled={factor == null}>Volumen (L)</ToggleButton>
               </ToggleButtonGroup>
 
+              <TextField
+                size="small"
+                type="number"
+                label={`Filtro de ruido (${esVolumen ? "L" : "m"})`}
+                value={umbralTexto}
+                onChange={(e) => setUmbralTexto(e.target.value)}
+                onBlur={() => {
+                  const valor = Number(umbralTexto);
+
+                  if (!Number.isFinite(valor) || valor < 0) {
+                    setUmbralTexto(
+                      String(Number(umbralMostrado.toFixed(esVolumen ? 2 : 8)))
+                    );
+                    return;
+                  }
+
+                  const nuevoUmbralL =
+                    esVolumen ? valor : valor * (factor ?? 0);
+
+                  setUmbralLimpiezaL(nuevoUmbralL);
+                }}
+                disabled={factor == null}
+                inputProps={{ min: 0, step: "any" }}
+                sx={{
+                  width: 90,
+                  "& .MuiInputBase-root": {
+                    height: 36,
+                    fontSize: 12,
+                    bgcolor: umbralLimpiezaL > 0 ? "#F0FFF5" : "#fff",
+                  },
+                  "& .MuiOutlinedInput-notchedOutline": {
+                    borderColor: umbralLimpiezaL > 0 ? VERDE : BORDE,
+                  },
+                  "& .MuiInputLabel-root": {
+                    fontSize: 11,
+                    fontWeight: 700,
+                  },
+                }}
+              />
+
+              {/* {umbralLimpiezaL > 0 && (
+                <Typography sx={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: VERDE,
+                  whiteSpace: "nowrap",
+                }}>
+                  Filtro: {fmt(umbralLimpiezaL, 2)} L
+                </Typography>
+              )} */}
+              {/* 
               {tipoAnalisis !== "original" && <Button size="small" onClick={() => setMostrarEtiquetas((v) => !v)} sx={{ fontSize: 10, textTransform: "none", p: 0 }}>
                 {mostrarEtiquetas ? "Ocultar etiquetas" : "Ver etiquetas"}
-              </Button>}
+              </Button>} */}
 
               <IconButton size="small" aria-label="Ampliar gráfica" title="Ampliar gráfica"
                 disabled={!puntos.length} onClick={() => setModalGrafica(true)} sx={{ color: AZUL }}>
@@ -1320,13 +2578,11 @@ export default function AnalisisDeNivelesTanquesSCADA({
             </Typography>
           )}
           <Box onDoubleClick={() => setModalGrafica(true)} title="Doble clic para ampliar la gráfica" sx={{ height: { xs: 370, md: 420, xl: 450 }, mb: 1.2, cursor: "zoom-in" }}>
-            {analisis.inicial ? <Line data={dataGrafico} options={opcionesGrafico} plugins={[sombreadoSinSenal, escalerasAnalisis, deltaEscalonado, etiquetasTotalesSCADA]} ref={chartRef} />
+            {analisis.inicial ? <Line data={dataGrafico} options={opcionesGrafico} plugins={[sombreadoSinSenal, sombreadoExclusionesNodos, escalerasAnalisis, deltaEscalonado, etiquetasTotalesSCADA]} ref={chartRef} />
 
               : <Box sx={{ height: "100%", display: "grid", placeItems: "center", border: `1px dashed ${BORDE}`, borderRadius: 1.5, fontSize: 13, color: "#56739d" }}>
                 Sin lecturas para el tanque y la fecha seleccionados</Box>}
           </Box>
-
-
 
           {tipoAnalisis !== "original" && tramosSinSenal.length > 0 && (
             <Typography sx={{ color: "#9a4b36", fontSize: 10.5, mb: 1 }}>
@@ -1335,63 +2591,326 @@ export default function AnalisisDeNivelesTanquesSCADA({
             </Typography>
           )}
 
+          {(
+            (tipoAnalisis === "nodos" && lecturasExcluidasEnPeriodo.length > 0) ||
+            (tipoAnalisis === "operaciones" && lecturasExcluidasOperacionesPeriodo.length > 0)
+          ) && (
+              <Typography
+                sx={{
+                  fontSize: 10.5,
+                  color: "#6847A3",
+                  bgcolor: "#F7F3FF",
+                  borderLeft: `3px solid ${MORADO}`,
+                  px: 1,
+                  py: 0.6,
+                  mb: 1,
+                  borderRadius: 0.5,
+                }}
+              >
+                Análisis depurado: los movimientos se recalculan utilizando las
+                lecturas aceptadas. Los tramos que atraviesan lecturas excluidas
+                representan variaciones estimadas entre extremos observados.
+              </Typography>
+            )}
+
           <Stack direction="row" alignItems="center" gap={1} sx={{ mb: .7 }}><CalendarMonthIcon sx={{ color: AZUL }} />
+            <Typography sx={{ fontWeight: 800, color: "#0636ad", fontSize: 15 }}>Eventos registrados durante el día (cada variación observada)</Typography>
+          </Stack>
 
-            <Typography sx={{ fontWeight: 800, color: "#0636ad", fontSize: 15 }}>Eventos registrados durante el día (cada variación observada)</Typography></Stack>
-          {tipoAnalisis !== "original" && <Typography sx={{ mb: 0.7, fontSize: 11, color: "#42608d" }}>
-            {puntos.length} lecturas · {analisis.cantidadSubidas} subidas · {analisis.cantidadBajadas} bajadas · {analisis.cantidadSinCambio} sin cambio · {tramosSinSenal.length} intervalos sin señal (&gt;30 min)
-          </Typography>}
+          <Typography sx={{ mb: 0.7, fontSize: 11, color: "#42608d" }}>
+            {puntos.length} lecturas originales ·{" "}
 
+            {tipoAnalisis === "operaciones"
+              ? analisisOperacionesVista.cantidadCargas
+              : tipoAnalisis === "nodos"
+                ? analisisNodosLimpios.cantidadSubidas
+                : analisis.cantidadSubidas} subidas ·{" "}
 
+            {tipoAnalisis === "operaciones"
+              ? analisisOperacionesVista.cantidadDescargas
+              : tipoAnalisis === "nodos"
+                ? analisisNodosLimpios.cantidadBajadas
+                : analisis.cantidadBajadas} bajadas ·{" "}
+
+            {tramosSinSenal.length} intervalos sin señal (&gt;30 min)
+          </Typography>
+          {tipoAnalisis === "nodos" && (
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              flexWrap="wrap"
+              gap={1}
+              sx={{
+                px: 1,
+                py: 0.7,
+                mb: 1,
+                bgcolor: "#F5F1FF",
+                border: "1px solid #E4D9FF",
+                borderRadius: 1.2,
+              }}
+            >
+              <Typography sx={{ fontSize: 11.5, color: MARINO, fontWeight: 700 }}>
+                Depuración manual · {lecturasExcluidasEnPeriodo.length} excluidas ·{" "}
+                {puntosAceptadosNodos.length} aceptadas
+              </Typography>
+
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!lecturasExcluidasEnPeriodo.length}
+                onClick={() => {
+                  setLecturasExcluidasNodos(anterior => {
+                    const siguiente = new Set(anterior);
+
+                    lecturasExcluidasEnPeriodo.forEach(p => {
+                      siguiente.delete(p.idLectura);
+                    });
+
+                    return siguiente;
+                  });
+                }}
+                sx={{
+                  textTransform: "none",
+                  fontSize: 11,
+                  color: MORADO,
+                  borderColor: MORADO,
+                }}
+              >
+                Restaurar lecturas
+              </Button>
+            </Stack>
+          )}
 
           {tipoAnalisis === "operaciones" && (
             <Typography sx={{ mb: 1, fontSize: 11, color: "#42608d" }}>
-              {`${analisisOperaciones.cantidadCargas} cargas estimadas (${conUnidad(analisisOperaciones.totalCargasL, "L", 0)}) · ${analisisOperaciones.cantidadDescargas} descargas estimadas (${conUnidad(analisisOperaciones.totalDescargasL, "L", 0)}). Rojo: descenso. Verde: ascenso. Una meseta cierra la operación; los tramos finales pueden ser parciales.`}
-              {" "}El análisis descarta giros inferiores a 0,01 m; los intervalos sin señal se conservan como saltos estimados entre extremos observados, sin suponer qué sucedió durante el vacío. Los valores son estimaciones a partir de niveles.
+              {`${analisisOperacionesVista.cantidadCargas} cargas estimadas (${conUnidad(analisisOperacionesVista.totalCargasL, "L", 0)}) · ${analisisOperacionesVista.cantidadDescargas} descargas estimadas (${conUnidad(analisisOperacionesVista.totalDescargasL, "L", 0)}). Rojo: descenso. Verde: ascenso. La operación se cierra al confirmar una reversión significativa. Los movimientos finales pueden quedar parcialmente reconocidos. `}
+              {`Umbral efectivo de movimiento: ${fmt(umbralMovimientoMetros, 6)} m. Los movimientos deben superar este valor para contabilizarse. `}
             </Typography>
           )}
           {tipoAnalisis === "operaciones" && (
-            <TableContainer sx={{ maxHeight: 320, border: `1px solid ${BORDE}`, borderRadius: 1.1, mb: 1 }}>
-              <Table stickyHeader size="small" sx={{ "& .MuiTableCell-root": { fontSize: 11, py: .55 } }}>
-                <TableHead><TableRow>
-                  <TableCell>Tipo</TableCell><TableCell>Desde</TableCell><TableCell>Hasta</TableCell>
-                  <TableCell align="right">Δ nivel (m)</TableCell><TableCell align="right">Δ volumen (L)</TableCell><TableCell align="right">Duración (min)</TableCell><TableCell>Estado</TableCell>
-                </TableRow></TableHead>
-                <TableBody>
-                  {analisisOperaciones.operaciones.map(ev => (
-                    <TableRow key={ev.id} sx={{ bgcolor: ev.delta < 0 ? "#fff5f1" : "#eefbf2" }}>
-                      <TableCell sx={{ color: ev.delta < 0 ? ROJO : VERDE, fontWeight: 700 }}>{ev.tipo}</TableCell>
-                      <TableCell>{ev.desde.fecha} {ev.desde.horaReal} ({fmt(ev.desde.nivel, 3)} m)</TableCell>
-                      <TableCell>{ev.hasta.fecha} {ev.hasta.horaReal} ({fmt(ev.hasta.nivel, 3)} m)</TableCell>
-                      <TableCell align="right">{signo(ev.delta, "m", 3)}</TableCell>
-                      <TableCell align="right">{signo(ev.deltaL, "L", 0)}</TableCell>
-                      <TableCell align="right">{fmt(ev.duracion, 1)}</TableCell>
-                      <TableCell>{ev.intervalosSinSenal > 0 ? `Estimado · ${ev.intervalosSinSenal} vacío(s) SCADA` : ev.parcial ? "Parcial / límite del tramo" : "Giro confirmado"}</TableCell>
-                    </TableRow>
-                  ))}
-                  {analisisOperaciones.operaciones.length === 0 &&
-                    <TableRow><TableCell colSpan={7} align="center">Sin movimientos que cumplan el umbral</TableCell></TableRow>}
-                </TableBody>
-              </Table>
-            </TableContainer>
+
+            <>
+              <Stack
+                direction="row"
+                justifyContent="space-between"
+                alignItems="center"
+                flexWrap="wrap"
+                gap={1}
+                sx={{
+                  px: 1,
+                  py: 0.7,
+                  mb: 1,
+                  bgcolor: "#F5F1FF",
+                  border: "1px solid #E4D9FF",
+                  borderRadius: 1.2,
+                }}
+              >
+                <Typography sx={{ fontSize: 11.5, color: MARINO, fontWeight: 700 }}>
+                  Depuración Crestas/Valles ·{" "}
+                  {lecturasExcluidasOperacionesPeriodo.length} excluidas ·{" "}
+                  {puntosAceptadosOperaciones.length} aceptadas
+                </Typography>
+
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled={!lecturasExcluidasOperacionesPeriodo.length}
+                  onClick={() => {
+                    setLecturasExcluidasOperaciones(anterior => {
+                      const siguiente = new Set(anterior);
+
+                      lecturasExcluidasOperacionesPeriodo.forEach(p => {
+                        siguiente.delete(p.idLectura);
+                      });
+
+                      return siguiente;
+                    });
+                  }}
+                  sx={{
+                    textTransform: "none",
+                    fontSize: 11,
+                    color: MORADO,
+                    borderColor: MORADO,
+                  }}
+                >
+                  Restaurar lecturas
+                </Button>
+              </Stack>
+              <TableContainer sx={{ maxHeight: 320, border: `1px solid ${BORDE}`, borderRadius: 1.1, mb: 1 }}>
+                <Table stickyHeader size="small" sx={{ "& .MuiTableCell-root": { fontSize: 11, py: .55 } }}>
+                  <TableHead><TableRow>
+                    <TableCell>Tipo</TableCell><TableCell>Desde</TableCell><TableCell>Hasta</TableCell>
+                    <TableCell align="right">Δ nivel (m)</TableCell>
+                    <TableCell align="right">Δ volumen (L)</TableCell>
+                    <TableCell align="right">Duración (min)</TableCell>
+                    <TableCell>Estado</TableCell>
+                    <TableCell align="center" sx={{ width: 75 }}>Incluir</TableCell>
+                  </TableRow></TableHead>
+                  <TableBody>
+                    {analisisOperacionesVista.operaciones.map(ev => (
+                      <TableRow key={ev.id} sx={{ bgcolor: ev.delta < 0 ? "#fff5f1" : "#eefbf2" }}>
+                        <TableCell sx={{ color: ev.delta < 0 ? ROJO : VERDE, fontWeight: 700 }}>{ev.tipo}</TableCell>
+                        <TableCell>{ev.desde.fecha} {ev.desde.horaReal} ({fmt(ev.desde.nivel, 3)} m)</TableCell>
+                        <TableCell>{ev.hasta.fecha} {ev.hasta.horaReal} ({fmt(ev.hasta.nivel, 3)} m)</TableCell>
+                        <TableCell align="right">{signo(ev.delta, "m", 3)}</TableCell>
+                        <TableCell align="right">{signo(ev.deltaL, "L", 0)}</TableCell>
+                        <TableCell align="right">{fmt(ev.duracion, 1)}</TableCell>
+                        <TableCell>{ev.intervalosSinSenal > 0 ? `Estimado · ${ev.intervalosSinSenal} vacío(s) SCADA` : ev.parcial ? "Parcial / límite del tramo" : "Giro confirmado"}</TableCell>
+                        <TableCell align="center">
+                          <Checkbox
+                            size="small"
+                            checked={
+                              !lecturasExcluidasOperaciones.has(ev.hasta.idLectura)
+                            }
+                            onChange={() => {
+                              alternarLecturaOperacion(ev.hasta.idLectura);
+                            }}
+                            inputProps={{
+                              "aria-label": `Incluir extremo ${ev.hasta.fecha} ${ev.hasta.horaReal}`,
+                            }}
+                            sx={{
+                              p: 0.2,
+                              color: MORADO,
+                              "&.Mui-checked": {
+                                color: VERDE,
+                              },
+                            }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {analisisOperacionesVista.operaciones.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} align="center">
+                          Sin movimientos que cumplan el umbral
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              {lecturasExcluidasOperacionesPeriodo.length > 0 && (
+                <Box sx={{ mt: 1, mb: 1 }}>
+                  <Typography
+                    sx={{
+                      fontSize: 11.5,
+                      color: MORADO,
+                      fontWeight: 800,
+                      mb: 0.5,
+                    }}
+                  >
+                    Extremos excluidos manualmente
+                  </Typography>
+
+                  <TableContainer
+                    sx={{
+                      border: "1px solid #E4D9FF",
+                      borderRadius: 1,
+                      maxHeight: 180,
+                    }}
+                  >
+                    <Table
+                      size="small"
+                      sx={{
+                        "& .MuiTableCell-root": {
+                          fontSize: 11,
+                          py: 0.5,
+                        },
+                      }}
+                    >
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Fecha / Hora</TableCell>
+                          <TableCell align="right">Nivel (m)</TableCell>
+                          <TableCell align="right">Volumen (L)</TableCell>
+                          <TableCell align="center">Incluir</TableCell>
+                        </TableRow>
+                      </TableHead>
+
+                      <TableBody>
+                        {lecturasExcluidasOperacionesPeriodo.map(p => (
+                          <TableRow
+                            key={p.idLectura}
+                            sx={{ bgcolor: "#F7F3FF" }}
+                          >
+                            <TableCell>
+                              {p.fecha} {p.horaReal}
+                            </TableCell>
+
+                            <TableCell align="right">
+                              {fmt(p.nivel, 3)}
+                            </TableCell>
+
+                            <TableCell align="right">
+                              {fmt(p.volumen, 0)}
+                            </TableCell>
+
+                            <TableCell align="center">
+                              <Checkbox
+                                size="small"
+                                checked={false}
+                                onChange={() => {
+                                  alternarLecturaOperacion(p.idLectura);
+                                }}
+                                sx={{ color: MORADO, p: 0.2 }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+              )}
+            </>
           )}
-          {tipoAnalisis === "nodos" && (
-            <TableContainer sx={{ maxHeight: 300, border: `1px solid ${BORDE}`, borderRadius: 1.1 }}>
+          {(tipoAnalisis === "nodos" || tipoAnalisis === "original") && (
+            <TableContainer sx={{ maxHeight: 355, border: `1px solid ${BORDE}`, borderRadius: 1.1 }}>
 
+              <Table stickyHeader size="small" sx={{ minWidth: tipoAnalisis === "nodos" ? 720 : 640, tableLayout: "fixed", "& .MuiTableCell-root": { fontSize: 11.5, px: .6, py: .4, borderRight: `1px solid ${BORDE}` }, "& .MuiTableHead-root .MuiTableCell-root": { bgcolor: "#eff5fc", fontWeight: 800, textAlign: "center" } }}>
+                <TableHead><TableRow><TableCell>Hora</TableCell><TableCell>Nivel ({unidadNivel})</TableCell><TableCell>Volumen (L)</TableCell><TableCell>Cambio ({unidadNivel})</TableCell><TableCell>Cambio (L)</TableCell><TableCell>Tipo de movimiento</TableCell> {tipoAnalisis === "nodos" && (
+                  <TableCell sx={{ width: 70 }} align="center">
+                    Incluir
+                  </TableCell>
+                )}</TableRow></TableHead>
 
-
-              <Table stickyHeader size="small" sx={{ minWidth: 640, tableLayout: "fixed", "& .MuiTableCell-root": { fontSize: 11.5, px: .6, py: .4, borderRight: `1px solid ${BORDE}` }, "& .MuiTableHead-root .MuiTableCell-root": { bgcolor: "#eff5fc", fontWeight: 800, textAlign: "center" } }}>
-                <TableHead><TableRow><TableCell>Hora</TableCell><TableCell>Nivel ({unidadNivel})</TableCell><TableCell>Volumen (L)</TableCell><TableCell>Cambio ({unidadNivel})</TableCell><TableCell>Cambio (L)</TableCell><TableCell>Tipo de movimiento</TableCell></TableRow></TableHead>
-
-                <TableBody>{!filas.length ? <TableRow><TableCell colSpan={6} align="center">No hay datos disponibles</TableCell></TableRow> : filas.map((e) => <TableRow key={`${e.fecha}-${e.hora}-${e.indice}`} sx={{ bgcolor: e.tipo === "Subida" ? "#eefbf2" : e.tipo === "Bajada" ? "#fff5f0" : "#fff" }}>
+                <TableBody>{!filas.length ? <TableRow><TableCell colSpan={tipoAnalisis === "nodos" ? 7 : 6} align="center">No hay datos disponibles</TableCell></TableRow> : filas.map((e) => <TableRow key={`${e.fecha}-${e.hora}-${e.indice}`} sx={{ bgcolor: e.tipo === "Subida" ? "#eefbf2" : e.tipo === "Bajada" ? "#fff5f0" : "#fff" }}>
 
                   <TableCell align="center">{e.fecha} {e.hora}{e.sinSenal ? " ⚠" : ""}</TableCell><TableCell align="center">{fmt(e.valor)}</TableCell>
                   <TableCell align="center">{fmt(e.volumen, 0)}</TableCell>
                   <TableCell align="center">{e.delta == null ? "0,00" : signo(e.delta, "")}</TableCell>
                   <TableCell align="center">{e.deltaL == null ? e.tipo === "Inicio" ? "0" : "—" : signo(e.deltaL, "", 0)}</TableCell>
                   <TableCell align="center" sx={{ color: e.tipo === "Subida" ? VERDE : e.tipo === "Bajada" ? ROJO : MARINO }}>
-                    {e.tipo === "Subida" ? <><ArrowUpwardIcon sx={{ fontSize: 16, verticalAlign: "middle" }} /> Subida*</> : e.tipo === "Bajada" ? <><ArrowDownwardIcon sx={{ fontSize: 16, verticalAlign: "middle" }} /> Bajada*</> : "—"}
+                    {e.excluido
+                      ? "Excluido"
+                      : e.tipo === "Subida"
+                        ? <><ArrowUpwardIcon sx={{ fontSize: 16, verticalAlign: "middle" }} /> Subida*</>
+                        : e.tipo === "Bajada"
+                          ? <><ArrowDownwardIcon sx={{ fontSize: 16, verticalAlign: "middle" }} /> Bajada*</>
+                          : "—"
+                    }
                   </TableCell>
+
+                  {tipoAnalisis === "nodos" && (
+                    <TableCell align="center">
+                      <Checkbox
+                        size="small"
+                        checked={!lecturasExcluidasNodos.has(e.idLectura)}
+                        onChange={() => alternarLecturaNodo(e.idLectura)}
+                        inputProps={{
+                          "aria-label": `Incluir lectura ${e.fecha} ${e.hora}`,
+                        }}
+                        sx={{
+                          p: 0.2,
+                          color: MORADO,
+                          "&.Mui-checked": {
+                            color: VERDE,
+                          },
+                        }}
+                      />
+                    </TableCell>
+                  )}
 
                 </TableRow>)}</TableBody>
               </Table>
@@ -1412,21 +2931,184 @@ export default function AnalisisDeNivelesTanquesSCADA({
 
             <Typography sx={{ color: "#0636ad", fontSize: 16, fontWeight: 800 }}>Indicadores del {modoDia === "natural" ? "día natural" : "día inventario"}</Typography></Stack>
 
+          <EncabezadoSeccion
+            titulo="Análisis de lecturas SCADA"
+            periodo={etiquetaPeriodo}
+            color={MORADO}
+            fondo="#F5F1FF"
+          />
+
+          <Typography sx={{ fontSize: 10.5, color: "#6680a3", mb: 0.8 }}>
+            Los niveles y volúmenes inicial/final corresponden a lecturas originales.
+            Los movimientos acumulados corresponden al modo de análisis seleccionado.
+          </Typography>
+
           <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: .85 }}>
-            <Indicador icono={<Inventory2OutlinedIcon fontSize="large" />} titulo="Volumen inicial" valor={l(analisis.inicial?.volumen)} detalle={nivel(analisis.inicial?.valor)} />
-            <Indicador icono={<Inventory2OutlinedIcon fontSize="large" />} titulo="Volumen final" valor={l(analisis.final?.volumen)} detalle={nivel(analisis.final?.valor)} />
-            <Indicador icono={<ArrowUpwardIcon fontSize="large" />} titulo="Volumen ingresado total*" valor={l(analisis.subidasL)} color={VERDE} />
-            <Indicador icono={<ArrowDownwardIcon fontSize="large" />} titulo="Volumen salido total*" valor={l(analisis.bajadasL)} color={ROJO} />
-            {/* <Indicador icono={<FunctionsIcon fontSize="large" />} titulo="Promedio de lecturas de volumen" valor={l(analisis.promedioL)} ancho /> */}
             <Indicador icono={<WaterDropIcon fontSize="large" />} titulo="Nivel inicial" valor={nivel(analisis.inicial?.valor)} />
             <Indicador icono={<WaterDropIcon fontSize="large" />} titulo="Nivel final" valor={nivel(analisis.final?.valor)} />
-            <Indicador icono={<ArrowUpwardIcon fontSize="large" />} titulo="Metros que subió" valor={analisis.inicial ? conUnidad(analisis.subidas, unidadNivel) : "—"} color={VERDE} />
-            <Indicador icono={<ArrowDownwardIcon fontSize="large" />} titulo="Metros que bajó" valor={analisis.inicial ? conUnidad(analisis.bajadas, unidadNivel) : "—"} color={ROJO} />
+            <Indicador icono={<Inventory2OutlinedIcon fontSize="large" />} titulo="Volumen inicial" valor={l(analisis.inicial?.volumen)} detalle={nivel(analisis.inicial?.valor)} />
+            <Indicador icono={<Inventory2OutlinedIcon fontSize="large" />} titulo="Volumen final" valor={l(analisis.final?.volumen)} detalle={nivel(analisis.final?.valor)} />
+            {/* <Indicador icono={<ArrowUpwardIcon fontSize="large" />} titulo="Volumen ingresado total*" valor={l(analisis.subidasL)} color={VERDE} />
+            <Indicador icono={<ArrowDownwardIcon fontSize="large" />} titulo="Salida total de volumen*" valor={l(analisis.bajadasL)} color={ROJO} /> */}
+            <Indicador
+              icono={<ArrowUpwardIcon fontSize="large" />}
+              titulo="Volumen ingresado estimado*"
+              valor={l(resumenVolumenSCADA.ingresado)}
+              color={VERDE}
+            />
+
+            <Indicador
+              icono={<ArrowDownwardIcon fontSize="large" />}
+              titulo="Salida total de volumen*"
+              valor={l(resumenVolumenSCADA.salido)}
+              color={ROJO}
+            />
+            {/* <Indicador icono={<FunctionsIcon fontSize="large" />} titulo="Promedio de lecturas de volumen" valor={l(analisis.promedioL)} ancho /> */}
+            {/* <Indicador icono={<ArrowUpwardIcon fontSize="large" />} titulo="Metros que subió" valor={analisis.inicial ? conUnidad(analisis.subidas, unidadNivel) : "—"} color={VERDE} /> */}
+            {/* <Indicador icono={<ArrowDownwardIcon fontSize="large" />} titulo="Metros que bajó" valor={analisis.inicial ? conUnidad(analisis.bajadas, unidadNivel) : "—"} color={ROJO} /> */}
             {/* <Indicador icono={<ShowChartIcon fontSize="large" />} titulo="Promedio de lecturas de nivel" valor={nivel(analisis.promedio)} ancho /> */}
 
           </Box>
 
-          <Box sx={{ mt: 1, border: `1px solid ${BORDE}`, borderRadius: 1.5, bgcolor: "#f7fbff", overflow: "hidden" }}>
+          {(
+            <Box sx={{ mt: 1.5 }}>
+
+              <EncabezadoSeccion titulo="Resumen del Análisis de despachos" periodo={etiquetaPeriodo} color={MORADO} fondo="#F5F1FF" />
+
+              <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: .85 }}>
+                <Indicador
+                  icono={<Inventory2OutlinedIcon fontSize="large" />}
+                  titulo="Volumen contador Ambiocom"
+                  valor={l(resumenDespachos.volumenAmbiocom)}
+                />
+                <Indicador
+                  icono={<FunctionsIcon fontSize="large" />}
+                  titulo="Volumen contador gravimétrico"
+                  valor={l(resumenDespachos.volumenGravimetrico)}
+                />
+                <Indicador
+                  icono={<WaterDropIcon fontSize="large" />}
+                  titulo="Volumen programado a despachar"
+                  valor={l(resumenDespachos.volumenProgramado)}
+                />
+                <Indicador
+                  icono={<BarChartIcon fontSize="large" />}
+                  titulo="Registros de despachos"
+                  valor={resumenDespachos.cantidadDespachos}
+                />
+              </Box>
+            </Box>
+          )}
+
+          {(
+            <Box sx={{ mt: 1.5 }}>
+
+              <EncabezadoSeccion titulo="Resumen del Análisis de Ventas báscula" periodo={etiquetaPeriodo} color={MORADO} fondo="#F5F1FF" />
+
+              <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: .85 }}>
+                <Indicador
+                  icono={<ArrowDownwardIcon fontSize="large" />}
+                  titulo="Peso neto despachado · tanque seleccionado"
+                  valor={`${fmt(resumenBascula.pesoNetoSalidas, 0)} kg`}
+                  color={ROJO}
+                />
+
+                <Indicador
+                  icono={<ArrowUpwardIcon fontSize="large" />}
+                  titulo="Peso neto recibido · planta"
+                  valor={`${fmt(resumenBascula.pesoNetoIngresos, 0)} kg`}
+                  color={VERDE}
+                />
+
+                <Indicador
+                  icono={<FunctionsIcon fontSize="large" />}
+                  titulo="Volumen gravimétrico · báscula"
+                  valor={l(resumenBascula.volumenGravimetrico)}
+                  detalle={
+                    `${resumenBascula.cantidadVolumenEstimado} vehículos con densidad estimada` +
+                    (resumenBascula.cantidadSinDensidad
+                      ? ` · ${resumenBascula.cantidadSinDensidad} sin densidad disponible`
+                      : "")
+                  }
+                />
+
+                <Indicador
+                  icono={<DonutSmallIcon fontSize="large" />}
+                  titulo="Densidad promedio ponderada"
+                  valor={
+                    resumenBascula.densidadPromedioPonderada == null
+                      ? "—"
+                      : `${fmt(resumenBascula.densidadPromedioPonderada, 5)} kg/L`
+                  }
+                  detalle={
+                    resumenBascula.densidadReferencia == null
+                      ? "Sin densidad de referencia"
+                      : `Mediana de referencia: ${fmt(resumenBascula.densidadReferencia, 5)} kg/L`
+                  }
+                />
+
+              </Box>
+
+              <EncabezadoSeccion titulo="Resumen del Análisis Recepciones en báscula" periodo={etiquetaPeriodo} color={MORADO} fondo="#F5F1FF" />
+
+              <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: .85 }}>
+                <Indicador
+                  icono={<Inventory2OutlinedIcon fontSize="large" />}
+                  titulo="Recepción nacional · peso neto"
+                  valor={`${fmt(resumenBascula.pesoNetoNacional, 0)} kg`}
+                  detalle={`${resumenBascula.cantidadNacionales} registros`}
+                />
+                <Indicador
+                  icono={<Inventory2OutlinedIcon fontSize="large" />}
+                  titulo="Recepción importación · peso neto"
+                  valor={`${fmt(resumenBascula.pesoNetoImportacion, 0)} kg`}
+                  detalle={`${resumenBascula.cantidadImportados} registros`}
+                />
+
+                <Indicador
+                  icono={<WaterDropIcon fontSize="large" />}
+                  titulo="R. nacional · volumen grav"
+                  valor={conUnidad(resumenBascula.volumenEstimadoNacional, "L", 0)}
+                  detalle={
+                    resumenBascula.densidadEstimadaRecepciones == null
+                      ? "Sin densidad de referencia disponible"
+                      : `densidad ponderada: ${fmt(resumenBascula.densidadEstimadaRecepciones, 5)} kg/L`
+                  }
+                />
+
+                <Indicador
+                  icono={<WaterDropIcon fontSize="large" />}
+                  titulo="R. importación · volumen grav"
+                  valor={conUnidad(resumenBascula.volumenEstimadoImportacion, "L", 0)}
+                  detalle={
+                    resumenBascula.densidadEstimadaRecepciones == null
+                      ? "Sin densidad de referencia disponible"
+                      : `densidad ponderada: ${fmt(resumenBascula.densidadEstimadaRecepciones, 5)} kg/L`
+                  }
+                />
+              </Box>
+
+              <EncabezadoSeccion titulo=" Resumen del Análisis Movimientos en báscula" periodo={etiquetaPeriodo} color={MORADO} fondo="#F5F1FF" />
+
+              <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: .85 }}>
+                <Indicador
+                  icono={<BarChartIcon fontSize="large" />}
+                  titulo="Salidas registradas"
+                  valor={resumenBascula.cantidadSalidas}
+                />
+
+                <Indicador
+                  icono={<BarChartIcon fontSize="large" />}
+                  titulo="Ingresos registrados"
+                  valor={resumenBascula.cantidadIngresos}
+                />
+              </Box>
+
+            </Box>
+          )}
+
+
+          {/* <Box sx={{ mt: 1, border: `1px solid ${BORDE}`, borderRadius: 1.5, bgcolor: "#f7fbff", overflow: "hidden" }}>
             <Stack direction="row" gap={1} alignItems="center" sx={{ bgcolor: "#e8f4ff", p: .75 }}>
               <BarChartIcon sx={{ color: AZUL }} /><Typography sx={{ color: AZUL, fontWeight: 800, fontSize: 14 }}>Balance del {modoDia === "natural" ? "día natural" : "día inventario"}</Typography>
             </Stack>
@@ -1439,22 +3121,19 @@ export default function AnalisisDeNivelesTanquesSCADA({
               <strong>Mayor bajada:</strong><span style={{ color: ROJO, fontWeight: 700 }}>{mayor(analisis.mayorBajada)}</span>
             </Box>
 
-          </Box>
-
+          </Box> */}
+          {/* 
           <Typography sx={{ mt: .9, fontSize: 10.5, color: "#6680a3", lineHeight: 1.4 }}>
             *Las subidas y bajadas son diferencias entre lecturas consecutivas, no ingresos ni salidas logísticos confirmados.
             El promedio es aritmético sobre las lecturas válidas (no ponderado por tiempo). Cuando faltan lecturas, las diferencias calculadas son netas entre observaciones; no permiten reconstruir movimientos intermedios.
             Los factores, capacidad y producto proceden del catálogo actual de Gestión de Tanques.
-          </Typography>
+          </Typography> */}
 
         </Paper>
       </Box>
 
-
-
-    )}
-
-
+    )
+    }
 
     <GraficaSCADAModal
       open={modalGrafica}
@@ -1463,15 +3142,19 @@ export default function AnalisisDeNivelesTanquesSCADA({
       fechaConsultada={fechaConsultada}
       factor={factor}
       puntos={puntos}
-      eventos={analisis.eventos}
-      operaciones={analisisOperaciones.operaciones}
+      eventos={
+        tipoAnalisis === "nodos"
+          ? analisisNodosLimpios.eventos
+          : analisis.eventos
+      }
+      operaciones={analisisOperacionesVista.operaciones}
       tramosSinSenal={tramosSinSenal}
       tipoInicial={tipoAnalisis}
       unidadInicial={visualizacion}
       modoDia={modoDia}
     />
 
-  </Box>;
+  </Box >;
 
 
 

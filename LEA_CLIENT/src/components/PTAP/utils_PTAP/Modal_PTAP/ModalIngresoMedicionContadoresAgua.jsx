@@ -44,7 +44,7 @@ const opcionesHora = generarHoras(5);
 const responsables = [
   "Jose Morales",
   "Liber Antonio",
-  "Robinson Rodriguez",
+  "Samuel Arcila",
   "Jhonatan Sandoval",
 ];
 
