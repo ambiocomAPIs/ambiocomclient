@@ -11,6 +11,7 @@ const ROJO = [207, 59, 49];
 const GRIS = [92, 107, 130];
 const FONT = "DejaVuSans";
 const LOGO_URL = "/LogoCompany/logoambiocomsinfondo.png";
+
 const cargarLogo = url => new Promise(resolve => {
     const img = new Image();
     img.onload = () => {
@@ -27,6 +28,7 @@ const cargarLogo = url => new Promise(resolve => {
     img.onerror = () => resolve(null);
     img.src = url;
 });
+
 const numero = value =>
     value !== null &&
         value !== undefined &&

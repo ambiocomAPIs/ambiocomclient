@@ -821,7 +821,7 @@ export default function TablaDespachosLogistica() {
     "gerenciaG",
     "gerenciaOP",
     "developer",
-    "liderlogistica",
+    "liderlogistica", "gerencialogistica",
   ]);
 
   const handleOpenClickVehiculo = useCallback((row) => {

@@ -48,6 +48,7 @@ import PatioCarbonMadera from '../ModuloProduccion/PatioCarbonMadera.jsx'
 import SeguimientoTotalizadores from '../ModuloProduccion/SeguimientoTotalizadores.jsx'
 // Modulo Talento Humano
 import GestionPostulacionesWebflow from '../Modulo_TalentoHumano/GestionPostulacionesWebflow.jsx'
+import GestionVacantesWebflowCMS from '../Modulo_TalentoHumano/GestionVacantesWebflowCMS.jsx';
 // Modulo de graficos y analisis
 import GraficoNivelesTanquesPorDiaPageComponente from '../TanquesVistaNiveles/GraficaNivelesDiariosPorMes/GraficaNivelesDiarioTanquesJornalerosComponente.jsx';
 import Comparativomensualinsumosquimicos from '../Modulos_API/DataAnalisis/Comparativomensualinsumosquimicos.jsx';
@@ -101,6 +102,7 @@ import AnalisisdenivelestanquesSCADA from '../NivelesScada/Analisisdenivelestanq
 import ConsultasHttpDb from '../DB_Consultas_View/ConsultasHttpDb.jsx';
 import TaskRequerimentDev from '../DB_Consultas_View/TaskRequerimentDevComponent.jsx';
 import RiceBacklogManager from '../DB_Consultas_View/RiceBacklogManager.jsx';
+import ExploradorWebflowCMSDeveloper from '../DB_Consultas_View/ExploradorWebflowCMSDeveloper.jsx';
 //modulo inventario
 import SGMRC from '../Insumos_Modulo/SGMRC.jsx';
 //pagina mantenimiento de modulo y desarrollo
@@ -240,7 +242,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             icon: <img src={factoryIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
             subItems: [
                 { text: 'Inventario de insumos', subKey: 'Inventariodeinsumos', /* roles: ["admin","supervisor"], */ icon: <img src={inventoryIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
-                { text: 'Tanques Jornaleros', subKey: 'Tanquesjornaleros', roles: ["admin", "developer", "liderlogistica", "supervisor"], icon: <img src={rulerIcon} alt="tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
+                { text: 'Tanques Jornaleros', subKey: 'Tanquesjornaleros', roles: ["admin", "developer", "liderlogistica", "gerencialogistica", "supervisor"], icon: <img src={rulerIcon} alt="tanquesjornaleros" style={{ width: 25, height: 25 }} /> },
                 { text: 'CRUD Tanques', subKey: 'tanquescrud', /* roles: ["admin"], */ icon: <img src={tanqueIcon} alt="tanquescrud" style={{ width: 25, height: 25 }} /> },
                 { text: 'Patio Carbon-Madera', subKey: 'patiodecarbonymadera', /* roles: ["admin","supervisor"], */ icon: <img src={CalderaIcon} alt="patiodecarbonymadera" style={{ width: 25, height: 25 }} /> },
                 { text: 'Seguimiento_Producción', subKey: 'seguimientototalizadores', /* roles: ["admin","supervisor"], */ icon: <img src={DataSeguimientoIocn} alt="patiodecarbonymadera" style={{ width: 25, height: 25 }} /> },
@@ -286,21 +288,21 @@ export default function EmpresarialPrincipalSchedulerApp() {
         {
             text: 'Logistica',
             key: 'logistica',
-            roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica1", "auxiliarlogistica2", "torrecontrollogistica"],
+            roles: ["admin", "developer", "liderlogistica", "gerencialogistica", "auxiliarlogistica1", "auxiliarlogistica2", "torrecontrollogistica", "analistadecostoseinventarios"],
             icon: <img src={despachoIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
             subItems: [
-                { text: 'Grafica Niveles Tanques Jornaleros', subKey: 'nivelestanquesjornalerospagina', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "torrecontrollogistica"], icon: <img src={TankGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
-                { text: 'Báscula E/S', subKey: 'entradasysalidasbascula', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "torrecontrollogistica"], icon: <img src={IconBasculaAmbiocom} alt="entradasysalidasbascula" style={{ width: 30, height: 30 }} /> },
-                { text: 'Planeacion Diaria', subKey: 'planeaciondiariadespachos', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "torrecontrollogistica"], icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} /> },
-                { text: 'Despachos', subKey: 'despachoalcoholeslogistica', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica", "laboratorio"], icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
-                { text: 'Recepción', subKey: 'recepcionalcoholeslogistica', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
-                { text: 'Flete/Litro', subKey: 'analisisfleteporlitro', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={IconFleteCost} alt="analisisfleteporlitro" style={{ width: 25, height: 25 }} /> },
-                { text: 'Colaboradores', subKey: 'colaboradoresambiocom', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={PersonalIcons} alt="Despacho" style={{ width: 25, height: 25 }} /> },
-                { text: 'Productos', subKey: 'productosdespacho', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={ProductDespacho} alt="Despacho" style={{ width: 25, height: 25 }} /> },
-                { text: 'Conductores', subKey: 'conductoresdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={Driver} alt="Despacho" style={{ width: 25, height: 25 }} /> },
-                { text: 'Clientes', subKey: 'clientesdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={ClientIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
-                { text: 'Proveedores', subKey: 'proveedoresdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={ProveedorIcon} alt="DespachoProveedores" style={{ width: 25, height: 25 }} /> },
-                { text: 'Transportadora', subKey: 'transportadorasdb', roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={TruckCompany} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Grafica Niveles Tanques Jornaleros', subKey: 'nivelestanquesjornalerospagina', roles: ["admin", "developer", "liderlogistica", "gerencialogistica", "auxiliarlogistica2", "torrecontrollogistica","analistadecostoseinventarios"], icon: <img src={TankGraphIcon} alt="nivelestanque" style={{ width: 25, height: 25 }} /> },
+                { text: 'Báscula E/S', subKey: 'entradasysalidasbascula', roles: ["admin", "developer", "liderlogistica", "gerencialogistica", "auxiliarlogistica2", "torrecontrollogistica","analistadecostoseinventarios"], icon: <img src={IconBasculaAmbiocom} alt="entradasysalidasbascula" style={{ width: 30, height: 30 }} /> },
+                { text: 'Planeacion Diaria', subKey: 'planeaciondiariadespachos', roles: ["admin", "developer", "liderlogistica", "gerencialogistica", "auxiliarlogistica2", "torrecontrollogistica", "analistadecostoseinventarios"], icon: <img src={plannerIconDate} alt="programaciondiaria" style={{ width: 25, height: 25 }} /> },
+                { text: 'Despachos', subKey: 'despachoalcoholeslogistica', roles: ["admin", "developer", "liderlogistica", "gerencialogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica", "laboratorio", "analistadecostoseinventarios"], icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Recepción', subKey: 'recepcionalcoholeslogistica', roles: ["admin", "developer", "liderlogistica", "gerencialogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica", "analistadecostoseinventarios"], icon: <img src={despachoRecepcionIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Flete/Litro', subKey: 'analisisfleteporlitro', roles: ["admin", "developer", "liderlogistica", "gerencialogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={IconFleteCost} alt="analisisfleteporlitro" style={{ width: 25, height: 25 }} /> },
+                { text: 'Colaboradores', subKey: 'colaboradoresambiocom', roles: ["admin", "developer", "liderlogistica", "gerencialogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={PersonalIcons} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Productos', subKey: 'productosdespacho', roles: ["admin", "developer", "liderlogistica", "gerencialogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={ProductDespacho} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Conductores', subKey: 'conductoresdb', roles: ["admin", "developer", "liderlogistica", "gerencialogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={Driver} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Clientes', subKey: 'clientesdb', roles: ["admin", "developer", "liderlogistica", "gerencialogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={ClientIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
+                { text: 'Proveedores', subKey: 'proveedoresdb', roles: ["admin", "developer", "liderlogistica", "gerencialogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={ProveedorIcon} alt="DespachoProveedores" style={{ width: 25, height: 25 }} /> },
+                { text: 'Transportadora', subKey: 'transportadorasdb', roles: ["admin", "developer", "liderlogistica", "gerencialogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica"], icon: <img src={TruckCompany} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'Ingresos_M-C', subKey: 'moduloingresosmaderacarbon', roles: ["admin", "developer"], icon: <img src={InOutMaderaCarbonIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                 { text: 'DEV_Functions', subKey: 'gestiondecolumnasdesarrollador', roles: ["developer"], icon: <img src={DevIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
             ],
@@ -324,7 +326,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                         },
                         {   text: 'Despachos', 
                             subKey: 'despachoalcoholeslogistica', 
-                            roles: ["admin", "developer", "liderlogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica", "laboratorio"], 
+                            roles: ["admin", "developer", "liderlogistica", "gerencialogistica", "auxiliarlogistica2", "auxiliarlogistica1", "torrecontrollogistica", "laboratorio"], 
                             icon: <img src={despachoSalidaIcon} alt="Despacho" style={{ width: 25, height: 25 }} /> },
                         {
                             text: 'Recepción',
@@ -377,6 +379,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             text: 'SIG & TH', roles: ["admin", "developer", "sistemadegestion", "gerente"], icon: <img src={weightliftIcon} alt="plantadeaguas" style={{ width: 25, height: 25 }} />, key: 'sistemadegestionytalentohumano', subItems: [
                 { text: 'Medidores Aguas', subKey: 'registrodemedidoressig', roles: ["admin", "developer", "supervisor", "operarioaguas", "sistemadegestion"], icon: <img src={CounterIcon} alt="Medidores" style={{ width: 25, height: 25 }} /> },
                 { text: 'Postulaciones', subKey: 'postulacionesambiocom', roles: ["admin", "developer", "sistemadegestion"], icon: <img src={IconBusquedaEmpleo} alt="Medidores" style={{ width: 25, height: 25 }} /> },
+                { text: 'Adm. Vacantes', subKey: 'vacantesambiocomwebflow', roles: ["admin", "developer", "sistemadegestion"], icon: <img src={IconBusquedaEmpleo} alt="Medidores" style={{ width: 25, height: 25 }} /> },
             ],
         },
         {
@@ -419,7 +422,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
         {
             text: 'Niveles Tanques',
             key: 'tanquesniveles',
-            roles: ["admin", "developer", "comercial"],
+            roles: ["admin", "developer", "comercial", "analistadecostoseinventarios", "gerencialogistica"],
             icon: <img src={tanqueIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
             subItems: [
                 { text: 'MONITOREO SCADA', subKey: 'nivelestanquesscada', icon: <Box sx={{ position: "relative", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}><img src={IconSCADANiveles} alt="SCADA" style={{ width: 27, height: 27 }} /><Box sx={{ position: "absolute", top: -3, right: -4, width: 13, height: 13, borderRadius: "50%", bgcolor: "#00E676", border: "2px solid white", boxShadow: "0 0 10px 3px rgba(0,230,118,0.7)", animation: "scadaPulse 1.5s ease-out infinite", "&::after": { content: '""', position: "absolute", inset: -3, borderRadius: "50%", border: "2px solid #00E676", animation: "scadaRing 1.5s ease-out infinite" }, "@keyframes scadaPulse": { "0%, 100%": { transform: "scale(1)", opacity: 1 }, "50%": { transform: "scale(1.25)", opacity: 0.85 } }, "@keyframes scadaRing": { "0%": { transform: "scale(0.8)", opacity: 0.9 }, "100%": { transform: "scale(2.4)", opacity: 0 } } }} /></Box> }, { text: 'UNIDAD 100', subKey: 'nivelesunidadcien', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={VesselTkIcon} alt="nivelesunidadtrecien" style={{ width: 25, height: 25 }} /> },
@@ -447,12 +450,13 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'Energia CON', subKey: 'energiaambiocom', /* roles: ["admin","energia"], */ icon: <img src={EnergyDataIcon} alt="Energia" style={{ width: 25, height: 25 }} /> },
             ],
         },
-        { text: 'Registro Trabajadores', roles: ["admin", "developer"], icon: <img src={workerIcon} alt="empleadosambiocom" style={{ width: 25, height: 25 }} />, key: 'empleadosambiocom' },
+        { text: 'Registro Trabajadores', roles: ["admin", "developer", "supervisor"], icon: <img src={workerIcon} alt="empleadosambiocom" style={{ width: 25, height: 25 }} />, key: 'empleadosambiocom' },
         {
-            text: 'Administrator DEV', roles: ["admin", "developer", "liderlogistica"], icon: <img src={DevIcon} alt="basededatos" style={{ width: 25, height: 25 }} />, key: 'basededatoscomponent',
+            text: 'Administrator DEV', roles: ["admin", "developer", "liderlogistica", "gerencialogistica"], icon: <img src={DevIcon} alt="basededatos" style={{ width: 25, height: 25 }} />, key: 'basededatoscomponent',
             subItems: [
                 { text: 'Task & Reqeriments', subKey: 'taskandrequeriments', roles: ["admin", "developer"], icon: <img src={ListToDoIcon} alt="taskandrequeriments" style={{ width: 25, height: 25 }} /> },
-                { text: 'R-I-C-E', subKey: 'ricescrum', roles: ["admin", "developer", "liderlogistica"], icon: <img src={ListToDoIcon} alt="taskandrequeriments" style={{ width: 25, height: 25 }} /> },
+                { text: 'R-I-C-E', subKey: 'ricescrum', roles: ["admin", "developer", "liderlogistica", "gerencialogistica"], icon: <img src={ListToDoIcon} alt="taskandrequeriments" style={{ width: 25, height: 25 }} /> },
+                { text: 'CMS_WEBFLOW', subKey: 'exploradorwebflowcms', roles: ["admin", "developer",], icon: <img src={ListToDoIcon} alt="exploradorwebflowcms" style={{ width: 25, height: 25 }} /> },
                 { text: 'Base de datos', subKey: 'basededatos', roles: ["admin", "developer"], icon: <img src={DatabaseAdministratorIcon} alt="basededatos" style={{ width: 25, height: 25 }} /> },
                 { text: 'Logs Traffic', subKey: 'logstraffic', roles: ["admin", "developer"], icon: <img src={logsIcon} alt="logstraffic" style={{ width: 25, height: 25 }} /> },
             ],
@@ -590,6 +594,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             // SIG & TH
             case 'registrodemedidoressig': return <TablaMedicionesAgua />;
             case 'postulacionesambiocom': return <GestionPostulacionesWebflow />;
+            case 'vacantesambiocomwebflow': return <GestionVacantesWebflowCMS />;
             // Comerciale
             case 'nivelestanquesjornalerospaginavistacomercial': return <GraficoNivelesTanquesPorDiaPageComponente NivelesTanquesContext={nivelesTanques} />;
             case 'conductoresreadonly': return <ConductoresReadOnlyPage />;
@@ -600,6 +605,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'basededatos': return <ConsultasHttpDb />;
             case 'logstraffic': return <TrafficLogViewer />;
             case 'ricescrum': return <RiceBacklogManager />;
+            case 'exploradorwebflowcms': return <ExploradorWebflowCMSDeveloper />;
             //pagina mantenimiento
             case 'modulomantenimiento': return <ModuloEnMantenimiento />;
             //pausa activaricescrum

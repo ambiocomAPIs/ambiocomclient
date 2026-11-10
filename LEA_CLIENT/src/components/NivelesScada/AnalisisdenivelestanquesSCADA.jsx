@@ -48,8 +48,6 @@ const hoja = { bgcolor: "#fff", border: "1px solid #e7eef7", borderRadius: 2, bo
 const n = (v) => v === null || v === undefined || v === "" ? null : Number.isFinite(Number(v)) ? Number(v) : null;
 const positivo = (v) => { const num = n(v?.$numberDecimal ?? v); return num !== null && num > 0 ? num : null; };
 
-
-
 const redondear = (valor, decimales = 2) => {
   const numero = n(valor);
   if (numero == null) return null;

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import axios from 'axios';
 
@@ -21,6 +21,7 @@ import {
 
 const ESTADOS = [
   { value: 'RECIBIDA', label: 'Recibida', color: '#64748B', bg: '#EDF1F5' },
+  { value: 'VISTA', label: 'Vista', color: '#427FAE', bg: '#E8F3FC' },
   { value: 'EN_REVISION', label: 'En revisión', color: '#B7791F', bg: '#FFF3DC' },
   { value: 'PRESELECCIONADA', label: 'Preseleccionada', color: '#3975B7', bg: '#E9F2FE' },
   { value: 'ENTREVISTA', label: 'Entrevista', color: '#8556B9', bg: '#F2EBFB' },
@@ -58,6 +59,7 @@ function exportCsv(items) {
 export default function GestionPostulacionesWebflow({
   endpointListado = "https://ambiocomserver.onrender.com/api/postulaciones/postulaciones",
   construirEndpointEstado = id => `https://ambiocomserver.onrender.com/api/postulaciones/postulaciones/${encodeURIComponent(id)}/estado`,
+  construirEndpointVista = id => `https://ambiocomserver.onrender.com/api/postulaciones/postulaciones/${encodeURIComponent(id)}/vista`,
   titulo = 'Centro de postulaciones',
 }) {
 
@@ -70,6 +72,9 @@ export default function GestionPostulacionesWebflow({
   const [page, setPage] = useState(1), [pageSize, setPageSize] = useState(10), [selectedIds, setSelectedIds] = useState([]);
   const [activeId, setActiveId] = useState(null), [draftState, setDraftState] = useState('RECIBIDA'), [drawerTab, setDrawerTab] = useState(0);
   const [showAdvanced, setShowAdvanced] = useState(false), [vacanciesExpanded, setVacanciesExpanded] = useState(true);
+  const [vistasPendientes, setVistasPendientes] = useState(new Set());
+  const estaMarcandoVista = id => vistasPendientes.has(id); const fichaActualRef = useRef(null);
+  const vistasEnProcesoRef = useRef(new Set());
   const load = useCallback(async (signal) => {
 
     setBusy(true); setError('');
@@ -96,18 +101,90 @@ export default function GestionPostulacionesWebflow({
     const text = normalize([p.aspirante?.nombreCompleto, p.aspirante?.correoPersonal, p.aspirante?.contactoPersonal, p.vacante?.titulo, p.vacante?.ciudad, p.webflowSubmissionId].join(' '));
     const day = dayOf(p.fechaPostulacion || p.createdAt);
 
-    return (!query || text.includes(normalize(query))) && (vacancy === 'TODAS' || p.vacante?.titulo === vacancy) && (status === 'TODOS' || (status === 'PENDIENTES' && ['RECIBIDA', 'EN_REVISION'].includes(p.estado)) || (status === 'EN_PROCESO' && ['PRESELECCIONADA', 'ENTREVISTA', 'EVALUACION'].includes(p.estado)) || (status === 'ELEGIDAS' && ['SELECCIONADA', 'CONTRATADA'].includes(p.estado)) || p.estado === status) && (!startDate || (day && day >= startDate)) && (!endDate || (day && day <= endDate));
+    return (!query || text.includes(normalize(query))) && (vacancy === 'TODAS' || p.vacante?.titulo === vacancy) && (status === 'TODOS' || (status === 'PENDIENTES' && ['RECIBIDA', 'VISTA', 'EN_REVISION'].includes(p.estado)) || (status === 'EN_PROCESO' && ['PRESELECCIONADA', 'ENTREVISTA', 'EVALUACION'].includes(p.estado)) || (status === 'ELEGIDAS' && ['SELECCIONADA', 'CONTRATADA'].includes(p.estado)) || p.estado === status) && (!startDate || (day && day >= startDate)) && (!endDate || (day && day <= endDate));
 
   }).sort((a, b) => sortBy === 'nombre' ? (a.aspirante?.nombreCompleto || '').localeCompare(b.aspirante?.nombreCompleto || '', 'es') : sortBy === 'antiguos' ? (dateOf(a.fechaPostulacion || a.createdAt)?.getTime() || 0) - (dateOf(b.fechaPostulacion || b.createdAt)?.getTime() || 0) : (dateOf(b.fechaPostulacion || b.createdAt)?.getTime() || 0) - (dateOf(a.fechaPostulacion || a.createdAt)?.getTime() || 0)), [records, query, vacancy, status, startDate, endDate, sortBy]);
 
-  const summary = useMemo(() => ({ total: filtered.length, pending: filtered.filter(p => ['RECIBIDA', 'EN_REVISION'].includes(p.estado)).length, process: filtered.filter(p => ['PRESELECCIONADA', 'ENTREVISTA', 'EVALUACION'].includes(p.estado)).length, chosen: filtered.filter(p => ['SELECCIONADA', 'CONTRATADA'].includes(p.estado)).length }), [filtered]);
+  const summary = useMemo(() => ({ total: filtered.length, pending: filtered.filter(p => ['RECIBIDA', 'VISTA', 'EN_REVISION'].includes(p.estado)).length, process: filtered.filter(p => ['PRESELECCIONADA', 'ENTREVISTA', 'EVALUACION'].includes(p.estado)).length, chosen: filtered.filter(p => ['SELECCIONADA', 'CONTRATADA'].includes(p.estado)).length }), [filtered]);
   const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
   const reset = () => { setQuery(''); setVacancy('TODAS'); setStatus('TODOS'); setStartDate(''); setEndDate(''); setSortBy('recientes'); };
-  const openDetails = p => { setActiveId(idOf(p)); setDraftState(p.estado || 'RECIBIDA'); setDrawerTab(0); };
+
+  const openDetails = async (p) => {
+    const id = idOf(p);
+    if (!id) return;
+
+    fichaActualRef.current = id;
+    setActiveId(id);
+    setDrawerTab(0);
+
+    const requiereVista = p.estado === 'RECIBIDA';
+
+    setDraftState(requiereVista ? 'VISTA' : (p.estado || 'RECIBIDA'));
+
+    if (!requiereVista || vistasEnProcesoRef.current.has(id)) {
+      return;
+    }
+
+    vistasEnProcesoRef.current.add(id);
+    setVistasPendientes(prev => new Set([...prev, id]));
+
+    try {
+      const { data } = await axios.patch(
+        construirEndpointVista(id),
+        {},
+        { withCredentials: true }
+      );
+
+      if (!data?.ok || !data?.postulacion) {
+        throw new Error("Respuesta inválida del servidor.");
+      }
+
+      const actualizada = data.postulacion;
+
+      setRecords(old => old.map(item =>
+        idOf(item) === id
+          ? { ...item, ...actualizada }
+          : item
+      ));
+
+      if (fichaActualRef.current === id) {
+        setDraftState(prev =>
+          prev === 'VISTA'
+            ? actualizada.estado
+            : prev
+        );
+      }
+
+    } catch (e) {
+      if (fichaActualRef.current === id) {
+        setDraftState(prev =>
+          prev === 'VISTA' ? 'RECIBIDA' : prev
+        );
+      }
+
+      setError(
+        e.response?.data?.message ||
+        e.message ||
+        'No fue posible marcar la postulación como vista.'
+      );
+
+    } finally {
+      vistasEnProcesoRef.current.delete(id);
+      setVistasPendientes(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
   const openResume = p => { const url = p?.hojaVida?.urlWebflow; try { const u = new URL(url); if (u.protocol !== 'https:') throw new Error(); window.open(u.href, '_blank', 'noopener,noreferrer'); } catch { setNotice('No hay una URL HTTPS válida para esta hoja de vida.'); } };
   const saveState = async () => {
 
-    if (!active || draftState === active.estado) return;
+    if (
+      !active ||
+      draftState === active.estado ||
+      estaMarcandoVista(idOf(active))
+    ) return;
 
     setSaving(true);
 
@@ -558,7 +635,7 @@ export default function GestionPostulacionesWebflow({
                   <MenuItem value="TODAS">Todas las vacantes</MenuItem>
                   {vacancyStats.map(v => <MenuItem key={v.title} value={v.title}>{v.title}</MenuItem>)}
                 </TextField>
-                
+
                 <TextField size="small" type="date" label="Desde" value={startDate}
                   onChange={e => setStartDate(e.target.value)}
                   InputLabelProps={{ shrink: true }} sx={controlSx} />
@@ -856,420 +933,426 @@ export default function GestionPostulacionesWebflow({
     </Box>
 
 
-<Drawer
-  anchor="right"
-  open={!!active}
-  onClose={() => !saving && setActiveId(null)}
-  PaperProps={{
-    sx: {
-      width: { xs: '100%', sm: 590 },
-      bgcolor: '#F5F8FC',
-      boxShadow: '-12px 0 45px rgba(23,49,80,.16)'
-    }
-  }}
->
-  {active && (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* ENCABEZADO */}
-      <Box sx={{
-        position: 'relative',
-        overflow: 'hidden',
-        p: { xs: 2.3, sm: 2.8 },
-        pb: 3,
-        background: 'linear-gradient(125deg,#203B5B 0%,#345E80 65%,#477E9A 100%)',
-        color: '#FFFFFF'
-      }}>
-        <Box sx={{
-          position: 'absolute', width: 200, height: 200,
-          borderRadius: '50%', top: -110, right: -70,
-          bgcolor: 'rgba(255,255,255,.055)', pointerEvents: 'none'
-        }} />
-        <Box sx={{
-          position: 'absolute', width: 140, height: 140,
-          borderRadius: '50%', bottom: -95, right: 100,
-          bgcolor: 'rgba(255,255,255,.045)', pointerEvents: 'none'
-        }} />
-
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <Box sx={{
-              width: 7, height: 7, borderRadius: '50%',
-              bgcolor: '#8BD1CA', boxShadow: '0 0 0 4px rgba(139,209,202,.15)'
-            }} />
-            <Typography sx={{
-              fontSize: 10.5, letterSpacing: 1.5,
-              fontWeight: 850, color: '#D1E3EF'
-            }}>
-              FICHA DEL ASPIRANTE
-            </Typography>
-          </Stack>
-          <IconButton
-            size="small"
-            onClick={() => setActiveId(null)}
-            disabled={saving}
-            sx={{
-              color: '#FFFFFF',
-              bgcolor: 'rgba(255,255,255,.12)',
-              border: '1px solid rgba(255,255,255,.13)',
-              '&:hover': { bgcolor: 'rgba(255,255,255,.22)' }
-            }}
-          >
-            <CloseRounded fontSize="small" />
-          </IconButton>
-        </Stack>
-
-        <Stack direction="row" spacing={1.8} alignItems="center" sx={{ mt: 2.7, position: 'relative' }}>
-          <Avatar sx={{
-            width: 66, height: 66,
-            bgcolor: 'rgba(255,255,255,.16)',
-            border: '2px solid rgba(255,255,255,.35)',
-            boxShadow: '0 5px 18px rgba(10,30,55,.15)',
-            fontSize: 22, fontWeight: 850
+    <Drawer
+      anchor="right"
+      open={!!active}
+      onClose={() => !saving && setActiveId(null)}
+      PaperProps={{
+        sx: {
+          width: { xs: '100%', sm: 590 },
+          bgcolor: '#F5F8FC',
+          boxShadow: '-12px 0 45px rgba(23,49,80,.16)'
+        }
+      }}
+    >
+      {active && (
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          {/* ENCABEZADO */}
+          <Box sx={{
+            position: 'relative',
+            overflow: 'hidden',
+            p: { xs: 2.3, sm: 2.8 },
+            pb: 3,
+            background: 'linear-gradient(125deg,#203B5B 0%,#345E80 65%,#477E9A 100%)',
+            color: '#FFFFFF'
           }}>
-            {initials(active.aspirante?.nombreCompleto)}
-          </Avatar>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography sx={{
-              fontSize: { xs: 19, sm: 22 }, fontWeight: 850,
-              lineHeight: 1.2, letterSpacing: '-.4px',
-              overflowWrap: 'anywhere'
-            }}>
-              {active.aspirante?.nombreCompleto || 'Aspirante'}
-            </Typography>
-            <Typography sx={{
-              fontSize: 11.5, color: '#D0E0EE',
-              mt: .6, overflowWrap: 'anywhere'
-            }}>
-              {active.vacante?.titulo || 'Sin vacante registrada'}
-            </Typography>
-            <Box sx={{ mt: 1.1 }}>
-              <StateChip value={active.estado} />
-            </Box>
-          </Box>
-        </Stack>
-      </Box>
+            <Box sx={{
+              position: 'absolute', width: 200, height: 200,
+              borderRadius: '50%', top: -110, right: -70,
+              bgcolor: 'rgba(255,255,255,.055)', pointerEvents: 'none'
+            }} />
+            <Box sx={{
+              position: 'absolute', width: 140, height: 140,
+              borderRadius: '50%', bottom: -95, right: 100,
+              bgcolor: 'rgba(255,255,255,.045)', pointerEvents: 'none'
+            }} />
 
-      {/* NAVEGACIÓN */}
-      <Tabs
-        value={drawerTab}
-        onChange={(_, v) => setDrawerTab(v)}
-        variant="fullWidth"
-        sx={{
-          bgcolor: '#FFFFFF',
-          borderBottom: '1px solid #E5EBF3',
-          minHeight: 54,
-          '& .MuiTabs-indicator': {
-            height: 3, borderRadius: '4px 4px 0 0',
-            bgcolor: '#487FAE'
-          },
-          '& .MuiTab-root': {
-            minHeight: 54, fontSize: 12,
-            textTransform: 'none', fontWeight: 800,
-            color: '#91A0AF', transition: 'color .2s'
-          },
-          '& .Mui-selected': { color: '#386F9D !important' }
-        }}
-      >
-        <Tab icon={<PersonOutlineRounded sx={{ fontSize: 18 }} />} iconPosition="start" label="Perfil" />
-        <Tab icon={<TuneRounded sx={{ fontSize: 18 }} />} iconPosition="start" label="Proceso" />
-        <Tab icon={<DescriptionRounded sx={{ fontSize: 18 }} />} iconPosition="start" label="Documento" />
-      </Tabs>
-
-      {/* CONTENIDO */}
-      <Box sx={{
-        p: { xs: 1.8, sm: 2.4 },
-        overflowY: 'auto', flex: 1,
-        '&::-webkit-scrollbar': { width: 5 },
-        '&::-webkit-scrollbar-thumb': { bgcolor: '#C5D5E4', borderRadius: 5 }
-      }}>
-        {drawerTab === 0 && (
-          <Stack spacing={1.8}>
-            {/* CONTACTO */}
-            <Paper elevation={0} sx={{
-              p: 2.3, borderRadius: 3,
-              bgcolor: '#FFFFFF', border: '1px solid #E5ECF4',
-              boxShadow: '0 3px 14px rgba(35,65,100,.035)'
-            }}>
-              <Typography sx={{ fontSize: 13.5, fontWeight: 850, color: '#2D4864', mb: 1.8 }}>
-                Información de contacto
-              </Typography>
-
-              {[
-                { icon: <EmailRounded fontSize="small" />, label: 'Correo electrónico', value: active.aspirante?.correoPersonal },
-                { icon: <PhoneRounded fontSize="small" />, label: 'Teléfono de contacto', value: active.aspirante?.contactoPersonal },
-                { icon: <EventOutlined fontSize="small" />, label: 'Fecha de postulación', value: dateTimeText(active.fechaPostulacion || active.createdAt) }
-              ].map((item, i) => (
-                <Stack key={i} direction="row" alignItems="center" gap={1.4} sx={{
-                  py: 1.1,
-                  borderBottom: i < 2 ? '1px solid #F0F3F7' : 'none'
-                }}>
-                  <Box sx={{
-                    width: 36, height: 36, borderRadius: 2,
-                    bgcolor: '#EDF4FB', color: '#658DB0',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    {item.icon}
-                  </Box>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography sx={{ fontSize: 10.5, color: '#9AA9B8', fontWeight: 650 }}>
-                      {item.label}
-                    </Typography>
-                    <Typography sx={{
-                      fontSize: 12.5, color: '#526C85',
-                      fontWeight: 650, mt: .2,
-                      overflowWrap: 'anywhere'
-                    }}>
-                      {item.value || '—'}
-                    </Typography>
-                  </Box>
-                </Stack>
-              ))}
-            </Paper>
-
-            {/* VACANTE */}
-            <Paper elevation={0} sx={{
-              p: 2.3, borderRadius: 3,
-              background: 'linear-gradient(140deg,#FFFFFF,#F8FBFF)',
-              border: '1px solid #DDE9F5',
-              boxShadow: '0 3px 14px rgba(35,65,100,.035)'
-            }}>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.6 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Stack direction="row" alignItems="center" spacing={1}>
                 <Box sx={{
-                  width: 31, height: 31, borderRadius: 1.8,
-                  bgcolor: '#E8F2FC', color: '#5985AC',
-                  display: 'grid', placeItems: 'center'
-                }}>
-                  <WorkOutlineRounded sx={{ fontSize: 18 }} />
-                </Box>
-                <Typography sx={{ fontSize: 13.5, fontWeight: 850, color: '#2D4864' }}>
-                  Vacante postulada
-                </Typography>
-              </Stack>
-
-              <Typography sx={{
-                fontWeight: 850, fontSize: 14,
-                color: '#355D82', lineHeight: 1.4
-              }}>
-                {active.vacante?.titulo || 'Sin información'}
-              </Typography>
-
-              <Stack direction="row" gap={.8} flexWrap="wrap" sx={{ mt: 1.5 }}>
-                {[
-                  active.vacante?.ciudad,
-                  active.vacante?.modalidad,
-                  active.vacante?.contrato
-                ].filter(Boolean).map((v, i) => (
-                  <Chip key={`${v}-${i}`} label={v} size="small" sx={{
-                    height: 25, fontSize: 10.5, fontWeight: 700,
-                    bgcolor: '#EDF4FB', color: '#6384A2',
-                    border: '1px solid #DBE8F5'
-                  }} />
-                ))}
-              </Stack>
-
-              <Box sx={{
-                mt: 2, pt: 1.5,
-                borderTop: '1px solid #E9F0F7',
-                display: 'flex', alignItems: 'center', gap: 1
-              }}>
-                <EventOutlined sx={{ fontSize: 17, color: '#91A8BB' }} />
-                <Typography sx={{ fontSize: 11.5, color: '#8296A9' }}>
-                  Cierre de la vacante: {dateText(active.vacante?.fechaCierre)}
-                </Typography>
-              </Box>
-            </Paper>
-
-            {/* COMENTARIOS */}
-            <Paper elevation={0} sx={{
-              p: 2.3, borderRadius: 3,
-              bgcolor: '#FFFFFF', border: '1px solid #E5ECF4'
-            }}>
-              <Typography sx={{
-                fontSize: 13.5, fontWeight: 850,
-                color: '#2D4864', mb: 1.5
-              }}>
-                Comentarios del aspirante
-              </Typography>
-              <Box sx={{
-                p: 1.8, bgcolor: '#F6F9FD',
-                borderRadius: 2, borderLeft: '3px solid #8DB4D3'
-              }}>
+                  width: 7, height: 7, borderRadius: '50%',
+                  bgcolor: '#8BD1CA', boxShadow: '0 0 0 4px rgba(139,209,202,.15)'
+                }} />
                 <Typography sx={{
-                  fontSize: 12.5, lineHeight: 1.8,
-                  color: '#6D8196',
-                  whiteSpace: 'pre-wrap', overflowWrap: 'anywhere'
+                  fontSize: 10.5, letterSpacing: 1.5,
+                  fontWeight: 850, color: '#D1E3EF'
                 }}>
-                  {active.aspirante?.expectativasComentarios || 'Sin comentarios registrados.'}
+                  FICHA DEL ASPIRANTE
                 </Typography>
-              </Box>
-            </Paper>
-          </Stack>
-        )}
-
-        {/* PROCESO DE SELECCIÓN */}
-        {drawerTab === 1 && (
-          <Stack spacing={1.8}>
-            <Paper elevation={0} sx={{
-              p: 2.5, borderRadius: 3,
-              border: '1px solid #E2EAF3',
-              bgcolor: '#FFFFFF'
-            }}>
-              <Box sx={{
-                width: 45, height: 45, borderRadius: 2.3,
-                background: 'linear-gradient(135deg,#E4F0FC,#D8E8F8)',
-                display: 'grid', placeItems: 'center', mb: 1.7
-              }}>
-                <TuneRounded sx={{ color: '#527FA5', fontSize: 24 }} />
-              </Box>
-
-              <Typography sx={{ fontWeight: 850, fontSize: 15, color: '#2D4864' }}>
-                Seguimiento de selección
-              </Typography>
-              <Typography sx={{ fontSize: 12, color: '#8B9CAC', mt: .5, lineHeight: 1.6 }}>
-                Actualiza la etapa del proceso de selección en la que se encuentra este aspirante.
-              </Typography>
-
-              <Box sx={{
-                mt: 2, p: 1.5, borderRadius: 2,
-                bgcolor: '#F5F8FC', border: '1px solid #E8EEF5'
-              }}>
-                <Typography sx={{ fontSize: 10.5, fontWeight: 750, color: '#8D9EAE', mb: 1 }}>
-                  ETAPA REGISTRADA
-                </Typography>
-                <StateChip value={active.estado} />
-              </Box>
-
-              <TextField
-                select fullWidth label="Nueva etapa"
-                size="small" value={draftState}
-                onChange={e => setDraftState(e.target.value)}
-                sx={{ ...controlSx, mt: 2.5 }}
-              >
-                {ESTADOS.map(s => (
-                  <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
-                ))}
-              </TextField>
-
-              {draftState !== active.estado && (
-                <Box sx={{
-                  mt: 1.5, px: 1.5, py: 1.2,
-                  bgcolor: '#FFF8E9', border: '1px solid #F4E6BE',
-                  borderRadius: 2
-                }}>
-                  <Typography sx={{ fontSize: 11.5, color: '#9A772B', fontWeight: 650 }}>
-                    Tienes un cambio de etapa pendiente por guardar.
-                  </Typography>
-                </Box>
-              )}
-
-              <Button
-                fullWidth variant="contained"
-                disabled={saving || draftState === active.estado}
-                onClick={saveState}
+              </Stack>
+              <IconButton
+                size="small"
+                onClick={() => setActiveId(null)}
+                disabled={saving}
                 sx={{
-                  mt: 2.2, textTransform: 'none',
-                  background: 'linear-gradient(110deg,#315F86,#477FA4)',
-                  borderRadius: 2.3, fontWeight: 800,
-                  fontSize: 12.5, py: 1.3,
-                  boxShadow: '0 4px 12px rgba(46,98,143,.16)',
-                  '&:hover': {
-                    background: 'linear-gradient(110deg,#294F72,#3B7198)'
-                  }
+                  color: '#FFFFFF',
+                  bgcolor: 'rgba(255,255,255,.12)',
+                  border: '1px solid rgba(255,255,255,.13)',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,.22)' }
                 }}
               >
-                {saving ? 'Guardando...' : 'Guardar cambio de estado'}
-              </Button>
-            </Paper>
-          </Stack>
-        )}
+                <CloseRounded fontSize="small" />
+              </IconButton>
+            </Stack>
 
-        {/* DOCUMENTO */}
-        {drawerTab === 2 && (
-          <Paper elevation={0} sx={{
-            p: 3, borderRadius: 3,
-            textAlign: 'center',
-            background: 'linear-gradient(145deg,#FFFFFF,#F8FBFF)',
-            border: '1px solid #E0EAF4'
+            <Stack direction="row" spacing={1.8} alignItems="center" sx={{ mt: 2.7, position: 'relative' }}>
+              <Avatar sx={{
+                width: 66, height: 66,
+                bgcolor: 'rgba(255,255,255,.16)',
+                border: '2px solid rgba(255,255,255,.35)',
+                boxShadow: '0 5px 18px rgba(10,30,55,.15)',
+                fontSize: 22, fontWeight: 850
+              }}>
+                {initials(active.aspirante?.nombreCompleto)}
+              </Avatar>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography sx={{
+                  fontSize: { xs: 19, sm: 22 }, fontWeight: 850,
+                  lineHeight: 1.2, letterSpacing: '-.4px',
+                  overflowWrap: 'anywhere'
+                }}>
+                  {active.aspirante?.nombreCompleto || 'Aspirante'}
+                </Typography>
+                <Typography sx={{
+                  fontSize: 11.5, color: '#D0E0EE',
+                  mt: .6, overflowWrap: 'anywhere'
+                }}>
+                  {active.vacante?.titulo || 'Sin vacante registrada'}
+                </Typography>
+                <Box sx={{ mt: 1.1 }}>
+                  <StateChip value={active.estado} />
+                </Box>
+              </Box>
+            </Stack>
+          </Box>
+
+          {/* NAVEGACIÓN */}
+          <Tabs
+            value={drawerTab}
+            onChange={(_, v) => setDrawerTab(v)}
+            variant="fullWidth"
+            sx={{
+              bgcolor: '#FFFFFF',
+              borderBottom: '1px solid #E5EBF3',
+              minHeight: 54,
+              '& .MuiTabs-indicator': {
+                height: 3, borderRadius: '4px 4px 0 0',
+                bgcolor: '#487FAE'
+              },
+              '& .MuiTab-root': {
+                minHeight: 54, fontSize: 12,
+                textTransform: 'none', fontWeight: 800,
+                color: '#91A0AF', transition: 'color .2s'
+              },
+              '& .Mui-selected': { color: '#386F9D !important' }
+            }}
+          >
+            <Tab icon={<PersonOutlineRounded sx={{ fontSize: 18 }} />} iconPosition="start" label="Perfil" />
+            <Tab icon={<TuneRounded sx={{ fontSize: 18 }} />} iconPosition="start" label="Proceso" />
+            <Tab icon={<DescriptionRounded sx={{ fontSize: 18 }} />} iconPosition="start" label="Documento" />
+          </Tabs>
+
+          {/* CONTENIDO */}
+          <Box sx={{
+            p: { xs: 1.8, sm: 2.4 },
+            overflowY: 'auto', flex: 1,
+            '&::-webkit-scrollbar': { width: 5 },
+            '&::-webkit-scrollbar-thumb': { bgcolor: '#C5D5E4', borderRadius: 5 }
           }}>
-            <Box sx={{
-              mx: 'auto', width: 75, height: 75,
-              borderRadius: 3,
-              background: 'linear-gradient(135deg,#E5F1FC,#D9E9F8)',
-              color: '#4C7FA8',
-              display: 'grid', placeItems: 'center',
-              border: '1px solid #D3E5F5'
-            }}>
-              <DescriptionRounded sx={{ fontSize: 36 }} />
-            </Box>
+            {drawerTab === 0 && (
+              <Stack spacing={1.8}>
+                {/* CONTACTO */}
+                <Paper elevation={0} sx={{
+                  p: 2.3, borderRadius: 3,
+                  bgcolor: '#FFFFFF', border: '1px solid #E5ECF4',
+                  boxShadow: '0 3px 14px rgba(35,65,100,.035)'
+                }}>
+                  <Typography sx={{ fontSize: 13.5, fontWeight: 850, color: '#2D4864', mb: 1.8 }}>
+                    Información de contacto
+                  </Typography>
 
-            <Typography sx={{
-              fontSize: 16, fontWeight: 850,
-              color: '#304F6C', mt: 2
-            }}>
-              Hoja de vida del aspirante
-            </Typography>
+                  {[
+                    { icon: <EmailRounded fontSize="small" />, label: 'Correo electrónico', value: active.aspirante?.correoPersonal },
+                    { icon: <PhoneRounded fontSize="small" />, label: 'Teléfono de contacto', value: active.aspirante?.contactoPersonal },
+                    { icon: <EventOutlined fontSize="small" />, label: 'Fecha de postulación', value: dateTimeText(active.fechaPostulacion || active.createdAt) }
+                  ].map((item, i) => (
+                    <Stack key={i} direction="row" alignItems="center" gap={1.4} sx={{
+                      py: 1.1,
+                      borderBottom: i < 2 ? '1px solid #F0F3F7' : 'none'
+                    }}>
+                      <Box sx={{
+                        width: 36, height: 36, borderRadius: 2,
+                        bgcolor: '#EDF4FB', color: '#658DB0',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0
+                      }}>
+                        {item.icon}
+                      </Box>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography sx={{ fontSize: 10.5, color: '#9AA9B8', fontWeight: 650 }}>
+                          {item.label}
+                        </Typography>
+                        <Typography sx={{
+                          fontSize: 12.5, color: '#526C85',
+                          fontWeight: 650, mt: .2,
+                          overflowWrap: 'anywhere'
+                        }}>
+                          {item.value || '—'}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  ))}
+                </Paper>
 
-            <Typography sx={{
-              fontSize: 12, color: '#8C9EAF', mt: .7
-            }}>
-              {active.hojaVida?.estado || 'Sin referencia de archivo'}
-            </Typography>
+                {/* VACANTE */}
+                <Paper elevation={0} sx={{
+                  p: 2.3, borderRadius: 3,
+                  background: 'linear-gradient(140deg,#FFFFFF,#F8FBFF)',
+                  border: '1px solid #DDE9F5',
+                  boxShadow: '0 3px 14px rgba(35,65,100,.035)'
+                }}>
+                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.6 }}>
+                    <Box sx={{
+                      width: 31, height: 31, borderRadius: 1.8,
+                      bgcolor: '#E8F2FC', color: '#5985AC',
+                      display: 'grid', placeItems: 'center'
+                    }}>
+                      <WorkOutlineRounded sx={{ fontSize: 18 }} />
+                    </Box>
+                    <Typography sx={{ fontSize: 13.5, fontWeight: 850, color: '#2D4864' }}>
+                      Vacante postulada
+                    </Typography>
+                  </Stack>
 
-            <Box sx={{
-              mt: 2, mb: 2.2, px: 2, py: 1.5,
-              bgcolor: '#F2F7FC', borderRadius: 2,
-              border: '1px solid #E1EBF5'
-            }}>
-              <Typography sx={{ fontSize: 11.5, color: '#7890A5', lineHeight: 1.6 }}>
-                Consulta el documento PDF proporcionado por el aspirante durante su postulación.
-              </Typography>
-            </Box>
+                  <Typography sx={{
+                    fontWeight: 850, fontSize: 14,
+                    color: '#355D82', lineHeight: 1.4
+                  }}>
+                    {active.vacante?.titulo || 'Sin información'}
+                  </Typography>
 
-            <Button
-              onClick={() => openResume(active)}
-              disabled={!active.hojaVida?.urlWebflow}
-              variant="contained"
-              startIcon={<OpenInNewRounded />}
-              sx={{
-                background: 'linear-gradient(110deg,#315F86,#477FA4)',
-                textTransform: 'none', borderRadius: 2.3,
-                fontWeight: 800, fontSize: 12,
-                px: 3, py: 1.3,
-                boxShadow: '0 5px 14px rgba(49,95,134,.16)',
-                '&:hover': { background: 'linear-gradient(110deg,#294F72,#3B7198)' }
-              }}
-            >
-              Abrir PDF de Webflow
-            </Button>
+                  <Stack direction="row" gap={.8} flexWrap="wrap" sx={{ mt: 1.5 }}>
+                    {[
+                      active.vacante?.ciudad,
+                      active.vacante?.modalidad,
+                      active.vacante?.contrato
+                    ].filter(Boolean).map((v, i) => (
+                      <Chip key={`${v}-${i}`} label={v} size="small" sx={{
+                        height: 25, fontSize: 10.5, fontWeight: 700,
+                        bgcolor: '#EDF4FB', color: '#6384A2',
+                        border: '1px solid #DBE8F5'
+                      }} />
+                    ))}
+                  </Stack>
 
-            {!active.hojaVida?.urlWebflow && (
-              <Typography sx={{ mt: 1.5, fontSize: 11, color: '#A0ADBA' }}>
-                No hay un documento disponible para esta postulación.
-              </Typography>
+                  <Box sx={{
+                    mt: 2, pt: 1.5,
+                    borderTop: '1px solid #E9F0F7',
+                    display: 'flex', alignItems: 'center', gap: 1
+                  }}>
+                    <EventOutlined sx={{ fontSize: 17, color: '#91A8BB' }} />
+                    <Typography sx={{ fontSize: 11.5, color: '#8296A9' }}>
+                      Cierre de la vacante: {dateText(active.vacante?.fechaCierre)}
+                    </Typography>
+                  </Box>
+                </Paper>
+
+                {/* COMENTARIOS */}
+                <Paper elevation={0} sx={{
+                  p: 2.3, borderRadius: 3,
+                  bgcolor: '#FFFFFF', border: '1px solid #E5ECF4'
+                }}>
+                  <Typography sx={{
+                    fontSize: 13.5, fontWeight: 850,
+                    color: '#2D4864', mb: 1.5
+                  }}>
+                    Comentarios del aspirante
+                  </Typography>
+                  <Box sx={{
+                    p: 1.8, bgcolor: '#F6F9FD',
+                    borderRadius: 2, borderLeft: '3px solid #8DB4D3'
+                  }}>
+                    <Typography sx={{
+                      fontSize: 12.5, lineHeight: 1.8,
+                      color: '#6D8196',
+                      whiteSpace: 'pre-wrap', overflowWrap: 'anywhere'
+                    }}>
+                      {active.aspirante?.expectativasComentarios || 'Sin comentarios registrados.'}
+                    </Typography>
+                  </Box>
+                </Paper>
+              </Stack>
             )}
-          </Paper>
-        )}
-      </Box>
 
-      {/* PIE DE FICHA */}
-      <Box sx={{
-        px: 2.5, py: 1.3,
-        bgcolor: '#FFFFFF',
-        borderTop: '1px solid #E5ECF4'
-      }}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between">
-          <Typography sx={{ fontSize: 10.5, color: '#A1AFBD' }}>
-            Coclí · Gestión de Talento Humano
-          </Typography>
-          <Typography sx={{ fontSize: 10.5, color: '#A1AFBD' }}>
-            Ficha de postulación
-          </Typography>
-        </Stack>
-      </Box>
-    </Box>
-  )}
-</Drawer>
+            {/* PROCESO DE SELECCIÓN */}
+            {drawerTab === 1 && (
+              <Stack spacing={1.8}>
+                <Paper elevation={0} sx={{
+                  p: 2.5, borderRadius: 3,
+                  border: '1px solid #E2EAF3',
+                  bgcolor: '#FFFFFF'
+                }}>
+                  <Box sx={{
+                    width: 45, height: 45, borderRadius: 2.3,
+                    background: 'linear-gradient(135deg,#E4F0FC,#D8E8F8)',
+                    display: 'grid', placeItems: 'center', mb: 1.7
+                  }}>
+                    <TuneRounded sx={{ color: '#527FA5', fontSize: 24 }} />
+                  </Box>
+
+                  <Typography sx={{ fontWeight: 850, fontSize: 15, color: '#2D4864' }}>
+                    Seguimiento de selección
+                  </Typography>
+                  <Typography sx={{ fontSize: 12, color: '#8B9CAC', mt: .5, lineHeight: 1.6 }}>
+                    Actualiza la etapa del proceso de selección en la que se encuentra este aspirante.
+                  </Typography>
+
+                  <Box sx={{
+                    mt: 2, p: 1.5, borderRadius: 2,
+                    bgcolor: '#F5F8FC', border: '1px solid #E8EEF5'
+                  }}>
+                    <Typography sx={{ fontSize: 10.5, fontWeight: 750, color: '#8D9EAE', mb: 1 }}>
+                      ETAPA REGISTRADA
+                    </Typography>
+                    <StateChip value={active.estado} />
+                  </Box>
+
+                  <TextField
+                    select fullWidth label="Nueva etapa"
+                    size="small"
+                    value={draftState}
+                    onChange={e => setDraftState(e.target.value)}
+                    disabled={estaMarcandoVista(idOf(active))}
+                    sx={{ ...controlSx, mt: 2.5 }}
+                  >
+                    {ESTADOS.map(s => (
+                      <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
+                    ))}
+                  </TextField>
+
+                  {draftState !== active.estado && (
+                    <Box sx={{
+                      mt: 1.5, px: 1.5, py: 1.2,
+                      bgcolor: '#FFF8E9', border: '1px solid #F4E6BE',
+                      borderRadius: 2
+                    }}>
+                      <Typography sx={{ fontSize: 11.5, color: '#9A772B', fontWeight: 650 }}>
+                        Tienes un cambio de etapa pendiente por guardar.
+                      </Typography>
+                    </Box>
+                  )}
+
+                  <Button
+                    fullWidth variant="contained"
+                    disabled={
+                      saving ||
+                      estaMarcandoVista(idOf(active)) ||
+                      draftState === active.estado
+                    }
+                    onClick={saveState}
+                    sx={{
+                      mt: 2.2, textTransform: 'none',
+                      background: 'linear-gradient(110deg,#315F86,#477FA4)',
+                      borderRadius: 2.3, fontWeight: 800,
+                      fontSize: 12.5, py: 1.3,
+                      boxShadow: '0 4px 12px rgba(46,98,143,.16)',
+                      '&:hover': {
+                        background: 'linear-gradient(110deg,#294F72,#3B7198)'
+                      }
+                    }}
+                  >
+                    {saving ? 'Guardando...' : 'Guardar cambio de estado'}
+                  </Button>
+                </Paper>
+              </Stack>
+            )}
+
+            {/* DOCUMENTO */}
+            {drawerTab === 2 && (
+              <Paper elevation={0} sx={{
+                p: 3, borderRadius: 3,
+                textAlign: 'center',
+                background: 'linear-gradient(145deg,#FFFFFF,#F8FBFF)',
+                border: '1px solid #E0EAF4'
+              }}>
+                <Box sx={{
+                  mx: 'auto', width: 75, height: 75,
+                  borderRadius: 3,
+                  background: 'linear-gradient(135deg,#E5F1FC,#D9E9F8)',
+                  color: '#4C7FA8',
+                  display: 'grid', placeItems: 'center',
+                  border: '1px solid #D3E5F5'
+                }}>
+                  <DescriptionRounded sx={{ fontSize: 36 }} />
+                </Box>
+
+                <Typography sx={{
+                  fontSize: 16, fontWeight: 850,
+                  color: '#304F6C', mt: 2
+                }}>
+                  Hoja de vida del aspirante
+                </Typography>
+
+                <Typography sx={{
+                  fontSize: 12, color: '#8C9EAF', mt: .7
+                }}>
+                  {active.hojaVida?.estado || 'Sin referencia de archivo'}
+                </Typography>
+
+                <Box sx={{
+                  mt: 2, mb: 2.2, px: 2, py: 1.5,
+                  bgcolor: '#F2F7FC', borderRadius: 2,
+                  border: '1px solid #E1EBF5'
+                }}>
+                  <Typography sx={{ fontSize: 11.5, color: '#7890A5', lineHeight: 1.6 }}>
+                    Consulta el documento PDF proporcionado por el aspirante durante su postulación.
+                  </Typography>
+                </Box>
+
+                <Button
+                  onClick={() => openResume(active)}
+                  disabled={!active.hojaVida?.urlWebflow}
+                  variant="contained"
+                  startIcon={<OpenInNewRounded />}
+                  sx={{
+                    background: 'linear-gradient(110deg,#315F86,#477FA4)',
+                    textTransform: 'none', borderRadius: 2.3,
+                    fontWeight: 800, fontSize: 12,
+                    px: 3, py: 1.3,
+                    boxShadow: '0 5px 14px rgba(49,95,134,.16)',
+                    '&:hover': { background: 'linear-gradient(110deg,#294F72,#3B7198)' }
+                  }}
+                >
+                  Abrir PDF de Webflow
+                </Button>
+
+                {!active.hojaVida?.urlWebflow && (
+                  <Typography sx={{ mt: 1.5, fontSize: 11, color: '#A0ADBA' }}>
+                    No hay un documento disponible para esta postulación.
+                  </Typography>
+                )}
+              </Paper>
+            )}
+          </Box>
+
+          {/* PIE DE FICHA */}
+          <Box sx={{
+            px: 2.5, py: 1.3,
+            bgcolor: '#FFFFFF',
+            borderTop: '1px solid #E5ECF4'
+          }}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between">
+              <Typography sx={{ fontSize: 10.5, color: '#A1AFBD' }}>
+                Coclí · Gestión de Talento Humano
+              </Typography>
+              <Typography sx={{ fontSize: 10.5, color: '#A1AFBD' }}>
+                Ficha de postulación
+              </Typography>
+            </Stack>
+          </Box>
+        </Box>
+      )}
+    </Drawer>
 
     <Snackbar open={!!notice} autoHideDuration={4500} onClose={() => setNotice('')} message={notice} />
   </Box>;

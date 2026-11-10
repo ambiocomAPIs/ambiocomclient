@@ -214,7 +214,7 @@ const inferirEstadoVehiculo = (lecturas = {}) => {
   return "";
 };
 
-const RESPONSABLE_RECIBO_ROLES = ["developer", "liderlogistica", "auxiliarlogistica2",];
+const RESPONSABLE_RECIBO_ROLES = ["developer", "liderlogistica", "gerencialogistica", "auxiliarlogistica2",];
 const LLEGADA_DESTINO_KEY = "llegada_destino";
 const PUNTUALIDAD_CLIENTE_KEY = "puntualidad_en_cliente";
 
@@ -681,7 +681,7 @@ const IngresoDataDespachoModal = ({
     if (!isAuth || !roleNorm) return false;
     // CONTROL ESPECÍFICO PARA FLETE FACTURADO
     if (col.key === FLETE_FACTURADO_KEY) {
-      const ROLES_FLETE_FACTURADO = ["developer", "liderlogistica", "auxiliarlogistica2", "torrecontrollogistica"];
+      const ROLES_FLETE_FACTURADO = ["developer", "liderlogistica", "gerencialogistica", "auxiliarlogistica2", "torrecontrollogistica"];
       return ROLES_FLETE_FACTURADO.includes(roleNorm);
     }
     // calculadas => siempre bloqueadas

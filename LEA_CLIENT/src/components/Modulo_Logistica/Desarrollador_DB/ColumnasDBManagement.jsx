@@ -40,7 +40,8 @@ const API_AUTH_VERIFY = "https://ambiocomserver.onrender.com/api/auth/verify-col
 // roles del select para despacho
 const ROLES = [
   "developer",
-  "liderlogistica",
+  "liderlogistica", "gerencialogistica",
+  
   "auxiliarlogistica1",
   "auxiliarlogistica2",
   "torrecontrollogistica",

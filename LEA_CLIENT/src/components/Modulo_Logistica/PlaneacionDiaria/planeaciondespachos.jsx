@@ -365,7 +365,7 @@ const obtenerPreferenciasCliente = (registros, catalogo) => {
 const ProgramacionDespachoDiariaPage = () => {
   const navigate = useNavigate();
   const { rol } = useAuth();
-  const canEditFechaEstimadaEntrega = ["developer", "comercial", "liderlogistica", "torrecontrollogistica"].includes(normalizeText(rol).toLowerCase());
+  const canEditFechaEstimadaEntrega = ["developer", "comercial", "liderlogistica", "gerencialogistica", "torrecontrollogistica"].includes(normalizeText(rol).toLowerCase());
   const [rows, setRows] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [formModalOpen, setFormModalOpen] = useState(false);
