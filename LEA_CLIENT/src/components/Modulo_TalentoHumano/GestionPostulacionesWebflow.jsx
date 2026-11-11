@@ -16,7 +16,7 @@ import {
   EmailRounded, PhoneRounded, CloseRounded, WorkOutlineRounded, CalendarMonthRounded,
   ChevronRightRounded, ArrowOutwardRounded, LocationOnOutlined, TuneRounded,
   AutoAwesomeRounded, PersonOutlineRounded, EventOutlined, CheckCircleOutlineRounded,
-  ContentCopyRounded, KeyboardArrowDownRounded
+  ContentCopyRounded, KeyboardArrowDownRounded, CakeOutlined
 } from '@mui/icons-material';
 
 const ESTADOS = [
@@ -46,8 +46,8 @@ const controlSx = { '& .MuiOutlinedInput-root': { borderRadius: '11px', bgcolor:
 function StateChip({ value }) { const m = meta(value); return <Chip size="small" label={m.label} sx={{ bgcolor: m.bg, color: m.color, fontWeight: 750, height: 26, borderRadius: '8px', '& .MuiChip-label': { px: 1.25 } }} />; }
 function exportCsv(items) {
 
-  const rows = [['ID', 'Fecha', 'Aspirante', 'Correo', 'Teléfono', 'Vacante', 'Ciudad', 'Modalidad', 'Contrato', 'Estado', 'Hoja de vida', 'Comentarios'], ...items.map(p => [
-    idOf(p), dateTimeText(p.fechaPostulacion || p.createdAt), p.aspirante?.nombreCompleto, p.aspirante?.correoPersonal, p.aspirante?.contactoPersonal, p.vacante?.titulo, p.vacante?.ciudad, p.vacante?.modalidad, p.vacante?.contrato, p.estado, p.hojaVida?.urlWebflow, p.aspirante?.expectativasComentarios
+  const rows = [['ID', 'Fecha', 'Aspirante', 'Correo', 'Teléfono', 'Edad', 'Municipio de residencia', 'Vacante', 'Ciudad', 'Modalidad', 'Contrato', 'Estado', 'Hoja de vida', 'Comentarios'], ...items.map(p => [
+    idOf(p), dateTimeText(p.fechaPostulacion || p.createdAt), p.aspirante?.nombreCompleto, p.aspirante?.correoPersonal, p.aspirante?.contactoPersonal, p.aspirante?.edad ?? '', p.aspirante?.municipioResidencia ?? '', p.vacante?.titulo, p.vacante?.ciudad, p.vacante?.modalidad, p.vacante?.contrato, p.estado, p.hojaVida?.urlWebflow, p.aspirante?.expectativasComentarios
   ])];
 
   const esc = v => `"${String(v ?? '').replace(/^[=+@\-\t\r]/, "'" + '$&').replaceAll('"', '""')}"`;
@@ -668,8 +668,8 @@ export default function GestionPostulacionesWebflow({
                           ? [...new Set([...old, ...visible.map(idOf)])]
                           : old.filter(id => !visible.some(p => idOf(p) === id)))}
                       />,
-                      'ASPIRANTE', 'VACANTE', 'POSTULACIÓN',
-                      'UBICACIÓN', 'ETAPA', 'DOCUMENTO', ''
+                      'ASPIRANTE', 'EDAD', 'VACANTE', 'POSTULACIÓN',
+                      'UBICACIÓN', 'RESIDENCIA', 'ETAPA', 'DOCUMENTO', ''
                     ].map((h, i) => (
                       <TableCell key={i} sx={{
                         bgcolor: '#F0F5FA',
@@ -728,6 +728,9 @@ export default function GestionPostulacionesWebflow({
                             </Box>
                           </Stack>
                         </TableCell>
+                        <TableCell sx={{ fontSize: 12, color: '#526E88', whiteSpace: 'nowrap' }}>
+                          {p.aspirante?.edad != null ? `${p.aspirante.edad} años` : '—'}
+                        </TableCell>
                         <TableCell>
                           <Tooltip title={p.vacante?.titulo || ''}>
                             <Typography sx={{
@@ -744,6 +747,9 @@ export default function GestionPostulacionesWebflow({
                         </TableCell>
                         <TableCell sx={{ fontSize: 12, color: '#7C8FA3', maxWidth: 165 }}>
                           {p.vacante?.ciudad || '—'}
+                        </TableCell>
+                        <TableCell sx={{ fontSize: 12, color: '#526E88', maxWidth: 190 }}>
+                          {p.aspirante?.municipioResidencia || '—'}
                         </TableCell>
                         <TableCell><StateChip value={p.estado} /></TableCell>
                         <TableCell>
@@ -773,7 +779,7 @@ export default function GestionPostulacionesWebflow({
                   })}
                   {!visible.length && (
                     <TableRow>
-                      <TableCell colSpan={8}>
+                      <TableCell colSpan={10}>
                         <Box sx={{ textAlign: 'center', py: 7 }}>
                           <Box sx={{
                             width: 62, height: 62, borderRadius: '50%',
@@ -1074,11 +1080,13 @@ export default function GestionPostulacionesWebflow({
                   {[
                     { icon: <EmailRounded fontSize="small" />, label: 'Correo electrónico', value: active.aspirante?.correoPersonal },
                     { icon: <PhoneRounded fontSize="small" />, label: 'Teléfono de contacto', value: active.aspirante?.contactoPersonal },
+                    { icon: <CakeOutlined fontSize="small" />, label: 'Edad', value: active.aspirante?.edad != null ? `${active.aspirante.edad} años` : '—' },
+                    { icon: <LocationOnOutlined fontSize="small" />, label: 'Municipio de residencia', value: active.aspirante?.municipioResidencia || '—' },
                     { icon: <EventOutlined fontSize="small" />, label: 'Fecha de postulación', value: dateTimeText(active.fechaPostulacion || active.createdAt) }
                   ].map((item, i) => (
                     <Stack key={i} direction="row" alignItems="center" gap={1.4} sx={{
                       py: 1.1,
-                      borderBottom: i < 2 ? '1px solid #F0F3F7' : 'none'
+                      borderBottom: i < 4 ? '1px solid #F0F3F7' : 'none'
                     }}>
                       <Box sx={{
                         width: 36, height: 36, borderRadius: 2,
