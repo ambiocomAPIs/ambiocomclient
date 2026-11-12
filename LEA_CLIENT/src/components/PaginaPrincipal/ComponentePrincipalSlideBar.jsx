@@ -376,10 +376,10 @@ export default function EmpresarialPrincipalSchedulerApp() {
             ],
         },
         {
-            text: 'SIG & TH', roles: ["admin", "developer", "sistemadegestion", "gerente"], icon: <img src={weightliftIcon} alt="plantadeaguas" style={{ width: 25, height: 25 }} />, key: 'sistemadegestionytalentohumano', subItems: [
-                { text: 'Medidores Aguas', subKey: 'registrodemedidoressig', roles: ["admin", "developer", "supervisor", "operarioaguas", "sistemadegestion"], icon: <img src={CounterIcon} alt="Medidores" style={{ width: 25, height: 25 }} /> },
-                { text: 'Postulaciones', subKey: 'postulacionesambiocom', roles: ["admin", "developer", "sistemadegestion"], icon: <img src={IconBusquedaEmpleo} alt="Medidores" style={{ width: 25, height: 25 }} /> },
-                { text: 'Adm. Vacantes', subKey: 'vacantesambiocomwebflow', roles: ["admin", "developer", "sistemadegestion"], icon: <img src={IconVacantesTH} alt="Medidores" style={{ width: 25, height: 25 }} /> },
+            text: 'SIG & TH', roles: ["admin", "developer", "sistemadegestion", "gerente", "talentohumano"], icon: <img src={weightliftIcon} alt="plantadeaguas" style={{ width: 25, height: 25 }} />, key: 'sistemadegestionytalentohumano', subItems: [
+                { text: 'Medidores Aguas', subKey: 'registrodemedidoressig', roles: ["admin", "developer", "supervisor", "operarioaguas", "sistemadegestion", "talentohumano"], icon: <img src={CounterIcon} alt="Medidores" style={{ width: 25, height: 25 }} /> },
+                { text: 'Postulaciones', subKey: 'postulacionesambiocom', roles: ["admin", "developer", "sistemadegestion", "talentohumano"], icon: <img src={IconBusquedaEmpleo} alt="Medidores" style={{ width: 25, height: 25 }} /> },
+                { text: 'Adm. Vacantes', subKey: 'vacantesambiocomwebflow', roles: ["admin", "developer", "sistemadegestion", "talentohumano"], icon: <img src={IconVacantesTH} alt="Medidores" style={{ width: 25, height: 25 }} /> },
             ],
         },
         {
