@@ -119,7 +119,7 @@ import {
     TankGraphIcon, CounterIcon, MoneyGraphIcon, EnergyIcon, EnergyDataIcon, InOutMaderaCarbonIcon, InformeIcon, TankWithLiquidIcon, ReportIcon,
     Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon, PersonalIcons, plannerIconDate, logsIcon, VesselTkIcon, VesselTkIconChemical, ListToDoIcon, ArcadeIcon,
     WaterTankIcon, VentasIcon, WaterKeyIcon, DestileryIcon, LoteTankIcon, ProveedorIcon, financeIconMoney, rutaIcon, CalderaIcon, DataSeguimientoIocn, weightliftIcon,
-    IconFleteCost, IconBasculaAmbiocom, IconSCADANiveles, IconBusquedaEmpleo
+    IconFleteCost, IconBasculaAmbiocom, IconSCADANiveles, IconBusquedaEmpleo, IconVacantesTH
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -379,7 +379,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             text: 'SIG & TH', roles: ["admin", "developer", "sistemadegestion", "gerente"], icon: <img src={weightliftIcon} alt="plantadeaguas" style={{ width: 25, height: 25 }} />, key: 'sistemadegestionytalentohumano', subItems: [
                 { text: 'Medidores Aguas', subKey: 'registrodemedidoressig', roles: ["admin", "developer", "supervisor", "operarioaguas", "sistemadegestion"], icon: <img src={CounterIcon} alt="Medidores" style={{ width: 25, height: 25 }} /> },
                 { text: 'Postulaciones', subKey: 'postulacionesambiocom', roles: ["admin", "developer", "sistemadegestion"], icon: <img src={IconBusquedaEmpleo} alt="Medidores" style={{ width: 25, height: 25 }} /> },
-                { text: 'Adm. Vacantes', subKey: 'vacantesambiocomwebflow', roles: ["admin", "developer", "sistemadegestion"], icon: <img src={IconBusquedaEmpleo} alt="Medidores" style={{ width: 25, height: 25 }} /> },
+                { text: 'Adm. Vacantes', subKey: 'vacantesambiocomwebflow', roles: ["admin", "developer", "sistemadegestion"], icon: <img src={IconVacantesTH} alt="Medidores" style={{ width: 25, height: 25 }} /> },
             ],
         },
         {

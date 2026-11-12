@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import axios from 'axios';
+import { analizarResidencia } from './utils_TalentoHumano/geografiaProximidadPalmaseca.js';
 
 import {
   Alert, Avatar, Box, Button, Checkbox, Chip, CircularProgress, Divider, Drawer,
@@ -748,9 +749,75 @@ export default function GestionPostulacionesWebflow({
                         <TableCell sx={{ fontSize: 12, color: '#7C8FA3', maxWidth: 165 }}>
                           {p.vacante?.ciudad || '—'}
                         </TableCell>
-                        <TableCell sx={{ fontSize: 12, color: '#526E88', maxWidth: 190 }}>
-                          {p.aspirante?.municipioResidencia || '—'}
+
+                        <TableCell
+                          sx={{
+                            width: 210,
+                            maxWidth: 210,
+                            minWidth: 170,
+                          }}
+                        >
+                          {(() => {
+                            const residencia = p.aspirante?.municipioResidencia || '';
+                            const geo = analizarResidencia(residencia);
+
+                            return (
+                              <Tooltip
+                                arrow
+                                title={
+                                  geo.km === null
+                                    ? 'Ubicación sin coincidencia inequívoca en el catálogo geográfico.'
+                                    : `${geo.etiqueta} · ${geo.km.toLocaleString('es-CO', {
+                                      maximumFractionDigits: 1
+                                    })} km aproximados en línea recta desde Palmaseca · ${geo.lugar.label}`
+                                }
+                              >
+                                <Box
+                                  sx={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 0.65,
+                                    maxWidth: '100%',
+                                    px: 1,
+                                    py: 0.6,
+                                    borderRadius: 1.5,
+                                    bgcolor: geo.fondo,
+                                    color: geo.color,
+                                    border: `1px solid ${geo.borde}`
+                                  }}
+                                >
+                                  <LocationOnOutlined
+                                    sx={{ fontSize: 15, flexShrink: 0 }}
+                                  />
+
+                                  <Typography
+                                    noWrap
+                                    sx={{
+                                      fontSize: 11.5,
+                                      fontWeight: 750,
+                                      minWidth: 0
+                                    }}
+                                  >
+                                    {residencia || 'Sin residencia'}
+                                  </Typography>
+
+                                  {geo.km !== null && (
+                                    <Typography
+                                      sx={{
+                                        fontSize: 10,
+                                        fontWeight: 800,
+                                        flexShrink: 0
+                                      }}
+                                    >
+                                      {Math.round(geo.km)} km
+                                    </Typography>
+                                  )}
+                                </Box>
+                              </Tooltip>
+                            );
+                          })()}
                         </TableCell>
+
                         <TableCell><StateChip value={p.estado} /></TableCell>
                         <TableCell>
                           <Tooltip title={p.hojaVida?.urlWebflow ? 'Abrir hoja de vida' : 'Sin documento'}>
