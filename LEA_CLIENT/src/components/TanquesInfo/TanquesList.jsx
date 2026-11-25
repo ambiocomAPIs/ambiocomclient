@@ -25,14 +25,22 @@ import {
   Visibility,
   Search,
   Opacity,
+  LockOutlined,
 } from "@mui/icons-material";
 import { Autocomplete } from "@mui/material";
 import axios from "axios";
 import Swal from "sweetalert2";
+import { useAuth } from "../../utils/Context/AuthContext/AuthContext"; // Ajustar ruta relativa si corresponde
 import TanquesModal from "./Modals/TanquesModal";
 import TanqueVisualModal from "./Modals/TanqueVisualModal";
 
 const TanquesList = ({ tanquesContext }) => {
+  const { rol, isAuth, loadingAuth } = useAuth();
+  const autenticado = isAuth && !loadingAuth;
+  const puedeEditarTodo = autenticado && rol === "developer";
+  const puedeEditarGrado = autenticado && ["developer", "laboratorio"].includes(rol);
+  const puedeEditarDisposicion = autenticado && ["developer", "analistadecostoseinventarios"].includes(rol);
+  const [guardandoCampo, setGuardandoCampo] = useState(false);
   const [tanques, setTanques] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTanque, setSelectedTanque] = useState(null);
@@ -72,6 +80,7 @@ const TanquesList = ({ tanquesContext }) => {
   }, [tanquesContext]);
 
   const handleCreate = () => {
+    if (!puedeEditarTodo) return;
     setSelectedTanque(null);
     setOperacionEjecutada("create");
     setModalOpen(true);
@@ -83,6 +92,7 @@ const TanquesList = ({ tanquesContext }) => {
   };
 
   const handleSubmit = async (data) => {
+    if (!puedeEditarTodo) return;
     try {
       const { _id, ...dataLimpia } = data;
 
@@ -173,6 +183,7 @@ const TanquesList = ({ tanquesContext }) => {
   };
 
   const handleDelete = async (id) => {
+    if (!puedeEditarTodo) return;
     const CLAVE_ELIMINAR = import.meta.env.VITE_DELETE_PASSWORD;
 
     const { value: password } = await Swal.fire({
@@ -265,6 +276,62 @@ const TanquesList = ({ tanquesContext }) => {
     }
   };
 
+  // Edición puntual: se envía exclusivamente el campo autorizado.
+  const handleEditarCampo = async (tanque, campo) => {
+    const esGrado = campo === "GradoAlcoholico";
+    const esDisposicion = campo === "Disposicion";
+    if (guardandoCampo || !tanque?._id ||
+      !((esGrado && puedeEditarGrado) || (esDisposicion && puedeEditarDisposicion))) return;
+
+    setGuardandoCampo(true);
+    try {
+      const { isConfirmed, value } = await Swal.fire({
+        title: esGrado ? "Actualizar grado alcohólico" : "Actualizar disposición",
+        text: `Tanque TK-${tanque.NombreTanque}`,
+        input: "text",
+        inputValue: tanque[campo] ?? "",
+        inputAttributes: esGrado ? { inputmode: "decimal" } : {},
+        showCancelButton: true,
+        confirmButtonText: "Guardar",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#254b76",
+        inputValidator: (entrada) => {
+          const texto = String(entrada ?? "").trim();
+          if (!texto) return "Ingresa un valor";
+          if (esGrado) {
+            const numero = Number(texto.replace(",", "."));
+            if (!/^\d+(?:[.,]\d+)?$/.test(texto) || !Number.isFinite(numero) || numero < 0 || numero > 100) {
+              return "Ingresa un grado válido entre 0 y 100";
+            }
+          }
+          return undefined;
+        },
+      });
+      if (!isConfirmed) return;
+
+      const nuevoValor = esGrado
+        ? Number(String(value).trim().replace(",", "."))
+        : String(value).trim();
+
+      await axios.put(
+        `https://ambiocomserver.onrender.com/api/tanques/${tanque._id}`,
+        { [campo]: nuevoValor },
+        { withCredentials: true }
+      );
+
+      setTanques((prev) => prev.map((t) =>
+        t._id === tanque._id ? { ...t, [campo]: nuevoValor } : t
+      ));
+      await fetchTanques();
+    } catch (error) {
+      console.error("Error actualizando campo:", error.response?.data || error);
+      Swal.fire("No se pudo actualizar", error.response?.data?.error ||
+        "Verifica los permisos y la respuesta del servidor", "error");
+    } finally {
+      setGuardandoCampo(false);
+    }
+  };
+
   const tanquesFiltrados = useMemo(() => {
     return [...tanques]
       .filter((t) =>
@@ -288,14 +355,14 @@ const TanquesList = ({ tanquesContext }) => {
   }, [tanques, search, ordenAsc]);
 
   return (
-    <Box p={{ xs: 2, md: 4 }}>
+    <Box p={{ xs: 1.5, md: 2.5 }}>
       {/* Header */}
       <Paper
         elevation={0}
         sx={{
-          p: 1.1,
+          p: 1.5,
           mb: 1,
-          mt: 3.5,
+          mt: 4.5,
           borderRadius: 3,
           border: "1px solid rgba(0,0,0,0.08)",
           background:
@@ -310,7 +377,7 @@ const TanquesList = ({ tanquesContext }) => {
         >
           <Box>
             <Typography
-              variant="h4"
+              variant="h5"
               fontWeight="bold"
               color="primary.dark"
             >
@@ -326,7 +393,14 @@ const TanquesList = ({ tanquesContext }) => {
             </Typography>
           </Box>
 
-          <Button
+          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+            <Chip
+              size="small"
+              icon={puedeEditarTodo || puedeEditarGrado || puedeEditarDisposicion ? <Edit /> : <LockOutlined />}
+              label={puedeEditarTodo ? "Edición general" : puedeEditarGrado ? "Edición de grado" : puedeEditarDisposicion ? "Edición de disposición" : "Solo consulta"}
+              sx={{ bgcolor: "#edf3fa", color: "#254b76", fontWeight: 700 }}
+            />
+          {puedeEditarTodo && <Button
             variant="contained"
             color="primary"
             startIcon={<AddCircleOutline />}
@@ -340,7 +414,8 @@ const TanquesList = ({ tanquesContext }) => {
             }}
           >
             Nuevo Tanque
-          </Button>
+          </Button>}
+          </Stack>
         </Stack>
       </Paper>
 
@@ -446,7 +521,7 @@ const TanquesList = ({ tanquesContext }) => {
       {/* Tabla */}
       <TableContainer
         component={Paper}
-        elevation={3}
+        elevation={0}
         sx={{
           borderRadius: 3,
           maxHeight: "calc(70vh - 25px)",
@@ -454,9 +529,14 @@ const TanquesList = ({ tanquesContext }) => {
           border: "1px solid rgba(0,0,0,0.08)",
         }}
       >
-        <Table stickyHeader>
+        <Table stickyHeader size="small" sx={{
+          minWidth: 1000,
+          "& .MuiTableCell-root": { borderColor: "#e5ebf2", fontSize: 12.5, py: 1 },
+          "& .MuiTableHead-root .MuiTableCell-root": { color: "#29496b", fontWeight: 700 },
+          "& .MuiTableBody-root .MuiTableRow-root:nth-of-type(even)": { bgcolor: "#f8fafc" },
+        }}>
           <TableHead>
-            <TableRow>
+            <TableRow sx={{ "& .MuiTableCell-root": { height: 38, boxSizing: "border-box", py: 0, lineHeight: "18px" } }}>
               <TableCell
                 align="center"
                 colSpan={3}
@@ -464,7 +544,7 @@ const TanquesList = ({ tanquesContext }) => {
                   position: "sticky",
                   top: 0,
                   zIndex: 3,
-                  backgroundColor: "#e3f2fd",
+                  backgroundColor: "#e7eff8",
                 }}
               >
                 <strong>Información</strong>
@@ -477,7 +557,7 @@ const TanquesList = ({ tanquesContext }) => {
                   position: "sticky",
                   top: 0,
                   zIndex: 3,
-                  backgroundColor: "#f3e5f5",
+                  backgroundColor: "#edf0f7",
                 }}
               >
                 <strong>Factores</strong>
@@ -490,7 +570,7 @@ const TanquesList = ({ tanquesContext }) => {
                   position: "sticky",
                   top: 0,
                   zIndex: 3,
-                  backgroundColor: "#e8f5e9",
+                  backgroundColor: "#e8f2ee",
                 }}
               >
                 <strong>Volumen</strong>
@@ -503,7 +583,7 @@ const TanquesList = ({ tanquesContext }) => {
                   position: "sticky",
                   top: 0,
                   zIndex: 4,
-                  backgroundColor: "#fff8e1",
+                  backgroundColor: "#eef3f8",
                   minWidth: 100,
                 }}
               >
@@ -517,7 +597,7 @@ const TanquesList = ({ tanquesContext }) => {
                   position: "sticky",
                   top: 0,
                   zIndex: 4,
-                  backgroundColor: "#fce4ec",
+                  backgroundColor: "#edf1f6",
                   minWidth: 120,
                 }}
               >
@@ -540,9 +620,9 @@ const TanquesList = ({ tanquesContext }) => {
                   key={i}
                   sx={{
                     position: "sticky",
-                    top: 56,
+                    top: 38,
                     zIndex: 2,
-                    backgroundColor: "#fafafa",
+                    backgroundColor: "#f5f8fc",
                   }}
                 >
                   <strong>{text}</strong>
@@ -576,10 +656,23 @@ const TanquesList = ({ tanquesContext }) => {
                 </TableCell>
 
                 <TableCell align="center">
-                  {t.Disposicion || "N/A"}
+                  <Stack direction="row" alignItems="center" justifyContent="center" spacing={0.5}>
+                    <Typography sx={{ fontSize: 12.5 }}>{t.Disposicion || "N/A"}</Typography>
+                    {puedeEditarDisposicion && (
+                      <Tooltip title="Editar disposición">
+                        <span>
+                          <IconButton size="small" aria-label={`Editar disposición de ${t.NombreTanque}`} disabled={guardandoCampo} onClick={() => handleEditarCampo(t, "Disposicion")} sx={{ color: "#42678c" }}>
+                            <Edit fontSize="inherit" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    )}
+                  </Stack>
                 </TableCell>
 
                 <TableCell align="center">
+                  <Stack direction="row" alignItems="center" justifyContent="center" spacing={0.5}>
+                    <Typography sx={{ fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>
                   {t.GradoAlcoholico !== null &&
                   t.GradoAlcoholico !== undefined &&
                   t.GradoAlcoholico !== "" &&
@@ -591,6 +684,17 @@ const TanquesList = ({ tanquesContext }) => {
                         maximumFractionDigits: 2,
                       })} %`
                     : "N/A"}
+                    </Typography>
+                    {puedeEditarGrado && (
+                      <Tooltip title="Editar grado alcohólico">
+                        <span>
+                          <IconButton size="small" aria-label={`Editar grado de ${t.NombreTanque}`} disabled={guardandoCampo} onClick={() => handleEditarCampo(t, "GradoAlcoholico")} sx={{ color: "#42678c" }}>
+                            <Edit fontSize="inherit" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    )}
+                  </Stack>
                 </TableCell>
 
                 <TableCell align="center">
@@ -643,10 +747,13 @@ const TanquesList = ({ tanquesContext }) => {
                 </TableCell>
 
                 <TableCell align="center">
+                  {puedeEditarTodo ? (
+                    <>
                   <Tooltip title="Editar">
                     <IconButton
                       color="primary"
                       onClick={() => {
+                        if (!puedeEditarTodo) return;
                         setSelectedTanque(t);
                         setOperacionEjecutada("update");
                         setModalOpen(true);
@@ -666,6 +773,12 @@ const TanquesList = ({ tanquesContext }) => {
                       <Delete />
                     </IconButton>
                   </Tooltip>
+                    </>
+                  ) : (
+                    <Typography sx={{ fontSize: 11, color: "#64748b" }}>
+                      {puedeEditarGrado || puedeEditarDisposicion ? "Edición puntual" : "Solo lectura"}
+                    </Typography>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -692,7 +805,7 @@ const TanquesList = ({ tanquesContext }) => {
 
       {/* Modales */}
       <TanquesModal
-        open={modalOpen}
+        open={modalOpen && puedeEditarTodo}
         onClose={() => {
           setModalOpen(false);
           setSelectedTanque(null);
