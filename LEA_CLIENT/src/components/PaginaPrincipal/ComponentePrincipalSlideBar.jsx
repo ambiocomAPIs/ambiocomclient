@@ -429,7 +429,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
         {
             text: 'Inventario de Tanques',
             key: 'tanquesniveles',
-            roles: ["admin", "developer", "comercial", "analistadecostoseinventarios", "gerencialogistica"],
+            roles: ["admin", "developer", "comercial", "analistadecostoseinventarios", "gerencialogistica", "liderlogistica"],
             icon: <img src={TankVesselIcon} alt="Despacho" style={{ width: 25, height: 25 }} />,
             subItems: [
                 { text: 'Maestro de Tanques', subKey: 'tanquescrud', /* roles: ["admin"], */ icon: <img src={tanqueIcon} alt="tanquescrud" style={{ width: 25, height: 25 }} /> },
