@@ -106,6 +106,7 @@ import RiceBacklogManager from '../DB_Consultas_View/RiceBacklogManager.jsx';
 import ExploradorWebflowCMSDeveloper from '../DB_Consultas_View/ExploradorWebflowCMSDeveloper.jsx';
 //modulo inventario
 import SGMRC from '../Insumos_Modulo/SGMRC.jsx';
+import SeguimientoTotalizadoresU400ModoLectura from '../ModuloProduccion/SeguimientoTotalizadoresU400Lectura.jsx';
 //pagina mantenimiento de modulo y desarrollo
 import ModuloEnMantenimiento from '../PaginaMantenimientoYDesarrollo/PaginaMantenimientoYDesarrollo.jsx';
 // modulo captura de trafico logs
@@ -121,7 +122,7 @@ import {
     Driver, ClientIcon, TruckCompany, ProductDespacho, DevIcon, PersonalIcons, plannerIconDate, logsIcon, VesselTkIcon, VesselTkIconChemical, ListToDoIcon, ArcadeIcon,
     WaterTankIcon, VentasIcon, WaterKeyIcon, DestileryIcon, LoteTankIcon, ProveedorIcon, financeIconMoney, rutaIcon, CalderaIcon, DataSeguimientoIocn, weightliftIcon,
     IconFleteCost, IconBasculaAmbiocom, IconSCADANiveles, IconBusquedaEmpleo, IconVacantesTH, IconWebFlow, ArtificialInteligenceIcon, dataAnalisisIcon, TankVesselIcon,
-    KanbanIconRice
+    KanbanIconRice, externalAccountant
 } from '../../utils/icons/SvgIcons.js'
 
 // importacion contexto de tanques
@@ -439,6 +440,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
                 { text: 'UNIDAD 600', subKey: 'nivelesunidadseicientos', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={VesselTkIcon} alt="nivelesunidadseicientos" style={{ width: 25, height: 25 }} /> },
                 { text: 'UNIDAD 800', subKey: 'nivelesunidadochocientos', /* roles: ["admin","supervisor","logistica"], */ icon: <img src={VesselTkIcon} alt="nivelesunidadochocientos" style={{ width: 25, height: 25 }} /> },
                 { text: 'Cuba Fermentac', subKey: 'cubadefermentacion', /* roles: ["admin","supervisor"], */ icon: <img src={VesselTkIcon} alt="cubadefermentacion" style={{ width: 25, height: 25 }} /> },
+                { text: 'seguimientotanquesjornalerosmodolectura', subKey: 'seguimientotanquesjornalerosmodolectura', /* roles: ["admin"], */ icon: <img src={externalAccountant} alt="seguimientotanquesjornalerosmodolectura" style={{ width: 25, height: 25 }} /> },
             ],
         },
         {
@@ -601,6 +603,7 @@ export default function EmpresarialPrincipalSchedulerApp() {
             case 'regeneracionresinas': return <TableFormatoRegeneracionResinas />;
             //Niveles tanques SCADA
             case 'nivelestanquesscada': return <AnalisisdenivelestanquesSCADA />;
+            case 'seguimientotanquesjornalerosmodolectura': return <SeguimientoTotalizadoresU400ModoLectura />;
             // SIG & TH
             case 'registrodemedidoressig': return <TablaMedicionesAgua />;
             case 'postulacionesambiocom': return <GestionPostulacionesWebflow />;
