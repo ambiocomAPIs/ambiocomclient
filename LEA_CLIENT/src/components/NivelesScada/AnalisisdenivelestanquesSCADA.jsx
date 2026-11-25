@@ -7,7 +7,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import {
   Box, Paper, Stack, Typography, Button, TextField, MenuItem, Menu, Alert,
   CircularProgress, TableContainer, Table, TableHead, TableBody, TableRow, TableCell,
-  ToggleButtonGroup, ToggleButton, IconButton, Checkbox
+  ToggleButtonGroup, ToggleButton, IconButton, Checkbox, Tabs, Tab
 } from "@mui/material";
 
 import TableChartIcon from "@mui/icons-material/TableChart";
@@ -29,11 +29,17 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import FunctionsIcon from "@mui/icons-material/Functions";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
+import TodayOutlinedIcon from "@mui/icons-material/TodayOutlined";
+import DateRangeOutlinedIcon from "@mui/icons-material/DateRangeOutlined";
+import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+
 // import jsPDF from "jspdf";
 // import autoTable from "jspdf-autotable";
 import Papa from "papaparse";
 
 import ExportarInformeSCADAPDF from "./utils_SCADA/ExportarInformeSCADAPDF.jsx";
+import AnalisisHistoricoSCADAModal from "./utils_SCADA/AnalisisHistoricoSCADAModal";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
@@ -193,12 +199,14 @@ const sombreadoSinSenal = {
 };
 
 function dibujarEtiquetasConGuia(chart, elementos) {
+
   const { ctx, chartArea: area } = chart;
   if (!area || !elementos.length) return;
   const ocupados = [];
   const margen = 5;
   const distanciaMinima = 32;
   const separacion = 4;
+  const claveActiva = chart.$hoverEtiquetaSCADA;
 
   ctx.save();
   ctx.font = "bold 10px Arial";
@@ -209,7 +217,10 @@ function dibujarEtiquetasConGuia(chart, elementos) {
     .sort((a, b) => (b.prioridad || 0) - (a.prioridad || 0) || a.orden - b.orden);
 
   for (const e of ordenados) {
+
     if (!Number.isFinite(e.x) || !Number.isFinite(e.y) || !e.texto) continue;
+    chart.$candidatasEtiquetasSCADA?.push(e);
+
     const ancho = ctx.measureText(e.texto).width + 16;
     const alto = 21;
     if (ancho > area.right - area.left - margen * 2) continue;
@@ -252,10 +263,14 @@ function dibujarEtiquetasConGuia(chart, elementos) {
       ctx.lineTo(e.x + (destinoX - e.x) * 0.35, e.y + (destinoY - e.y) * 0.35);
     }
     ctx.lineTo(destinoX, destinoY);
-    ctx.strokeStyle = e.color;
-    ctx.globalAlpha = 0.75;
-    ctx.lineWidth = 1;
-    ctx.setLineDash([3, 2]);
+
+    const resaltado = e.clave === claveActiva;
+
+    ctx.strokeStyle = resaltado ? "#D49A00" : e.color;
+    ctx.globalAlpha = resaltado ? 1 : 0.75;
+    ctx.lineWidth = resaltado ? 2.5 : 1;
+    ctx.setLineDash(resaltado ? [] : [3, 2]);
+
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.globalAlpha = 1;
@@ -265,21 +280,50 @@ function dibujarEtiquetasConGuia(chart, elementos) {
     ctx.fillStyle = e.color;
     ctx.fill();
 
+    if (resaltado) {
+      const puntosResaltados = e.puntosRelacionados?.length
+        ? e.puntosRelacionados
+        : [{ x: e.x, y: e.y }];
+
+      puntosResaltados.forEach((p) => {
+        if (!Number.isFinite(p?.x) || !Number.isFinite(p?.y)) return;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+        ctx.fillStyle = "#FFD54F";
+        ctx.fill();
+        ctx.strokeStyle = "#B77900";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+    }
+
     ctx.beginPath();
     ctx.roundRect(elegido.x, elegido.y, ancho, alto, 5);
-    ctx.fillStyle = "rgba(255,255,255,0.97)";
-    ctx.strokeStyle = e.color;
-    ctx.lineWidth = 1.15;
+    ctx.fillStyle = resaltado
+      ? "rgba(255,235,130,0.98)"
+      : "rgba(255,255,255,0.97)";
+
+    ctx.strokeStyle = resaltado ? "#D49A00" : e.color;
+    ctx.lineWidth = resaltado ? 2 : 1.15;
     ctx.fill();
     ctx.stroke();
-    ctx.fillStyle = e.color;
+    ctx.fillStyle = resaltado ? "#604500" : e.color;
     ctx.fillText(e.texto, centroX, centroY);
+
+    chart.$rectangulosEtiquetasSCADA?.push({
+      clave: e.clave,
+      ...elegido,
+    });
+
     ocupados.push(elegido);
+
   }
   ctx.restore();
 }
 
 const deltaEscalonado = {
+
   id: "deltaEscalonadoCocli",
   afterDatasetsDraw(chart, _args, opts) {
     const meta = chart.getDatasetMeta(0);
@@ -312,7 +356,17 @@ const deltaEscalonado = {
     const puntosValidos = (opts.puntos || []).filter(p => (esVolumen ? p.volumen : p.nivel) != null);
     const agregar = (indice, texto, color, preferirAbajo, prioridad) => {
       const pt = meta.data[indice];
-      if (pt && !pt.skip) etiquetas.push({ x: pt.x, y: pt.y, texto, color, preferirAbajo, prioridad });
+      if (pt && !pt.skip) {
+        etiquetas.push({
+          x: pt.x,
+          y: pt.y,
+          clave: `lectura:${indice}`,
+          texto,
+          color,
+          preferirAbajo,
+          prioridad,
+        });
+      }
     };
     // Anclajes de inicio/fin tienen prioridad, luego cada cambio individual.
     const primero = puntosValidos[0];
@@ -342,6 +396,68 @@ const deltaEscalonado = {
   },
 };
 
+const interaccionEtiquetasSCADA = {
+  id: "interaccionEtiquetasSCADA",
+
+  beforeDatasetsDraw(chart) {
+    chart.$candidatasEtiquetasSCADA = [];
+    chart.$rectangulosEtiquetasSCADA = [];
+  },
+
+  afterEvent(chart, args) {
+    const evento = args.event;
+    if (!evento) return;
+
+    let nuevaClave = null;
+
+    if (evento.type !== "mouseout") {
+      const { x, y } = evento;
+
+      // Primero identificar etiquetas.
+      const rectangulos = chart.$rectangulosEtiquetasSCADA || [];
+
+      for (let i = rectangulos.length - 1; i >= 0; i--) {
+        const r = rectangulos[i];
+
+        if (
+          x >= r.x &&
+          x <= r.x + r.w &&
+          y >= r.y &&
+          y <= r.y + r.h
+        ) {
+          nuevaClave = r.clave;
+          break;
+        }
+      }
+
+      if (nuevaClave === null) {
+        let menorDistancia = 12 * 12;
+
+        for (const e of chart.$candidatasEtiquetasSCADA || []) {
+          const relacionados = e.puntosRelacionados?.length
+            ? e.puntosRelacionados
+            : [{ x: e.x, y: e.y }];
+
+          for (const p of relacionados) {
+            if (!Number.isFinite(p?.x) || !Number.isFinite(p?.y)) continue;
+
+            const distancia = (x - p.x) ** 2 + (y - p.y) ** 2;
+
+            if (distancia < menorDistancia) {
+              menorDistancia = distancia;
+              nuevaClave = e.clave;
+            }
+          }
+        }
+      }
+    }
+
+    if (chart.$hoverEtiquetaSCADA !== nuevaClave) {
+      chart.$hoverEtiquetaSCADA = nuevaClave;
+      args.changed = true;
+    }
+  },
+};
 
 const escalerasAnalisis = {
   id: "escalerasAnalisisCocli",
@@ -486,7 +602,6 @@ const etiquetasExtremosSCADA = {
   },
 };
 
-
 function analizarCrestasValles(puntos, umbral = 0.002, umbralPersonalizado = false) {
   const operaciones = [], extremos = [];
   const tolerancia = umbral > 0.002
@@ -589,13 +704,17 @@ function analizarCrestasValles(puntos, umbral = 0.002, umbralPersonalizado = fal
 }
 
 const etiquetasTotalesSCADA = {
+
   id: "etiquetasTotalesSCADA",
   afterDatasetsDraw(chart, _args, opts) {
-    if (!opts?.mostrar || !opts?.operaciones?.length) return;
-    const { scales } = chart;
-    if (!scales?.x || !scales?.y) return;
+    const { scales, ctx, chartArea } = chart;
+
+    if (!scales?.x || !scales?.y || !chartArea) return;
+
     const etiquetas = [];
-    for (const o of opts.operaciones) {
+
+    for (const o of (opts?.mostrar ? opts.operaciones || [] : [])) {
+
       const valor = opts.modo === "volumen" ? o.deltaL : o.delta;
       if (valor == null || !o.desde || !o.hasta) continue;
       const inicio = opts.modo === "volumen" ? o.desde.volumen : o.desde.nivel;
@@ -609,8 +728,66 @@ const etiquetasTotalesSCADA = {
         color: o.delta < 0 ? ROJO : VERDE,
         preferirAbajo: o.delta < 0,
         prioridad: 2,
+        clave: `tramo:${o.id}`,
+
+        puntosRelacionados: [
+          {
+            x: scales.x.getPixelForValue(o.desde.minutosDia),
+            y: scales.y.getPixelForValue(inicio),
+          },
+          {
+            x: scales.x.getPixelForValue(o.hasta.minutosDia),
+            y: scales.y.getPixelForValue(fin),
+          },
+        ],
+
       });
     }
+
+    for (const alerta of opts?.alertas || []) {
+      const p = alerta.punto;
+      const valor = opts.modo === "volumen" ? p.volumen : p.nivel;
+      const x = scales.x.getPixelForValue(p.minutosDia);
+      const y = scales.y.getPixelForValue(valor);
+
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+
+      if (
+        x < chartArea.left || x > chartArea.right ||
+        y < chartArea.top || y > chartArea.bottom
+      ) continue;
+
+      ctx.save();
+
+      ctx.beginPath();
+      ctx.arc(x, y, 12, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,193,7,0.22)";
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = "#FFD54F";
+      ctx.strokeStyle = "#B8860B";
+      ctx.lineWidth = 2;
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.restore();
+
+      etiquetas.push({
+        x,
+        y,
+        texto: alerta.repetida
+          ? "⚠ Oscilación sospechosa"
+          : "⚠ Posible error de señal",
+        color: "#B8860B",
+        preferirAbajo: alerta.deltaAnterior > 0,
+        prioridad: 5,
+        clave: `error-senal:${p.idLectura}`,
+        puntosRelacionados: [{ x, y }],
+      });
+    }
+
     dibujarEtiquetasConGuia(chart, etiquetas);
   },
 };
@@ -620,8 +797,11 @@ function MiniDato({ icono, titulo, valor }) {
   return <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 1.1, minHeight: 56, bgcolor: "#f8fbff", border: `1px solid ${BORDE}`, borderRadius: 1.5, minWidth: 0 }}>
 
     <Box sx={{ color: AZUL, display: "flex" }}>{icono}</Box>
-    <Box sx={{ minWidth: 0 }}><Typography sx={{ fontSize: 11, color: "#58709c" }}>{titulo}</Typography>
-      <Typography sx={{ color: MARINO, fontWeight: 800, fontSize: 12.5, overflowWrap: "anywhere" }}>{valor}</Typography></Box>
+    <Box sx={{ minWidth: 0 }}>
+      <Typography sx={{ fontSize: 11, color: "#58709c" }}>{titulo}</Typography>
+      <Typography sx={{ color: MARINO, fontWeight: 800, fontSize: 12.5, overflowWrap: "anywhere" }}>{valor}</Typography>
+    </Box>
+
   </Box>;
 
 }
@@ -694,6 +874,19 @@ export default function AnalisisDeNivelesTanquesSCADA({
   const [umbralTexto, setUmbralTexto] = useState("0");
   const chartRef = useRef(null);
   const [modalGrafica, setModalGrafica] = useState(false);
+  const [modalHistorico, setModalHistorico] = useState(false);
+
+  const [datosHistoricos, setDatosHistoricos] = useState({
+    lecturas: [],
+    despachos: [],
+    bascula: [],
+    fechaDesde: null,
+    fechaHasta: null,
+  });
+
+  const [cargandoHistorico, setCargandoHistorico] = useState(false);
+  const [errorHistorico, setErrorHistorico] = useState("");
+
   const [lecturasExcluidasNodos, setLecturasExcluidasNodos] = useState(() => new Set());
   const [lecturasExcluidasOperaciones, setLecturasExcluidasOperaciones] = useState(() => new Set());
 
@@ -1028,7 +1221,57 @@ export default function AnalisisDeNivelesTanquesSCADA({
       .map((p, indice) => ({ ...p, indice }));
   }, [lecturas, lecturasDiaAnterior, fechaConsultada, fechaAnterior, modoDia, sensorSeleccionado, tieneSensor, factor, tanque]);
 
+  const posiblesErroresSenal = useMemo(() => {
+
+    const alertas = [];
+    const UMBRAL_ANOMALIA_L = 5000;
+
+    for (let i = 1; i < puntos.length - 1; i++) {
+
+      const a = puntos[i - 1];
+      const b = puntos[i];
+      const c = puntos[i + 1];
+
+      if (![a.volumen, b.volumen, c.volumen].every(Number.isFinite)) continue;
+
+      const intervaloAnterior = b.minutosDia - a.minutosDia;
+      const intervaloSiguiente = c.minutosDia - b.minutosDia;
+
+      if (intervaloAnterior <= 0 || intervaloSiguiente <= 0) continue;
+
+      const deltaAnterior = b.volumen - a.volumen;
+      const deltaSiguiente = c.volumen - b.volumen;
+
+      // El punto debe sobresalir respecto a ambas lecturas vecinas.
+      const esPico =
+        deltaAnterior >= UMBRAL_ANOMALIA_L &&
+        deltaSiguiente <= -UMBRAL_ANOMALIA_L;
+
+      const esValle =
+        deltaAnterior <= -UMBRAL_ANOMALIA_L &&
+        deltaSiguiente >= UMBRAL_ANOMALIA_L;
+
+      if (!esPico && !esValle) continue;
+
+      alertas.push({
+        punto: b,
+        deltaAnterior,
+        deltaSiguiente,
+      });
+
+    }
+
+    return alertas.map((alerta, i) => ({
+      ...alerta,
+      repetida:
+        alerta.punto.indice - alertas[i - 1]?.punto.indice === 1 ||
+        alertas[i + 1]?.punto.indice - alerta.punto.indice === 1,
+    }));
+
+  }, [puntos]);
+
   const despachosFiltrados = useMemo(() => {
+
     const registros = Array.isArray(despachos)
       ? despachos
       : Array.isArray(despachos?.data)
@@ -1937,6 +2180,7 @@ export default function AnalisisDeNivelesTanquesSCADA({
           mostrar: tipoAnalisis === "operaciones" && mostrarEtiquetas,
           operaciones: analisisOperacionesVista.operaciones,
           modo: visualizacion,
+          alertas: posiblesErroresSenal,
         },
 
         tooltip: {
@@ -2049,7 +2293,27 @@ export default function AnalisisDeNivelesTanquesSCADA({
                 ).find(ex => ex.indice === ctx.dataIndex)?.clase || "",
               ].filter(Boolean);
             },
+            afterLabel: (ctx) => {
+              if (ctx.datasetIndex !== 0) return [];
+
+              const p = puntos[ctx.dataIndex];
+              const alerta = posiblesErroresSenal.find(
+                a => a.punto.idLectura === p?.idLectura
+              );
+
+              if (!alerta) return [];
+
+              return [
+                alerta.repetida
+                  ? "⚠ Oscilación sospechosa repetida"
+                  : "⚠ Posible error de señal",
+                `Variación anterior: ${signo(alerta.deltaAnterior, "L", 0)}`,
+                `Variación siguiente: ${signo(alerta.deltaSiguiente, "L", 0)}`,
+                "Revisar lectura antes de excluir",
+              ];
+            },
           },
+
         },
       },
 
@@ -2103,6 +2367,7 @@ export default function AnalisisDeNivelesTanquesSCADA({
     analisisOperacionesVista,
     intervalosExcluidosOperaciones,
     lecturasExcluidasOperacionesPeriodo,
+    posiblesErroresSenal,
   ]);
 
   const consultar = () => {
@@ -2113,7 +2378,21 @@ export default function AnalisisDeNivelesTanquesSCADA({
 
   };
 
+  const filasOperacionesTabla = useMemo(() => {
+    return analisisOperaciones.operaciones.map((evento) => ({
+      evento,
+      lectura: evento.hasta,
+      excluido: lecturasExcluidasOperaciones.has(
+        evento.hasta.idLectura
+      ),
+    }));
+  }, [
+    analisisOperaciones,
+    lecturasExcluidasOperaciones,
+  ]);
+
   const filas = useMemo(() => {
+
     if (tipoAnalisis === "operaciones") {
       const eventosAceptados = analisisOperacionesVista.operaciones.map(op => ({
         ...op.hasta,
@@ -2170,7 +2449,6 @@ export default function AnalisisDeNivelesTanquesSCADA({
     analisis,
     lecturasExcluidasEnPeriodo,
     analisisOperacionesVista,
-    analisisOperacionesVista,
     lecturasExcluidasOperacionesPeriodo,
   ]);
 
@@ -2197,14 +2475,120 @@ export default function AnalisisDeNivelesTanquesSCADA({
     ? `${analisis.final.fecha} ${analisis.final.horaReal}`
     : "—";
 
-  return <Box sx={{ minHeight: "100%", bgcolor: "#f5faff", marginTop: 5, p: { xs: 1.5, md: 2 }, color: MARINO }}>
-    {/* Encabezado de página: no repetimos la barra global de Coclí */}
+  return <Box sx={{ minHeight: "100%", bgcolor: modoDia === "inventario" ? "#ffffff" : "#f5faff", marginTop: 5, p: { xs: 1.5, md: 2 }, color: MARINO, transition: "background-color 850ms cubic-bezier(0.4, 0, 0.2, 1)" }}>
 
-    <Typography sx={{ fontSize: { xs: 25, md: 35 }, fontWeight: 900, color: MARINO, lineHeight: 1.15, mb: 1.5 }}>
-      Monitoreo diario del tanque {tituloTanque}
-    </Typography>
+    <Box sx={{
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: 1,
+      mb: 1,
+      mt: 1,
+    }}>
 
-    <Paper elevation={0} sx={{ ...hoja, p: 1.5, mb: 1.2 }}>
+      <Typography sx={{
+        fontSize: { xs: 25, md: 35 },
+        fontWeight: 800,
+        color: MARINO,
+        lineHeight: 1.15,
+      }}>
+        Monitoreo diario del tanque {tituloTanque}
+      </Typography>
+
+      <Typography sx={{
+        fontSize: { xs: 14, md: 22 },
+        fontWeight: 700,
+        color: modoDia === "inventario" ? "#b16a00" : MARINO,
+        transition: "color 700ms ease",
+        letterSpacing: -0.5,
+        textAlign: "right",
+      }}>
+        {modoDia === "inventario"
+          ? "Análisis día inventario"
+          : "Análisis día natural"}
+      </Typography>
+
+    </Box>
+
+    <Tabs
+      value="diario"
+      sx={{
+        mb: 1.5,
+        minHeight: 40,
+        borderBottom: `1px solid ${BORDE}`,
+
+        "& .MuiTabs-indicator": {
+          bgcolor: AZUL,
+          height: 3,
+          borderRadius: 2,
+        },
+
+        "& .MuiTab-root": {
+          minHeight: 40,
+          minWidth: 120,
+          fontSize: 12,
+          fontWeight: 800,
+          textTransform: "none",
+        },
+      }}
+    >
+      <Tab
+        value="diario"
+        label="Diario"
+        icon={<TodayOutlinedIcon sx={{ fontSize: 18 }} />}
+        iconPosition="start"
+      />
+
+      <Tab
+        value="historico"
+        label="Histórico"
+        icon={<DateRangeOutlinedIcon sx={{ fontSize: 18 }} />}
+        iconPosition="start"
+        onClick={() => setModalHistorico(true)}
+      />
+    </Tabs>
+
+    <Paper
+      elevation={0}
+      sx={{
+        ...hoja,
+        p: 1.5,
+        mb: 1.2,
+        position: "relative",
+        isolation: "isolate",
+        bgcolor: "#fff",
+
+        borderColor: modoDia === "inventario" ? "#bacbe3" : BORDE,
+
+        boxShadow: modoDia === "inventario"
+          ? "0 4px 18px rgba(49,76,135,0.13)"
+          : "0 4px 14px rgba(28,78,128,0.05)",
+
+        transition: "border-color 700ms ease, box-shadow 700ms ease",
+
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          inset: 0,
+          borderRadius: "inherit",
+          zIndex: -1,
+          pointerEvents: "none",
+
+          backgroundImage: "linear-gradient(110deg, #dce8f8 0%, #e8edf9 45%, #eae5f6 100%)",
+
+          opacity: modoDia === "inventario" ? 1 : 0,
+          transition: "opacity 700ms cubic-bezier(0.4, 0, 0.2, 1)",
+        },
+
+        "@media (prefers-reduced-motion: reduce)": {
+          transition: "none",
+          "&::before": {
+            transition: "none",
+          },
+        },
+      }}
+    >
 
       <Box sx={{
         display: "grid",
@@ -2212,10 +2596,10 @@ export default function AnalisisDeNivelesTanquesSCADA({
           xs: "1fr",
           sm: "repeat(2,minmax(0,1fr))",
           lg: "repeat(4,minmax(0,1fr))",
-          xl: "repeat(2,minmax(140px,1.1fr)) repeat(3,auto) repeat(6,minmax(105px,.9fr))"
+          xl: "minmax(200px,240px) auto repeat(3,auto) 60px repeat(5,minmax(0,1fr))",
         },
         gap: 1,
-        alignItems: "end"
+        alignItems: "end",
       }}>
 
         <Box>
@@ -2306,11 +2690,16 @@ export default function AnalisisDeNivelesTanquesSCADA({
           </TextField>
         </Box>
 
-
-
-        <Box><Typography sx={{ fontSize: 13, fontWeight: 700 }}>Fecha</Typography>
-          <TextField type="date" size="small" fullWidth value={fecha} onChange={(e) => setFecha(e.target.value)}
-            sx={{ "& .MuiInputBase-root": { height: 38 }, "& .MuiInputBase-input": { fontSize: 12.5, py: 1 } }} /></Box>
+        <Box>
+          <Typography sx={{ fontSize: 13, fontWeight: 700 }}>Fecha</Typography>
+          <TextField
+            type="date"
+            size="small"
+            value={fecha}
+            onChange={(e) => setFecha(e.target.value)}
+            sx={{ "& .MuiInputBase-root": { height: 38 }, "& .MuiInputBase-input": { fontSize: 12.5, py: 1 } }}
+          />
+        </Box>
 
         <IconButton
           onClick={consultar}
@@ -2349,14 +2738,27 @@ export default function AnalisisDeNivelesTanquesSCADA({
               height: 38,
               border: "1px solid #009846",
               borderRadius: 1.2,
-              color: "#009846",
               bgcolor: "#f0fff5",
+              transition: "background-color 300ms ease, border-color 300ms ease",
               "&:hover": {
                 bgcolor: "#d9f7e5",
               },
+              "&.Mui-disabled": {
+                opacity: 0.4,
+                borderColor: "#dce7f3",
+              },
             }}
           >
-            <TableChartIcon fontSize="small" />
+            <Box
+              component="img"
+              src="/Icons/excelIcon.png"
+              alt="Excel"
+              sx={{
+                width: 24,
+                height: 24,
+                objectFit: "contain",
+              }}
+            />
           </IconButton>
 
 
@@ -2418,9 +2820,11 @@ export default function AnalisisDeNivelesTanquesSCADA({
           </Button>
         </Box>
 
+        <Box sx={{ display: { xs: "none", xl: "block" } }} />
+
         <MiniDato titulo="Factor" valor={factor != null ? `${fmt(factor, 0)} L/m` : "Sin registrar"} />
         <MiniDato icono={<DonutSmallIcon />} titulo="Grado" valor={gradoAlcoholico} />
-        <MiniDato icono={<AccessTimeIcon />} titulo="Última actualización" valor={ultimo} />
+        {/* <MiniDato icono={<AccessTimeIcon />} titulo="Última actualización" valor={ultimo} /> */}
         <MiniDato icono={<Inventory2OutlinedIcon />} titulo="Capacidad" valor={l(capacidad)} />
         <MiniDato icono={<WaterDropIcon />} titulo="Producto" valor={producto} />
         <MiniDato icono={<MonitorHeartIcon />} titulo="Frecuencia" valor="30 min" />
@@ -2457,16 +2861,113 @@ export default function AnalisisDeNivelesTanquesSCADA({
 
     ) : (
 
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "minmax(0,2.25fr) minmax(345px,1fr)" }, gap: 1.2, alignItems: "stretch" }}>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "1fr",
+            lg: "minmax(0,2.25fr) minmax(345px,1fr)",
+          },
+          gap: 1.2,
+          alignItems: "stretch",
+          position: "relative",
+          isolation: "isolate",
+          borderRadius: 2,
 
+          // Resplandor exterior e interior
+          boxShadow: modoDia === "inventario"
+            ? `
+        0 0 0 1px rgba(218,165,32,0.45),
+        0 0 18px rgba(255,193,7,0.18),
+        0 0 35px rgba(255,193,7,0.08)
+      `
+            : "0 0 0 1px transparent",
+
+          transition: "box-shadow 850ms cubic-bezier(0.4, 0, 0.2, 1)",
+
+          // Borde dorado animado
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            inset: -2,
+            padding: "2px",
+            borderRadius: "inherit",
+            pointerEvents: "none",
+            zIndex: 2,
+
+            backgroundImage: `
+        linear-gradient(
+          110deg,
+          transparent 20%,
+          #ffe082 35%,
+          #eab308 50%,
+          #fff3c4 60%,
+          transparent 80%
+        )
+      `,
+
+            backgroundSize: "300% 300%",
+
+            WebkitMask:
+              "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            WebkitMaskComposite: "xor",
+            maskComposite: "exclude",
+
+            opacity: modoDia === "inventario" ? 1 : 0,
+
+            animation: modoDia === "inventario"
+              ? "recorridoBordeInventario 2s ease-in-out forwards"
+              : "none",
+
+            transition: "opacity 850ms ease",
+          },
+
+          // Difuminado suave alrededor del componente
+          "&::after": {
+            content: '""',
+            position: "absolute",
+            inset: -3,
+            borderRadius: "inherit",
+            border: "1px solid rgba(255,193,7,0.40)",
+            filter: "blur(5px)",
+            pointerEvents: "none",
+            zIndex: -1,
+            opacity: modoDia === "inventario" ? 1 : 0,
+            transition: "opacity 850ms ease",
+          },
+
+          "@keyframes recorridoBordeInventario": {
+            "0%": {
+              backgroundPosition: "0% 50%",
+            },
+            "50%": {
+              backgroundPosition: "100% 50%",
+            },
+            "100%": {
+              backgroundPosition: "50% 50%",
+            },
+          },
+
+          "@media (prefers-reduced-motion: reduce)": {
+            transition: "none",
+            "&::before": {
+              animation: "none",
+              transition: "none",
+            },
+            "&::after": {
+              transition: "none",
+            },
+          },
+        }}
+      >
         {/* IZQUIERDA: gráfica y eventos */}
         <Paper elevation={0} sx={{ ...hoja, p: 1.7, minWidth: 0 }}>
           <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ xs: "start", sm: "center" }} justifyContent="space-between" gap={1} sx={{ mb: 1 }}>
             <Stack direction="row" alignItems="center" gap={1}><BarChartIcon sx={{ color: AZUL }} />
               <Typography sx={{ fontWeight: 800, color: "#0636ad", fontSize: 16 }}>{esVolumen ? "Volumen del tanque durante el día" : "Nivel del tanque durante el día"}</Typography></Stack>
+            {/* <Typography sx={{ fontSize: 10, color: "#3f5b81" }}>🔵 {esVolumen ? "Volumen (L)" : "Nivel (m)"}</Typography> */}
             <Stack direction="row" alignItems="center" gap={1} useFlexGap flexWrap="wrap">
 
-              <Typography sx={{ fontSize: 10, color: "#3f5b81" }}>🔵 {esVolumen ? "Volumen (L)" : "Nivel (m)"}</Typography>
               {tipoAnalisis !== "original" && <Typography sx={{ fontSize: 10, color: VERDE }}>┄ Subida</Typography>}
               {tipoAnalisis !== "original" && <Typography sx={{ fontSize: 10, color: ROJO }}>┄ Bajada</Typography>}
               {tipoAnalisis !== "original" && tramosSinSenal.length > 0 && (
@@ -2521,7 +3022,7 @@ export default function AnalisisDeNivelesTanquesSCADA({
                 disabled={factor == null}
                 inputProps={{ min: 0, step: "any" }}
                 sx={{
-                  width: 90,
+                  width: 120,
                   "& .MuiInputBase-root": {
                     height: 36,
                     fontSize: 12,
@@ -2560,36 +3061,72 @@ export default function AnalisisDeNivelesTanquesSCADA({
             </Stack>
           </Stack>
 
-
-          {/* 
-          {tipoAnalisis === "original" && (
-            <Typography sx={{ fontSize: 10.5, color: "#4c6486", mb: 0.65 }}>
-              Lecturas originales: línea azul sin nodos ni análisis. Se grafican todas las lecturas numéricas válidas del sensor con su hora exacta, sin modificar su valor, aplicar umbrales ni redondear los puntos. En Volumen (L) se aplica únicamente el factor del tanque. Pasa el cursor para comprobar la lectura.
+          <Box sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 1,
+            mb: .7
+          }}>
+            <Typography sx={{ fontSize: 11, color: "#42608d", fontWeight: 700 }}>
+              Período analizado: {etiquetaPeriodo}
             </Typography>
-          )} */}
-          <Typography sx={{ fontSize: 11, color: "#42608d", mb: .7, fontWeight: 700 }}>
-            Período analizado: {etiquetaPeriodo}
-          </Typography>
-          {tipoAnalisis === "operaciones" && (
-            <Typography sx={{ fontSize: 10.5, color: "#4c6486", mb: 0.65 }}>
-              En Crestas / Valles cada línea destacada representa un movimiento completo. Su etiqueta muestra el cambio TOTAL del tramo; los puntos internos solo quedan como referencia tenue.
+
+            <Typography sx={{ fontSize: 11, color: "#42608d", fontWeight: 700 }}>
+              Última actualización: {ultimo}
+            </Typography>
+          </Box>
+
+          {posiblesErroresSenal.length > 0 && (
+            <Typography sx={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "#946500",
+              bgcolor: "#FFF8E1",
+              border: "1px solid #EBD59A",
+              borderRadius: 1,
+              px: 1,
+              py: 0.6,
+              mb: 0.8,
+            }}>
+              ⚠ Posibles errores de señal ({posiblesErroresSenal.length}):{" "}
+              {posiblesErroresSenal.map(a =>
+                `${a.punto.fecha} ${a.punto.horaReal}${a.repetida ? "*" : ""}`
+              ).join(" · ")}
+              {posiblesErroresSenal.some(a => a.repetida) &&
+                " · *Oscilación repetida: contrastar antes de excluir."}
             </Typography>
           )}
+
           <Box onDoubleClick={() => setModalGrafica(true)} title="Doble clic para ampliar la gráfica" sx={{ height: { xs: 370, md: 420, xl: 450 }, mb: 1.2, cursor: "zoom-in" }}>
-            {analisis.inicial ? <Line data={dataGrafico} options={opcionesGrafico} plugins={[sombreadoSinSenal, sombreadoExclusionesNodos, escalerasAnalisis, deltaEscalonado, etiquetasTotalesSCADA]} ref={chartRef} />
+            {analisis.inicial ?
+              <Line
+                data={dataGrafico}
+                options={opcionesGrafico}
+                plugins={[
+                  interaccionEtiquetasSCADA,
+                  sombreadoSinSenal,
+                  sombreadoExclusionesNodos,
+                  escalerasAnalisis,
+                  deltaEscalonado,
+                  etiquetasTotalesSCADA
+                ]}
+                ref={chartRef}
+              />
 
               : <Box sx={{ height: "100%", display: "grid", placeItems: "center", border: `1px dashed ${BORDE}`, borderRadius: 1.5, fontSize: 13, color: "#56739d" }}>
                 Sin lecturas para el tanque y la fecha seleccionados</Box>}
           </Box>
 
-          {tipoAnalisis !== "original" && tramosSinSenal.length > 0 && (
+          {/* {tipoAnalisis !== "original" && tramosSinSenal.length > 0 && (
             <Typography sx={{ color: "#9a4b36", fontSize: 10.5, mb: 1 }}>
               Tramos rojos: intervalos entre lecturas SCADA superiores a 30 minutos.
               La unión es visual; el cambio neto entre los extremos sí se incluye, pero no representa movimientos intermedios medidos.
             </Typography>
-          )}
+          )} */}
 
-          {(
+          {/* {(
             (tipoAnalisis === "nodos" && lecturasExcluidasEnPeriodo.length > 0) ||
             (tipoAnalisis === "operaciones" && lecturasExcluidasOperacionesPeriodo.length > 0)
           ) && (
@@ -2609,7 +3146,7 @@ export default function AnalisisDeNivelesTanquesSCADA({
                 lecturas aceptadas. Los tramos que atraviesan lecturas excluidas
                 representan variaciones estimadas entre extremos observados.
               </Typography>
-            )}
+            )} */}
 
           <Stack direction="row" alignItems="center" gap={1} sx={{ mb: .7 }}><CalendarMonthIcon sx={{ color: AZUL }} />
             <Typography sx={{ fontWeight: 800, color: "#0636ad", fontSize: 15 }}>Eventos registrados durante el día (cada variación observada)</Typography>
@@ -2735,50 +3272,123 @@ export default function AnalisisDeNivelesTanquesSCADA({
                   Restaurar lecturas
                 </Button>
               </Stack>
-              <TableContainer sx={{ maxHeight: 320, border: `1px solid ${BORDE}`, borderRadius: 1.1, mb: 1 }}>
-                <Table stickyHeader size="small" sx={{ "& .MuiTableCell-root": { fontSize: 11, py: .55 } }}>
-                  <TableHead><TableRow>
-                    <TableCell>Tipo</TableCell><TableCell>Desde</TableCell><TableCell>Hasta</TableCell>
-                    <TableCell align="right">Δ nivel (m)</TableCell>
-                    <TableCell align="right">Δ volumen (L)</TableCell>
-                    <TableCell align="right">Duración (min)</TableCell>
-                    <TableCell>Estado</TableCell>
-                    <TableCell align="center" sx={{ width: 75 }}>Incluir</TableCell>
-                  </TableRow></TableHead>
+
+              <TableContainer
+                sx={{
+                  maxHeight: 355,
+                  border: `1px solid ${BORDE}`,
+                  borderRadius: 1.1,
+                  mb: 1,
+                }}
+              >
+                <Table
+                  stickyHeader
+                  size="small"
+                  sx={{
+                    "& .MuiTableCell-root": {
+                      fontSize: 11,
+                      py: 0.55,
+                    },
+                  }}
+                >
+                  <TableHead>
+                    <TableRow>
+                      <TableCell align="center" sx={{ width: 75 }}>Acción</TableCell>
+                      <TableCell>Tipo</TableCell>
+                      <TableCell>Desde</TableCell>
+                      <TableCell>Hasta</TableCell>
+                      <TableCell align="right">Δ nivel (m)</TableCell>
+                      <TableCell align="right">Δ volumen (L)</TableCell>
+                      <TableCell align="right">Duración (min)</TableCell>
+                      <TableCell>Estado</TableCell>
+                    </TableRow>
+                  </TableHead>
+
                   <TableBody>
-                    {analisisOperacionesVista.operaciones.map(ev => (
-                      <TableRow key={ev.id} sx={{ bgcolor: ev.delta < 0 ? "#fff5f1" : "#eefbf2" }}>
-                        <TableCell sx={{ color: ev.delta < 0 ? ROJO : VERDE, fontWeight: 700 }}>{ev.tipo}</TableCell>
-                        <TableCell>{ev.desde.fecha} {ev.desde.horaReal} ({fmt(ev.desde.nivel, 3)} m)</TableCell>
-                        <TableCell>{ev.hasta.fecha} {ev.hasta.horaReal} ({fmt(ev.hasta.nivel, 3)} m)</TableCell>
-                        <TableCell align="right">{signo(ev.delta, "m", 3)}</TableCell>
-                        <TableCell align="right">{signo(ev.deltaL, "L", 0)}</TableCell>
-                        <TableCell align="right">{fmt(ev.duracion, 1)}</TableCell>
-                        <TableCell>{ev.intervalosSinSenal > 0 ? `Estimado · ${ev.intervalosSinSenal} vacío(s) SCADA` : ev.parcial ? "Parcial / límite del tramo" : "Giro confirmado"}</TableCell>
+                    {filasOperacionesTabla.map(({ evento: ev, lectura, excluido }) => (
+                      <TableRow
+                        key={
+                          excluido
+                            ? `excluida:${lectura.idLectura}`
+                            : `operacion:${ev.desde.idLectura}|${ev.hasta.idLectura}`
+                        }
+                        sx={{
+                          bgcolor: excluido
+                            ? "#F1F5F9"
+                            : ev.delta < 0
+                              ? "#FFF5F1"
+                              : "#EEFBF2",
+                          opacity: excluido ? 0.7 : 1,
+                        }}
+                      >
                         <TableCell align="center">
-                          <Checkbox
+                          <IconButton
                             size="small"
-                            checked={
-                              !lecturasExcluidasOperaciones.has(ev.hasta.idLectura)
+                            color={excluido ? "success" : "error"}
+                            onClick={() =>
+                              alternarLecturaOperacion(lectura.idLectura)
                             }
-                            onChange={() => {
-                              alternarLecturaOperacion(ev.hasta.idLectura);
-                            }}
-                            inputProps={{
-                              "aria-label": `Incluir extremo ${ev.hasta.fecha} ${ev.hasta.horaReal}`,
-                            }}
-                            sx={{
-                              p: 0.2,
-                              color: MORADO,
-                              "&.Mui-checked": {
-                                color: VERDE,
-                              },
-                            }}
-                          />
+                            aria-label={
+                              excluido
+                                ? `Reincorporar lectura ${lectura.fecha} ${lectura.horaReal}`
+                                : `Excluir lectura ${lectura.fecha} ${lectura.horaReal}`
+                            }
+                          >
+                            {excluido ? (
+                              <AddCircleOutlineIcon fontSize="small" />
+                            ) : (
+                              <RemoveCircleOutlineIcon fontSize="small" />
+                            )}
+                          </IconButton>
                         </TableCell>
+
+                        <TableCell
+                          sx={{
+                            color: excluido
+                              ? "#64748B"
+                              : ev.delta < 0
+                                ? ROJO
+                                : VERDE,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {ev.tipo}
+                        </TableCell>
+
+                        <TableCell>
+                          {`${ev.desde.fecha} ${ev.desde.horaReal} (${fmt(ev.desde.nivel, 3)} m)`}
+                        </TableCell>
+
+                        <TableCell>
+                          {lectura.fecha} {lectura.horaReal} ({fmt(lectura.nivel, 3)} m)
+                        </TableCell>
+
+                        <TableCell align="right">
+                          {signo(ev.delta, "m", 3)}
+                        </TableCell>
+
+                        <TableCell align="right">
+                          {signo(ev.deltaL, "L", 0)}
+                        </TableCell>
+
+                        <TableCell align="right">
+                          {fmt(ev.duracion, 1)}
+                        </TableCell>
+
+                        <TableCell>
+                          {excluido
+                            ? "Excluida del análisis"
+                            : ev.intervalosSinSenal > 0
+                              ? `Estimado · ${ev.intervalosSinSenal} vacío(s) SCADA`
+                              : ev.parcial
+                                ? "Parcial / límite del tramo"
+                                : "Giro confirmado"}
+                        </TableCell>
+
                       </TableRow>
                     ))}
-                    {analisisOperacionesVista.operaciones.length === 0 && (
+
+                    {filasOperacionesTabla.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={8} align="center">
                           Sin movimientos que cumplan el umbral
@@ -2788,129 +3398,139 @@ export default function AnalisisDeNivelesTanquesSCADA({
                   </TableBody>
                 </Table>
               </TableContainer>
-              {lecturasExcluidasOperacionesPeriodo.length > 0 && (
-                <Box sx={{ mt: 1, mb: 1 }}>
-                  <Typography
-                    sx={{
-                      fontSize: 11.5,
-                      color: MORADO,
-                      fontWeight: 800,
-                      mb: 0.5,
-                    }}
-                  >
-                    Extremos excluidos manualmente
-                  </Typography>
 
-                  <TableContainer
-                    sx={{
-                      border: "1px solid #E4D9FF",
-                      borderRadius: 1,
-                      maxHeight: 180,
-                    }}
-                  >
-                    <Table
-                      size="small"
-                      sx={{
-                        "& .MuiTableCell-root": {
-                          fontSize: 11,
-                          py: 0.5,
-                        },
-                      }}
-                    >
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Fecha / Hora</TableCell>
-                          <TableCell align="right">Nivel (m)</TableCell>
-                          <TableCell align="right">Volumen (L)</TableCell>
-                          <TableCell align="center">Incluir</TableCell>
-                        </TableRow>
-                      </TableHead>
-
-                      <TableBody>
-                        {lecturasExcluidasOperacionesPeriodo.map(p => (
-                          <TableRow
-                            key={p.idLectura}
-                            sx={{ bgcolor: "#F7F3FF" }}
-                          >
-                            <TableCell>
-                              {p.fecha} {p.horaReal}
-                            </TableCell>
-
-                            <TableCell align="right">
-                              {fmt(p.nivel, 3)}
-                            </TableCell>
-
-                            <TableCell align="right">
-                              {fmt(p.volumen, 0)}
-                            </TableCell>
-
-                            <TableCell align="center">
-                              <Checkbox
-                                size="small"
-                                checked={false}
-                                onChange={() => {
-                                  alternarLecturaOperacion(p.idLectura);
-                                }}
-                                sx={{ color: MORADO, p: 0.2 }}
-                              />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </Box>
-              )}
             </>
           )}
           {(tipoAnalisis === "nodos" || tipoAnalisis === "original") && (
             <TableContainer sx={{ maxHeight: 355, border: `1px solid ${BORDE}`, borderRadius: 1.1 }}>
 
               <Table stickyHeader size="small" sx={{ minWidth: tipoAnalisis === "nodos" ? 720 : 640, tableLayout: "fixed", "& .MuiTableCell-root": { fontSize: 11.5, px: .6, py: .4, borderRight: `1px solid ${BORDE}` }, "& .MuiTableHead-root .MuiTableCell-root": { bgcolor: "#eff5fc", fontWeight: 800, textAlign: "center" } }}>
-                <TableHead><TableRow><TableCell>Hora</TableCell><TableCell>Nivel ({unidadNivel})</TableCell><TableCell>Volumen (L)</TableCell><TableCell>Cambio ({unidadNivel})</TableCell><TableCell>Cambio (L)</TableCell><TableCell>Tipo de movimiento</TableCell> {tipoAnalisis === "nodos" && (
-                  <TableCell sx={{ width: 70 }} align="center">
-                    Incluir
-                  </TableCell>
-                )}</TableRow></TableHead>
+                <TableHead>
+                  <TableRow>
+                    {tipoAnalisis === "nodos" && (
+                      <TableCell sx={{ width: 70 }} align="center">
+                        Acción
+                      </TableCell>
+                    )}
+                    <TableCell>Hora</TableCell>
+                    <TableCell>Nivel ({unidadNivel})</TableCell>
+                    <TableCell>Volumen (L)</TableCell>
+                    <TableCell>Cambio ({unidadNivel})</TableCell>
+                    <TableCell>Cambio (L)</TableCell>
+                    <TableCell>Tipo de movimiento</TableCell>
+                  </TableRow>
+                </TableHead>
 
-                <TableBody>{!filas.length ? <TableRow><TableCell colSpan={tipoAnalisis === "nodos" ? 7 : 6} align="center">No hay datos disponibles</TableCell></TableRow> : filas.map((e) => <TableRow key={`${e.fecha}-${e.hora}-${e.indice}`} sx={{ bgcolor: e.tipo === "Subida" ? "#eefbf2" : e.tipo === "Bajada" ? "#fff5f0" : "#fff" }}>
 
-                  <TableCell align="center">{e.fecha} {e.hora}{e.sinSenal ? " ⚠" : ""}</TableCell><TableCell align="center">{fmt(e.valor)}</TableCell>
-                  <TableCell align="center">{fmt(e.volumen, 0)}</TableCell>
-                  <TableCell align="center">{e.delta == null ? "0,00" : signo(e.delta, "")}</TableCell>
-                  <TableCell align="center">{e.deltaL == null ? e.tipo === "Inicio" ? "0" : "—" : signo(e.deltaL, "", 0)}</TableCell>
-                  <TableCell align="center" sx={{ color: e.tipo === "Subida" ? VERDE : e.tipo === "Bajada" ? ROJO : MARINO }}>
-                    {e.excluido
-                      ? "Excluido"
-                      : e.tipo === "Subida"
-                        ? <><ArrowUpwardIcon sx={{ fontSize: 16, verticalAlign: "middle" }} /> Subida*</>
-                        : e.tipo === "Bajada"
-                          ? <><ArrowDownwardIcon sx={{ fontSize: 16, verticalAlign: "middle" }} /> Bajada*</>
-                          : "—"
-                    }
-                  </TableCell>
-
-                  {tipoAnalisis === "nodos" && (
-                    <TableCell align="center">
-                      <Checkbox
-                        size="small"
-                        checked={!lecturasExcluidasNodos.has(e.idLectura)}
-                        onChange={() => alternarLecturaNodo(e.idLectura)}
-                        inputProps={{
-                          "aria-label": `Incluir lectura ${e.fecha} ${e.hora}`,
-                        }}
+                <TableBody>
+                  {!filas.length ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={tipoAnalisis === "nodos" ? 7 : 6}
+                        align="center"
+                      >
+                        No hay datos disponibles
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filas.map((e) => (
+                      <TableRow
+                        key={`${e.fecha}-${e.hora}-${e.indice}`}
                         sx={{
-                          p: 0.2,
-                          color: MORADO,
-                          "&.Mui-checked": {
-                            color: VERDE,
-                          },
+                          bgcolor: e.excluido
+                            ? "#F1F5F9"
+                            : e.tipo === "Subida"
+                              ? "#eefbf2"
+                              : e.tipo === "Bajada"
+                                ? "#fff5f0"
+                                : "#fff",
                         }}
-                      />
-                    </TableCell>
-                  )}
+                      >
+                        {tipoAnalisis === "nodos" && (
+                          <TableCell align="center">
+                            <IconButton
+                              size="small"
+                              color={e.excluido ? "success" : "error"}
+                              onClick={() => alternarLecturaNodo(e.idLectura)}
+                              aria-label={
+                                e.excluido
+                                  ? `Reincorporar lectura ${e.fecha} ${e.hora}`
+                                  : `Excluir lectura ${e.fecha} ${e.hora}`
+                              }
+                            >
+                              {e.excluido ? (
+                                <AddCircleOutlineIcon fontSize="small" />
+                              ) : (
+                                <RemoveCircleOutlineIcon fontSize="small" />
+                              )}
+                            </IconButton>
+                          </TableCell>
+                        )}
 
-                </TableRow>)}</TableBody>
+                        <TableCell align="center">
+                          {e.fecha} {e.hora}
+                          {e.sinSenal ? " ⚠" : ""}
+                        </TableCell>
+
+                        <TableCell align="center">
+                          {fmt(e.valor)}
+                        </TableCell>
+
+                        <TableCell align="center">
+                          {fmt(e.volumen, 0)}
+                        </TableCell>
+
+                        <TableCell align="center">
+                          {e.delta == null ? "0,00" : signo(e.delta, "")}
+                        </TableCell>
+
+                        <TableCell align="center">
+                          {e.deltaL == null
+                            ? e.tipo === "Inicio"
+                              ? "0"
+                              : "—"
+                            : signo(e.deltaL, "", 0)}
+                        </TableCell>
+
+                        <TableCell
+                          align="center"
+                          sx={{
+                            color: e.excluido
+                              ? "#64748B"
+                              : e.tipo === "Subida"
+                                ? VERDE
+                                : e.tipo === "Bajada"
+                                  ? ROJO
+                                  : MARINO,
+                          }}
+                        >
+                          {e.excluido
+                            ? "Excluido"
+                            : e.tipo === "Subida"
+                              ? (
+                                <>
+                                  <ArrowUpwardIcon
+                                    sx={{ fontSize: 16, verticalAlign: "middle" }}
+                                  />
+                                  {" "}Subida*
+                                </>
+                              )
+                              : e.tipo === "Bajada"
+                                ? (
+                                  <>
+                                    <ArrowDownwardIcon
+                                      sx={{ fontSize: 16, verticalAlign: "middle" }}
+                                    />
+                                    {" "}Bajada*
+                                  </>
+                                )
+                                : "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+
               </Table>
 
             </TableContainer>
@@ -2925,7 +3545,38 @@ export default function AnalisisDeNivelesTanquesSCADA({
 
         <Paper elevation={0} sx={{ ...hoja, p: 1.7, minWidth: 0 }}>
 
-          <Stack direction="row" alignItems="center" gap={1} sx={{ mb: .8 }}><DonutSmallIcon sx={{ color: AZUL, fontSize: 26 }} />
+          <Stack
+            direction="row"
+            alignItems="center"
+            gap={1}
+            sx={{
+              mb: 0.8,
+              px: 1.2,
+              py: 0.7,
+              borderRadius: 1.5,
+              position: "relative",
+              isolation: "isolate",
+
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                inset: 0,
+                borderRadius: "inherit",
+                zIndex: -1,
+                pointerEvents: "none",
+                backgroundImage: "linear-gradient(90deg, #ffe082 0%, #fff0b3 35%, #fff9e6 70%, transparent 100%)",
+                opacity: modoDia === "inventario" ? 1 : 0,
+                transition: "opacity 700ms cubic-bezier(0.4, 0, 0.2, 1)",
+              },
+            }}
+          >
+            <DonutSmallIcon
+              sx={{
+                color: modoDia === "inventario" ? "#b8860b" : AZUL,
+                fontSize: 26,
+                transition: "color 700ms ease",
+              }}
+            />
 
             <Typography sx={{ color: "#0636ad", fontSize: 16, fontWeight: 800 }}>Indicadores del {modoDia === "natural" ? "día natural" : "día inventario"}</Typography></Stack>
 
@@ -2935,11 +3586,6 @@ export default function AnalisisDeNivelesTanquesSCADA({
             color={MORADO}
             fondo="#F5F1FF"
           />
-
-          <Typography sx={{ fontSize: 10.5, color: "#6680a3", mb: 0.8 }}>
-            Los niveles y volúmenes inicial/final corresponden a lecturas originales.
-            Los movimientos acumulados corresponden al modo de análisis seleccionado.
-          </Typography>
 
           <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: .85 }}>
             <Indicador icono={<WaterDropIcon fontSize="large" />} titulo="Nivel inicial" valor={nivel(analisis.inicial?.valor)} />
@@ -3140,6 +3786,7 @@ export default function AnalisisDeNivelesTanquesSCADA({
       fechaConsultada={fechaConsultada}
       factor={factor}
       puntos={puntos}
+      posiblesErroresSenal={posiblesErroresSenal}
       eventos={
         tipoAnalisis === "nodos"
           ? analisisNodosLimpios.eventos
@@ -3147,13 +3794,48 @@ export default function AnalisisDeNivelesTanquesSCADA({
       }
       operaciones={analisisOperacionesVista.operaciones}
       tramosSinSenal={tramosSinSenal}
-      tipoInicial={tipoAnalisis}
+      tipoInicial={tipoAnalisis}s
       unidadInicial={visualizacion}
       modoDia={modoDia}
     />
 
+    <AnalisisHistoricoSCADAModal
+      open={modalHistorico}
+      onClose={() => setModalHistorico(false)}
+
+      tanque={tanque}
+      tituloTanque={tituloTanque}
+      factor={factor}
+      capacidad={capacidad}
+      producto={producto}
+      gradoAlcoholico={gradoAlcoholico}
+      fechaReferencia={fechaConsultada}
+      lecturasIniciales={[
+        ...lecturasDiaAnterior,
+        ...lecturas,
+      ]}
+
+      despachosIniciales={
+        Array.isArray(despachos)
+          ? despachos
+          : Array.isArray(despachos?.data)
+            ? despachos.data
+            : []
+      }
+
+      basculaInicial={
+        Array.isArray(registrosBascula)
+          ? registrosBascula
+          : Array.isArray(registrosBascula?.data)
+            ? registrosBascula.data
+            : []
+      }
+
+      apiScada={apiBase}
+      apiDespachos={API_DESPACHOS}
+      apiBascula={API_BASCULA}
+    />
+
   </Box >;
-
-
 
 }

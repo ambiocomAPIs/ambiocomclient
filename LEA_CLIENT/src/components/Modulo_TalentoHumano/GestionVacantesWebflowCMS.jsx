@@ -463,7 +463,6 @@ export default function GestionVacantesWebflowCMS({
               })}
             </TableBody></Table></TableContainer>
       }
-      <Typography sx={{ fontSize: 10.5, color: '#91A0B0', my: 2, textAlign: 'right' }}>Colección Webflow: {collectionId} · Se muestran registros CMS de la consulta, incluidos borradores y elementos inactivos.</Typography>
     </Box>
     <Dialog
       open={Boolean(editor)}

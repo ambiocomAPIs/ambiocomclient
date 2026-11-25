@@ -157,7 +157,6 @@
 //     setModalReportarNivelesTanquesJornalerosIsOpen(true);
 //   const closeModalReportarNivelesTanquesJornalerosIsOpen = () =>
 //     setModalReportarNivelesTanquesJornalerosIsOpen(false);
-
 //   const openModalVerMovimientosTanquesJornaleros = () =>
 //     setModalVerMovimientosTanquesJornalerosIsOpen(true);
 //   const closeModalVerMovimientosTanquesJornaleros = () =>

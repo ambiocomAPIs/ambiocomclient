@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import HistoryIcon from "@mui/icons-material/History";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
@@ -140,6 +141,7 @@ function getRiceProgressColor(score, fallbackColor) {
 export default function RiceKanbanBoard({
   items = [],
   onView,
+  onEdit,
   onHistory,
   onDelete,
 }) {
@@ -598,7 +600,25 @@ export default function RiceKanbanBoard({
                                 <VisibilityOutlinedIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
-
+                            <Tooltip title="Editar">
+                              <IconButton
+                                size="small"
+                                onClick={() => onEdit?.(item)}
+                                sx={{
+                                  width: 34,
+                                  height: 34,
+                                  borderRadius: 2,
+                                  bgcolor: "#ffffff",
+                                  border: "1px solid",
+                                  borderColor: "rgba(0,0,0,0.14)",
+                                  "&:hover": {
+                                    bgcolor: "#f4f6f8",
+                                  },
+                                }}
+                              >
+                                <EditOutlinedIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
                             <Tooltip title="Historial">
                               <IconButton
                                 size="small"

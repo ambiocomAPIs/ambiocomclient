@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import { alpha } from "@mui/material/styles";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
 
@@ -35,6 +36,11 @@ import ViewListOutlinedIcon from "@mui/icons-material/ViewListOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import TodayIcon from "@mui/icons-material/Today";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import ManageSearchOutlinedIcon from "@mui/icons-material/ManageSearchOutlined";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import RocketLaunchOutlinedIcon from "@mui/icons-material/RocketLaunchOutlined";
+import BuildOutlinedIcon from "@mui/icons-material/BuildOutlined";
 
 import RiceItemModal from "./utils/RICE_Utils/Modal/RiceItemModal";
 import RiceKanbanBoard from "./utils/RICE_Utils/Components/RiceKanbanBoard";
@@ -104,6 +110,8 @@ const areasSolicitantes = [
   "Gerencia Operaciones",
   "Gerencia General",
   "Gerencia Financiera",
+  "Gerente Supply Chain",
+  "Ing. Desarrollador",
   "Logística",
   "Mantenimiento",
   "Contabilidad",
@@ -780,7 +788,7 @@ export default function RiceBacklogManager() {
         minHeight: "100vh",
         bgcolor: "#f6f7f9",
         p: { xs: 1, md: 0 },
-        mt: 5.5,
+        mt: 4.0,
       }}
     >
       <Stack spacing={3}>
@@ -788,11 +796,11 @@ export default function RiceBacklogManager() {
           {/* <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
             Backlog de tareas, hallazgos y requerimientos
           </Typography> */}
-
+          {/* 
           <Typography sx={{ color: "text.secondary", mt: 1 }}>
             Registra, calcula y ordena iniciativas según alcance, impacto,
             confianza y esfuerzo.
-          </Typography>
+          </Typography> */}
         </Box>
 
         {errorMessage && (
@@ -1387,24 +1395,48 @@ export default function RiceBacklogManager() {
                       const score = calculateRice(item);
                       const progress = Math.min(Number(score) * 20, 100);
 
+                      const colorTipo = getTipoActividadColor(item.tipoActividad);
+                      const colorEstado = getEstadoColor(item.estado);
+
+                      const IconoEstado = {
+                        "Backlog": Inventory2OutlinedIcon,
+                        "En análisis": ManageSearchOutlinedIcon,
+                        "En sprint Carril 1": RocketLaunchOutlinedIcon,
+                        "En sprint Carril 2": RocketLaunchOutlinedIcon,
+                        "En ajuste": BuildOutlinedIcon,
+                        "Completado": TaskAltIcon,
+                      }[item.estado];
+
                       return (
                         <Paper
                           key={item.id}
                           elevation={0}
-                          sx={{
-                            p: 2,
-                            borderRadius: 3,
-                            border: "1px solid",
-                            borderColor: "rgba(0,0,0,0.10)",
-                            bgcolor:
-                              item.estado === "Completado"
-                                ? "rgba(46, 125, 50, 0.06)"
+                          sx={(theme) => {
+                            const colorBorde = theme.palette[colorTipo]?.main
+                              || theme.palette.grey[400];
+
+                            const colorFondo = theme.palette[colorEstado]?.main;
+
+                            return {
+                              p: 2,
+                              borderRadius: 3,
+                              border: "1px solid",
+                              borderColor: colorFondo
+                                ? alpha(colorFondo, 0.20)
+                                : "rgba(0,0,0,0.10)",
+                              borderLeft: `4px solid ${alpha(colorBorde, 0.85)}`,
+                              bgcolor: colorFondo
+                                ? alpha(colorFondo, 0.075)
                                 : "#ffffff",
-                            transition: "all 0.25s ease",
-                            "&:hover": {
-                              transform: "translateY(-2px)",
-                              boxShadow: "0 12px 28px rgba(0,0,0,0.08)",
-                            },
+                              transition: "all 0.25s ease",
+                              "&:hover": {
+                                bgcolor: colorFondo
+                                  ? alpha(colorFondo, 0.12)
+                                  : "#fafafa",
+                                transform: "translateY(-2px)",
+                                boxShadow: "0 12px 28px rgba(0,0,0,0.08)",
+                              },
+                            };
                           }}
                         >
                           <Grid container spacing={2} alignItems="center">
@@ -1573,18 +1605,22 @@ export default function RiceBacklogManager() {
                                   borderRadius: 2,
                                 }}
                               >
-                                {item.estado === "Completado" && (
-                                  <TaskAltIcon
-                                    sx={{
+                                {IconoEstado && (
+                                  <IconoEstado
+                                    sx={(theme) => ({
                                       position: "absolute",
                                       right: 8,
                                       top: "50%",
                                       transform: "translateY(-50%)",
                                       fontSize: { xs: 80, md: 120 },
-                                      color: "rgba(46, 125, 50, 0.14)",
+                                      color: alpha(
+                                        theme.palette[colorEstado]?.main
+                                        || theme.palette.grey[500],
+                                        0.14
+                                      ),
                                       zIndex: 0,
                                       pointerEvents: "none",
-                                    }}
+                                    })}
                                   />
                                 )}
 
@@ -1720,6 +1756,7 @@ export default function RiceBacklogManager() {
                   <RiceKanbanBoard
                     items={filteredItems}
                     onView={openViewModal}
+                    onEdit={openEditModal}
                     onHistory={openHistoryModal}
                     onDelete={handleDelete}
                   />
