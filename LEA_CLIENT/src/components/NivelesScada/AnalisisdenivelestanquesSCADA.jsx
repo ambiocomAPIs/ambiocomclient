@@ -43,7 +43,8 @@ import AnalisisHistoricoSCADAModal from "./utils_SCADA/AnalisisHistoricoSCADAMod
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
-const API_SCADA = "http\://localhost:4041/api/scada/nivelesaveva"
+// const API_SCADA = "http\://localhost:4041/api/scada/nivelesaveva"
+const API_SCADA = "https://ambiocomserver.onrender.com/api/scada/nivelesaveva"
 const API_DESPACHOS = "https://ambiocomserver.onrender.com/api/despacho-alcoholes";
 const API_BASCULA = "https://ambiocomserver.onrender.com/api/pesajes";
 
