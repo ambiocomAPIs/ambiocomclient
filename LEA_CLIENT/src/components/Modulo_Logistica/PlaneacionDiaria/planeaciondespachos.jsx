@@ -1865,7 +1865,7 @@ const ProgramacionDespachoDiariaPage = () => {
             </Grid>
             <Grid item xs={12} md={2}>
               <Autocomplete
-                options={options.destinos}
+                options={DESTINOS_CATALOGO}
                 value={filters.destino || null}
                 autoHighlight
                 forcePopupIcon
@@ -1873,14 +1873,20 @@ const ProgramacionDespachoDiariaPage = () => {
                 clearOnEscape
                 getOptionLabel={(option) => option ?? ""}
                 filterOptions={(options, state) => {
-                  const busqueda = normalizarBusquedaCiudad(
-                    state.inputValue
-                  );
-                  return options
-                    .filter((ciudad) =>
-                      normalizarBusquedaCiudad(ciudad).includes(busqueda)
+                  const resultados = options.filter((destino) =>
+                    normalizarBusquedaCiudad(destino).includes(
+                      normalizarBusquedaCiudad(state.inputValue)
                     )
-                    .slice(0, 100);
+                  );
+
+                  console.log("AUDITORIA CELDA DESTINO", {
+                    totalCatalogo: options.length,
+                    textoDigitado: state.inputValue,
+                    existeEcuador: options.includes("ECUADOR"),
+                    resultados
+                  });
+
+                  return resultados;
                 }}
                 onChange={(event, newValue) => {
                   setFilters((prev) => ({
@@ -2155,7 +2161,63 @@ const ProgramacionDespachoDiariaPage = () => {
                                 minWidth: col.minWidth, maxWidth: col.key === "cliente" ? 260 : col.minWidth + 50, p: "0 !important", bgcolor: selected ? "rgba(25,118,210,0.115) !important" : changed ? "rgba(255,193,7,0.10)" : undefined,
                                 boxShadow: selected ? "inset 0 0 0 1px rgba(25,118,210,0.65)" : undefined, cursor: allowed ? "cell" : "not-allowed"
                               }}>
-                              {current ? (
+                              {current && col.key === "destino" ? (
+                                <Autocomplete
+                                  options={DESTINOS_CATALOGO}
+                                  defaultValue={raw || null}
+                                  openOnFocus
+                                  autoHighlight
+                                  selectOnFocus
+                                  size="small"
+                                  disableClearable
+                                  filterOptions={(options, state) =>
+                                    options.filter((destino) =>
+                                      normalizarBusquedaCiudad(destino).includes(
+                                        normalizarBusquedaCiudad(state.inputValue)
+                                      )
+                                    )
+                                  }
+                                  onChange={(event, value) => {
+                                    if (!value) return;
+
+                                    editValue.current = value;
+                                    editHandled.current = true;
+
+                                    putAt(item, col.key, value);
+                                    setEditing(null);
+                                    focusCell(r, c);
+                                  }}
+                                  onClose={(event, reason) => {
+                                    if (reason === "blur" || reason === "escape") {
+                                      editHandled.current = true;
+                                      setEditing(null);
+                                    }
+                                  }}
+                                  onKeyDown={(e) => {
+                                    e.stopPropagation();
+                                  }}
+                                  noOptionsText="No se encontraron destinos"
+                                  renderInput={(params) => (
+                                    <TextField
+                                      {...params}
+                                      autoFocus
+                                      variant="standard"
+                                      InputProps={{
+                                        ...params.InputProps,
+                                        disableUnderline: true,
+                                      }}
+                                    />
+                                  )}
+                                  sx={{
+                                    width: "100%",
+                                    px: 0.8,
+                                    "& .MuiInputBase-root": {
+                                      fontSize: "11.8px",
+                                      minHeight: 30,
+                                    },
+                                  }}
+                                />
+                              ) : current ? (
                                 <Box sx={{ px: 0, width: "100%" }}>
                                   <Box component="input" autoFocus defaultValue={editValue.current} type="text" list={optionsFor(catalog, col.key).length ? `excel-options-${col.key}` : undefined}
                                     aria-label={`${col.title}, fila ${r + 1}`}
@@ -2180,10 +2242,10 @@ const ProgramacionDespachoDiariaPage = () => {
                                       textAlign: col.key === "cantidad" ? "right" : "left",
                                       border: 0, borderRadius: 0, outline: "none", boxShadow: "none",
                                       py: 0, px: 1, m: 0, bgcolor: "transparent", color: "#101828",
-                                      appearance: "none", WebkitAppearance: "none",
-                                      "&::-webkit-calendar-picker-indicator": { display: "none !important" },
-                                      "&::-webkit-list-button": { display: "none !important" },
-                                      "&::-ms-expand": { display: "none" },
+                                      // appearance: "none", WebkitAppearance: "none",
+                                      // "&::-webkit-calendar-picker-indicator": { display: "none !important" },
+                                      // "&::-webkit-list-button": { display: "none !important" },
+                                      // "&::-ms-expand": { display: "none" },
                                       "&:focus": { border: 0, outline: "none", boxShadow: "none", bgcolor: "transparent" },
                                     }} />
                                 </Box>
