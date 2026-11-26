@@ -140,7 +140,7 @@ const RenderizarGraficoDiarioPorTanque = ({
 
       axios
         .get(
-          "https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros",
+          "http://localhost:4041/api/tanquesjornaleros/nivelesdiariostanquesjornaleros",
           { withCredentials: true }
         )
         .then((response) => {

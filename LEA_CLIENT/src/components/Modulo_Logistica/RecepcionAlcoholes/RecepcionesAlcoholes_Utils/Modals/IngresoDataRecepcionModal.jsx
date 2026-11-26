@@ -135,11 +135,11 @@ const IngresoDataRecepcionModal = ({
         const cargarDataMenuItemsSelect = async () => {
             try {
                 const [{ data: personalData }, { data: conductoresData }, { data: transportadorasData }, { data: productosData }, { data: proveedoresData },] = await Promise.all([
-                    axios.get("https://ambiocomserver.onrender.com/api/personal"),
-                    axios.get("https://ambiocomserver.onrender.com/api/conductores"),
-                    axios.get("https://ambiocomserver.onrender.com/api/transportadoraslogistica"),
-                    axios.get("https://ambiocomserver.onrender.com/api/alcoholesdespacho"),
-                    axios.get("https://ambiocomserver.onrender.com/api/proveedoreslogistica"),
+                    axios.get("http://localhost:4041/api/personal"),
+                    axios.get("http://localhost:4041/api/conductores"),
+                    axios.get("http://localhost:4041/api/transportadoraslogistica"),
+                    axios.get("http://localhost:4041/api/alcoholesdespacho"),
+                    axios.get("http://localhost:4041/api/proveedoreslogistica"),
                 ]);
 
                 const base = (Array.isArray(personalData) ? personalData : [])

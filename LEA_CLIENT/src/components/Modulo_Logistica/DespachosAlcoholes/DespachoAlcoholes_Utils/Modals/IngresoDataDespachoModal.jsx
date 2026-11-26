@@ -534,9 +534,9 @@ const IngresoDataDespachoModal = ({
 }) => {
   void _setExternalForm;
 
-  const CLIENTES_URL = "https://ambiocomserver.onrender.com/api/clienteslogistica";
-  const TRANSPORTADORAS_URL = "https://ambiocomserver.onrender.com/api/transportadoraslogistica";
-  const PRODUCTOS_URL = "https://ambiocomserver.onrender.com/api/alcoholesdespacho";
+  const CLIENTES_URL = "http://localhost:4041/api/clienteslogistica";
+  const TRANSPORTADORAS_URL = "http://localhost:4041/api/transportadoraslogistica";
+  const PRODUCTOS_URL = "http://localhost:4041/api/alcoholesdespacho";
 
   // =============   Contextos   ===============================
   const { rol, loadingAuth, isAuth } = useAuth();
@@ -756,7 +756,7 @@ const IngresoDataDespachoModal = ({
     try {
       const [conductoresRaw, clientesRaw, transportadorasRaw] =
         await Promise.all([
-          axios.get("https://ambiocomserver.onrender.com/api/conductores"),
+          axios.get("http://localhost:4041/api/conductores"),
           axios.get(CLIENTES_URL, { withCredentials: true }),
           axios.get(TRANSPORTADORAS_URL),
         ]);
@@ -831,7 +831,7 @@ const IngresoDataDespachoModal = ({
     if (typeof navigator !== "undefined" && !navigator.onLine) return;
 
     try {
-      const res = await axios.get("https://ambiocomserver.onrender.com/api/personal");
+      const res = await axios.get("http://localhost:4041/api/personal");
       const personal = Array.isArray(res.data) ? res.data : [];
 
       // OJO: usa exactamente los valores de tu BD

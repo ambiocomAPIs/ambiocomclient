@@ -94,7 +94,7 @@ const getMaterialIcon = (material) => {
 };
 
 const API_MATERIALES_COMBUSTIBLES =
-  "https://ambiocomserver.onrender.com/api/materiales-combustibles";
+  "http://localhost:4041/api/materiales-combustibles";
 
 const normalizeActiveFlag = (value) => {
   if (value === false || value === 0) return false;

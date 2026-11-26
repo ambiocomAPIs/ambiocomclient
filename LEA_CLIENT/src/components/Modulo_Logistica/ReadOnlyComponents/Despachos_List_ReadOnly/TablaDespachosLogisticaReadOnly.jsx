@@ -34,8 +34,8 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 
 import ExcelDownloadButton from "../../../../utils/Export_Data_General/ExcelDownloadData";
 
-const API_DESPACHOS = "https://ambiocomserver.onrender.com/api/despacho-alcoholes";
-const API_COLUMNAS = "https://ambiocomserver.onrender.com/api/columna-despacho-alcoholes";
+const API_DESPACHOS = "http://localhost:4041/api/despacho-alcoholes";
+const API_COLUMNAS = "http://localhost:4041/api/columna-despacho-alcoholes";
 
 export default function TablaDespachosLogisticaReadOnly() {
   const [columnas, setColumnas] = useState([]);

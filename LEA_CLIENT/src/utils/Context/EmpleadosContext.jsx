@@ -38,7 +38,7 @@ export const EmpleadosProvider = ({ children }) => {
       setLoadingEmpleados(true);
 
       const res = await axios.get(
-        "https://ambiocomserver.onrender.com/api/empleadosambiocom",
+        "http://localhost:4041/api/empleadosambiocom",
         { withCredentials: true }
       );
 

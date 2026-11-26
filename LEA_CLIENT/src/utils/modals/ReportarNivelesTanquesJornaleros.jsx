@@ -87,7 +87,7 @@
 //   // Traer datos de tanques
 //   useEffect(() => {
 //     axios
-//       .get("https://ambiocomserver.onrender.com/api/tanques")
+//       .get("http://localhost:4041/api/tanques")
 //       .then((res) => setTanquesData(res.data))
 //       .catch((err) => console.error("Error al obtener tanques:", err));
 //   }, []);
@@ -133,7 +133,7 @@
 //       console.log("payload:", payload);
       
 //       await axios.post(
-//         "https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros",
+//         "http://localhost:4041/api/tanquesjornaleros/nivelesdiariostanquesjornaleros",
 //         payload
 //       );
 
@@ -175,7 +175,7 @@
 //     if (confirm.isConfirmed) {
 //       try {
 //         await axios.delete(
-//           "https://ambiocomserver.onrender.com/api/tanquesjornaleros/eliminarporfecha",
+//           "http://localhost:4041/api/tanquesjornaleros/eliminarporfecha",
 //           { data: { FechaRegistro: fecha } } // 👈 enviar fecha en el body
 //         );
 //         Swal.fire("Eliminado", "Los registros fueron eliminados.", "success");

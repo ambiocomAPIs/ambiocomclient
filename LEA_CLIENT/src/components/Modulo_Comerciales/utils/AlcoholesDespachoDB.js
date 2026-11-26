@@ -1,5 +1,5 @@
 const API_ALCOHOLES_DESPACHO =
-  "https://ambiocomserver.onrender.com/api/alcoholesdespacho";
+  "http://localhost:4041/api/alcoholesdespacho";
 
 const CACHE_KEY = "ambiocom-alcoholes-despacho-v1";
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 horas

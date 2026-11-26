@@ -32,7 +32,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import PublicIcon from "@mui/icons-material/Public";
 
-const API_URL = "https://ambiocomserver.onrender.com/api/alcoholesdespacho";
+const API_URL = "http://localhost:4041/api/alcoholesdespacho";
 
 const CACHE_PREFIX = "despacho_catalogo_";
 

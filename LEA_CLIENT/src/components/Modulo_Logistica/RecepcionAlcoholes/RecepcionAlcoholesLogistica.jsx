@@ -262,8 +262,8 @@ const FilaRecepcionMemo = memo(function FilaRecepcionMemo({
   );
 });
 
-const API_RECEPCIONES = "https://ambiocomserver.onrender.com/api/recepcion-alcoholes";
-const API_COLUMNAS = "https://ambiocomserver.onrender.com/api/columna-recepcion-alcoholes";
+const API_RECEPCIONES = "http://localhost:4041/api/recepcion-alcoholes";
+const API_COLUMNAS = "http://localhost:4041/api/columna-recepcion-alcoholes";
 
 const formatearFechaInput = (fecha) => {
   const year = fecha.getFullYear();
@@ -1182,7 +1182,7 @@ export default function TablaIngresoRecepcionesLogistica() {
                 size="small"
                 onClick={() => {
                   window.open(
-                    "https://ambiocomserver.onrender.com/api/recepcion-alcoholes/plantilla-excel",
+                    "http://localhost:4041/api/recepcion-alcoholes/plantilla-excel",
                     "_blank"
                   );
                 }}
@@ -1891,7 +1891,7 @@ export default function TablaIngresoRecepcionesLogistica() {
           tooltipTitle="Descargar plantilla Excel"
           onClick={() => {
             window.open(
-              "https://ambiocomserver.onrender.com/api/recepcion-alcoholes/plantilla-excel",
+              "http://localhost:4041/api/recepcion-alcoholes/plantilla-excel",
               "_blank"
             );
           }}
@@ -2087,7 +2087,7 @@ export default function TablaIngresoRecepcionesLogistica() {
       {/* ================= CARGA MASIVA ================= */}
       <ExcelUploadButton
         ref={excelUploadRef}
-        url="https://ambiocomserver.onrender.com/api/recepcion-alcoholes/carga-masiva"
+        url="http://localhost:4041/api/recepcion-alcoholes/carga-masiva"
         onSuccess={() => obtenerMediciones()}
       />
     </Box>

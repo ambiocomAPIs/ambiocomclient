@@ -158,7 +158,7 @@
 
 //     try {
 //       // 1. Registrar movimiento
-//       await axios.post('https://ambiocomserver.onrender.com/api/registro/movimientos', {
+//       await axios.post('http://localhost:4041/api/registro/movimientos', {
 //         TipoOperacion: tipoOperacion,
 //         Producto: formData.Producto,
 //         Lote: formData.Lote,
@@ -180,7 +180,7 @@
 //       movimientoRegistrado = true;
 
 //       // 2. Actualizar base de datos
-//       await axios.post('https://ambiocomserver.onrender.com/api/table/data/reportar-operacion', {
+//       await axios.post('http://localhost:4041/api/table/data/reportar-operacion', {
 //         ...formData,
 //         TipoOperacion: tipoOperacion, 
 //         ConsumoAReportar: cantidadParaBaseDeDatos,

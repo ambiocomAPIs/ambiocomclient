@@ -23,7 +23,7 @@ import {
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import FilterAltOffRoundedIcon from "@mui/icons-material/FilterAltOffRounded";
 
-const API_URL = "https://ambiocomserver.onrender.com/api/despacho-alcoholes/rango";
+const API_URL = "http://localhost:4041/api/despacho-alcoholes/rango";
 
 /* =============== UTILIDADES ================= */
 

@@ -33,9 +33,9 @@ import SaveIcon from "@mui/icons-material/Save";
 import AddIcon from "@mui/icons-material/Add";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 
-const API_COLUMNAS_DESPACHO = "https://ambiocomserver.onrender.com/api/columna-despacho-alcoholes";
-const API_COLUMNAS_RECEPCION = "https://ambiocomserver.onrender.com/api/columna-recepcion-alcoholes";
-const API_AUTH_VERIFY = "https://ambiocomserver.onrender.com/api/auth/verify-columns";
+const API_COLUMNAS_DESPACHO = "http://localhost:4041/api/columna-despacho-alcoholes";
+const API_COLUMNAS_RECEPCION = "http://localhost:4041/api/columna-recepcion-alcoholes";
+const API_AUTH_VERIFY = "http://localhost:4041/api/auth/verify-columns";
 
 // roles del select para despacho
 const ROLES = [

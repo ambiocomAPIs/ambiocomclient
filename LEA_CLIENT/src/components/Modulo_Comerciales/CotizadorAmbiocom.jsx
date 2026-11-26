@@ -113,7 +113,7 @@ const MODALIDAD_CARGA_LBL = {
 const RAW_API_URL =
     import.meta.env.VITE_API_URL ||
     import.meta.env.VITE_BACKEND_URL ||
-    "https://ambiocomserver.onrender.com";
+    "http://localhost:4041";
 
 const API_URL = RAW_API_URL.replace(/\/$/, "");
 

@@ -41,7 +41,7 @@ import EmailIcon from "@mui/icons-material/Email";
 import CategoryIcon from "@mui/icons-material/Category";
 import BadgeIcon from "@mui/icons-material/Badge";
 
-const API_URL = "https://ambiocomserver.onrender.com/api/proveedoreslogistica";
+const API_URL = "http://localhost:4041/api/proveedoreslogistica";
 
 const TIPOS_PROVEEDOR = [
   "Materia Prima",

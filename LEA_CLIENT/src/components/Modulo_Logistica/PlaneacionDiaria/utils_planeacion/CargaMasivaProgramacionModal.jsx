@@ -33,7 +33,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 
 const DEFAULT_API_URL =
-  "https://ambiocomserver.onrender.com/api/programaciondespacho/carga-masiva";
+  "http://localhost:4041/api/programaciondespacho/carga-masiva";
 
 const DEFAULT_TEMPLATE_URL =
   "/plantillas/Plantilla_Carga_Masiva_Programacion.xlsx";

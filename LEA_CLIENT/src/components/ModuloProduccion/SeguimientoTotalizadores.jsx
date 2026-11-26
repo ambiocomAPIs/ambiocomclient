@@ -21,8 +21,8 @@ import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 import KeyboardArrowUpRoundedIcon from "@mui/icons-material/KeyboardArrowUpRounded";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 
-const TOTALIZADORES_API_URL = "https://ambiocomserver.onrender.com/api/seguimiento-totalizadores";
-const TANQUES_API_URL = "https://ambiocomserver.onrender.com/api/tanques";
+const TOTALIZADORES_API_URL = "http://localhost:4041/api/seguimiento-totalizadores";
+const TANQUES_API_URL = "http://localhost:4041/api/tanques";
 
 const MONTHS_ES = [
   "ENERO",

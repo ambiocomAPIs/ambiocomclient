@@ -23,7 +23,7 @@ import Swal from "sweetalert2";
 
 import { exportControlCalidadProcesoDestileriaExcel } from "./utils_laboratorio/exportControlCalidadProcesoDestileriaExcel";
 
-const API_URL = "https://ambiocomserver.onrender.com/api/trazabilidad-laboratorio-control-proceso";
+const API_URL = "http://localhost:4041/api/trazabilidad-laboratorio-control-proceso";
 
 const DRAFT_STORAGE_KEY = "control_calidad_proceso_destileria_draft";
 

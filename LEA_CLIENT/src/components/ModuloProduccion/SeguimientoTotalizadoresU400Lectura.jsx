@@ -5,6 +5,7 @@ import ExportarInformeTotalizadoresU400PDF from "./utils/utils_report/ExportarIn
 import Swal from "sweetalert2";
 import {
   Box,
+  Button,
   Chip,
   Collapse,
   Divider,
@@ -20,9 +21,11 @@ import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 import KeyboardArrowUpRoundedIcon from "@mui/icons-material/KeyboardArrowUpRounded";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
+import ResumenTotalizadoresU400Modal from "./utils/modals/ResumenTotalizadoresU400Modal";
+import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 
-const TOTALIZADORES_API_URL = "https://ambiocomserver.onrender.com/api/seguimiento-totalizadores";
-const TANQUES_API_URL = "https://ambiocomserver.onrender.com/api/tanques";
+const TOTALIZADORES_API_URL = "http://localhost:4041/api/seguimiento-totalizadores";
+const TANQUES_API_URL = "http://localhost:4041/api/tanques";
 
 const MONTHS_ES = [
   "ENERO",
@@ -479,7 +482,7 @@ export default function SeguimientoTotalizadoresU400({
   const [queryState, setQueryState] = useState("Cargando registros...");
   const [headerExpanded, setHeaderExpanded] = useState(true);
   const [kpisExpanded, setKpisExpanded] = useState(true);
-
+  const [resumenOpen, setResumenOpen] = useState(false);
 
   const twoMonthWindow = useMemo(() => getTwoMonthWindow(selectedMonth), [selectedMonth]);
   const windowMonths = twoMonthWindow.months;
@@ -1382,6 +1385,20 @@ export default function SeguimientoTotalizadoresU400({
 
   return (
     <Box sx={{ p: { xs: 1.5, md: 2.5 }, bgcolor: "#f5f7fb", minHeight: "100vh" }}>
+
+      <ResumenTotalizadoresU400Modal
+        open={resumenOpen}
+        onClose={() => setResumenOpen(false)}
+        visibleGroups={visibleGroups}
+        visibleDailyTotals={visibleDailyTotals}
+        totals={totals}
+        calc={calc}
+        getTanqueByValue={getTanqueByValue}
+        rowHasOperationalData={rowHasOperationalData}
+        rangeFrom={rangeFrom || windowRange.from}
+        rangeTo={rangeTo || windowRange.to}
+      />
+
       <Paper
         elevation={0}
         sx={{
@@ -1449,8 +1466,8 @@ export default function SeguimientoTotalizadoresU400({
                   color={
                     registroLoading
                       ? "warning"
-                      : 
-                        queryState === "Sin conexión con BD"
+                      :
+                      queryState === "Sin conexión con BD"
                         ? "error"
                         : "success"
                   }
@@ -1557,6 +1574,28 @@ export default function SeguimientoTotalizadoresU400({
                   }}
                 />
               </ProfessionalTooltip>
+
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<AssessmentOutlinedIcon />}
+                onClick={() => setResumenOpen(true)}
+                sx={{
+                  bgcolor: "#0b376d",
+                  color: "#ffffff",
+                  textTransform: "none",
+                  fontWeight: 800,
+                  fontSize: 12,
+                  minWidth: 135,
+                  flexShrink: 0,
+                  borderRadius: 1.5,
+                  "&:hover": {
+                    bgcolor: "#245ea8",
+                  },
+                }}
+              >
+                Ver resumen
+              </Button>
 
               <Tooltip
                 arrow

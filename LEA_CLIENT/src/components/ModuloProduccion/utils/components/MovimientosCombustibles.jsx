@@ -38,10 +38,10 @@ import {
 } from "./tablepatiocarbontipoexcel";
 
 const API_INGRESOS_COMBUSTIBLES =
-  "https://ambiocomserver.onrender.com/api/ingresos-combustibles";
+  "http://localhost:4041/api/ingresos-combustibles";
 
 const API_CONSUMOS_COMBUSTIBLES =
-  "https://ambiocomserver.onrender.com/api/consumos-combustibles";
+  "http://localhost:4041/api/consumos-combustibles";
 
 const MATERIAL_OPTIONS = ["Todos", "Carbón", "Madera", "Bagazo"];
 const SOURCE_OPTIONS = [

@@ -67,10 +67,10 @@ export const toSafeNumber = (value) => {
 };
 
 const INGRESOS_COMBUSTIBLES_API_BASE_URL =
-  "https://ambiocomserver.onrender.com/api/ingresos-combustibles";
+  "http://localhost:4041/api/ingresos-combustibles";
 
 const CONSUMOS_COMBUSTIBLES_API_BASE_URL =
-  "https://ambiocomserver.onrender.com/api/consumos-combustibles";
+  "http://localhost:4041/api/consumos-combustibles";
 
 const ingresosCombustiblesCache = new Map();
 

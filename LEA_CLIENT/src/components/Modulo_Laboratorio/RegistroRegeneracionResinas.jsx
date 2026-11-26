@@ -27,7 +27,7 @@ import Swal from "sweetalert2";
 
 import { exportAnalisisRegeneracionResinasExcel } from "./utils_laboratorio/ExportarExcelRegeneracionResinas";
 
-const API_URL = "https://ambiocomserver.onrender.com/regeneracionresinas/api/analisis-agua";
+const API_URL = "http://localhost:4041/regeneracionresinas/api/analisis-agua";
 const DRAFT_STORAGE_KEY = "analisis_agua_registro_draft";
 const LOGO_SRC = "/LogoCompany/logoambiocomsinfondo.png";
 

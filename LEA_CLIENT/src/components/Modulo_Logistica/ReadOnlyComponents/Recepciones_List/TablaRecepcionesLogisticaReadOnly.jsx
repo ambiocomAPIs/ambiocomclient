@@ -34,8 +34,8 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 
 import ExcelDownloadButton from "../../../../utils/Export_Data_General/ExcelDownloadData";
 
-const API_RECEPCION = "https://ambiocomserver.onrender.com/api/recepcion-alcoholes";
-const API_COLUMNAS = "https://ambiocomserver.onrender.com/api/columna-recepcion-alcoholes";
+const API_RECEPCION = "http://localhost:4041/api/recepcion-alcoholes";
+const API_COLUMNAS = "http://localhost:4041/api/columna-recepcion-alcoholes";
 
 export default function TablaRecepcionVehiculosReadOnly() {
   const [columnas, setColumnas] = useState([]);

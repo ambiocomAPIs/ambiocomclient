@@ -415,7 +415,7 @@ const InformeAlcoholes = () => {
         },
       });
 
-      await axios.post("https://ambiocomserver.onrender.com/api/informes-alcoholes", {
+      await axios.post("http://localhost:4041/api/informes-alcoholes", {
         fecha: fechaSeleccionada,
         zonas,
         bodegas,

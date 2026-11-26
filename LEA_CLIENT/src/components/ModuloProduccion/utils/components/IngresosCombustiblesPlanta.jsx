@@ -37,7 +37,7 @@ import {
 
 import Swal from "sweetalert2";
 
-const API_BASE_URL = "https://ambiocomserver.onrender.com/api/ingresos-combustibles";
+const API_BASE_URL = "http://localhost:4041/api/ingresos-combustibles";
 
 const EMPTY_FILTER_LABEL = "(Vacíos)";
 

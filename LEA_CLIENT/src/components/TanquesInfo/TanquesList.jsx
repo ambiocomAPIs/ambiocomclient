@@ -58,7 +58,7 @@ const TanquesList = ({ tanquesContext }) => {
 
   const fetchTanques = async () => {
     try {
-      const res = await axios.get("https://ambiocomserver.onrender.com/api/tanques", {
+      const res = await axios.get("http://localhost:4041/api/tanques", {
         withCredentials: true,
       });
 
@@ -98,7 +98,7 @@ const TanquesList = ({ tanquesContext }) => {
 
       if (data._id && operacionEjecutada === "update") {
         const res = await axios.put(
-          `https://ambiocomserver.onrender.com/api/tanques/${data._id}`,
+          `http://localhost:4041/api/tanques/${data._id}`,
           dataLimpia,
           {
             withCredentials: true,
@@ -123,7 +123,7 @@ const TanquesList = ({ tanquesContext }) => {
         );
       } else {
         const res = await axios.post(
-          "https://ambiocomserver.onrender.com/api/tanques",
+          "http://localhost:4041/api/tanques",
           dataLimpia,
           {
             withCredentials: true,
@@ -232,7 +232,7 @@ const TanquesList = ({ tanquesContext }) => {
     if (confirm.isConfirmed) {
       try {
         await axios.delete(
-          `https://ambiocomserver.onrender.com/api/tanques/${id}`,
+          `http://localhost:4041/api/tanques/${id}`,
           {
             withCredentials: true,
           }
@@ -314,7 +314,7 @@ const TanquesList = ({ tanquesContext }) => {
         : String(value).trim();
 
       await axios.put(
-        `https://ambiocomserver.onrender.com/api/tanques/${tanque._id}`,
+        `http://localhost:4041/api/tanques/${tanque._id}`,
         { [campo]: nuevoValor },
         { withCredentials: true }
       );

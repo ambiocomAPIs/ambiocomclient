@@ -34,7 +34,7 @@ import {
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
 
-const API_BASE_URL = "https://ambiocomserver.onrender.com/api/materiales-combustibles";
+const API_BASE_URL = "http://localhost:4041/api/materiales-combustibles";
 
 const MATERIAL_OPTIONS = ["Carbón", "Madera", "Bagazo"];
 

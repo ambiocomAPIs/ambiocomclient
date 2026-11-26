@@ -34,7 +34,7 @@ export const NivelesDiariosTanquesProvider = ({ children }) => {
       setNivelesTanquesLoading(true);
 
       const res = await axios.get(
-        "https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros",
+        "http://localhost:4041/api/tanquesjornaleros/nivelesdiariostanquesjornaleros",
         {
           withCredentials: true,
         }

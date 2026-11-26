@@ -83,7 +83,7 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
   useEffect(() => {
     const fetchConsumo = async () => {
       try {
-        const res = await axios.get("https://ambiocomserver.onrender.com/api/cierreMes/data");
+        const res = await axios.get("http://localhost:4041/api/cierreMes/data");
         setConsumo(res.data);
       } catch (err) {
         console.error("Error al traer consumo:", err);
@@ -97,7 +97,7 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
     const fetchGraficas = async () => {
       try {
         const res = await axios.get(
-          "https://ambiocomserver.onrender.com/api/graficainsumosoh/listarprecioporoh"
+          "http://localhost:4041/api/graficainsumosoh/listarprecioporoh"
         );
         setGraficasGuardadas(res.data);
       } catch (err) {
@@ -194,7 +194,7 @@ const Comparativomensualinsumosquimicoscostolitro = () => {
         timeZone: "America/Bogota",
       });
       await axios.post(
-        "https://ambiocomserver.onrender.com/api/graficainsumosoh/guardarprecioporoh",
+        "http://localhost:4041/api/graficainsumosoh/guardarprecioporoh",
         {
           produccionActual,
           produccionAnterior,
