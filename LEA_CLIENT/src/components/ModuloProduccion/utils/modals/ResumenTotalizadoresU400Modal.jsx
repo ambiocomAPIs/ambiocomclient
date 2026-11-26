@@ -28,6 +28,8 @@ import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined
 import ViewListOutlinedIcon from "@mui/icons-material/ViewListOutlined";
 import TableRowsOutlinedIcon from "@mui/icons-material/TableRowsOutlined";
 
+import ExcelDownloadButton from "../../../../utils/Export_Data_General/ExcelDownloadData";
+
 const MARINO = "#0b376d";
 const AZUL = "#245ea8";
 const BORDE = "#dbe3ef";
@@ -183,6 +185,58 @@ export default function ResumenTotalizadoresU400Modal({
     const tanquesPeriodo = obtenerTanques(
         registros.map(({ row }) => row)
     );
+
+    // EXPORTACIÓN: replica las filas visibles sin recalcular los totales.
+    const crearFilaExcel = (fecha, turno, valores, tanques) => ({
+        Fecha: fecha,
+        Turno: turno,
+        ...Object.fromEntries(
+            COLUMNAS.map((col) => [
+                col.key === "tanques" ? col.titulo : `${col.titulo} (L)`,
+                col.key === "tanques"
+                    ? tanques
+                    : tieneValor(valores?.[col.key])
+                        ? Number(valores[col.key])
+                        : "",
+            ])
+        ),
+    });
+
+    const dataExcel = grupos.flatMap((group) => {
+        const filas = modo === "turnos"
+            ? group.items.map(({ row }) => crearFilaExcel(
+                formatoFecha(row.fecha),
+                row.turno || "Sin definir",
+                Object.fromEntries(
+                    COLUMNAS.filter((col) => col.key !== "tanques").map((col) => [
+                        col.key,
+                        calc(row, col.key),
+                    ])
+                ),
+                obtenerTanques([row])
+            ))
+            : [];
+
+        filas.push(crearFilaExcel(
+            formatoFecha(group.fecha),
+            `TOTAL DÍA (${group.items.length} turno(s))`,
+            group.totals,
+            obtenerTanques(group.items.map(({ row }) => row))
+        ));
+
+        return filas;
+    });
+
+    if (grupos.length > 0) {
+        dataExcel.push(crearFilaExcel(
+            "TOTAL ACUMULADO",
+            `${cantidadDias} día(s) · ${cantidadTurnos} turno(s)`,
+            totals,
+            tanquesPeriodo
+        ));
+    }
+
+    const nombreExcel = `U400_${modo === "turnos" ? "Detalle_turnos" : "Consolidado_diario"}_${rangeFrom || "inicio"}_${rangeTo || "fin"}.xlsx`;
 
     const renderCelda = (col, value, tipo = "turno") => {
         const frontera = fronteraPorColumna(col.key);
@@ -382,42 +436,86 @@ export default function ResumenTotalizadoresU400Modal({
                         </Typography>
                     </Box>
 
-                    <ToggleButtonGroup
-                        exclusive
-                        size="small"
-                        value={modo}
-                        onChange={(_, value) => {
-                            if (value !== null) setModo(value);
-                        }}
-                        aria-label="Modo de visualización"
-                        sx={{
-                            bgcolor: "#ffffff",
-                            "& .MuiToggleButton-root": {
-                                px: 1.5,
-                                py: 0.7,
-                                fontSize: 11.5,
-                                fontWeight: 750,
-                                textTransform: "none",
-                                borderColor: BORDE,
-                                color: "#58709c",
-                                gap: 0.7,
-                            },
-                            "& .Mui-selected": {
-                                bgcolor: "#e4eefb !important",
-                                color: `${MARINO} !important`,
-                            },
-                        }}
-                    >
-                        <ToggleButton value="turnos">
-                            <ViewListOutlinedIcon sx={{ fontSize: 17 }} />
-                            Detalle por turnos
-                        </ToggleButton>
+                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                        <ToggleButtonGroup
+                            exclusive
+                            size="small"
+                            value={modo}
+                            onChange={(_, value) => {
+                                if (value !== null) setModo(value);
+                            }}
+                            aria-label="Modo de visualización"
+                            sx={{
+                                bgcolor: "#ffffff",
+                                "& .MuiToggleButton-root": {
+                                    px: 1.5,
+                                    py: 0.7,
+                                    fontSize: 11.5,
+                                    fontWeight: 750,
+                                    textTransform: "none",
+                                    borderColor: BORDE,
+                                    color: "#58709c",
+                                    gap: 0.7,
+                                },
+                                "& .Mui-selected": {
+                                    bgcolor: "#e4eefb !important",
+                                    color: `${MARINO} !important`,
+                                },
+                            }}
+                        >
+                            <ToggleButton value="turnos">
+                                <ViewListOutlinedIcon sx={{ fontSize: 17 }} />
+                                Detalle por turnos
+                            </ToggleButton>
+    
+                            <ToggleButton value="diario">
+                                <TableRowsOutlinedIcon sx={{ fontSize: 17 }} />
+                                Consolidado diario
+                            </ToggleButton>
+                        </ToggleButtonGroup>
 
-                        <ToggleButton value="diario">
-                            <TableRowsOutlinedIcon sx={{ fontSize: 17 }} />
-                            Consolidado diario
-                        </ToggleButton>
-                    </ToggleButtonGroup>
+                        <Tooltip
+                            title={modo === "turnos" ? "Exportar detalle por turnos a Excel" : "Exportar consolidado diario a Excel"}
+                            arrow
+                        >
+                            <Box
+                                component="span"
+                                sx={{
+                                    display: "inline-flex",
+                                    "& .MuiButton-root": {
+                                        minWidth: 38,
+                                        width: 38,
+                                        height: 36,
+                                        p: 0.7,
+                                        border: `1px solid ${BORDE}`,
+                                        borderRadius: 1.5,
+                                        bgcolor: "#ffffff",
+                                        "&:hover": { bgcolor: "#e3efe8" },
+                                    },
+                                    "& .MuiButton-startIcon": { m: 0 },
+                                    "& .Mui-disabled": { opacity: 0.45 },
+                                }}
+                            >
+                                <ExcelDownloadButton
+                                    data={dataExcel}
+                                    filename={nombreExcel}
+                                    sheetName={modo === "turnos" ? "Detalle por turnos" : "Consolidado diario"}
+                                    buttonText=""
+                                    variant="text"
+                                    size="small"
+                                    disabled={!grupos.length}
+                                    startIcon={
+                                        <Box
+                                            component="img"
+                                            src="/Icons/excelIcon.png"
+                                            alt="Exportar a Excel"
+                                            sx={{ width: 23, height: 23, objectFit: "contain" }}
+                                        />
+                                    }
+                                />
+                            </Box>
+                        </Tooltip>
+                    </Stack>
                 </Stack>
 
                 {/* TABLA CONSOLIDADA */}
