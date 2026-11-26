@@ -34,20 +34,20 @@ const BORDE = "#dbe3ef";
 
 const COLUMNAS = [
     {
-        key: "renConsumo",
-        titulo: "Materia prima consumida",
-        subtitulo: "Flujómetro totalizador REN",
-        bg: "#e2ecf9",
-        color: "#24548a",
-        width: 175,
-    },
-    {
         key: "tanques",
         titulo: "Tanques REN",
         subtitulo: "Tanques registrados",
         bg: "#ebe5f4",
         color: "#69518c",
         width: 140,
+    },
+    {
+        key: "renConsumo",
+        titulo: "Materia prima consumida",
+        subtitulo: "Flujómetro totalizador REN",
+        bg: "#e2ecf9",
+        color: "#24548a",
+        width: 175,
     },
     {
         key: "renNivelTotal",
@@ -105,7 +105,7 @@ const fronteraPorColumna = (key) =>
             : FRONTERAS[1];
 
 const iniciaFrontera = (key) =>
-    ["renConsumo", "prodTotal", "ab801Total"].includes(key);
+    ["tanques", "prodTotal", "ab801Total"].includes(key);
 
 const tieneValor = (value) =>
     value !== "" &&
@@ -354,7 +354,7 @@ export default function ResumenTotalizadoresU400Modal({
                     justifyContent="space-between"
                     alignItems={{ xs: "flex-start", lg: "center" }}
                     spacing={1.2}
-                    sx={{ mb: 1.5 }}
+                    sx={{ mb: 1.5, mt:1.5}}
                 >
                     <Box>
                         <Stack direction="row" spacing={0.8} alignItems="center">
@@ -449,7 +449,7 @@ export default function ResumenTotalizadoresU400Modal({
                                 borderRight: "1px solid #edf1f6",
                             },
                             "& .MuiTableCell-root:last-child": {
-                                borderRight: 0,
+                                  borderRight: "3px solid #a3b6cc",
                             },
                             "& .MuiTableHead-root": {
                                 position: "sticky",
