@@ -58,9 +58,9 @@ function exportCsv(items) {
 }
 
 export default function GestionPostulacionesWebflow({
-  endpointListado = "http://localhost:4041/api/postulaciones/postulaciones",
-  construirEndpointEstado = id => `http://localhost:4041/api/postulaciones/postulaciones/${encodeURIComponent(id)}/estado`,
-  construirEndpointVista = id => `http://localhost:4041/api/postulaciones/postulaciones/${encodeURIComponent(id)}/vista`,
+  endpointListado = "https://ambiocomserver.onrender.com/api/postulaciones/postulaciones",
+  construirEndpointEstado = id => `https://ambiocomserver.onrender.com/api/postulaciones/postulaciones/${encodeURIComponent(id)}/estado`,
+  construirEndpointVista = id => `https://ambiocomserver.onrender.com/api/postulaciones/postulaciones/${encodeURIComponent(id)}/vista`,
   titulo = 'Centro de postulaciones',
 }) {
 

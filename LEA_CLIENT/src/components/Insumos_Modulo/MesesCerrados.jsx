@@ -123,7 +123,7 @@ const MesesCerrados = React.memo(() => {
 
   const filtrarConsumo = () => {
     setLoading(true); // para mostrar spinner si tienes
-    axios.get('http://localhost:4041/api/cierreMes/data')
+    axios.get('https://ambiocomserver.onrender.com/api/cierreMes/data')
       .then(response => {
               // asi llega el response.data
         //  [
@@ -178,7 +178,7 @@ const MesesCerrados = React.memo(() => {
 
     const fetchPdf = async (rowId) => {
       try {
-          const response = await axios.get(`http://localhost:4041/api/pdfs/${rowId}`, {
+          const response = await axios.get(`https://ambiocomserver.onrender.com/api/pdfs/${rowId}`, {
               responseType: 'blob',  // Especifica que esperas un blob (archivo binario)
           });
   
@@ -198,7 +198,7 @@ const MesesCerrados = React.memo(() => {
   const DownloadPdf = async (rowId) => {
     try {
         // Realiza la solicitud para obtener el archivo PDF
-        const response = await axios.get(`http://localhost:4041/api/pdfs/download/${rowId}`);
+        const response = await axios.get(`https://ambiocomserver.onrender.com/api/pdfs/download/${rowId}`);
 
         // Extraer el nombre del archivo desde los datos JSON
         const { filename, data } = response.data;
@@ -263,7 +263,7 @@ const DeletePdf = async (rowId) => {
 
     // Verifica si el usuario confirmó la acción
     if (result.isConfirmed) {
-      const response = await axios.delete(`http://localhost:4041/api/pdfs/${rowId}`);
+      const response = await axios.delete(`https://ambiocomserver.onrender.com/api/pdfs/${rowId}`);
 
       // Notificación de éxito
       Swal.fire({

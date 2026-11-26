@@ -24,8 +24,8 @@ import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownR
 import ResumenTotalizadoresU400Modal from "./utils/modals/ResumenTotalizadoresU400Modal";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 
-const TOTALIZADORES_API_URL = "http://localhost:4041/api/seguimiento-totalizadores";
-const TANQUES_API_URL = "http://localhost:4041/api/tanques";
+const TOTALIZADORES_API_URL = "https://ambiocomserver.onrender.com/api/seguimiento-totalizadores";
+const TANQUES_API_URL = "https://ambiocomserver.onrender.com/api/tanques";
 
 const MONTHS_ES = [
   "ENERO",
@@ -1594,7 +1594,7 @@ export default function SeguimientoTotalizadoresU400({
                   },
                 }}
               >
-                Ver resumen
+                  Análisis de fronteras
               </Button>
 
               <Tooltip

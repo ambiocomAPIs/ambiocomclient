@@ -56,11 +56,11 @@ import ProgramacionDespachoModal from "./utils_planeacion/ProgramacionDespachoMo
 import CargaMasivaProgramacionModal from "./utils_planeacion/CargaMasivaProgramacionModal";
 import EstadoProgramacionModal from "./utils_planeacion/EstadoProgramacionModal";
 import { CIUDADES_COLOMBIA, getCiudadDestinoValue } from "../utils_Logistica/Catalogo/ciudadesColombia";
-const API_URL = "http://localhost:4041/api/programaciondespacho";
-const API_CONDUCTORES = "http://localhost:4041/api/conductores";
-const API_CLIENTES = "http://localhost:4041/api/clienteslogistica";
-const API_PRODUCTOS = "http://localhost:4041/api/alcoholesdespacho";
-const API_TRANSPORTADORAS = "http://localhost:4041/api/transportadoraslogistica";
+const API_URL = "https://ambiocomserver.onrender.com/api/programaciondespacho";
+const API_CONDUCTORES = "https://ambiocomserver.onrender.com/api/conductores";
+const API_CLIENTES = "https://ambiocomserver.onrender.com/api/clienteslogistica";
+const API_PRODUCTOS = "https://ambiocomserver.onrender.com/api/alcoholesdespacho";
+const API_TRANSPORTADORAS = "https://ambiocomserver.onrender.com/api/transportadoraslogistica";
 const CATALOG_TTL_MS = 5 * 60 * 1000;
 const CAMPOS_CATALOGO = {
   placa: ["placas", "Placa"],

@@ -28,7 +28,7 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
-const API_URL = "http://localhost:4041/api/programaciondespacho";
+const API_URL = "https://ambiocomserver.onrender.com/api/programaciondespacho";
 
 const normalizeText = (v) =>
   String(v ?? "")

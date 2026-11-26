@@ -44,9 +44,9 @@ import AnalisisHistoricoSCADAModal from "./utils_SCADA/AnalisisHistoricoSCADAMod
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
 // const API_SCADA = "http\://localhost:4041/api/scada/nivelesaveva"
-const API_SCADA = "http://localhost:4041/api/scada/nivelesaveva"
-const API_DESPACHOS = "http://localhost:4041/api/despacho-alcoholes";
-const API_BASCULA = "http://localhost:4041/api/pesajes";
+const API_SCADA = "https://ambiocomserver.onrender.com/api/scada/nivelesaveva"
+const API_DESPACHOS = "https://ambiocomserver.onrender.com/api/despacho-alcoholes";
+const API_BASCULA = "https://ambiocomserver.onrender.com/api/pesajes";
 
 const SENSORES = ["LT650", "LT801A", "LT801B", "LT102A", "LT102B", "LT402A", "LT402B", "LT805", "LT806", "LT807", "LT808", "LT300A"];
 const SENSORES_REGISTRADOS = new Set(SENSORES);

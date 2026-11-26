@@ -149,7 +149,7 @@ function FormField({ field, value, onChange, nameValue, onUploadImage, uploading
   return <TextField {...props} required={isRequired} inputProps={validations?.maxLength ? { maxLength: validations.maxLength } : undefined} placeholder={slug === 'slug' ? slugify(nameValue) : undefined} />;
 }
 export default function GestionVacantesWebflowCMS({
-  baseUrl = 'http://localhost:4041/api/webflow-cms',
+  baseUrl = 'https://ambiocomserver.onrender.com/api/webflow-cms',
   collectionId = COLLECTION_ID,
   soloLectura = false,
   sitioPublico = 'https://ambiocom.com/vacantes-page',

@@ -91,7 +91,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
     isBackendReachable,
     isChecking,
   } = useNetworkStatus({
-    checkUrl: "http://localhost:4041/api/health",
+    checkUrl: "https://ambiocomserver.onrender.com/api/health",
     interval: 30000,
     timeout: 5000,
     checkBackend: true,
@@ -141,7 +141,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
   // Traer datos de tanques
   useEffect(() => {
     axios
-      .get("http://localhost:4041/api/tanques", {withCredentials:true})
+      .get("https://ambiocomserver.onrender.com/api/tanques", {withCredentials:true})
       .then((res) => setTanquesData(res.data))
       .catch((err) => console.error("Error al obtener tanques:", err));
   }, []);
@@ -159,7 +159,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
 
     try {
       const res = await axios.get(
-        `http://localhost:4041/api/tanquesjornaleros/porfecha/${fechaSeleccionada}`,{withCredentials:true}
+        `https://ambiocomserver.onrender.com/api/tanquesjornaleros/porfecha/${fechaSeleccionada}`,{withCredentials:true}
       );
 
       if (res.data?.length > 0) {
@@ -204,7 +204,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
     try {
       // 1. Buscar registros del día origen
       const resOrigen = await axios.get(
-        `http://localhost:4041/api/tanquesjornaleros/porfecha/${fechaOrigen}`,{withCredentials:true}
+        `https://ambiocomserver.onrender.com/api/tanquesjornaleros/porfecha/${fechaOrigen}`,{withCredentials:true}
       );
 
       if (!resOrigen.data || resOrigen.data.length === 0) {
@@ -214,7 +214,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
 
       // 2. Verificar si ya existe información en la fecha destino
       const resDestino = await axios.get(
-        `http://localhost:4041/api/tanquesjornaleros/porfecha/${fechaDestino}`,{withCredentials:true}
+        `https://ambiocomserver.onrender.com/api/tanquesjornaleros/porfecha/${fechaDestino}`,{withCredentials:true}
       );
 
       if (resDestino.data && resDestino.data.length > 0) {
@@ -252,7 +252,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
 
       // 4. Guardar clon
       await axios.post(
-        "http://localhost:4041/api/tanquesjornaleros/nivelesdiariostanquesjornaleros",
+        "https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros",
         payload,
         {withCredentials:true}
       );
@@ -322,14 +322,14 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
 
       if (modoEdicion) {
         await axios.put(
-          "http://localhost:4041/api/tanquesjornaleros/actualizarporfecha",
+          "https://ambiocomserver.onrender.com/api/tanquesjornaleros/actualizarporfecha",
           payload,
           {withCredentials:true},
         );
         Swal.fire("Actualizado", "Reporte actualizado correctamente.", "success");
       } else {
         await axios.post(
-          "http://localhost:4041/api/tanquesjornaleros/nivelesdiariostanquesjornaleros",
+          "https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros",
           payload,
           {withCredentials:true},
         );
@@ -368,7 +368,7 @@ const ReportarNivelesTanquesJornaleros = ({ open, onClose }) => {
     if (confirm.isConfirmed) {
       try {
         await axios.delete(
-          "http://localhost:4041/api/tanquesjornaleros/eliminarporfecha",
+          "https://ambiocomserver.onrender.com/api/tanquesjornaleros/eliminarporfecha",
           { data: { FechaRegistro: fecha }, withCredentials:true },
         );
         Swal.fire("Eliminado", "Los registros fueron eliminados.", "success");

@@ -22,7 +22,7 @@ import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import Swal from "sweetalert2";
 import { exportTrazabilidadLoteProduccionLaboratorioExcel } from "./utils_laboratorio/exportTrazabilidadLoteProduccionLaboratorioExcel";
 
-const API_URL = "http://localhost:4041/api/trazabilidadloteproduccionlaboratorio";
+const API_URL = "https://ambiocomserver.onrender.com/api/trazabilidadloteproduccionlaboratorio";
 const DRAFT_STORAGE_KEY = "tabla_trazabilidad_laboratorio_draft";
 
 const EDIT_ALLOWED_ROLES = ["laboratorio", "developer"];

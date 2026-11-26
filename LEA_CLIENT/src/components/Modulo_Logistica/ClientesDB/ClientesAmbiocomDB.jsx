@@ -41,8 +41,8 @@ import ClearIcon from "@mui/icons-material/Clear";
 import BusinessIcon from "@mui/icons-material/Business";
 import PersonIcon from "@mui/icons-material/Person";
 
-const API_URL = "http://localhost:4041/api/clienteslogistica";
-const API_TIPO_OH_URL = "http://localhost:4041/api/alcoholesdespacho";
+const API_URL = "https://ambiocomserver.onrender.com/api/clienteslogistica";
+const API_TIPO_OH_URL = "https://ambiocomserver.onrender.com/api/alcoholesdespacho";
 
 // Debounce simple sin librerías
 const useDebouncedValue = (value, delay = 250) => {

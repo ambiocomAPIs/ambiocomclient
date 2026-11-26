@@ -43,7 +43,7 @@ import PhoneIcon from "@mui/icons-material/Phone";
 // Ajusta esta ruta únicamente si ExcelDownloadButton está en otra carpeta.
 import ExcelDownloadButton from "../../../utils/Export_Data_General/ExcelDownloadData";
 
-const API_URL = "http://localhost:4041/api/conductores";
+const API_URL = "https://ambiocomserver.onrender.com/api/conductores";
 
 // Debounce simple sin librerías
 const useDebouncedValue = (value, delay = 250) => {
@@ -132,7 +132,7 @@ const ConductoresPage = () => {
   const fetchTransportadoras = async () => {
     try {
       const res = await axios.get(
-        "http://localhost:4041/api/transportadoraslogistica"
+        "https://ambiocomserver.onrender.com/api/transportadoraslogistica"
       );
 
       setTransportadoras(Array.isArray(res.data) ? res.data : []);

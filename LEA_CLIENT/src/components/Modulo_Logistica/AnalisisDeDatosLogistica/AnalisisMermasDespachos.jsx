@@ -16,7 +16,7 @@ import ArrowDownwardRoundedIcon from '@mui/icons-material/ArrowDownwardRounded';
 import TableViewOutlinedIcon from '@mui/icons-material/TableViewOutlined';
 import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined';
 import ModalDiagnosticoMermas from './Utils_AnalisisDeDatosLogistica/ModalAnalisisMermas';
-const API = 'http://localhost:4041/api/despacho-alcoholes/rango';
+const API = 'https://ambiocomserver.onrender.com/api/despacho-alcoholes/rango';
 const NAVY = '#23345c';
 
 // Cada comparación conserva el mismo tono a través de sus cuatro columnas.

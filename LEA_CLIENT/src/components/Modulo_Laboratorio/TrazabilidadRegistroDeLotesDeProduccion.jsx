@@ -23,7 +23,7 @@ import Swal from "sweetalert2";
 
 import { exportTrazabilidadRegistroLoteProduccionExcel  } from "./utils_laboratorio/exportTrazabilidadRegistroLoteProduccionExcel";
 
-const API_URL = "http://localhost:4041/api/trazabilidad-laboratorio-lote-produccion";
+const API_URL = "https://ambiocomserver.onrender.com/api/trazabilidad-laboratorio-lote-produccion";
 const DRAFT_STORAGE_KEY = "trazabilidad_lote_produccion_draft";
 
 const EDIT_ALLOWED_ROLES = ["laboratorio", "developer"];

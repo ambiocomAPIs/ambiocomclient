@@ -34,7 +34,7 @@ export const TanquesProvider = ({ children }) => {
       setLoading(true);
 
       const res = await axios.get(
-        "http://localhost:4041/api/tanques",
+        "https://ambiocomserver.onrender.com/api/tanques",
         {
           withCredentials: true,
         }

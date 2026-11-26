@@ -28,7 +28,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 
 import { useAuth } from "../../Context/AuthContext/AuthContext.jsx";
 
-const API_TUTORIALES = "http://localhost:4041/api/tutoriallist/tutorial";
+const API_TUTORIALES = "https://ambiocomserver.onrender.com/api/tutoriallist/tutorial";
 
 const MODULE_LABELS = {
   despachos: "Despachos",

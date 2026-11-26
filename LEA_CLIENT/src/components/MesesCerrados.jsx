@@ -123,7 +123,7 @@ const MesesCerrados = React.memo(() => {
 
   const filtrarConsumo = () => {
     setLoading(true); 
-    axios.get('http://localhost:4041/api/cierreMes/data')
+    axios.get('https://ambiocomserver.onrender.com/api/cierreMes/data')
       .then(response => {
         const mesSeleccionado = mesFiltradoCierreMes;
         const mesFiltrado = response.data.filter(item => item.MesDeCierre === mesSeleccionado);
@@ -169,7 +169,7 @@ const MesesCerrados = React.memo(() => {
 
   const fetchPdf = async (rowId) => {
     try {
-      const response = await axios.get(`http://localhost:4041/api/pdfs/${rowId}`, {
+      const response = await axios.get(`https://ambiocomserver.onrender.com/api/pdfs/${rowId}`, {
         responseType: 'blob',  
       });
 
@@ -187,7 +187,7 @@ const MesesCerrados = React.memo(() => {
 
   const DownloadPdf = async (rowId) => {
     try {
-      const response = await axios.get(`http://localhost:4041/api/pdfs/download/${rowId}`);
+      const response = await axios.get(`https://ambiocomserver.onrender.com/api/pdfs/download/${rowId}`);
 
       const { filename, data } = response.data;
 
@@ -242,7 +242,7 @@ const MesesCerrados = React.memo(() => {
       });
 
       if (result.isConfirmed) {
-        const response = await axios.delete(`http://localhost:4041/api/pdfs/${rowId}`);
+        const response = await axios.delete(`https://ambiocomserver.onrender.com/api/pdfs/${rowId}`);
 
         Swal.fire({
           icon: 'success',

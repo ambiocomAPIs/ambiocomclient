@@ -16,7 +16,7 @@ import Swal from "sweetalert2";
 import DownloadIcon from "@mui/icons-material/Download";
 import { exportAnalisisAguaExcel } from "./utils_laboratorio/ExportAnalisisAguaExcel";
 
-const API_URL = "http://localhost:4041/api/agua-analisis";
+const API_URL = "https://ambiocomserver.onrender.com/api/agua-analisis";
 
 const STORAGE_KEY = "tabla_agua_ambiocom";
 const DRAFT_STORAGE_KEY = "tabla_agua_ambiocom_draft";

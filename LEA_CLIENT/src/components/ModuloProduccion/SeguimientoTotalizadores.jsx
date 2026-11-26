@@ -20,9 +20,12 @@ import AddCircleOutlineRoundedIcon from "@mui/icons-material/AddCircleOutlineRou
 import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 import KeyboardArrowUpRoundedIcon from "@mui/icons-material/KeyboardArrowUpRounded";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
+import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 
-const TOTALIZADORES_API_URL = "http://localhost:4041/api/seguimiento-totalizadores";
-const TANQUES_API_URL = "http://localhost:4041/api/tanques";
+import ResumenTotalizadoresU400Modal from "./utils/modals/ResumenTotalizadoresU400Modal";
+
+const TOTALIZADORES_API_URL = "https://ambiocomserver.onrender.com/api/seguimiento-totalizadores";
+const TANQUES_API_URL = "https://ambiocomserver.onrender.com/api/tanques";
 
 const MONTHS_ES = [
   "ENERO",
@@ -604,6 +607,7 @@ export default function SeguimientoTotalizadoresU400({
   const [saveState, setSaveState] = useState("Cargando registros...");
   const [headerExpanded, setHeaderExpanded] = useState(true);
   const [kpisExpanded, setKpisExpanded] = useState(true);
+  const [resumenOpen, setResumenOpen] = useState(false);
 
   const saveTimer = useRef(null);
   const hasLoadedRef = useRef(false);
@@ -2104,6 +2108,20 @@ export default function SeguimientoTotalizadoresU400({
 
   return (
     <Box sx={{ p: { xs: 1.5, md: 2.5 }, bgcolor: "#f5f7fb", minHeight: "100vh" }}>
+
+      <ResumenTotalizadoresU400Modal
+        open={resumenOpen}
+        onClose={() => setResumenOpen(false)}
+        visibleGroups={visibleGroups}
+        visibleDailyTotals={visibleDailyTotals}
+        totals={totals}
+        calc={calc}
+        getTanqueByValue={getTanqueByValue}
+        rowHasOperationalData={rowHasOperationalData}
+        rangeFrom={rangeFrom || windowRange.from}
+        rangeTo={rangeTo || windowRange.to}
+      />
+
       <Paper
         elevation={0}
         sx={{
@@ -2279,6 +2297,33 @@ export default function SeguimientoTotalizadoresU400({
                   }}
                 />
               </ProfessionalTooltip>
+
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<AssessmentOutlinedIcon sx={{ fontSize: 17 }} />}
+                onClick={() => setResumenOpen(true)}
+                disabled={registroLoading}
+                sx={{
+                  height: 30,
+                  px: 1.5,
+                  color: "#0b376d",
+                  bgcolor: "#edf4fc",
+                  borderColor: "#b8cce4",
+                  textTransform: "none",
+                  fontWeight: 800,
+                  fontSize: 11.5,
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                  borderRadius: 1.8,
+                  "&:hover": {
+                    bgcolor: "#dce9f8",
+                    borderColor: "#245ea8",
+                  },
+                }}
+              >
+                Análisis de fronteras
+              </Button>
 
               <Tooltip
                 arrow

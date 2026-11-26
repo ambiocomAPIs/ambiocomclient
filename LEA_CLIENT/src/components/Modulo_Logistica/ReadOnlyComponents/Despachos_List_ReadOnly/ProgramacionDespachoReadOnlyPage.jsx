@@ -37,7 +37,7 @@ import SaveIcon from "@mui/icons-material/Save";
 
 import { useAuth } from "../../../../utils/Context/AuthContext/AuthContext";
 
-const API_URL = "http://localhost:4041/api/programaciondespacho";
+const API_URL = "https://ambiocomserver.onrender.com/api/programaciondespacho";
 
 const useDebouncedValue = (value, delay = 250) => {
     const [debounced, setDebounced] = useState(value);

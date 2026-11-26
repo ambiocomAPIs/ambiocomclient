@@ -36,7 +36,7 @@ import ScienceIcon from "@mui/icons-material/Science";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import BadgeIcon from "@mui/icons-material/Badge";
 
-const API_URL = "http://localhost:4041/api/personal";
+const API_URL = "https://ambiocomserver.onrender.com/api/personal";
 
 const AREA_ANALISTAS = "Laboratorio";
 const AREA_LOGISTICA = "Logistica";

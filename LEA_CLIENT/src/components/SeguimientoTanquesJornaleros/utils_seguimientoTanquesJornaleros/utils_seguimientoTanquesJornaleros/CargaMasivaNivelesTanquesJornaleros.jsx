@@ -61,7 +61,7 @@ export default function UploadExcelPage() {
     try {
       setLoading(true);
       const response = await axios.post(
-        "http://localhost:4041/api/tanquesjornaleros/nivelesdiariostanquesjornaleros/uploadExcel",
+        "https://ambiocomserver.onrender.com/api/tanquesjornaleros/nivelesdiariostanquesjornaleros/uploadExcel",
         formData,
         {
           withCredentials: true,

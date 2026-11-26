@@ -145,7 +145,7 @@ function SeguimientoTKJornaleros({ NivelesTanquesContext }) {
   useEffect(() => {
     const fetchTanques = async () => {
       try {
-        const res = await axios.get("http://localhost:4041/api/tanques",{withCredentials:true});
+        const res = await axios.get("https://ambiocomserver.onrender.com/api/tanques",{withCredentials:true});
         setInfoDetailsTanquesPlanta(res.data || []);
       } catch (error) {
         console.error("Error al consultar tanques:", error);
@@ -272,7 +272,7 @@ function SeguimientoTKJornaleros({ NivelesTanquesContext }) {
     };
 
     axios
-      .post("http://localhost:4041/api/reportar/operacionesdetanques", data)
+      .post("https://ambiocomserver.onrender.com/api/reportar/operacionesdetanques", data)
       .then((response) => {
         setSnackbarOpen(true);
         setTimeout(() => {

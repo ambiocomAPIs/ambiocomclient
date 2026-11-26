@@ -50,7 +50,7 @@
 
 //   const fetchTanques = async () => {
 //     try {
-//       const res = await axios.get("http://localhost:4041/api/tanques", {
+//       const res = await axios.get("https://ambiocomserver.onrender.com/api/tanques", {
 //         withCredentials: true,
 //       });
 //       setTanques(Array.isArray(res.data) ? res.data : []);
@@ -82,7 +82,7 @@
 
 //       if (data._id && operacionEjecutada === "update") {
 //         const res = await axios.put(
-//           `http://localhost:4041/api/tanques/${data._id}`, {
+//           `https://ambiocomserver.onrender.com/api/tanques/${data._id}`, {
 //           withCredentials: true,
 //         },
 //           data
@@ -97,7 +97,7 @@
 //         Swal.fire("Actualizado", "Tanque actualizado correctamente", "success");
 //       } else {
 //         const res = await axios.post(
-//           "http://localhost:4041/api/tanques", {
+//           "https://ambiocomserver.onrender.com/api/tanques", {
 //           withCredentials: true,
 //         },
 //           dataLimpia
@@ -171,7 +171,7 @@
 
 //     if (confirm.isConfirmed) {
 //       try {
-//         await axios.delete(`http://localhost:4041/api/tanques/${id}`, {
+//         await axios.delete(`https://ambiocomserver.onrender.com/api/tanques/${id}`, {
 //           withCredentials: true,
 //         });
 //         setTanques((prev) => prev.filter((t) => t._id !== id));

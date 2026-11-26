@@ -35,7 +35,7 @@ import PhoneIcon from "@mui/icons-material/Phone";
 import EmailIcon from "@mui/icons-material/Email";
 import PlaceIcon from "@mui/icons-material/Place";
 
-const API_URL = "http://localhost:4041/api/transportadoraslogistica";
+const API_URL = "https://ambiocomserver.onrender.com/api/transportadoraslogistica";
 
 // Debounce simple sin librerías
 const useDebouncedValue = (value, delay = 250) => {

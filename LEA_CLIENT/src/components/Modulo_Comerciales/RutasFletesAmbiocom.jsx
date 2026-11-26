@@ -46,7 +46,7 @@ void RequireRole;
 const RAW_API_URL =
   import.meta.env.VITE_API_URL ||
   import.meta.env.VITE_BACKEND_URL ||
-  "http://localhost:4041";
+  "https://ambiocomserver.onrender.com";
 
 const API_URL = RAW_API_URL.replace(/\/$/, "");
 

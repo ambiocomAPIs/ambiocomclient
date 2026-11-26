@@ -15,7 +15,7 @@ import { DEFAULT_STATUS_ORDER, getStatusLabel, sortStatuses } from "./Data/traff
    =============== CONFIGURACIÓN GENERAL ===================
    ========================================================= */
 
-const API_BASE_URL = "http://localhost:4041/api/system/traffic";
+const API_BASE_URL = "https://ambiocomserver.onrender.com/api/system/traffic";
 const API_GET_LOGS_URL = API_BASE_URL; // GET -> consultar logs
 const API_SAVE_LOG_URL = API_BASE_URL; // POST -> guardar un log
 const API_SYNC_LOGS_URL = `${API_BASE_URL}/sync`; // POST -> guardar varios logs pendientes
@@ -1047,7 +1047,7 @@ export default TerminalTrafficLogViewer;
       Ejemplo:
 
       const response = await fetchWithTrafficLog(
-        "http://localhost:4041/api/clientes",
+        "https://ambiocomserver.onrender.com/api/clientes",
         {
           method: "POST",
           credentials: "include",

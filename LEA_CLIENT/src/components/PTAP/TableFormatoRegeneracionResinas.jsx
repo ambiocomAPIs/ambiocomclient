@@ -40,7 +40,7 @@ import YouTubeIcon from "@mui/icons-material/YouTube";
 import ExcelDownloadButton from "../../utils/Export_Data_General/ExcelDownloadData";
 import RegistroModal from "./utils_PTAP/Modal_PTAP/RegistroRegeneracionModal";
 
-const API_URL = "http://localhost:4041/api/regeneraciones-resinas";
+const API_URL = "https://ambiocomserver.onrender.com/api/regeneraciones-resinas";
 
 const siNoOptions = ["No", "Si"];
 

@@ -12,7 +12,7 @@ export function AuthProvider({ children }) {
   const me = async () => {
     setLoadingAuth(true);
     try {
-      const { data } = await axios.get("http://localhost:4041/api/auth/me", { withCredentials: true });
+      const { data } = await axios.get("https://ambiocomserver.onrender.com/api/auth/me", { withCredentials: true });
       setUser(data.user);
       sessionExpiredShownRef.current = false;
     } catch (err) {
@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
             allowEscapeKey: false,
           }).then(async () => {
             try {
-              await axios.post("http://localhost:4041/api/auth/logout", {}, { withCredentials: true });
+              await axios.post("https://ambiocomserver.onrender.com/api/auth/logout", {}, { withCredentials: true });
               localStorage.removeItem("tutorial_modulo_despachos_visto");
               window.location.replace("/")
             } catch (e) { }
@@ -61,7 +61,7 @@ export function AuthProvider({ children }) {
   }, [user, loadingAuth]);
 
   const logout = async () => {
-    await axios.post("http://localhost:4041/api/auth/logout", {}, { withCredentials: true });
+    await axios.post("https://ambiocomserver.onrender.com/api/auth/logout", {}, { withCredentials: true });
     setUser(null);
     localStorage.removeItem("tutorial_modulo_despachos_visto");
     sessionExpiredShownRef.current = false;
